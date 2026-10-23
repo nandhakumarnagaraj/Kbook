@@ -93,6 +93,15 @@ export class AdminApiService {
     return this.http.put<any>(`${API_BASE_URL}/admin/sub-merchants/${id}/status`, { status });
   }
 
+  /**
+   * Records the label post-split requests reference. Easebuzz has no label API, so the label must
+   * already exist on the split dashboard; an empty label clears ours and disarms post-split.
+   */
+  setSubMerchantSplitLabel(id: number, label: string): Observable<{ status: string; label: string; postSplitArmed: boolean }> {
+    return this.http.put<{ status: string; label: string; postSplitArmed: boolean }>(
+      `${API_BASE_URL}/admin/sub-merchants/${id}/split-label`, { label });
+  }
+
   getTransactions(page: number = 0, size: number = 20, status?: string, restaurantId?: string | number): Observable<AdminTransaction[]> {
     const params: Record<string, string | number> = { page, size };
     if (status) params['status'] = status;
@@ -125,7 +134,7 @@ export class AdminApiService {
   getCreditEligibility(): Observable<any> { return of(null); }
   getLoanOptions(eligibilityId?: any): Observable<any[]> { return of([]); }
   getSettlementEstimate(): Observable<any> { return of(null); }
-  requestInstantSettlement(amount: number): Observable<any> { return of(null); }
+  requestInstantSettlement(billIds: number[]): Observable<any> { return of(null); }
   getOnboardingProgress(): Observable<any> { return of(null); }
   prefillFromProfile(): Observable<any> { return of(null); }
   getPaymentAnomalies(): Observable<any[]> { return of([]); }
@@ -138,12 +147,8 @@ export class AdminApiService {
   generateKyc(...args: any[]): Observable<any> { return of(null); }
   updateOnEasebuzz(...args: any[]): Observable<any> { return of(null); }
   retrieveSplitStatus(...args: any[]): Observable<any> { return of(null); }
-  createSplitLabel(...args: any[]): Observable<any> { return of(null); }
-  verifyOtp(...args: any[]): Observable<any> { return of(null); }
-  resendOtp(...args: any[]): Observable<any> { return of(null); }
   retrieveSettlementsByDate(...args: any[]): Observable<any> { return of(null); }
   onDemandSettlement(...args: any[]): Observable<any> { return of(null); }
-  initiatePayout(...args: any[]): Observable<any> { return of(null); }
   getTaxSummary(...args: any[]): Observable<any> { return of(null); }
   getGstReport(...args: any[]): Observable<any[]> { return of([]); }
   getUnifiedDashboard(): Observable<any> { return of(null); }

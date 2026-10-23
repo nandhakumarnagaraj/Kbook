@@ -3,6 +3,7 @@ package com.khanabook.saas.feature.payments.service;
 import com.khanabook.saas.feature.compliance.data.FssaiTracker;
 import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.feature.payments.service.EasebuzzProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.payments.data.EasebuzzWebhookEvent;
@@ -40,7 +41,6 @@ public class EasebuzzWebhookService {
     private final RefundAttemptRepository refundAttemptRepo;
     private final EasebuzzProperties props;
     private final EasebuzzPayoutRepository payoutRepo;
-    private final org.springframework.core.env.Environment env;
     private final PushNotificationService pushNotificationService;
     private final FssaiRenewalRepository fssaiRenewalRepo;
     private final FssaiTrackerRepository fssaiTrackerRepo;
@@ -275,12 +275,21 @@ public class EasebuzzWebhookService {
     }
 
     @Transactional
-    public Map<String, Object> handleRefundWebhook(Map<String, String> payload) {
+    public Map<String, Object> handleRefundWebhook(Map<String, String> payloadIn) {
+        Map<String, String> payload = flattenDataEnvelope(payloadIn);
         String txnid = payload.get("txnid");
         String status = payload.get("status");
         String easepayid = payload.get("easepayid");
         String refundId = payload.get("refund_id");
         String refundAmount = payload.get("refund_amount");
+        // Enveloped callbacks carry the refund state as `refund_status`; `status` is then the
+        // transport flag ("1"). Flat legacy callbacks carry the state in `status`.
+        if (status == null || status.isBlank() || "1".equals(status.trim())) {
+            status = payload.get("refund_status");
+        }
+
+        // Resolved once so the lambda below can capture it.
+        final String refundState = status;
 
         log.info("Refund webhook received txnid={} status={} easepayid={} refundId={}", txnid, status, easepayid, refundId);
 
@@ -312,7 +321,7 @@ public class EasebuzzWebhookService {
                     log.warn("Refund webhook payment ID mismatch billId={} txnid={}", bill.getId(), txnid);
                     return;
                 }
-                updateBillRefund(bill, status, refundId, refundAmount, payload);
+                updateBillRefund(bill, refundState, refundId, refundAmount, payload);
             });
         } catch (Exception e) {
             log.error("Failed to process refund webhook for txnid={}, enqueueing for retry: {}", txnid, e.getMessage(), e);
@@ -324,6 +333,31 @@ public class EasebuzzWebhookService {
         }
 
         return Map.of("status", "received");
+    }
+
+    /**
+     * Refund, payout and KYC callbacks post {@code status=1&data=<json>} while the transaction
+     * callback posts flat fields. Flattening here keeps one code path for both shapes: an inner
+     * value wins over the envelope's, so {@code refund_status} and the real {@code hash} become
+     * top-level. A {@code data} that is not a JSON object is left untouched, which then fails
+     * hash verification instead of being trusted.
+     */
+    private Map<String, String> flattenDataEnvelope(Map<String, String> payload) {
+        String dataJson = payload.get("data");
+        if (dataJson == null || !dataJson.trim().startsWith("{")) {
+            return payload;
+        }
+        try {
+            Map<String, Object> inner = objectMapper.readValue(dataJson, new TypeReference<Map<String, Object>>() {});
+            Map<String, String> merged = new HashMap<>(payload);
+            inner.forEach((key, value) -> {
+                if (value != null) merged.put(key, value.toString());
+            });
+            return merged;
+        } catch (Exception e) {
+            log.warn("Webhook data payload was not a JSON object, using flat fields: {}", e.getMessage());
+            return payload;
+        }
     }
 
     private boolean verifyRefundWebhookHash(Map<String, String> payload) {
@@ -565,16 +599,6 @@ public class EasebuzzWebhookService {
         return verifyWebhookHash(params);
     }
 
-    private boolean isDevOrSandboxProfile() {
-        if (env == null) return false;
-        for (String profile : env.getActiveProfiles()) {
-            if ("dev".equalsIgnoreCase(profile) || "sandbox".equalsIgnoreCase(profile) || "test".equalsIgnoreCase(profile)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private boolean verifyWebhookHash(Map<String, String> payload) {
         try {
             String receivedHash = payload.get("hash");
@@ -710,49 +734,58 @@ public class EasebuzzWebhookService {
                 return match;
             }
 
-            // If no hash is provided, permit official Easebuzz MERCHANT_KYC_APPROVAL event only after verification
+            // The documented KYC-approval callback carries sha512(key|submerchant_id|salt)
+            // (official/articles/webhook-kyc-approval.md), so a callback that arrives without a
+            // hash carries no proof of origin and must not move a merchant to ACTIVE.
+            //
+            // A dev/sandbox bypass used to accept it whenever the sub-merchant id or email was
+            // already known, which made an unauthenticated POST sufficient to activate a row in
+            // sandbox while production rejected the same payload. "Approved" therefore meant two
+            // different things depending on the active profile. Fail closed in every profile.
+            //
+            // The one sanctioned exception is Easebuzz's undocumented unhashed callback, accepted
+            // only after a server-to-server WIRE lookup confirms the sub-merchant. WIRE is disabled
+            // on this merchant (wire_allowed: false), so today that path cannot fire. Sandbox
+            // activation is done explicitly with PUT /admin/sub-merchants/{id}/status instead of by
+            // trusting an unsigned POST.
             Object eventObj = payload.get("event");
             if (eventObj != null && "MERCHANT_KYC_APPROVAL".equalsIgnoreCase(eventObj.toString())) {
                 String email = data.containsKey("email") && data.get("email") != null ? data.get("email").toString() : null;
-                boolean exists = false;
+                boolean known = false;
                 if (subMerchantId != null && !subMerchantId.isBlank()) {
-                    exists = subMerchantRepo.findBySubMerchantId(subMerchantId).isPresent();
+                    known = subMerchantRepo.findBySubMerchantId(subMerchantId).isPresent();
                 }
-                if (!exists && email != null && !email.isBlank()) {
+                if (!known && email != null && !email.isBlank()) {
                     // contact_email is not unique; only treat the email as identifying evidence
                     // when it maps to exactly one sub-merchant. Ambiguous -> no match (deny).
-                    exists = subMerchantRepo.findAllByContactEmail(email).size() == 1;
+                    known = subMerchantRepo.findAllByContactEmail(email).size() == 1;
                 }
-                if (exists) {
-                    if (isDevOrSandboxProfile()) {
-                        // SECURITY_AUDIT: unhashed KYC acceptance is a trust-on-secondary-
-                        // evidence decision. In prod this line should never fire (the WIRE
-                        // API check above is the sanctioned path) — alert on it.
-                        log.warn("SECURITY_AUDIT: unhashed MERCHANT_KYC_APPROVAL accepted via dev/sandbox bypass (subMerchantId={}, email={})", subMerchantId, email);
-                        return true;
-                    }
-                    if (wireApiClient != null) {
-                        try {
-                            Map<String, Object> wireCheck = (email != null && !email.isBlank())
-                                    ? wireApiClient.getSubMerchantByEmail(email)
-                                    : (subMerchantId != null ? wireApiClient.getSubMerchantByKey(subMerchantId) : null);
-                            if (wireCheck != null && Boolean.TRUE.equals(wireCheck.get("success"))) {
-                                log.info("Verified unhashed MERCHANT_KYC_APPROVAL event via official WIRE API for email={}", email);
-                                return true;
-                            }
-                        } catch (Exception e) {
-                            log.warn("Server-to-server WIRE verification failed for unhashed webhook: {}", e.getMessage());
+                if (!known) {
+                    log.warn("Rejected unhashed MERCHANT_KYC_APPROVAL for unknown entity (subMerchantId={}, email={})",
+                            subMerchantId, email);
+                    return false;
+                }
+                if (wireApiClient != null) {
+                    try {
+                        Map<String, Object> wireCheck = (email != null && !email.isBlank())
+                                ? wireApiClient.getSubMerchantByEmail(email)
+                                : wireApiClient.getSubMerchantByKey(subMerchantId);
+                        if (wireCheck != null && Boolean.TRUE.equals(wireCheck.get("success"))) {
+                            log.info("Verified unhashed MERCHANT_KYC_APPROVAL via WIRE for email={}", email);
+                            return true;
                         }
+                    } catch (Exception e) {
+                        log.warn("Server-to-server WIRE verification failed for unhashed webhook: {}", e.getMessage());
                     }
-                    log.warn("Rejected unverified unhashed MERCHANT_KYC_APPROVAL event in production (subMerchantId={}, email={})", subMerchantId, email);
-                    return false;
-                } else {
-                    log.warn("Rejected unhashed MERCHANT_KYC_APPROVAL event for unknown entity (subMerchantId={}, email={})", subMerchantId, email);
-                    return false;
                 }
+                log.warn("Rejected unhashed MERCHANT_KYC_APPROVAL: no hash to verify and no WIRE confirmation (subMerchantId={}, email={})",
+                        subMerchantId, email);
+                return false;
             }
 
-            log.warn("Sub-merchant webhook missing hash or submerchant_id in data");
+            log.warn("Rejected sub-merchant webhook with no hash (subMerchantId={}, event={}); "
+                    + "the documented callback is sha512(key|submerchant_id|salt)",
+                    subMerchantId, payload.get("event"));
             return false;
         } catch (Exception e) {
             log.error("Sub-merchant webhook hash verification failed", e);

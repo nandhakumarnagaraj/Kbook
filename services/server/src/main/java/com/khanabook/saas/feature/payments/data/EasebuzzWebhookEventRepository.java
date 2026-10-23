@@ -17,6 +17,14 @@ public interface EasebuzzWebhookEventRepository extends JpaRepository<EasebuzzWe
 
     Optional<EasebuzzWebhookEvent> findByRestaurantIdAndTxnId(Long restaurantId, String txnId);
 
+    /**
+     * The newest gateway-reported row for a transaction, used when a settlement needs the
+     * Easebuzz-issued id and captured amount. A transaction can have several rows (one per
+     * status), so this deliberately takes the first rather than asserting uniqueness.
+     */
+    Optional<EasebuzzWebhookEvent> findFirstByRestaurantIdAndTxnIdAndEasebuzzIdNotNullOrderByReceivedAtDesc(
+            Long restaurantId, String txnId);
+
     boolean existsByTxnIdAndStatus(String txnId, String status);
 
     long countByReceivedAtBetweenAndStatus(Long from, Long to, String status);

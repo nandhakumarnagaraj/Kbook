@@ -316,14 +316,6 @@ interface KhanaBookApi {
         @POST("api/v1/restaurants/payment-config/easebuzz/kyc-access-key")
         suspend fun generateKycAccessKey(): com.khanabook.lite.pos.feature.payments.data.EasebuzzKycAccessKeyResponse
 
-        @POST("api/v1/restaurants/payment-config/easebuzz/verify-otp")
-        suspend fun verifyEasebuzzOtp(
-            @Body request: com.khanabook.lite.pos.feature.payments.data.EasebuzzOtpRequest
-        ): Map<String, Any?>
-
-        @POST("api/v1/restaurants/payment-config/easebuzz/resend-otp")
-        suspend fun resendEasebuzzOtp(): Map<String, Any?>
-
         // ── Easebuzz KYC documents (incl. 2 address/business proofs) ───────
 
         /**

@@ -2,6 +2,12 @@
 
 > **Official Easebuzz Documentation**: https://docs.easebuzz.in/
 > All endpoint URLs, hash sequences, and request/response schemas below are aligned with the official Easebuzz Stoplight documentation.
+>
+> **Correction (2026-10-23).** Four sections describe endpoints that appear in **no** Easebuzz
+> specification: §4/§5 sub-merchant OTP (`/submerchant/v1/verify_otp`, `/submerchant/v1/resend_otp`),
+> §6 split label (`/split/v1/create`) and §14 payout transfer (`/payout/v2/transfer`). They are kept
+> only as a record of what was believed at collection time; the code no longer calls any of them.
+> See [`OFFICIAL_API_CATALOGUE.md`](./OFFICIAL_API_CATALOGUE.md) §8.2.
 
 ---
 
@@ -312,6 +318,8 @@ and a failed refresh must not replace a working URL with an empty one.
 
 ## 4. Confirm OTP / Verify OTP
 
+> ⛔ **No such endpoint.** Easebuzz publishes no sub-merchant OTP API; this path appears in no captured spec. Removed from the code 2026-10-23.
+
 - **Official Doc**: https://docs.easebuzz.in/docs/payment-gateway/ifudkz7jpfadk-confirm-otp-verify-otp-api
 - **Endpoint**: `POST https://dashboard.easebuzz.in/submerchant/v1/verify_otp`
 - **Content-Type**: `application/json`
@@ -340,6 +348,8 @@ and a failed refresh must not replace a working URL with an empty one.
 
 ## 5. Resend OTP
 
+> ⛔ **No such endpoint.** See §4. Removed from the code 2026-10-23.
+
 - **Official Doc**: https://docs.easebuzz.in/docs/payment-gateway/3b9hki8thr6pn-resend-otp-api
 - **Endpoint**: `POST https://dashboard.easebuzz.in/submerchant/v1/resend_otp`
 - **Content-Type**: `application/json`
@@ -366,6 +376,8 @@ and a failed refresh must not replace a working URL with an empty one.
 ---
 
 ## 6. Create Split Label
+
+> ⛔ **No such endpoint.** `/split/v1/create` is not a published path — the label concept lives in the split dashboard, not this API. Removed from the code 2026-10-23.
 
 - **Official Doc**: https://docs.easebuzz.in/docs/payment-gateway/e383e3fb60ce3-create-api
 - **Endpoint**: `POST https://dashboard.easebuzz.in/split/v1/create`
@@ -651,6 +663,8 @@ and a failed refresh must not replace a working URL with an empty one.
 ---
 
 ## 14. Payout API v2
+
+> ⛔ **No such endpoint.** The Payouts product is WIRE, not the PG API, and `/payout/v2/transfer` exists in no specification. Removed from the code 2026-10-23.
 
 - **Official Doc**: https://docs.easebuzz.in/docs/payment-gateway/xsrzv37a3ksv0-payout-api-v2
 - **Endpoint**: `POST https://dashboard.easebuzz.in/payout/v2/transfer`

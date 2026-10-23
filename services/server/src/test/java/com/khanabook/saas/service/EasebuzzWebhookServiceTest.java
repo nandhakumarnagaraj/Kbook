@@ -28,7 +28,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.core.env.Environment;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -77,7 +76,6 @@ class EasebuzzWebhookServiceTest {
     @Mock private EasebuzzWebhookEventRepository webhookEventRepo;
     @Mock private RefundAttemptRepository refundAttemptRepo;
     @Mock private EasebuzzPayoutRepository payoutRepo;
-    @Mock private Environment env;
     @Mock private PushNotificationService pushNotificationService;
     @Mock private FssaiRenewalRepository fssaiRenewalRepo;
     @Mock private FssaiTrackerRepository fssaiTrackerRepo;
@@ -94,9 +92,8 @@ class EasebuzzWebhookServiceTest {
         props.setSalt(SALT);
         service = new EasebuzzWebhookService(
                 billRepo, subMerchantService, subMerchantRepo, webhookEventRepo,
-                refundAttemptRepo, props, payoutRepo, env, pushNotificationService,
+                refundAttemptRepo, props, payoutRepo, pushNotificationService,
                 fssaiRenewalRepo, fssaiTrackerRepo, webhookRetryService, objectMapper);
-        when(env.getActiveProfiles()).thenReturn(new String[]{"prod"});
     }
 
     // ── Hash helpers (mirror the service's documented sequences) ──────────────
@@ -817,10 +814,8 @@ class EasebuzzWebhookServiceTest {
     }
 
     @Test
-    @DisplayName("Unhashed MERCHANT_KYC_APPROVAL is accepted in dev/sandbox (audited bypass)")
-    void unhashedKycApproval_devProfile_acceptedWithAuditWarning() {
-        when(env.getActiveProfiles()).thenReturn(new String[]{"dev"});
-
+    @DisplayName("Unhashed MERCHANT_KYC_APPROVAL is rejected in dev/sandbox too")
+    void unhashedKycApproval_devProfile_rejected() {
         Map<String, Object> payload = new HashMap<>();
         payload.put("event", "MERCHANT_KYC_APPROVAL");
         payload.put("submerchant_id", "KBSM-1");
@@ -830,14 +825,14 @@ class EasebuzzWebhookServiceTest {
 
         Map<String, Object> result = service.handleSubMerchantWebhook(payload);
 
-        assertThat(result.get("status")).isEqualTo("received");
-        verify(subMerchantService).processWebhook(payload);
+        assertThat(result.get("status")).isEqualTo("hash_mismatch");
+        verify(subMerchantService, never()).processWebhook(any());
     }
 
     @Test
     @DisplayName("Unhashed MERCHANT_KYC_APPROVAL is rejected in production without WIRE verification")
     void unhashedKycApproval_productionRejectedWithoutWireVerification() {
-        // env stays "prod" from setUp; wireApiClient is never injected (null)
+        // wireApiClient is never injected (null), so there is nothing to verify against
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("event", "MERCHANT_KYC_APPROVAL");

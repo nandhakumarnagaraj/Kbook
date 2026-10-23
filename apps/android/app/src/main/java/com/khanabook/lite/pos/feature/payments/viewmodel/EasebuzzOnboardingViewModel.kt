@@ -22,7 +22,6 @@ import javax.inject.Inject
 sealed class OnboardingStep {
     data object BusinessDetails : OnboardingStep()
     data object BankDetails : OnboardingStep()
-    data object OtpVerification : OnboardingStep()
     data object KycStatus : OnboardingStep()
 }
 
@@ -282,10 +281,6 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                 goToStep(OnboardingStep.BusinessDetails)
                 true
             }
-            OnboardingStep.OtpVerification -> {
-                goToStep(OnboardingStep.BankDetails)
-                true
-            }
             else -> false
         }
     }
@@ -354,47 +349,6 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                     ))
                 }
             _isSubmitting.value = false
-        }
-    }
-
-    fun verifyOtp(otp: String) {
-        viewModelScope.launch {
-            _isSubmitting.value = true
-            repository.verifyOtp(otp)
-                .onSuccess { result ->
-                    val status = result["status"]?.toString() ?: ""
-                    if (status.contains("true", ignoreCase = true) || status == "success") {
-                        _events.emit(OnboardingEvent.Toast("OTP verified! Generating KYC access..."))
-                        generateKycAccessKey()
-                    } else {
-                        _events.emit(OnboardingEvent.Toast(
-                            result["error"]?.toString() ?: "Invalid OTP. Please try again.",
-                            isError = true
-                        ))
-                    }
-                }
-                .onFailure { e ->
-                    _events.emit(OnboardingEvent.Toast(
-                        UserMessageSanitizer.sanitize(e, "Verification failed. Please try again."),
-                        isError = true
-                    ))
-                }
-            _isSubmitting.value = false
-        }
-    }
-
-    fun resendOtp() {
-        viewModelScope.launch {
-            repository.resendOtp()
-                .onSuccess {
-                    _events.emit(OnboardingEvent.Toast("OTP resent to your registered phone"))
-                }
-                .onFailure { e ->
-                    _events.emit(OnboardingEvent.Toast(
-                        UserMessageSanitizer.sanitize(e, "Failed to resend OTP"),
-                        isError = true
-                    ))
-                }
         }
     }
 

@@ -57,10 +57,6 @@ data class EasebuzzOnboardingStatusResponse(
     @SerializedName("fssaiNumber") val fssaiNumber: String? = null
 )
 
-data class EasebuzzOtpRequest(
-    @SerializedName("otp") val otp: String
-)
-
 data class EasebuzzKycAccessKeyResponse(
     @SerializedName("status") val status: Any? = null,
     @SerializedName("kyc_url") val kycUrl: String? = null,

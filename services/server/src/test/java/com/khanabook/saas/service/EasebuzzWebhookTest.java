@@ -55,7 +55,6 @@ class EasebuzzWebhookTest {
     @Mock private FssaiRenewalRepository fssaiRenewalRepo;
     @Mock private FssaiTrackerRepository fssaiTrackerRepo;
     @Mock private EasebuzzSubMerchantRepository subMerchantRepo;
-    @Mock private org.springframework.core.env.Environment env;
     @Mock private EasebuzzWireApiClient wireApiClient;
 
     @InjectMocks
@@ -68,7 +67,6 @@ class EasebuzzWebhookTest {
     void setup() {
         lenient().when(props.getMerchantKey()).thenReturn(TEST_KEY);
         lenient().when(props.getSalt()).thenReturn(TEST_SALT);
-        lenient().when(env.getActiveProfiles()).thenReturn(new String[]{"dev"});
     }
 
     @Test
@@ -311,6 +309,57 @@ class EasebuzzWebhookTest {
         verify(billRepo, never()).save(any());
     }
 
+    @Test
+    void refundWebhookAcceptsTheDocumentedDataEnvelope() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
+        stubRefundAttempt(bill, new BigDecimal("100.00"));
+
+        Map<String, Object> inner = new java.util.LinkedHashMap<>();
+        inner.put("txnid", "PL_REFUND_TEST");
+        inner.put("easepayid", "E_REFUND_TEST");
+        inner.put("refund_id", "REF_TEST");
+        inner.put("refund_amount", 100.0);
+        inner.put("refund_status", "refunded");
+        inner.put("hash", sha512(TEST_KEY + "|E_REFUND_TEST|" + TEST_SALT));
+
+        Map<String, String> envelope = new HashMap<>();
+        envelope.put("status", "1");
+        envelope.put("data", objectMapper.writeValueAsString(inner));
+
+        Map<String, Object> response = webhookService.handleRefundWebhook(envelope);
+
+        assertEquals("received", response.get("status"));
+        assertEquals("refunded", bill.getPaymentStatus());
+    }
+
+    @Test
+    void refundWebhookEnvelopeReadsTheStateFromRefundStatus() throws Exception {
+        Bill bill = refundBill(new BigDecimal("100.00"), BigDecimal.ZERO);
+        when(billRepo.findByGatewayTxnId("PL_REFUND_TEST")).thenReturn(Optional.of(bill));
+        stubOriginalPaymentEvent(bill, "E_REFUND_TEST");
+        stubRefundAttempt(bill, new BigDecimal("30.00"));
+
+        Map<String, Object> inner = new java.util.LinkedHashMap<>();
+        inner.put("txnid", "PL_REFUND_TEST");
+        inner.put("easepayid", "E_REFUND_TEST");
+        inner.put("refund_id", "REF_TEST");
+        inner.put("refund_amount", 30.0);
+        inner.put("refund_status", "queued");
+        inner.put("hash", sha512(TEST_KEY + "|E_REFUND_TEST|" + TEST_SALT));
+
+        Map<String, String> envelope = new HashMap<>();
+        envelope.put("status", "1");
+        envelope.put("data", objectMapper.writeValueAsString(inner));
+
+        webhookService.handleRefundWebhook(envelope);
+
+        // The transport flag "1" must not be mistaken for a refund state.
+        assertEquals("refund_queued", bill.getGatewayStatus());
+        assertEquals("paid", bill.getPaymentStatus());
+    }
+
     private void stubOriginalPaymentEvent(Bill bill, String easebuzzId) {
         EasebuzzWebhookEvent event = new EasebuzzWebhookEvent();
         event.setEasebuzzId(easebuzzId);
@@ -485,7 +534,7 @@ class EasebuzzWebhookTest {
     }
 
     @Test
-    void testUnhashedMerchantKycApproval_SubMerchantFound_Accepted() {
+    void testUnhashedMerchantKycApproval_SubMerchantFound_Rejected() {
         Map<String, Object> data = new HashMap<>();
         data.put("submerchant_id", "KNOWN_SM_ID");
         data.put("email", "known@restaurant.com");
@@ -499,14 +548,12 @@ class EasebuzzWebhookTest {
         when(subMerchantRepo.findBySubMerchantId("KNOWN_SM_ID")).thenReturn(Optional.of(sm));
 
         Map<String, Object> result = webhookService.handleSubMerchantWebhook(payload);
-        assertEquals("received", result.get("status"));
-        verify(subMerchantService, times(1)).processWebhook(payload);
+        assertEquals("hash_mismatch", result.get("status"));
+        verify(subMerchantService, never()).processWebhook(any());
     }
 
     @Test
     void testUnhashedMerchantKycApproval_InProduction_WithoutWire_Rejected() {
-        when(env.getActiveProfiles()).thenReturn(new String[]{"prod"});
-
         Map<String, Object> data = new HashMap<>();
         data.put("submerchant_id", "KNOWN_SM_ID");
         data.put("email", "known@restaurant.com");

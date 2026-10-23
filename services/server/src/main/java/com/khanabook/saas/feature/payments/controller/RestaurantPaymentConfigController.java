@@ -250,25 +250,6 @@ public class RestaurantPaymentConfigController {
         return ResponseEntity.ok(subMerchantService.requestKycPortalLink(restaurantId, docType.toString()));
     }
 
-    /** Verify the onboarding OTP sent by EaseBuzz (LIVE only — not supported in sandbox). */
-    @PostMapping("/verify-otp")
-    @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.OtpVerificationRequest.class))), responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.ActionResponse.class))))
-    public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody Map<String, Object> body) {
-        Long restaurantId = TenantContext.getCurrentTenant();
-        Long id = subMerchantService.requireSubMerchantIdForRestaurant(restaurantId);
-        String otp = body.get("otp") != null ? body.get("otp").toString() : "";
-        return ResponseEntity.ok(subMerchantService.verifyOtp(id, otp));
-    }
-
-    /** Resend the onboarding OTP (LIVE only — not supported in sandbox). */
-    @PostMapping("/resend-otp")
-    @Operation(responses = @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = PaymentConfigOpenApiSchemas.ActionResponse.class))))
-    public ResponseEntity<Map<String, Object>> resendOtp() {
-        Long restaurantId = TenantContext.getCurrentTenant();
-        Long id = subMerchantService.requireSubMerchantIdForRestaurant(restaurantId);
-        return ResponseEntity.ok(subMerchantService.resendOtp(id));
-    }
-
     private Map<String, Object> actionResult(EasebuzzSubMerchant sm) {
         Map<String, Object> out = new HashMap<>();
         boolean ok = !"FAILED".equals(sm.getStatus());

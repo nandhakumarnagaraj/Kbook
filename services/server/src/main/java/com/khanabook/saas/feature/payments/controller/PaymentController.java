@@ -288,13 +288,30 @@ public class PaymentController {
     }
 
     @PostMapping(value = "/refund/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> refundWebhookJson(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<Map<String, Object>> refundWebhookJson(@RequestBody Map<String, Object> payload) {
+        // Easebuzz posts `status=1&data=<json>` for refunds; a nested `data` object is
+        // re-serialised so the service can flatten the envelope in one place.
+        Map<String, String> flatPayload = new HashMap<>();
+        for (Map.Entry<String, Object> entry : payload.entrySet()) {
+            Object value = entry.getValue();
+            if (value == null) continue;
+            flatPayload.put(entry.getKey(), value instanceof Map<?, ?> ? jsonText(value) : value.toString());
+        }
         log.debug("Refund webhook (JSON) received: {}", PaymentLogMasker.mask(payload));
-        Map<String, Object> result = webhookService.handleRefundWebhook(payload);
+        Map<String, Object> result = webhookService.handleRefundWebhook(flatPayload);
         if ("hash_mismatch".equals(result.get("status"))) {
             return ResponseEntity.status(401).body(result);
         }
         return ResponseEntity.ok(result);
+    }
+
+    /** Re-serialises a nested JSON value so the webhook service can flatten the envelope once. */
+    private String jsonText(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            return String.valueOf(value);
+        }
     }
 
     @PostMapping(value = "/refund/webhook", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)

@@ -233,6 +233,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
                   <th>Legal Entity</th>
                   <th>PAN / GST</th>
                   <th>Bank Details</th>
+                  <th>Split Label</th>
                   <th>Onboarded</th>
                 </tr>
               </thead>
@@ -252,6 +253,25 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
                   <td class="tabular-num muted">
                     {{ sm.bankAccountNo ? ('••••' + sm.bankAccountNo.slice(-4)) : '-' }}
                     <span *ngIf="sm.ifsc">({{ sm.ifsc }})</span>
+                  </td>
+                  <td>
+                    <div class="split-label-form">
+                      <input
+                        type="text"
+                        class="split-label-input"
+                        [value]="splitLabelValue(sm)"
+                        (input)="onSplitLabelInput(sm.id, $any($event.target).value)"
+                        [attr.placeholder]="'sm_' + (sm.subMerchantId || 'id')"
+                        aria-label="Split label for this sub-merchant" />
+                      <button
+                        type="button"
+                        class="split-label-save"
+                        [disabled]="savingSplitLabelId() === sm.id"
+                        (click)="saveSplitLabel(sm)">
+                        {{ savingSplitLabelId() === sm.id ? 'Saving' : 'Save' }}
+                      </button>
+                    </div>
+                    <span class="split-label-hint" *ngIf="!sm.splitLabel">post-split disarmed</span>
                   </td>
                   <td class="muted">{{ sm.createdAt ? (sm.createdAt | date:'shortDate') : '-' }}</td>
                 </tr>
@@ -523,6 +543,39 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       padding: 3rem 1rem;
       text-align: center;
     }
+    .split-label-form {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+    }
+    .split-label-input {
+      width: 9.5rem;
+      padding: 0.3rem 0.5rem;
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-sm);
+      background: var(--kb-color-surface);
+      color: inherit;
+      font: inherit;
+    }
+    .split-label-save {
+      padding: 0.3rem 0.6rem;
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-sm);
+      background: var(--kb-color-surface-2);
+      color: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .split-label-save:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .split-label-hint {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.68rem;
+      color: var(--kb-color-muted-foreground);
+    }
 
     .skeleton { background: var(--line); border-radius: var(--r-md); animation: pulse 1.5s ease-in-out infinite; }
     .skeleton-stat { height: 130px; }
@@ -666,6 +719,41 @@ export class PlatformDashboardPageComponent {
 
   trackBySubMerchantId(_: number, item: EasebuzzSubMerchant): number {
     return item.id;
+  }
+
+  // ── Split label editor ──────────────────────────────────────────────────
+  // Easebuzz has no label API, so the label has to be recorded here by hand. Post-split is
+  // skipped while the column is empty, which is why the hint says "disarmed".
+  readonly splitLabelDrafts = signal<Record<number, string>>({});
+  readonly savingSplitLabelId = signal<number | null>(null);
+
+  splitLabelValue(sm: EasebuzzSubMerchant): string {
+    return this.splitLabelDrafts()[sm.id] ?? (sm.splitLabel ?? '');
+  }
+
+  onSplitLabelInput(id: number, value: string): void {
+    this.splitLabelDrafts.update((drafts) => ({ ...drafts, [id]: value }));
+  }
+
+  saveSplitLabel(sm: EasebuzzSubMerchant): void {
+    const label = this.splitLabelValue(sm).trim();
+    this.savingSplitLabelId.set(sm.id);
+    this.api.setSubMerchantSplitLabel(sm.id, label).subscribe({
+      next: (result) => {
+        this.savingSplitLabelId.set(null);
+        this.subMerchants.update((list) => list.map((row) =>
+          row.id === sm.id ? { ...row, splitLabel: result?.label || null } : row));
+        this.splitLabelDrafts.update((drafts) => {
+          const next = { ...drafts };
+          delete next[sm.id];
+          return next;
+        });
+      },
+      error: (err) => {
+        this.savingSplitLabelId.set(null);
+        this.tabError.set(err?.error?.message ?? err?.error?.error ?? 'Failed to save the split label.');
+      }
+    });
   }
 
   trackByTxnId(_: number, item: AdminTransaction): number {

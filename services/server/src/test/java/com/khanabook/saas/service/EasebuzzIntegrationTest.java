@@ -121,15 +121,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant updated = subMerchantRepo.findById(sm.getId()).orElseThrow();
         assertNotNull(updated.getKycPortalUrl());
 
-        // 4. Create split label (mock)
-        when(easebuzzApi.createSplitLabel(any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(Map.of("status", "success", "msg", "Label created"));
-
-        Map<String, Object> splitResult = subMerchantService.createSplitLabel(sm.getId());
-        assertEquals("success", splitResult.get("status"));
-        assertEquals("sm_" + testSubMerchantId, splitResult.get("label"));
-
-        // 5. Simulate KYC approval webhook
+        // 4. Simulate KYC approval webhook
         subMerchantService.processWebhook(Map.of(
             "status", "1",
             "data", Map.of("submerchant_id", testSubMerchantId, "status", "True")
@@ -1051,53 +1043,6 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         // Verify bill NOT settled
         Bill unsettledBill = billRepository.findById(bill.getId()).orElseThrow();
         assertNull(unsettledBill.getSettledAt());
-    }
-
-    @Transactional
-    @Test
-    void testSplitLabelRotatesOnBankChange() {
-        EasebuzzSubMerchant sm = createActiveSubMerchant();
-        sm.setSplitLabel("sm_" + testSubMerchantId);
-        sm.setSplitLabelVersion(1);
-        sm.setSplitLabelBankSnapshot("123456789012|HDFC0000123");
-        subMerchantRepo.save(sm);
-
-        // Change bank account + IFSC, then push to Easebuzz
-        Map<String, String> update = new java.util.HashMap<>();
-        update.put("bankAccountNo", "987654321098");
-        update.put("ifsc", "ICIC0000456");
-        subMerchantService.update(sm.getId(), update);
-
-        when(easebuzzApi.updateSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(Map.of("status", true));
-        when(easebuzzApi.createSplitLabel(any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(Map.of("status", "success", "msg", "Label created"));
-
-        subMerchantService.updateOnEasebuzz(sm.getId());
-
-        EasebuzzSubMerchant rotated = subMerchantRepo.findById(sm.getId()).orElseThrow();
-        assertEquals("sm_" + testSubMerchantId + "_v1", rotated.getSplitLabel());
-        assertEquals(Integer.valueOf(2), rotated.getSplitLabelVersion());
-        assertEquals("987654321098|ICIC0000456", rotated.getSplitLabelBankSnapshot());
-    }
-
-    @Transactional
-    @Test
-    void testSplitLabelNotRotatedWhenBankUnchanged() {
-        EasebuzzSubMerchant sm = createActiveSubMerchant();
-        sm.setSplitLabel("sm_" + testSubMerchantId);
-        sm.setSplitLabelVersion(1);
-        sm.setSplitLabelBankSnapshot("123456789012|HDFC0000123");
-        subMerchantRepo.save(sm);
-
-        when(easebuzzApi.updateSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(Map.of("status", true));
-
-        subMerchantService.updateOnEasebuzz(sm.getId());
-
-        EasebuzzSubMerchant unchanged = subMerchantRepo.findById(sm.getId()).orElseThrow();
-        assertEquals("sm_" + testSubMerchantId, unchanged.getSplitLabel());
-        assertEquals(Integer.valueOf(1), unchanged.getSplitLabelVersion());
     }
 
     // --- Stuck payment sweep ---

@@ -297,26 +297,6 @@ class EasebuzzOnboardingViewModelTest {
     }
 
     @Test
-    fun `verifyOtp succeeds and triggers KYC access key generation`() = runTest(testScheduler) {
-        coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(
-            EasebuzzOnboardingStatusResponse(status = "PENDING_KYC", hasSubMerchant = true)
-        )
-        val viewModel = createViewModel()
-        advanceUntilIdle()
-
-        viewModel.goToStep(OnboardingStep.OtpVerification)
-        coEvery { onboardingRepository.verifyOtp("123456") } returns Result.success(mapOf("status" to "success"))
-        coEvery { onboardingRepository.generateKycAccessKey() } returns Result.success(
-            com.khanabook.lite.pos.feature.payments.data.EasebuzzKycAccessKeyResponse(status = "success", kycUrl = "https://kyc.easebuzz.in/portal/test")
-        )
-
-        viewModel.verifyOtp("123456")
-        advanceUntilIdle()
-
-        assertEquals(OnboardingStep.KycStatus, viewModel.currentStep.value)
-    }
-
-    @Test
     fun `loadStatus with CPV_PENDING transitions to AwaitingKyc state`() = runTest(testScheduler) {
         coEvery { onboardingRepository.getOnboardingStatus() } returns Result.success(
             EasebuzzOnboardingStatusResponse(status = "CPV_PENDING", hasSubMerchant = true)

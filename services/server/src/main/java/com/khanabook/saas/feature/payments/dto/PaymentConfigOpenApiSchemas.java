@@ -28,6 +28,5 @@ public final class PaymentConfigOpenApiSchemas {
             String kycExpiryDate, String bankStatus, @Schema(description = "Hosted KYC portal URL; returned only to an owner") String kycUrl, String message) {}
     public record KycPortalLinkRequest(@Schema(description = "id_proof, bank_proof, business_proof_1, or business_proof_2") String docType) {}
     public record KycPortalLinkResponse(String status, String subMerchantId, String documentType, String kycUrl, String message) {}
-    public record OtpVerificationRequest(@Schema(description = "OTP sent by Easebuzz") String otp) {}
     public record KycAccessKeyResponse(String status, String kycUrl, String accessKey, String message) {}
 }

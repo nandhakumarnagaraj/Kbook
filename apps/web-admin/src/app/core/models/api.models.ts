@@ -400,6 +400,8 @@ export interface EasebuzzSubMerchant {
   commissionRate: number | null;
   kycStatus: string | null;
   kycSubmittedAt: number | null;
+  /** Label post-split requests reference. Empty until an admin sets it; nothing creates it via API. */
+  splitLabel?: string | null;
 }
 
 export interface EasebuzzSubMerchantRequest {

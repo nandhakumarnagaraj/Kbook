@@ -20,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.core.env.Environment;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -54,7 +53,6 @@ class EasebuzzWebhookAuthOrderingTest {
     @Mock private EasebuzzWebhookEventRepository webhookEventRepo;
     @Mock private RefundAttemptRepository refundAttemptRepo;
     @Mock private EasebuzzPayoutRepository payoutRepo;
-    @Mock private Environment env;
     @Mock private PushNotificationService pushNotificationService;
     @Mock private FssaiRenewalRepository fssaiRenewalRepo;
     @Mock private FssaiTrackerRepository fssaiTrackerRepo;
@@ -69,7 +67,7 @@ class EasebuzzWebhookAuthOrderingTest {
         props.setSalt(SALT);
         service = new EasebuzzWebhookService(
                 billRepo, subMerchantService, subMerchantRepo, webhookEventRepo,
-                refundAttemptRepo, props, payoutRepo, env, pushNotificationService,
+                refundAttemptRepo, props, payoutRepo, pushNotificationService,
                 fssaiRenewalRepo, fssaiTrackerRepo, webhookRetryService, new ObjectMapper());
     }
 

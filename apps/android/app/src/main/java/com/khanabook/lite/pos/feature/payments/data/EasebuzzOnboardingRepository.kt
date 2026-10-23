@@ -7,7 +7,6 @@ import com.khanabook.lite.pos.feature.payments.data.EasebuzzKycAccessKeyResponse
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingRequest
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingResponse
 import com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse
-import com.khanabook.lite.pos.feature.payments.data.EasebuzzOtpRequest
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -59,12 +58,6 @@ class EasebuzzOnboardingRepository @Inject constructor(
 
     suspend fun generateKycAccessKey(): Result<EasebuzzKycAccessKeyResponse> =
         runApi { api.generateKycAccessKey() }
-
-    suspend fun verifyOtp(otp: String): Result<Map<String, Any?>> =
-        runApi { api.verifyEasebuzzOtp(EasebuzzOtpRequest(otp)) }
-
-    suspend fun resendOtp(): Result<Map<String, Any?>> =
-        runApi { api.resendEasebuzzOtp() }
 
     suspend fun lookupFssai(fssaiNo: String): Result<com.khanabook.lite.pos.feature.payments.data.FssaiLookupResponse> =
         runApi { api.lookupFssai(fssaiNo) }

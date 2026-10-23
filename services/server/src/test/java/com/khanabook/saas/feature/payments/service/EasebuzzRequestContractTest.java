@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -284,5 +286,123 @@ class EasebuzzRequestContractTest {
         assertEquals(Boolean.TRUE, result.get("status"));
         assertEquals("S360TEST1", result.get("submerchant_id"));
         server.verify();
+    }
+
+    @Test
+    void createPaymentLinkPostsJsonToTheDashboardEasyCollectEndpoint() throws Exception {
+        EasebuzzApiClient client = client();
+        MockRestServiceServer server = bind(client);
+
+        // key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+        String expectedHash = sha512(String.join("|",
+                KEY, "KBLINK123", "Ravi", "r@kb.test", "9999999999", "250.00",
+                "1", "100", "", "", "", "Payment for KhanaBook Order #1") + "|" + SALT);
+
+        server.expect(requestTo("https://dashboard.easebuzz.in/easycollect/v1/create"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().string(allOf(
+                        containsString("\"merchant_txn\":\"KBLINK123\""),
+                        containsString("\"amount\":\"250.00\""),
+                        containsString("\"udf1\":\"1\""),
+                        containsString("\"message\":\"Payment for KhanaBook Order #1\""),
+                        containsString("\"sub_merchant_id\":\"S280498CAWF\""),
+                        containsString("\"hash\":\"" + expectedHash + "\""))))
+                .andRespond(withSuccess("{\"status\":true,\"data\":{"
+                        + "\"id\":12842792,\"merchant_txn\":\"KBLINK123\","
+                        + "\"payment_url\":\"https://testpay.easebuzz.in/easy_collect/abc123\","
+                        + "\"state\":\"active\",\"expiry_date\":\"27-10-2026\"}}",
+                        MediaType.APPLICATION_JSON));
+
+        Map<String, String> data = new HashMap<>();
+        data.put("merchant_txn", "KBLINK123");
+        data.put("name", "Ravi");
+        data.put("email", "r@kb.test");
+        data.put("phone", "9999999999");
+        data.put("amount", "250.00");
+        data.put("message", "Payment for KhanaBook Order #1");
+        data.put("udf1", "1");
+        data.put("udf2", "100");
+        data.put("sub_merchant_id", "S280498CAWF");
+
+        Map<String, Object> result = client.createPaymentLink(data);
+
+        // data is an object; the link lives at data.payment_url, not data itself.
+        assertEquals("success", result.get("status"));
+        assertEquals("https://testpay.easebuzz.in/easy_collect/abc123", result.get("payment_url"));
+        assertEquals("KBLINK123", result.get("merchant_txn"));
+        assertEquals(12842792, result.get("link_id"));
+        assertEquals("active", result.get("state"));
+        server.verify();
+    }
+
+    @Test
+    void createPaymentLinkFailsWhenTheSuccessCarriesNoLinkUrl() throws Exception {
+        EasebuzzApiClient client = client();
+        MockRestServiceServer server = bind(client);
+
+        server.expect(requestTo("https://dashboard.easebuzz.in/easycollect/v1/create"))
+                .andRespond(withSuccess("{\"status\":true,\"data\":{\"id\":7}}", MediaType.APPLICATION_JSON));
+
+        Map<String, String> data = new HashMap<>();
+        data.put("merchant_txn", "KBLINK124");
+        data.put("name", "Ravi");
+        data.put("email", "r@kb.test");
+        data.put("phone", "9999999999");
+        data.put("amount", "1.00");
+        data.put("sub_merchant_id", "S280498CAWF");
+
+        Map<String, Object> result = client.createPaymentLink(data);
+
+        assertEquals("failure", result.get("status"));
+        assertNull(result.get("payment_url"));
+        assertTrue(String.valueOf(result.get("error")).contains("no payment link"));
+        server.verify();
+    }
+
+    @Test
+    void onDemandSettlementPostsTheDocumentedBatchWithAPerTransactionHash() throws Exception {
+        EasebuzzApiClient client = client();
+        MockRestServiceServer server = bind(client);
+
+        // key|easebuzz_id|merchant_txn_id|amount|salt — one digest per transaction, none at the top.
+        String firstHash = sha512(String.join("|", KEY, "S2610ABC", "KB_TXN_1", "250.00") + "|" + SALT);
+        String secondHash = sha512(String.join("|", KEY, "S2610XYZ", "KB_TXN_2", "100.50") + "|" + SALT);
+
+        String expectedBody = "{\"key\":\"" + KEY + "\","
+                + "\"merchant_email\":\"finance@khanabook.in\","
+                + "\"merchant_batch_id\":\"BATCH-1\","
+                + "\"description\":\"Friday batch\","
+                + "\"transactions\":["
+                + "{\"easebuzz_id\":\"S2610ABC\",\"merchant_txn_id\":\"KB_TXN_1\",\"amount\":\"250.00\",\"hash\":\"" + firstHash + "\"},"
+                + "{\"easebuzz_id\":\"S2610XYZ\",\"merchant_txn_id\":\"KB_TXN_2\",\"amount\":\"100.50\",\"hash\":\"" + secondHash + "\"}]}";
+
+        server.expect(requestTo("https://dashboard.easebuzz.in/settlements/v1/ondemand/initiate/"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().json(expectedBody))
+                .andRespond(withSuccess(
+                        "{\"status\":true,\"batch_status\":\"pending\",\"transactions\":["
+                                + "{\"easebuzz_id\":\"S2610ABC\",\"status\":\"accepted\",\"error\":\"\"},"
+                                + "{\"easebuzz_id\":\"S2610XYZ\",\"status\":\"accepted\",\"error\":\"\"}]}",
+                        MediaType.APPLICATION_JSON));
+
+        Map<String, Object> result = client.initiateOnDemandSettlement("BATCH-1", "Friday batch", List.of(
+                Map.of("easebuzz_id", "S2610ABC", "merchant_txn_id", "KB_TXN_1", "amount", "250.00"),
+                Map.of("easebuzz_id", "S2610XYZ", "merchant_txn_id", "KB_TXN_2", "amount", "100.50")));
+
+        assertEquals(Boolean.TRUE, result.get("status"));
+        assertEquals("pending", result.get("batch_status"));
+        server.verify();
+    }
+
+    @Test
+    void onDemandSettlementRejectsATransactionWithoutItsIdentifyingFields() {
+        EasebuzzApiClient client = client();
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> client.initiateOnDemandSettlement("BATCH-1", null,
+                        List.of(Map.of("easebuzz_id", "S2610ABC"))));
+        assertTrue(error.getMessage().contains("easebuzz_id"));
     }
 }

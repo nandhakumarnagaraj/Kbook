@@ -166,11 +166,6 @@ fun EasebuzzOnboardingScreen(
                             isSubmitting = isSubmitting,
                             spacing = spacing
                         )
-                        OnboardingStep.OtpVerification -> OtpVerificationStep(
-                            viewModel = viewModel,
-                            isSubmitting = isSubmitting,
-                            spacing = spacing
-                        )
                         OnboardingStep.KycStatus -> KycStatusStep(
                             viewModel = viewModel,
                             status = null,
@@ -626,86 +621,6 @@ private fun BankDetailsStep(
 }
 
 @Composable
-private fun OtpVerificationStep(
-    viewModel: EasebuzzOnboardingViewModel,
-    isSubmitting: Boolean,
-    spacing: Spacing
-) {
-    var otp by remember { mutableStateOf("") }
-    var resendCooldown by remember { mutableStateOf(0) }
-
-    LaunchedEffect(resendCooldown) {
-        if (resendCooldown > 0) {
-            kotlinx.coroutines.delay(1000)
-            resendCooldown--
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .imePadding()
-            .padding(spacing.medium),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        StepIndicator(current = 3, total = 3, spacing = spacing)
-        Spacer(Modifier.height(spacing.extraLarge))
-        Text("OTP Verification", style = MaterialTheme.typography.titleMedium, color = PrimaryGold)
-        Spacer(Modifier.height(spacing.medium))
-        Text(
-            "Enter the OTP sent to your registered phone number to verify your identity.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextGold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(spacing.extraLarge))
-
-        OutlinedTextField(
-            value = otp,
-            onValueChange = { otp = it.filter { c -> c.isDigit() }.take(6) },
-            label = { Text("Enter 6-digit OTP") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = PrimaryGold,
-                unfocusedBorderColor = BorderGold,
-                focusedLabelColor = PrimaryGold,
-                cursorColor = PrimaryGold,
-                focusedTextColor = TextLight,
-                unfocusedTextColor = TextLight
-            ),
-            modifier = Modifier.fillMaxWidth(0.7f)
-        )
-
-        Spacer(Modifier.height(spacing.large))
-        Button(
-            onClick = { viewModel.verifyOtp(otp) },
-            enabled = otp.length == 6 && !isSubmitting,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-            shape = KhanaRadii.button,
-            modifier = Modifier.fillMaxWidth(0.7f)
-        ) {
-            Text(if (isSubmitting) "Verifying..." else "Verify OTP", color = DarkBrown1)
-        }
-
-        Spacer(Modifier.height(spacing.medium))
-        TextButton(
-            onClick = {
-                viewModel.resendOtp()
-                resendCooldown = 30
-            },
-            enabled = resendCooldown == 0
-        ) {
-            Text(
-                if (resendCooldown > 0) "Resend OTP (${resendCooldown}s)" else "Resend OTP",
-                color = if (resendCooldown > 0) TextGold.copy(alpha = 0.4f) else TextGold
-            )
-        }
-    }
-}
-
-@Composable
 private fun KycStatusStep(
     viewModel: EasebuzzOnboardingViewModel,
     status: com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse?,
@@ -875,16 +790,6 @@ private fun KycStatusStep(
                         }
                     }
 
-                    // Easebuzz sends an OTP for some accounts and not for others, and its create
-                    // contract has no OTP field. Keep the path reachable without gating the KYC
-                    // portal behind it.
-                    TextButton(onClick = { viewModel.goToStep(OnboardingStep.OtpVerification) }) {
-                        Text(
-                            "Easebuzz asked for a phone OTP? Verify it here",
-                            color = TextGold.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
                 }
             }
 

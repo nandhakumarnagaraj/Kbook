@@ -243,56 +243,59 @@ public class EasebuzzApiClient {
 		return post(props.getDashboardBaseUrl() + "/refund/v1/retrieve", params, true);
 	}
 
-	public Map<String, Object> verifyOtp(String subMerchantId, String otp) {
-		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), subMerchantId, otp);
-		Map<String, Object> body = new HashMap<>();
-		body.put("merchant_key", props.getMerchantKey());
-		body.put("sub_merchant_id", subMerchantId);
-		body.put("otp", otp);
-		body.put("hash", hash);
-		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/verify_otp", body);
-	}
-
-	public Map<String, Object> resendOtp(String subMerchantId) {
-		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), subMerchantId);
-		Map<String, Object> body = new HashMap<>();
-		body.put("merchant_key", props.getMerchantKey());
-		body.put("sub_merchant_id", subMerchantId);
-		body.put("hash", hash);
-		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/resend_otp", body);
-	}
-
 	@Deprecated
 	public Map<String, Object> cancelTransaction(String txnid, String amount) {
 		// ERA confirmed: /transaction/v1/cancel does NOT exist. Unpaid txnids auto-expire in 15 min.
 		return Map.of("status", "failure", "error", "Cancel API not supported by Easebuzz. Transactions auto-expire in 15 minutes.");
 	}
 
-	public Map<String, Object> initiatePayout(String merchantRequestId, String amount, Map<String, String> beneficiaryDetails) {
+	/**
+	 * On-demand settlement: POST {dashboard}/settlements/v1/ondemand/initiate/.
+	 *
+	 * <p>The documented contract is <b>batch-shaped and has no top-level hash</b>: every entry of
+	 * {@code transactions} carries its own
+	 * sha512(key|easebuzz_id|merchant_txn_id|amount|salt). A single transaction still has to be
+	 * wrapped in a one-element batch, and {@code merchant_batch_id} is the gateway's idempotency key.
+	 */
+	public Map<String, Object> initiateOnDemandSettlement(String merchantBatchId, String description,
+			List<Map<String, String>> transactions) {
 		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), merchantRequestId, amount);
-		Map<String, Object> body = new HashMap<>();
-		body.put("key", props.getMerchantKey());
-		body.put("merchant_request_id", merchantRequestId);
-		body.put("amount", amount);
-		body.put("hash", hash);
-		body.putAll(beneficiaryDetails);
-		// Idempotent at the gateway via merchant_request_id.
-		return postJson(props.getDashboardBaseUrl() + "/payout/v2/transfer", body, true);
-	}
+		if (merchantBatchId == null || merchantBatchId.isBlank())
+			throw new IllegalArgumentException("merchant_batch_id is required for an on-demand settlement");
+		if (transactions == null || transactions.isEmpty())
+			throw new IllegalArgumentException("At least one transaction is required for an on-demand settlement");
 
-	public Map<String, Object> initiateOnDemandSettlement(String merchantRequestId, String amount) {
-		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), merchantRequestId, amount);
-		Map<String, Object> body = new HashMap<>();
+		List<Map<String, Object>> batch = new ArrayList<>();
+		for (Map<String, String> txn : transactions) {
+			String easebuzzId = txn.get("easebuzz_id");
+			String merchantTxnId = txn.get("merchant_txn_id");
+			String amount = txn.get("amount");
+			if (easebuzzId == null || easebuzzId.isBlank()
+					|| merchantTxnId == null || merchantTxnId.isBlank()
+					|| amount == null || amount.isBlank()) {
+				throw new IllegalArgumentException(
+						"Each settlement transaction needs easebuzz_id, merchant_txn_id and amount");
+			}
+			Map<String, Object> row = new LinkedHashMap<>();
+			row.put("easebuzz_id", easebuzzId);
+			row.put("merchant_txn_id", merchantTxnId);
+			row.put("amount", amount);
+			row.put("hash", generateHash(props.getMerchantKey(), easebuzzId, merchantTxnId, amount));
+			batch.add(row);
+		}
+
+		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("key", props.getMerchantKey());
-		body.put("merchant_request_id", merchantRequestId);
-		body.put("amount", amount);
-		body.put("hash", hash);
-		// Idempotent at the gateway via merchant_request_id.
-		return postJson(props.getDashboardBaseUrl() + "/settlement/v1/on_demand", body, true);
+		// Registered email of the parent merchant, mandatory on this call but not part of any hash.
+		body.put("merchant_email", props.getMerchantEmail());
+		body.put("merchant_batch_id", merchantBatchId);
+		if (description != null && !description.isBlank()) {
+			body.put("description", description);
+		}
+		body.put("transactions", batch);
+
+		// Repeating a POST with the same merchant_batch_id cannot settle twice.
+		return postJson(props.getDashboardBaseUrl() + "/settlements/v1/ondemand/initiate/", body, true);
 	}
 
 	private String normalizeDate(String date) {
@@ -403,15 +406,16 @@ public class EasebuzzApiClient {
 	public Map<String, Object> createPaymentLink(Map<String, String> data) {
 		checkCredentials();
 
-		// Easy Collect (Payment Link) API
-		// Required: merchant_txn, name, email, phone, amount, message
+		// EasyCollect link creation: POST {dashboard}/easycollect/v1/create, JSON body.
+		// The path is not /easy_collect — that is the hosted payment-page prefix on the checkout
+		// host (pay.easebuzz.in/easy_collect/<token>), and posting an API call there returns 405.
 		// Hash: key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
 		String merchantTxn = data.get("merchant_txn");
 		String name = data.get("name");
 		String email = data.get("email");
 		String phone = data.get("phone");
 		String amount = data.get("amount");
-		String message = data.get("message");
+		String message = orEmpty(data.get("message"));
 		String udf1 = data.getOrDefault("udf1", "");
 		String udf2 = data.getOrDefault("udf2", "");
 		String udf3 = data.getOrDefault("udf3", "");
@@ -423,46 +427,80 @@ public class EasebuzzApiClient {
 				udf1, udf2, udf3, udf4, udf5, message
 		);
 
-		MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-		params.set("key", props.getMerchantKey());
-		params.set("merchant_txn", merchantTxn);
-		params.set("name", name);
-		params.set("email", email);
-		params.set("phone", phone);
-		params.set("amount", amount);
-		params.set("message", message);
-		params.set("udf1", udf1);
-		params.set("udf2", udf2);
-		params.set("udf3", udf3);
-		params.set("udf4", udf4);
-		params.set("udf5", udf5);
-		params.set("hash", hash);
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("key", props.getMerchantKey());
+		body.put("merchant_txn", merchantTxn);
+		body.put("name", name);
+		body.put("email", email);
+		body.put("phone", phone);
+		body.put("amount", amount);
+		body.put("message", message);
+		body.put("udf1", udf1);
+		body.put("udf2", udf2);
+		body.put("udf3", udf3);
+		body.put("udf4", udf4);
+		body.put("udf5", udf5);
+		body.put("hash", hash);
 
-		// Optional: sub_merchant_id for sub-merchant payments
+		// Mandatory on a sub-aggregator (master) account: without it the gateway answers ECSUBME02.
+		// It is not part of the digest, so it is added after hashing.
 		String subMerchantId = data.get("sub_merchant_id");
 		if (subMerchantId != null && !subMerchantId.isBlank()) {
-			params.set("sub_merchant_id", subMerchantId);
+			body.put("sub_merchant_id", subMerchantId);
 		}
 
 		// Optional: restrict payment modes (e.g., "NB,DC,CC,UPI")
-		if (data.containsKey("show_payment_mode") && !data.get("show_payment_mode").isBlank()) {
-			params.set("show_payment_mode", data.get("show_payment_mode"));
+		String showPaymentMode = data.get("show_payment_mode");
+		if (showPaymentMode != null && !showPaymentMode.isBlank()) {
+			body.put("show_payment_mode", showPaymentMode);
 		}
 
-		Map<String, Object> raw = post(props.getPaymentBaseUrl() + "/easy_collect", params);
+		Map<String, Object> raw = postJson(props.getDashboardBaseUrl() + "/easycollect/v1/create", body);
 
 		Map<String, Object> result = new HashMap<>();
-		Object statusObj = raw != null ? raw.get("status") : null;
-		if (toBool(statusObj) && raw != null) {
-			String linkUrl = (String) raw.get("data");
-			result.put("status", "success");
-			result.put("payment_url", linkUrl);
-			result.put("merchant_txn", (String) raw.get("merchant_txn"));
-		} else {
+		if (raw == null || !toBool(raw.get("status"))) {
 			result.put("status", "failure");
-			result.put("error", raw != null ? raw.getOrDefault("error_desc", raw.getOrDefault("data", raw.get("error"))) : "No response");
+			result.put("error", raw == null ? "No response" : firstText(
+					raw.get("error_desc"), raw.get("error"), raw.get("message"), raw.get("data")));
+			return result;
 		}
-return result;
+
+		// The documented response puts the link in an object: data.{id,merchant_txn,payment_url,
+		// state,expiry_date}. A bare URL string is accepted too because the link-update variant
+		// is only described by example, but a success with neither must not become a payment URL.
+		Object dataObj = raw.get("data");
+		String linkUrl = null;
+		String resolvedMerchantTxn = merchantTxn;
+		Object linkId = null;
+		Object state = null;
+		Object expiryDate = null;
+		if (dataObj instanceof Map<?, ?> link) {
+			linkUrl = firstText(link.get("payment_url"), link.get("link"));
+			resolvedMerchantTxn = firstText(link.get("merchant_txn"), merchantTxn);
+			linkId = link.get("id");
+			state = link.get("state");
+			expiryDate = link.get("expiry_date");
+		} else if (dataObj instanceof String s && s.trim().startsWith("http")) {
+			linkUrl = s.trim();
+		} else if (dataObj instanceof String s && !s.isBlank()) {
+			result.put("status", "failure");
+			result.put("error", "Easebuzz rejected the link request: " + s);
+			return result;
+		}
+
+		if (linkUrl == null || linkUrl.isBlank()) {
+			result.put("status", "failure");
+			result.put("error", "Easebuzz returned no payment link URL");
+			return result;
+		}
+
+		result.put("status", "success");
+		result.put("payment_url", linkUrl);
+		result.put("merchant_txn", resolvedMerchantTxn);
+		if (linkId != null) result.put("link_id", linkId);
+		if (state != null) result.put("state", state);
+		if (expiryDate != null) result.put("expiry_date", expiryDate);
+		return result;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -631,23 +669,6 @@ return result;
 		body.put("phone", phone != null ? phone : "");
 		body.put("hash", hash);
 		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/generate_kyc_access_key", body);
-	}
-
-	public Map<String, Object> createSplitLabel(String nameOnBank, String bankName, String branchName, String ifscCode,
-			String accountNumber, String label, String payoutPercentage) {
-		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), nameOnBank, bankName, branchName, ifscCode, accountNumber, label);
-		Map<String, Object> body = new HashMap<>();
-		body.put("key", props.getMerchantKey());
-		body.put("hash", hash);
-		body.put("name_on_bank", nameOnBank);
-		body.put("bank_name", bankName);
-		body.put("branch_name", branchName);
-		body.put("ifsc_code", ifscCode);
-		body.put("account_number", accountNumber);
-		body.put("label", label);
-		if (payoutPercentage != null) body.put("payout_percentage", payoutPercentage);
-		return postJson(props.getDashboardBaseUrl() + "/split/v1/create", body);
 	}
 
 	public Map<String, Object> updateTransactionSplit(String merchantRequestId, String easebuzzId, String amount,
@@ -842,6 +863,18 @@ return result;
 	public static String sanitizeName(String name) {
 		if (name == null) return null;
 		return name.replace("'", "").replace("\"", "").replace("\\", "");
+	}
+
+	private static String orEmpty(String value) {
+		return value == null ? "" : value;
+	}
+
+	/** First non-blank value as text, or "". Keeps error/link extraction free of null chains. */
+	private static String firstText(Object... values) {
+		for (Object value : values) {
+			if (value != null && !value.toString().isBlank()) return value.toString().trim();
+		}
+		return "";
 	}
 
 	public static boolean toBool(Object value) {

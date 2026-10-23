@@ -96,10 +96,15 @@ public class AdminSubMerchantController {
         return ResponseEntity.ok(subMerchantService.generateKycAccessKey(id));
     }
 
-    /** Create Easebuzz split label for sub-merchant settlement */
-    @PostMapping("/{id}/split-label")
-    public ResponseEntity<Map<String, Object>> createSplitLabel(@PathVariable Long id) {
-        return ResponseEntity.ok(subMerchantService.createSplitLabel(id));
+    /**
+     * Arms post-split by recording the label the split dashboard knows. There is no Easebuzz
+     * API to create a label, so this only writes our row; a blank label clears it and disarms
+     * post-split again.
+     */
+    @PutMapping("/{id}/split-label")
+    public ResponseEntity<Map<String, Object>> setSplitLabel(@PathVariable Long id,
+                                                             @RequestBody Map<String, String> data) {
+        return ResponseEntity.ok(subMerchantService.setSplitLabel(id, data.get("label")));
     }
 
     /** Retrieve post-transaction split status */
@@ -107,16 +112,6 @@ public class AdminSubMerchantController {
     public ResponseEntity<Map<String, Object>> retrieveTransactionSplit(@PathVariable Long id,
                                                                          @RequestBody Map<String, String> data) {
         return ResponseEntity.ok(subMerchantService.retrieveTransactionSplit(data.get("merchantRequestId")));
-    }
-
-    @PostMapping("/{id}/verify-otp")
-    public ResponseEntity<Map<String, Object>> verifyOtp(@PathVariable Long id, @RequestBody Map<String, String> data) {
-        return ResponseEntity.ok(subMerchantService.verifyOtp(id, data.get("otp")));
-    }
-
-    @PostMapping("/{id}/resend-otp")
-    public ResponseEntity<Map<String, Object>> resendOtp(@PathVariable Long id) {
-        return ResponseEntity.ok(subMerchantService.resendOtp(id));
     }
 
     @PostMapping("/{id}/cancel-transaction")
@@ -131,17 +126,46 @@ public class AdminSubMerchantController {
         return ResponseEntity.ok(subMerchantService.cancelTransaction(txnid, amount));
     }
 
+    /**
+     * On-demand settlement for a chosen batch of transactions. Easebuzz settles per transaction,
+     * not per amount, so the body carries a list — a single transaction is a one-element list.
+     *
+     * <pre>{"merchantBatchId":"...","description":"...","transactions":[
+     *   {"easebuzzId":"S2610...","merchantTxnId":"KB...","amount":"250.00"}]}</pre>
+     */
     @PostMapping("/settlements/on-demand")
-    public ResponseEntity<Map<String, Object>> onDemandSettlement(@RequestBody Map<String, String> data) {
-        return ResponseEntity.ok(subMerchantService.initiateOnDemandSettlement(data.get("amount")));
+    public ResponseEntity<Map<String, Object>> onDemandSettlement(@RequestBody Map<String, Object> data) {
+        Object raw = data.get("transactions");
+        if (!(raw instanceof List<?> rows) || rows.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure",
+                    "error", "transactions is required (a single transaction is a one-element list)"));
+        }
+        List<Map<String, String>> transactions = new java.util.ArrayList<>();
+        for (Object row : rows) {
+            if (!(row instanceof Map<?, ?> txn)) {
+                return ResponseEntity.badRequest().body(Map.of("status", "failure",
+                        "error", "each transaction must be an object"));
+            }
+            Map<String, String> flat = new java.util.HashMap<>();
+            flat.put("easebuzz_id", pick(txn, "easebuzzId", "easebuzz_id"));
+            flat.put("merchant_txn_id", pick(txn, "merchantTxnId", "merchant_txn_id"));
+            flat.put("amount", pick(txn, "amount", "amount"));
+            transactions.add(flat);
+        }
+        String batchId = data.get("merchantBatchId") != null
+                ? data.get("merchantBatchId").toString()
+                : (data.get("merchant_batch_id") != null ? data.get("merchant_batch_id").toString() : null);
+        String description = data.get("description") != null ? data.get("description").toString() : null;
+        try {
+            return ResponseEntity.ok(subMerchantService.initiateOnDemandSettlement(batchId, description, transactions));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "failure", "error", e.getMessage()));
+        }
     }
 
-    @SuppressWarnings("unchecked")
-    @PostMapping("/payout")
-    public ResponseEntity<Map<String, Object>> initiatePayout(@RequestBody Map<String, Object> data) {
-        String amount = data.get("amount").toString();
-        Map<String, String> beneficiaryDetails = (Map<String, String>) data.get("beneficiaryDetails");
-        return ResponseEntity.ok(subMerchantService.initiatePayout(amount, beneficiaryDetails));
+    private static String pick(Map<?, ?> row, String first, String second) {
+        Object value = row.get(first) != null ? row.get(first) : row.get(second);
+        return value != null ? value.toString() : null;
     }
 
     @GetMapping("/settlements/retrieve")

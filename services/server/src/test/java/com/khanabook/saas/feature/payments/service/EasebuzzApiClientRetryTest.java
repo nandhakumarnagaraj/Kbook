@@ -9,11 +9,12 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
@@ -56,18 +57,25 @@ class EasebuzzApiClientRetryTest {
         MockRestServiceServer server = bind(client);
         AtomicInteger attempts = new AtomicInteger();
 
-        // verifyOtp is a side-effecting call with no caller-supplied idempotency key.
-        server.expect(requestTo("https://dashboard.easebuzz.in/submerchant/v1/verify_otp"))
+        // Creating a link is side-effecting and carries no caller-supplied idempotency key.
+        server.expect(requestTo("https://dashboard.easebuzz.in/easycollect/v1/create"))
                 .andRespond(request -> {
                     attempts.incrementAndGet();
                     return new MockClientHttpResponse(
                             "{}".getBytes(StandardCharsets.UTF_8), HttpStatus.SERVICE_UNAVAILABLE);
                 });
 
-        Map<String, Object> result = client.verifyOtp("SUB1", "123456");
+        Map<String, String> data = new HashMap<>();
+        data.put("merchant_txn", "KBLINK1");
+        data.put("name", "Ravi");
+        data.put("email", "r@kb.test");
+        data.put("phone", "9999999999");
+        data.put("amount", "1.00");
+
+        Map<String, Object> result = client.createPaymentLink(data);
 
         assertEquals(1, attempts.get(), "a non-idempotent call must be attempted exactly once");
-        assertEquals(Boolean.FALSE, result.get("status"));
-        assertTrue(String.valueOf(result.get("error")).contains("failed"));
+        assertEquals("failure", result.get("status"));
+        assertFalse(String.valueOf(result.get("error")).isBlank());
     }
 }

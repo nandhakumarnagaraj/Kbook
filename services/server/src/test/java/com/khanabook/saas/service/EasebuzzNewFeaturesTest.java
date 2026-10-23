@@ -44,53 +44,56 @@ class EasebuzzNewFeaturesTest extends BaseIntegrationTest {
         persistUser("admin" + System.currentTimeMillis() + "@kbook.com", testRestaurantId, UserRole.KBOOK_ADMIN);
     }
 
-    @Transactional
     @Test
-    void testOtpFlow() {
-        EasebuzzSubMerchant sm = createPendingSubMerchant();
+    void testOnDemandSettlementAndRetrieval() {
+        // 1. On-demand settlement (mock): a batch of transactions, each with its own hash.
+        when(easebuzzApi.initiateOnDemandSettlement(anyString(), any(), anyList()))
+            .thenReturn(Map.of("status", true, "batch_status", "pending"));
 
-        // 1. Verify OTP (mock)
-        when(easebuzzApi.verifyOtp(eq(testSubMerchantId), eq("123456")))
-            .thenReturn(Map.of("status", "success", "msg", "OTP verified successfully"));
+        Map<String, Object> settleResult = subMerchantService.initiateOnDemandSettlement(
+            null, "test batch",
+            java.util.List.of(Map.of(
+                "easebuzz_id", "S2610TEST",
+                "merchant_txn_id", "KB_TXN_1",
+                "amount", "1000.00")));
+        assertEquals("pending", settleResult.get("batch_status"));
 
-        Map<String, Object> verifyResult = subMerchantService.verifyOtp(sm.getId(), "123456");
-        assertEquals("success", verifyResult.get("status"));
-
-        // 2. Resend OTP (mock)
-        when(easebuzzApi.resendOtp(eq(testSubMerchantId)))
-            .thenReturn(Map.of("status", "success", "msg", "OTP resent successfully"));
-
-        Map<String, Object> resendResult = subMerchantService.resendOtp(sm.getId());
-        assertEquals("success", resendResult.get("status"));
-    }
-
-    @Test
-    void testSettlementAndPayout() {
-        // 1. On-demand settlement (mock)
-        when(easebuzzApi.initiateOnDemandSettlement(anyString(), eq("1000.00")))
-            .thenReturn(Map.of("status", "success", "msg", "Settlement initiated"));
-
-        Map<String, Object> settleResult = subMerchantService.initiateOnDemandSettlement("1000.00");
-        assertEquals("success", settleResult.get("status"));
-
-        // 2. Payout V2 (mock)
-        Map<String, String> beneficiary = Map.of(
-            "beneficiary_name", "Test User",
-            "beneficiary_account_number", "1234567890",
-            "beneficiary_ifsc", "HDFC0000123"
-        );
-        when(easebuzzApi.initiatePayout(anyString(), eq("500.00"), eq(beneficiary)))
-            .thenReturn(Map.of("status", "success", "msg", "Payout initiated"));
-
-        Map<String, Object> payoutResult = subMerchantService.initiatePayout("500.00", beneficiary);
-        assertEquals("success", payoutResult.get("status"));
-        
-        // 3. Retrieve settlements (mock)
+        // 2. Retrieve settlements (mock)
         when(easebuzzApi.retrieveSettlements(eq("2024-05-17")))
             .thenReturn(Map.of("status", "success", "data", java.util.Collections.emptyList()));
 
         Map<String, Object> retrieveResult = subMerchantService.retrieveSettlements("2024-05-17");
         assertEquals("success", retrieveResult.get("status"));
+    }
+
+    @Transactional
+    @Test
+    void testSetAndClearSplitLabel() {
+        EasebuzzSubMerchant sm = createPendingSubMerchant();
+        sm.setBankAccountNo("1234567890");
+        sm.setIfsc("HDFC0001234");
+        subMerchantRepo.save(sm);
+
+        Map<String, Object> armed = subMerchantService.setSplitLabel(sm.getId(), "  sm_" + testSubMerchantId + "  ");
+        assertEquals("success", armed.get("status"));
+        assertEquals(true, armed.get("postSplitArmed"));
+
+        EasebuzzSubMerchant stored = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        assertEquals("sm_" + testSubMerchantId, stored.getSplitLabel());
+        assertEquals("1234567890|HDFC0001234", stored.getSplitLabelBankSnapshot());
+
+        Map<String, Object> cleared = subMerchantService.setSplitLabel(sm.getId(), "   ");
+        assertEquals(false, cleared.get("postSplitArmed"));
+        EasebuzzSubMerchant afterClear = subMerchantRepo.findById(sm.getId()).orElseThrow();
+        assertNull(afterClear.getSplitLabel());
+        assertNull(afterClear.getSplitLabelBankSnapshot());
+    }
+
+    @Test
+    void testSetSplitLabelRejectsCharactersEasebuzzCannotCarry() {
+        EasebuzzSubMerchant sm = createPendingSubMerchant();
+        assertThrows(com.khanabook.saas.core.exception.BusinessRuleException.class,
+            () -> subMerchantService.setSplitLabel(sm.getId(), "sm 1|bad"));
     }
 
     @Test
@@ -150,6 +153,10 @@ class EasebuzzNewFeaturesTest extends BaseIntegrationTest {
         data.put("kyc_status", true);
         data.put("kyc_profile_status", "Completed");
         data.put("email", sm.getContactEmail());
+        // The documented KYC callback is hash-signed; without it the webhook is indistinguishable
+        // from an unauthenticated POST that names a known sub-merchant.
+        data.put("hash", sha512Hex(easebuzzProps.getMerchantKey() + "|" + testSubMerchantId + "|"
+                + easebuzzProps.getSalt()));
         data.put("virtual_account", Map.of(
             "account_number", "10100000001234",
             "ifsc", "ICIC0000104",

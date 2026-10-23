@@ -3,12 +3,10 @@ package com.khanabook.saas.feature.payments.service;
 import com.khanabook.saas.feature.notifications.service.PushNotificationService;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchant;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEvent;
-import com.khanabook.saas.feature.payments.data.EasebuzzPayout;
 import com.khanabook.saas.core.exception.BusinessRuleException;
 import com.khanabook.saas.core.exception.EntityNotFoundException;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantRepository;
 import com.khanabook.saas.feature.payments.data.EasebuzzSubMerchantWebhookEventRepository;
-import com.khanabook.saas.feature.payments.data.EasebuzzPayoutRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +29,6 @@ public class SubMerchantService {
     private final EasebuzzWireApiClient wireApi;
     private final EasebuzzSubMerchantRepository subMerchantRepo;
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
-    private final EasebuzzPayoutRepository payoutRepo;
     private final PushNotificationService pushNotificationService;
     private final ObjectMapper objectMapper;
 
@@ -602,7 +599,6 @@ public class SubMerchantService {
         Boolean apiStatus = (Boolean) result.get("status");
         if (Boolean.TRUE.equals(apiStatus)) {
             sm.setEasebuzzResponse(toStorageSafeJson(result));
-            rotateSplitLabelIfBankChanged(sm);
         } else {
             String error = (String) result.get("error");
             sm.setEasebuzzResponse(error != null ? error : result.toString());
@@ -614,63 +610,37 @@ public class SubMerchantService {
     }
 
     /**
-     * If a split label is already registered and the restaurant's bank account or
-     * IFSC no longer matches the snapshot that label was registered against, register
-     * a new versioned label (sm_<id>_vN) pointing at the new bank. Easebuzz has no
-     * label-update API (ERA Q5), so rotation is the only safe path; old labels may be
-     * retired via support. Runs in reachable state only — best-effort, never throws.
+     * Records (or clears) the split label post-split requests reference.
+     *
+     * <p>Easebuzz publishes no API that creates or rotates a label — the label lives on the split
+     * dashboard — so this only sets our side of the contract. Post-split is skipped while the
+     * column is empty, which is why an admin has to set it deliberately once split is enabled.
+     * Passing a blank label clears it and disarms post-split again.
      */
-    private void rotateSplitLabelIfBankChanged(EasebuzzSubMerchant sm) {
-        if (sm.getSplitLabel() == null || sm.getSplitLabel().isBlank()) {
-            return;
-        }
-        if (sm.getBankAccountNo() == null || sm.getIfsc() == null) {
-            return;
-        }
-        String currentSnapshot = sm.getBankAccountNo() + "|" + sm.getIfsc();
-        if (currentSnapshot.equals(sm.getSplitLabelBankSnapshot())) {
-            return;
-        }
-        log.info("Bank change detected for sub-merchant {} (label {}): {} -> {}",
-            sm.getSubMerchantId(), sm.getSplitLabel(), sm.getSplitLabelBankSnapshot(), currentSnapshot);
-        try {
-            createSplitLabel(sm.getId());
-            log.info("Rotated split label for sub-merchant {} to {}", sm.getSubMerchantId(), sm.getSplitLabel());
-        } catch (Exception e) {
-            log.error("Split label rotation failed for sub-merchant {}: {}", sm.getSubMerchantId(), e.getMessage());
-        }
-    }
-
-    public Map<String, Object> createSplitLabel(Long id) {
+    @Transactional
+    public Map<String, Object> setSplitLabel(Long id, String label) {
         EasebuzzSubMerchant sm = getById(id);
-        if (sm.getSubMerchantId() == null) {
+        String normalized = label == null ? null : label.trim();
+        if (normalized != null && normalized.isEmpty()) normalized = null;
+        if (normalized != null && !normalized.matches("[A-Za-z0-9_-]{1,100}")) {
             throw new BusinessRuleException(
-                "Sub-merchant has no Easebuzz ID. Submit to Easebuzz first.",
-                "MISSING_EASEBUZZ_ID"
-            );
+                "Split label may contain letters, digits, '_' and '-' only (max 100 characters)",
+                "INVALID_SPLIT_LABEL");
         }
-        int version = sm.getSplitLabelVersion() != null ? sm.getSplitLabelVersion() : 0;
-        String base = "sm_" + sm.getSubMerchantId();
-        String label = version == 0 ? base : base + "_v" + version;
-        Map<String, Object> result = easebuzzApi.createSplitLabel(
-            sm.getBeneficiaryName(), sm.getBankName(), sm.getBranchName(),
-            sm.getIfsc(), sm.getBankAccountNo(), label, "100"
-        );
-        if (toBool(result.get("status"))) {
-            sm.setSplitLabel(label);
-            sm.setSplitLabelVersion(version + 1);
-            sm.setSplitLabelBankSnapshot(sm.getBankAccountNo() + "|" + sm.getIfsc());
-            sm.setUpdatedAt(System.currentTimeMillis());
-            subMerchantRepo.save(sm);
-        }
-        Object msg = result.get("msg");
-        if (msg == null) msg = result.get("error_desc");
-        if (msg == null) msg = result.get("error");
-        return Map.of(
-            "status", result.getOrDefault("status", "failure"),
-            "label", label,
-            "msg", msg != null ? msg : ""
-        );
+
+        sm.setSplitLabel(normalized);
+        sm.setSplitLabelBankSnapshot(normalized != null && sm.getBankAccountNo() != null && sm.getIfsc() != null
+            ? sm.getBankAccountNo() + "|" + sm.getIfsc()
+            : null);
+        sm.setUpdatedAt(System.currentTimeMillis());
+        subMerchantRepo.save(sm);
+
+        Map<String, Object> out = new java.util.HashMap<>();
+        out.put("status", "success");
+        out.put("subMerchantId", sm.getSubMerchantId());
+        out.put("label", normalized != null ? normalized : "");
+        out.put("postSplitArmed", normalized != null);
+        return out;
     }
 
     public Map<String, Object> retrieveTransactionSplit(String merchantRequestId) {
@@ -714,22 +684,6 @@ public class SubMerchantService {
             "kyc_url", kycUrl,
             "sub_merchant_id", sm.getSubMerchantId()
         );
-    }
-
-    public Map<String, Object> verifyOtp(Long id, String otp) {
-        EasebuzzSubMerchant sm = getById(id);
-        if (sm.getSubMerchantId() == null) {
-            throw new BusinessRuleException("Sub-merchant has no Easebuzz ID.", "NO_EASEBUZZ_ID");
-        }
-        return easebuzzApi.verifyOtp(sm.getSubMerchantId(), otp);
-    }
-
-    public Map<String, Object> resendOtp(Long id) {
-        EasebuzzSubMerchant sm = getById(id);
-        if (sm.getSubMerchantId() == null) {
-            throw new BusinessRuleException("Sub-merchant has no Easebuzz ID.", "NO_EASEBUZZ_ID");
-        }
-        return easebuzzApi.resendOtp(sm.getSubMerchantId());
     }
 
     // ============================================================
@@ -788,46 +742,17 @@ public class SubMerchantService {
         return getByRestaurantId(restaurantId).getId();
     }
 
-    public Map<String, Object> initiateOnDemandSettlement(String amount) {
-        String requestId = "SETTLE_" + System.currentTimeMillis();
-        return easebuzzApi.initiateOnDemandSettlement(requestId, amount);
-    }
-
-    @Transactional
-    public Map<String, Object> initiatePayout(String amount, Map<String, String> beneficiaryDetails) {
-        String requestId = "PAYOUT_" + System.currentTimeMillis();
-        
-        // Log initiation in DB
-        EasebuzzPayout payout = new EasebuzzPayout();
-        payout.setMerchantRequestId(requestId);
-        payout.setAmount(new java.math.BigDecimal(amount));
-        payout.setBeneficiaryName(beneficiaryDetails.get("beneficiary_name"));
-        payout.setAccountNumber(beneficiaryDetails.get("beneficiary_account_number"));
-        payout.setIfsc(beneficiaryDetails.get("beneficiary_ifsc"));
-        payout.setStatus("initiated");
-        payout.setCreatedAt(System.currentTimeMillis());
-        payout.setUpdatedAt(System.currentTimeMillis());
-        
-        Long restaurantId = com.khanabook.saas.core.security.TenantContext.getCurrentTenant();
-        payout.setRestaurantId(restaurantId != null ? restaurantId : 0L);
-        payoutRepo.save(payout);
-
-        Map<String, Object> result = easebuzzApi.initiatePayout(requestId, amount, beneficiaryDetails);
-        
-        if (toBool(result.get("status"))) {
-            Map data = (Map) result.get("data");
-            if (data != null && data.containsKey("payout_id")) {
-                payout.setPayoutId(data.get("payout_id").toString());
-            }
-            payout.setStatus("pending");
-        } else {
-            payout.setStatus("failed");
-            payout.setErrorMessage(str(result.get("error")));
-        }
-        payout.setUpdatedAt(System.currentTimeMillis());
-        payoutRepo.save(payout);
-        
-        return result;
+    /**
+     * Requests an on-demand settlement for an explicit list of transactions. Easebuzz settles the
+     * batch as a unit; a blank batch id is generated here because the gateway needs one as its
+     * idempotency key. Each transaction map must carry easebuzz_id, merchant_txn_id and amount.
+     */
+    public Map<String, Object> initiateOnDemandSettlement(String merchantBatchId, String description,
+            java.util.List<Map<String, String>> transactions) {
+        String batchId = (merchantBatchId == null || merchantBatchId.isBlank())
+                ? "SETTLE_" + System.currentTimeMillis()
+                : merchantBatchId.trim();
+        return easebuzzApi.initiateOnDemandSettlement(batchId, description, transactions);
     }
 
     private static boolean toBool(Object value) {
