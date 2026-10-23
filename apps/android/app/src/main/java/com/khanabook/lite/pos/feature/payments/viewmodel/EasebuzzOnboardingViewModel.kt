@@ -69,6 +69,30 @@ class EasebuzzOnboardingViewModel @Inject constructor(
     private val _paymentReadiness = MutableStateFlow<PaymentReadinessUiState>(PaymentReadinessUiState.Loading)
     val paymentReadiness: StateFlow<PaymentReadinessUiState> = _paymentReadiness.asStateFlow()
 
+    private val _portalCredentials =
+        MutableStateFlow<com.khanabook.lite.pos.feature.payments.data.EasebuzzPortalCredentials?>(null)
+    val portalCredentials: StateFlow<com.khanabook.lite.pos.feature.payments.data.EasebuzzPortalCredentials?> =
+        _portalCredentials.asStateFlow()
+
+    /**
+     * Loads the Easebuzz dashboard login for an approved outlet.
+     *
+     * Fails quietly on purpose: this is a convenience after activation, and an error banner on a
+     * working payments screen would read as "payments are broken" when they are not.
+     */
+    fun loadPortalCredentials() {
+        viewModelScope.launch {
+            // Wrapped because a dashboard login is decoration on this screen: a server that has
+            // not deployed the endpoint yet, or a payload this build cannot parse, must leave the
+            // activated screen exactly as it was rather than crash the coroutine.
+            try {
+                repository.portalCredentials().onSuccess { _portalCredentials.value = it }
+            } catch (e: Exception) {
+                _portalCredentials.value = null
+            }
+        }
+    }
+
     fun loadPaymentReadiness() {
         viewModelScope.launch {
             _paymentReadiness.value = PaymentReadinessUiState.Loading
@@ -251,6 +275,8 @@ class EasebuzzOnboardingViewModel @Inject constructor(
                             OnboardingUiState.InProgress(OnboardingStep.BusinessDetails)
                         }
                     }
+                    // An approved outlet is the only one that has dashboard access to show.
+                    if (status.isActive) loadPortalCredentials()
                 }
                 .onFailure { e ->
                     _uiState.value = OnboardingUiState.Error(
@@ -354,15 +380,71 @@ class EasebuzzOnboardingViewModel @Inject constructor(
 
     private suspend fun generateKycAccessKey() {
         repository.generateKycAccessKey()
-            .onSuccess {
-                _events.emit(OnboardingEvent.Toast("KYC portal ready! Please complete verification."))
+            .onSuccess { response ->
+                // The server answers 200 even when Easebuzz declined to issue a link, carrying
+                // status:false and an empty kyc_url. Announcing "portal ready" on that response
+                // dropped the merchant on the KYC screen with nothing to open and no reason why.
+                if (response.kycUrl.isNullOrBlank()) {
+                    val reason = response.error?.takeIf { it.isNotBlank() }
+                    _events.emit(OnboardingEvent.Toast(
+                        reason
+                            ?: "Registration saved, but Easebuzz issued no KYC portal link. " +
+                                "Your KYC is not submitted yet.",
+                        isError = true
+                    ))
+                } else {
+                    _events.emit(OnboardingEvent.Toast("KYC portal ready! Please complete verification."))
+                }
                 goToStep(OnboardingStep.KycStatus)
                 loadStatus()
             }
             .onFailure {
+                _events.emit(OnboardingEvent.Toast(
+                    "Registration saved, but the KYC portal could not be opened. Please try again.",
+                    isError = true
+                ))
                 goToStep(OnboardingStep.KycStatus)
                 loadStatus()
             }
+    }
+
+    /**
+     * Re-requests the hosted KYC link from the server.
+     *
+     * The link is minted per call and can fail independently of registration, so a successful
+     * create can still leave the outlet with no portal at all. Until now the KYC screen offered
+     * only "Refresh Status", which re-reads the stored row and can never produce a missing link —
+     * one failed access-key call stranded the merchant on a screen with nothing to tap.
+     */
+    fun refreshKycPortalLink() {
+        viewModelScope.launch {
+            _isSubmitting.value = true
+            repository.generateKycAccessKey()
+                .onSuccess { response ->
+                    val portal = response.kycUrl?.takeIf { it.isNotBlank() }
+                    if (portal != null) {
+                        _events.emit(OnboardingEvent.Toast(
+                            "KYC portal link issued.",
+                            actionLabel = "Open portal",
+                            actionUrl = portal
+                        ))
+                        loadStatus()
+                    } else {
+                        _events.emit(OnboardingEvent.Toast(
+                            response.error?.takeIf { it.isNotBlank() }
+                                ?: "Easebuzz did not issue a KYC portal link. Please try again later.",
+                            isError = true
+                        ))
+                    }
+                }
+                .onFailure { e ->
+                    _events.emit(OnboardingEvent.Toast(
+                        UserMessageSanitizer.sanitize(e, "Could not reach the KYC service. Please try again."),
+                        isError = true
+                    ))
+                }
+            _isSubmitting.value = false
+        }
     }
 
     fun resubmitAfterRejection() {

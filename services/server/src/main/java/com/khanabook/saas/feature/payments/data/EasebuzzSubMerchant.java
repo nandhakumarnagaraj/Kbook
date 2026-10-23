@@ -187,6 +187,17 @@ public class EasebuzzSubMerchant {
     @Column(name = "business_proof_2_key", columnDefinition = "TEXT")
     private String businessProof2Key;
 
+    /**
+     * AES-GCM ciphertext of the Easebuzz dashboard password issued at creation — never plaintext.
+     *
+     * <p>Easebuzz requires a password when a sub-merchant is created and the merchant needs it to
+     * sign in after approval. It is decrypted only for the owner-only credentials endpoint; {@code
+     * null} means no copy was retained (the row predates the column, or no encryption key was
+     * configured when it was created).
+     */
+    @Column(name = "portal_password", columnDefinition = "TEXT")
+    private String portalPassword;
+
     @Column(name = "easebuzz_response", columnDefinition = "TEXT")
     private String easebuzzResponse;
 

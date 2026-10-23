@@ -58,6 +58,7 @@ fun EasebuzzOnboardingScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentStep by viewModel.currentStep.collectAsStateWithLifecycle()
     val isSubmitting by viewModel.isSubmitting.collectAsStateWithLifecycle()
+    val portalCredentials by viewModel.portalCredentials.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -169,6 +170,7 @@ fun EasebuzzOnboardingScreen(
                         OnboardingStep.KycStatus -> KycStatusStep(
                             viewModel = viewModel,
                             status = null,
+                            isSubmitting = isSubmitting,
                             onOpenComplianceDocs = onOpenComplianceDocs,
                             spacing = spacing
                         )
@@ -179,12 +181,18 @@ fun EasebuzzOnboardingScreen(
                 KycStatusStep(
                     viewModel = viewModel,
                     status = state.status,
+                    isSubmitting = isSubmitting,
                     onOpenComplianceDocs = onOpenComplianceDocs,
                     spacing = spacing
                 )
             }
             is OnboardingUiState.Active -> {
-                ActiveContent(status = state.status, spacing = spacing, onBack = onBack)
+                ActiveContent(
+                    status = state.status,
+                    credentials = portalCredentials,
+                    spacing = spacing,
+                    onBack = onBack
+                )
             }              is OnboardingUiState.Rejected -> {
                   RejectedContent(
                       viewModel = viewModel,
@@ -624,6 +632,33 @@ private fun BankDetailsStep(
 private fun KycStatusStep(
     viewModel: EasebuzzOnboardingViewModel,
     status: com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse?,
+    isSubmitting: Boolean,
+    onOpenComplianceDocs: (() -> Unit)?,
+    spacing: Spacing
+) {
+    KycStatusContent(
+        status = status,
+        isSubmitting = isSubmitting,
+        onRefreshLink = { viewModel.refreshKycPortalLink() },
+        onRefreshStatus = { viewModel.loadStatus() },
+        onOpenComplianceDocs = onOpenComplianceDocs,
+        spacing = spacing
+    )
+}
+
+/**
+ * The KYC status screen without the ViewModel, so its states can be asserted in a UI test.
+ *
+ * Every action is a callback rather than a viewModel call: the screen has two different failure
+ * endings ("link issued" and "no link at all") that look alike unless the copy and the available
+ * buttons are checked directly.
+ */
+@Composable
+internal fun KycStatusContent(
+    status: com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse?,
+    isSubmitting: Boolean,
+    onRefreshLink: () -> Unit,
+    onRefreshStatus: () -> Unit,
     onOpenComplianceDocs: (() -> Unit)?,
     spacing: Spacing
 ) {
@@ -642,13 +677,27 @@ private fun KycStatusStep(
             modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
         )
         Spacer(Modifier.height(spacing.medium))
-        val titleText = if (status?.status == "CPV_PENDING") "CPV Physical Verification Pending" else "KYC Verification Pending"
+        val hasPortalLink = !status?.kycUrl.isNullOrBlank()
+        val titleText = when {
+            status?.status == "CPV_PENDING" -> "CPV Physical Verification Pending"
+            // Registered but no link: no document has reached Easebuzz, so a copy that says the
+            // KYC is under review describes a review nobody started.
+            status != null && !hasPortalLink -> "KYC Documents Not Submitted"
+            else -> "KYC Verification Pending"
+        }
         Text(titleText, style = MaterialTheme.typography.titleMedium, color = TextLight)
         Spacer(Modifier.height(spacing.medium))
         Text(
-            "Your registration has been submitted to Easebuzz for verification. " +
-                "This usually takes 24-48 hours.\n\n" +
-                "You'll receive a notification once your KYC is approved and online payments are activated.",
+            if (status != null && !hasPortalLink) {
+                "Your outlet is registered with Easebuzz, but no KYC portal link has been issued yet, " +
+                    "so your documents have not been submitted for review.\n\n" +
+                    "Request a link below. If Easebuzz still cannot issue one, the sub-merchant " +
+                    "account needs to be checked before online payments can be activated."
+            } else {
+                "Your registration has been submitted to Easebuzz for verification. " +
+                    "This usually takes 24-48 hours.\n\n" +
+                    "You'll receive a notification once your KYC is approved and online payments are activated."
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = TextGold,
             textAlign = TextAlign.Center
@@ -714,14 +763,29 @@ private fun KycStatusStep(
                     val p1Label = AddressProofType.fromCode(status.businessProof1Type)?.label ?: status.businessProof1Type ?: "Proof 1"
                     val p2Label = AddressProofType.fromCode(status.businessProof2Type)?.label ?: status.businessProof2Type ?: "Proof 2"
 
+                    // "Missing" is only knowable when there is no portal: once a link exists the
+                    // document may already be uploaded on Easebuzz, and KhanaBook never receives
+                    // a copy it could check. Claiming it is missing would flag a merchant who did
+                    // exactly what the app asked.
+                    val proof1State = when {
+                        status.businessProof1Present -> "✓ Uploaded"
+                        hasPortalLink -> "On Easebuzz portal"
+                        else -> "⚠️ Missing"
+                    }
+                    val proof1Color = when {
+                        status.businessProof1Present -> SuccessGreen
+                        hasPortalLink -> TextGold.copy(alpha = 0.6f)
+                        else -> DangerRed
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("Address Proof 1 ($p1Label):", color = TextGold, style = MaterialTheme.typography.bodySmall)
                         Text(
-                            if (status.businessProof1Present) "✓ Uploaded" else "⚠️ Missing",
-                            color = if (status.businessProof1Present) SuccessGreen else DangerRed,
+                            proof1State,
+                            color = proof1Color,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -777,6 +841,29 @@ private fun KycStatusStep(
                             }
                             Text(buttonText, color = DarkBrown1)
                         }
+                    } else {
+                        // Without this branch the screen had no way to ask for a link again: the
+                        // only other action was "Refresh Status", which re-reads the stored row
+                        // and can never mint the missing URL.
+                        Spacer(Modifier.height(spacing.medium))
+                        Text(
+                            "No KYC portal link has been issued for this outlet yet. Request one to " +
+                                "upload your documents on Easebuzz.",
+                            color = DangerRed,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(Modifier.height(spacing.small))
+                        Button(
+                            onClick = onRefreshLink,
+                            enabled = !isSubmitting,
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.button,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Get KYC Portal Link", color = DarkBrown1)
+                        }
                     }
 
                     if (onOpenComplianceDocs != null) {
@@ -795,31 +882,34 @@ private fun KycStatusStep(
 
             Spacer(Modifier.height(spacing.small))
 
-            // CPV Physical / Agentless Verification Notice
-            Surface(
-                color = DarkBrown2.copy(alpha = 0.6f),
-                shape = KhanaRadii.card,
-                modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small)
-            ) {
-                Column(modifier = Modifier.padding(spacing.medium)) {
-                    Text(
-                        "📍 CPV Verification (Fast 48-hr Approval)",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Spacer(Modifier.height(spacing.extraSmall))
-                    Text(
-                        "Complete verification online via the link above (geotagged signboard photo, shop interior, and owner consent) or keep printed counter originals ready for physical verification.",
-                        color = TextGold.copy(alpha = 0.8f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
+            // CPV Physical / Agentless Verification Notice. Hidden without a portal link: the copy
+            // points at "the link above", and there is none until Easebuzz issues one.
+            if (hasPortalLink) {
+                Surface(
+                    color = DarkBrown2.copy(alpha = 0.6f),
+                    shape = KhanaRadii.card,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = spacing.small)
+                ) {
+                    Column(modifier = Modifier.padding(spacing.medium)) {
+                        Text(
+                            "📍 CPV Verification (Fast 48-hr Approval)",
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Spacer(Modifier.height(spacing.extraSmall))
+                        Text(
+                            "Complete verification online via the link above (geotagged signboard photo, shop interior, and owner consent) or keep printed counter originals ready for physical verification.",
+                            color = TextGold.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             }
         }
 
         Spacer(Modifier.height(spacing.extraLarge))
         OutlinedButton(
-            onClick = { viewModel.loadStatus() },
+            onClick = onRefreshStatus,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -831,16 +921,18 @@ private fun KycStatusStep(
 @Composable
 private fun ActiveContent(
     status: com.khanabook.lite.pos.feature.payments.data.EasebuzzOnboardingStatusResponse,
+    credentials: com.khanabook.lite.pos.feature.payments.data.EasebuzzPortalCredentials?,
     spacing: Spacing,
     onBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(spacing.large),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(Modifier.height(spacing.large))
         Icon(
             imageVector = Icons.Default.CheckCircle,
             contentDescription = null,
@@ -860,6 +952,10 @@ private fun ActiveContent(
             Spacer(Modifier.height(spacing.medium))
             StatusCard("Merchant ID", status.subMerchantId, spacing)
         }
+        if (credentials != null) {
+            Spacer(Modifier.height(spacing.medium))
+            DashboardLoginCard(credentials, spacing)
+        }
         Spacer(Modifier.height(spacing.extraLarge))
         Button(
             onClick = onBack,
@@ -868,6 +964,70 @@ private fun ActiveContent(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Done", color = DarkBrown1)
+        }
+    }
+}
+
+/**
+ * How the owner signs in to the Easebuzz dashboard after activation.
+ *
+ * The password is issued once, at sub-merchant creation, and Easebuzz has no self-service reset
+ * that does not involve support — so it is shown here, with a copy action, rather than left in a
+ * database nobody can reach.
+ */
+@Composable
+private fun DashboardLoginCard(
+    credentials: com.khanabook.lite.pos.feature.payments.data.EasebuzzPortalCredentials,
+    spacing: Spacing
+) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val password = credentials.password
+
+    Surface(
+        color = DarkBrown2,
+        shape = KhanaRadii.card,
+        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Text(
+                "Easebuzz Dashboard Login",
+                color = PrimaryGold,
+                style = MaterialTheme.typography.titleSmall
+            )
+
+            if (password.isNullOrBlank()) {
+                Text(
+                    "No dashboard password is stored for this outlet. Ask Easebuzz support to reset it — "
+                        + "your online payments are unaffected.",
+                    color = TextGold.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
+                if (!credentials.email.isNullOrBlank()) {
+                    StatusCard("Email / Login", credentials.email, spacing)
+                }
+                StatusCard("Password", password, spacing)
+                Text(
+                    "Sign in at " + (credentials.dashboardUrl ?: "dashboard.easebuzz.in")
+                        + " to see settlements and bank details.",
+                    color = TextGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedButton(
+                    onClick = {
+                        clipboard.setText(androidx.compose.ui.text.AnnotatedString(password))
+                    },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                    shape = KhanaRadii.button,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Copy password")
+                }
+            }
         }
     }
 }

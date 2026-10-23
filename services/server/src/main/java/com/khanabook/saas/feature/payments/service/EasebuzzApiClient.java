@@ -508,7 +508,7 @@ public class EasebuzzApiClient {
 			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
 			String businessType, String pan, String gst, String businessAddress,
 			String legalEntityName, String state, String fssaiNumber, String restaurantFormat,
-			BigDecimal upiDeductionLtLimit, BigDecimal dcDeductionGtTwoThousand) {
+			BigDecimal upiDeductionLtLimit, BigDecimal dcDeductionGtTwoThousand, String portalPassword) {
 		checkCredentials();
 
 		// Compliance (EaseBuzz CPV): the business name registered must be the verified
@@ -531,7 +531,6 @@ public class EasebuzzApiClient {
 		merchantDetails.put("merchant_key", props.getMerchantKey());
 		merchantDetails.put("hash", hash);
 
-		String password = generateRandomPassword();
 		Map<String, Object> submerchantDetails = new HashMap<>();
 		submerchantDetails.put("sub_merchant_name", sanitizedDisplayName);
 		submerchantDetails.put("sub_merchant_email", email);
@@ -541,10 +540,16 @@ public class EasebuzzApiClient {
 		submerchantDetails.put("sub_merchant_bank_name", bankName);
 		submerchantDetails.put("sub_merchant_branch_name", branchName);
 		submerchantDetails.put("sub_merchant_ifsc_code", ifsc);
-		submerchantDetails.put("sub_merchant_password", password);
-		submerchantDetails.put("sub_merchant_confirm_password", password);
-		if (subMerchantId != null && !subMerchantId.isBlank()) {
+		boolean isUpdate = subMerchantId != null && !subMerchantId.isBlank();
+		if (isUpdate) {
 			submerchantDetails.put("sub_merchant_id", subMerchantId);
+		} else if (portalPassword != null && !portalPassword.isBlank()) {
+			// Passwords belong to the creation example only; the documented update payload has no
+			// password fields, and rotating one on a resubmit would silently change the merchant's
+			// Easebuzz dashboard login. The caller supplies this one so it can keep an encrypted
+			// copy: the merchant needs it to sign in once their KYC is approved.
+			submerchantDetails.put("sub_merchant_password", portalPassword);
+			submerchantDetails.put("sub_merchant_confirm_password", portalPassword);
 		}
 
 		Map<String, Object> businessDetails = new HashMap<>();
@@ -587,15 +592,11 @@ public class EasebuzzApiClient {
 			body.put("submerchant_deduction_percentage", deductions);
 		}
 
-		return postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
-	}
-
-	public Map<String, Object> createSubMerchant(String subMerchantName, String email, String phone,
-			String accountNumber, String ifsc, String bankName, String nameInBank, String branchName,
-			String businessType, String pan, String gst, String businessAddress,
-			String legalEntityName, String state, String fssaiNumber, String restaurantFormat) {
-		return createSubMerchant(null, subMerchantName, email, phone, accountNumber, ifsc, bankName, nameInBank, branchName,
-				businessType, pan, gst, businessAddress, legalEntityName, state, fssaiNumber, restaurantFormat, null, null);
+		Map<String, Object> created = postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
+		log.info("Easebuzz submerchant/create ({}) request={} response={}",
+				(subMerchantId == null || subMerchantId.isBlank()) ? "create" : "update " + subMerchantId,
+				maskedForLog(body), maskedForLog(created));
+		return created;
 	}
 
 	/**
@@ -632,31 +633,6 @@ public class EasebuzzApiClient {
 		}
 	}
 
-	public Map<String, Object> updateSubMerchant(String subMerchantId, String subMerchantName, String email,
-			String phone, String accountNumber, String ifsc, String bankName, String nameInBank, String branchName) {
-		checkCredentials();
-		String hash = generateHash(props.getMerchantKey(), email != null ? email : "", phone != null ? phone : "");
-		Map<String, Object> merchantDetails = new HashMap<>();
-		merchantDetails.put("merchant_key", props.getMerchantKey());
-		merchantDetails.put("hash", hash);
-
-		Map<String, Object> submerchantDetails = new HashMap<>();
-		submerchantDetails.put("sub_merchant_name", subMerchantName);
-		submerchantDetails.put("sub_merchant_email", email);
-		submerchantDetails.put("sub_merchant_phone", phone);
-		submerchantDetails.put("sub_merchant_name_in_bank", nameInBank);
-		submerchantDetails.put("sub_merchant_account_number", accountNumber);
-		submerchantDetails.put("sub_merchant_bank_name", bankName);
-		submerchantDetails.put("sub_merchant_branch_name", branchName);
-		submerchantDetails.put("sub_merchant_ifsc_code", ifsc);
-		submerchantDetails.put("sub_merchant_id", subMerchantId);
-
-		Map<String, Object> body = new HashMap<>();
-		body.put("merchant_details", merchantDetails);
-		body.put("submerchant_details", submerchantDetails);
-		return postJson(props.getDashboardBaseUrl() + "/merchant/v1/submerchant/create/", body);
-	}
-
 	public Map<String, Object> generateKycAccessKey(String subMerchantId, String name, String email, String phone) {
 		checkCredentials();
 		String hash = generateHash(props.getMerchantKey(), subMerchantId, name, email != null ? email : "",
@@ -668,7 +644,14 @@ public class EasebuzzApiClient {
 		body.put("email", email != null ? email : "");
 		body.put("phone", phone != null ? phone : "");
 		body.put("hash", hash);
-		return postJson(props.getDashboardBaseUrl() + "/submerchant/v1/generate_kyc_access_key", body);
+		Map<String, Object> issued = postJson(
+				props.getDashboardBaseUrl() + "/submerchant/v1/generate_kyc_access_key", body);
+		// The one call whose failure leaves a merchant unable to complete KYC, and whose success
+		// is a URL holding an access key. The request is logged because "invalid hash" is
+		// otherwise unfalsifiable; the response is logged with the URL reduced to its presence.
+		log.info("Easebuzz generate_kyc_access_key request={} response={}",
+				maskedForLog(body), maskedForLog(issued));
+		return issued;
 	}
 
 	public Map<String, Object> updateTransactionSplit(String merchantRequestId, String easebuzzId, String amount,
@@ -698,14 +681,6 @@ public class EasebuzzApiClient {
 		return postJson(props.getDashboardBaseUrl() + "/post-split/v1/retrieve/", body, true);
 	}
 
-	private String generateRandomPassword() {
-		String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#";
-		StringBuilder sb = new StringBuilder();
-		java.security.SecureRandom random = new java.security.SecureRandom();
-		for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
-		return sb.toString();
-	}
-
 	private Map<String, Object> post(String url, MultiValueMap<String, String> bodyMap) {
 		return post(url, bodyMap, false);
 	}
@@ -720,8 +695,10 @@ public class EasebuzzApiClient {
 			log.debug("Easebuzz API {} success: {}", url, response.getStatusCode());
 			return response.getBody();
 		} catch (org.springframework.web.client.HttpStatusCodeException e) {
-			log.error("Easebuzz API {} error {}", url, e.getStatusCode());
-			return Map.of("status", "failure", "error", "Easebuzz gateway request failed");
+			String providerError = providerErrorBody(e);
+			log.error("Easebuzz API {} error {} body={}", url, e.getStatusCode(), providerError);
+			return Map.of("status", "failure", "error",
+					providerError != null ? providerError : "Easebuzz gateway request failed");
 		} catch (Exception e) {
 			log.error("Easebuzz API {} failed: {}", url, e.getMessage());
 			return Map.of("status", "failure", "error", e.getMessage());
@@ -777,8 +754,10 @@ public class EasebuzzApiClient {
 					log.warn("Easebuzz route {} answered {}; trying alternate route {}", url, code, urls.get(i + 1));
 					continue;
 				}
-				log.error("Easebuzz API {} error {}", url, e.getStatusCode());
-				return Map.of("status", "failure", "error", "Easebuzz gateway request failed");
+				String providerError = providerErrorBody(e);
+				log.error("Easebuzz API {} error {} body={}", url, e.getStatusCode(), providerError);
+				return Map.of("status", "failure", "error",
+						providerError != null ? providerError : "Easebuzz gateway request failed");
 			} catch (Exception e) {
 				log.error("Easebuzz API {} failed: {}", url, e.getMessage());
 				return Map.of("status", "failure", "error",
@@ -796,16 +775,89 @@ public class EasebuzzApiClient {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
 		HttpEntity<Map<String, Object>> request = new HttpEntity<>(data, headers);
+		if (log.isDebugEnabled()) {
+			log.debug("Easebuzz JSON API {} request={}", url, maskedForLog(data));
+		}
 		try {
 			ResponseEntity<Map<String, Object>> response = exchangeWithRetry(url, request, retryable);
+			if (log.isDebugEnabled()) {
+				log.debug("Easebuzz JSON API {} response={}", url, maskedForLog(response.getBody()));
+			}
 			return response.getBody();
 		} catch (org.springframework.web.client.HttpStatusCodeException e) {
-			log.error("Easebuzz JSON API {} error {}", url, e.getStatusCode());
-			return Map.of("status", false, "error", "Easebuzz gateway request failed");
+			String providerError = providerErrorBody(e);
+			log.error("Easebuzz JSON API {} error {} body={}", url, e.getStatusCode(), providerError);
+			return Map.of("status", false, "error",
+					providerError != null ? providerError : "Easebuzz gateway request failed");
 		} catch (Exception e) {
 			log.error("Easebuzz JSON API {} failed: {}", url, e.getMessage());
 			return Map.of("status", false, "error", e.getMessage());
 		}
+	}
+
+	/**
+	 * Reads the gateway's own failure text out of a non-2xx response.
+	 *
+	 * <p>Easebuzz explains a rejection in the response body ({@code error} / {@code error_desc}),
+	 * not in the status line. Logging and returning only the code collapsed every rejection —
+	 * an unenabled product, a bad hash, a missing field — into the same opaque "gateway request
+	 * failed", which is unanswerable without a packet capture. The body is truncated because it
+	 * is a provider string of unknown length, not because it contains secrets.
+	 */
+	private static String providerErrorBody(org.springframework.web.client.HttpStatusCodeException e) {
+		try {
+			String body = e.getResponseBodyAsString();
+			if (body == null || body.isBlank()) return null;
+			body = body.trim();
+			return body.length() > MAX_PROVIDER_BODY ? body.substring(0, MAX_PROVIDER_BODY) + "..." : body;
+		} catch (Exception ignored) {
+			return null;
+		}
+	}
+
+	private static final int MAX_PROVIDER_BODY = 600;
+
+	/** Fields that must never reach a log line: they authorise a transaction or identify an account. */
+	private static final java.util.Set<String> MASKED_FIELDS = java.util.Set.of(
+			"hash", "merchant_key", "key", "salt", "access_key",
+			"sub_merchant_password", "sub_merchant_confirm_password",
+			"sub_merchant_pan_number", "sub_merchant_account_number",
+			// The portal URL embeds an access key: masking it keeps "did a link arrive?" answerable
+			// while making the log useless to anyone who would sign in as the merchant.
+			"kyc_dashboard_url", "kyc_url");
+
+	/**
+	 * Copies a request or response body with the credential fields replaced.
+	 *
+	 * <p>The two onboarding calls are the only place the exact bytes matter: a hash mismatched by
+	 * one character is indistinguishable from a disabled product once the body is gone. So the
+	 * payload is logged as it was built, minus the fields that would let a log reader transact —
+	 * the digest, the merchant key, the sub-merchant password and PAN are replaced outright, and a
+	 * bank account keeps its last four digits so two submissions can be told apart without being
+	 * readable.
+	 */
+	private static Object maskedForLog(Object value) {
+		if (value instanceof Map<?, ?> map) {
+			Map<String, Object> masked = new java.util.LinkedHashMap<>();
+			map.forEach((k, v) -> {
+				String field = String.valueOf(k);
+				masked.put(field, MASKED_FIELDS.contains(field) ? maskValue(field, v) : maskedForLog(v));
+			});
+			return masked;
+		}
+		if (value instanceof java.util.List<?> list) {
+			return list.stream().map(EasebuzzApiClient::maskedForLog).toList();
+		}
+		return value;
+	}
+
+	private static Object maskValue(String field, Object value) {
+		if (value == null) return null;
+		String text = value.toString();
+		if ("sub_merchant_account_number".equals(field) && text.length() > 4) {
+			return "****" + text.substring(text.length() - 4);
+		}
+		return "***";
 	}
 
 	/**

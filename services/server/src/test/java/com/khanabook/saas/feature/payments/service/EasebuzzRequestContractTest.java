@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 /**
@@ -234,7 +235,7 @@ class EasebuzzRequestContractTest {
                 "1234567890", "HDFC0000123", "HDFC", "Spice Hub", "MG Road",
                 "SOLE_PROPRIETORSHIP", "ABCDE1234F", "29AABCU9603R1ZM",
                 "12 Residency Road, Bengaluru", "Spice Hub Pvt Ltd", "Karnataka",
-                "12345678901234", "DINE_IN", null, null);
+                "12345678901234", "DINE_IN", null, null, "PortalPass123");
 
         // The documented response nests the generated id; the service must find it there.
         assertEquals("S360NESTED", SubMerchantService.extractSubMerchantId(result));
@@ -274,6 +275,10 @@ class EasebuzzRequestContractTest {
                         containsString("\"sub_merchant_mcc_code\":\"5812\""))))
                 // No document block is sent because no first-party schema for it has been confirmed.
                 .andExpect(content().string(not(containsString("kyc_details"))))
+                // An update carries no password: the documented update payload omits them, and a
+                // fresh random one would silently rotate the merchant's Easebuzz dashboard login.
+                .andExpect(content().string(not(containsString("sub_merchant_password"))))
+                .andExpect(content().string(not(containsString("sub_merchant_confirm_password"))))
                 .andRespond(withSuccess("{\"status\":true,\"submerchant_id\":\"S360TEST1\"}", MediaType.APPLICATION_JSON));
 
         Map<String, Object> result = client.createSubMerchant(
@@ -281,10 +286,37 @@ class EasebuzzRequestContractTest {
                 "1234567890", "HDFC0000123", "HDFC", "Spice Hub", "MG Road",
                 "SOLE_PROPRIETORSHIP", "ABCDE1234F", "29AABCU9603R1ZM",
                 "12 Residency Road, Bengaluru", "Spice Hub Pvt Ltd", "Karnataka",
-                "12345678901234", "DINE_IN", BigDecimal.ZERO, BigDecimal.ZERO);
+                "12345678901234", "DINE_IN", BigDecimal.ZERO, BigDecimal.ZERO, "PortalPass123");
 
         assertEquals(Boolean.TRUE, result.get("status"));
         assertEquals("S360TEST1", result.get("submerchant_id"));
+        server.verify();
+    }
+
+    @Test
+    void aFirstCreateSendsAPasswordPairAndNoSubMerchantId() {
+        EasebuzzApiClient client = client();
+        MockRestServiceServer server = bind(client);
+
+        server.expect(requestTo("https://dashboard.easebuzz.in/merchant/v1/submerchant/create/"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().string(allOf(
+                        containsString("\"sub_merchant_password\""),
+                        containsString("\"sub_merchant_confirm_password\""),
+                        // No id yet: Easebuzz issues one, and sending an invented value back was
+                        // previously rejected by the gateway.
+                        not(containsString("\"sub_merchant_id\"")))))
+                .andRespond(withSuccess("{\"status\":true,\"submerchant_id\":\"S360NEWID\"}",
+                        MediaType.APPLICATION_JSON));
+
+        Map<String, Object> result = client.createSubMerchant(
+                null, "Spice Hub", "owner@spice.test", "9999999999",
+                "1234567890", "HDFC0000123", "HDFC", "Spice Hub", "MG Road",
+                "SOLE_PROPRIETORSHIP", "ABCDE1234F", "29AABCU9603R1ZM",
+                "12 Residency Road, Bengaluru", "Spice Hub Pvt Ltd", "Karnataka",
+                "12345678901234", "DINE_IN", BigDecimal.ZERO, BigDecimal.ZERO, "PortalPass123");
+
+        assertEquals("S360NEWID", result.get("submerchant_id"));
         server.verify();
     }
 
@@ -394,6 +426,55 @@ class EasebuzzRequestContractTest {
         assertEquals(Boolean.TRUE, result.get("status"));
         assertEquals("pending", result.get("batch_status"));
         server.verify();
+    }
+
+    @Test
+    void generateKycAccessKeySendsTheDocumentedBodyAndHash() throws Exception {
+        EasebuzzApiClient client = client();
+        MockRestServiceServer server = bind(client);
+
+        // merchant_key|sub_merchant_id|name|email|phone|salt
+        String expectedHash = sha512(KEY + "|S280498XHD5|Spice Hub|owner@spice.test|9999999999|" + SALT);
+
+        server.expect(requestTo("https://dashboard.easebuzz.in/submerchant/v1/generate_kyc_access_key"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(content().json("{\"merchant_key\":\"" + KEY + "\",\"sub_merchant_id\":\"S280498XHD5\","
+                        + "\"name\":\"Spice Hub\",\"email\":\"owner@spice.test\","
+                        + "\"phone\":\"9999999999\",\"hash\":\"" + expectedHash + "\"}", false))
+                .andRespond(withSuccess(
+                        "{\"status\":true,\"kyc_dashboard_url\":\"https://kyc.easebuzz.in/session/abc?access_key=k1\"}",
+                        MediaType.APPLICATION_JSON));
+
+        Map<String, Object> result = client.generateKycAccessKey(
+                "S280498XHD5", "Spice Hub", "owner@spice.test", "9999999999");
+
+        assertEquals("https://kyc.easebuzz.in/session/abc?access_key=k1", result.get("kyc_dashboard_url"));
+        server.verify();
+    }
+
+    /**
+     * A rejected call is only diagnosable if the gateway's own words survive the exception. Before
+     * this, every 4xx collapsed into "Easebuzz gateway request failed", which is why a disabled KYC
+     * product and a wrong hash looked identical from the server log.
+     */
+    @Test
+    void aRejectedCallReturnsTheGatewaysOwnErrorText() {
+        EasebuzzApiClient client = client();
+        MockRestServiceServer server = bind(client);
+
+        server.expect(requestTo("https://dashboard.easebuzz.in/submerchant/v1/generate_kyc_access_key"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"status\":false,\"error\":\"KYC service not enabled for this merchant\"}"));
+
+        Map<String, Object> result = client.generateKycAccessKey(
+                "S280498XHD5", "Spice Hub", "owner@spice.test", "9999999999");
+
+        assertEquals(Boolean.FALSE, result.get("status"));
+        assertTrue(result.get("error").toString().contains("KYC service not enabled"),
+                "provider text must survive the exception, got: " + result.get("error"));
     }
 
     @Test

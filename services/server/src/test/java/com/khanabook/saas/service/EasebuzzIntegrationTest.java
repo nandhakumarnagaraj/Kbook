@@ -102,7 +102,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         assertEquals("Test Restaurant", sm.getBusinessName());
 
         // 2. Submit to Easebuzz (mock)
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -211,7 +211,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             "businessProof2Type", "UDYAM_CERTIFICATE",
             "businessProof2Url", "https://docs.kbook.test/proof2.pdf"
         ));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -230,7 +230,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             "businessProof1Type", "ELECTRICITY_BILL",
             "businessProof1Url", "https://docs.kbook.test/bill.pdf"
         ));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -260,7 +260,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             "businessProof2Type", "SHOP_ESTABLISHMENT",
             "businessProof2Url", "https://docs.kbook.test/shop.pdf"
         ));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -283,7 +283,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Supplying the legal entity name allows submission to proceed.
         subMerchantService.update(sm.getId(), Map.of("legalEntityName", "Test Restaurant Pvt Ltd"));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -316,7 +316,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
             "pan", "ABCDE1234F", "ifsc", "HDFC0000123",
             "bankName", "HDFC", "branchName", "Test Branch"
         ));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -343,7 +343,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
 
         // Making the second proof a distinct type allows submission to proceed.
         subMerchantService.update(sm.getId(), Map.of("businessProof2Type", "UDYAM_CERTIFICATE"));
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());
@@ -413,7 +413,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     void createResponseCarryingAKycPortalLinkIsPersistedForTheOwner() {
         EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
         String portalUrl = "https://kyc.easebuzz.in/session/abc?access_key=SUPERSECRET";
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId, "kyc_dashboard_url", portalUrl));
 
         subMerchantService.submitToEasebuzz(sm.getId());
@@ -436,7 +436,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     void createResponseWithANestedKycDetailsLinkIsAlsoAccepted() {
         EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
         String portalUrl = "https://kyc.easebuzz.in/session/nested";
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of(
                 "status", true,
                 "submerchant_id", testSubMerchantId,
@@ -452,7 +452,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Test
     void createResponseWithoutALinkLeavesPortalIssuanceToTheAccessKeyCall() {
         EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         subMerchantService.submitToEasebuzz(sm.getId());
@@ -501,7 +501,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     void submitIssuesPortalLinkImmediatelyWhenCreateReturnsNone() {
         EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
         when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
         String portalUrl = "https://kyc.easebuzz.in/session/issued-at-submit";
         when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
@@ -520,7 +520,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
         String createUrl = "https://kyc.easebuzz.in/session/from-create";
         when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId,
                     "kyc_details", Map.of("kyc_dashboard_url", createUrl)));
 
@@ -533,7 +533,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Test
     void ownerOnboardResponseCarriesTheKycPortalUrl() {
         when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
         String portalUrl = "https://kyc.easebuzz.in/session/from-onboard";
         when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
@@ -553,7 +553,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     @Test
     void onboardResponseNeverHandsCounterStaffThePortalKey() {
         when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(),
-                any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
         when(easebuzzApi.generateKycAccessKey(any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "kyc_dashboard_url", "https://kyc.easebuzz.in/session/staff"));
@@ -572,6 +572,59 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
     private org.springframework.mock.web.MockMultipartFile kycFile() {
         return new org.springframework.mock.web.MockMultipartFile(
                 "file", "pan.pdf", "application/pdf", new byte[512]);
+    }
+
+    /**
+     * The dashboard password Easebuzz was given must survive the create, encrypted.
+     *
+     * <p>Without it an approved merchant owns an Easebuzz login that nobody on our side can
+     * recover, and the only way back in is a support ticket.
+     */
+    @Transactional
+    @Test
+    void aCreateRetainsTheDashboardPasswordEncrypted() {
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
+
+        EasebuzzSubMerchant sm = subMerchantService.onboardForRestaurant(testRestaurantId, baseSubMerchantData());
+
+        assertNotNull(sm.getPortalPassword(), "the created sub-merchant must keep a copy of its password");
+        assertTrue(sm.getPortalPassword().startsWith("v1:"), "the column must hold ciphertext, not the password");
+
+        Map<String, Object> credentials = subMerchantService.portalCredentials(testRestaurantId);
+        assertEquals(Boolean.TRUE, credentials.get("retained"));
+        assertEquals(testSubMerchantId, credentials.get("subMerchantId"));
+        assertEquals(12, credentials.get("password").toString().length(),
+                "the generated password is 12 characters and must decrypt back to its original length");
+    }
+
+    /**
+     * A rejected KYC resubmit must send the corrected profile and must not read as a success.
+     *
+     * <p>Before, the update carried only the bank and contact fields, so a rejection caused by a
+     * wrong PAN, address, FSSAI or business type could never be fixed from the app — the corrected
+     * values stayed local while Easebuzz re-reviewed the old ones — and the failed call still left
+     * the row looking resubmitted.
+     */
+    @Transactional
+    @Test
+    void aResubmitForwardsTheWholeProfileAndMarksARejectionAsFailed() {
+        EasebuzzSubMerchant sm = subMerchantService.create(baseSubMerchantData(), testRestaurantId);
+        sm.setSubMerchantId(testSubMerchantId);
+        subMerchantRepo.save(sm);
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Map.of("status", false, "error", "PAN mismatch"));
+
+        EasebuzzSubMerchant result = subMerchantService.updateOnEasebuzz(sm.getId());
+
+        assertEquals("FAILED", result.getStatus(), "a rejected update must not read as a success");
+        assertEquals("PAN mismatch", result.getEasebuzzResponse());
+        // The id makes it an update rather than a second create; the PAN proves the business
+        // block (not just the bank block) went back upstream.
+        verify(easebuzzApi).createSubMerchant(eq(testSubMerchantId), any(), any(), any(), any(), any(),
+                any(), any(), any(), any(), eq("ABCDE1234F"), any(), any(), any(), any(), any(), any(), any(), any(),
+                any());
     }
 
     private Map<String, Object> baseSubMerchantData() {
@@ -768,7 +821,7 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         // The outlet format used to be a submit gate on the assumption that it chose the MCC.
         // Easebuzz assigns the MCC internally and documents no create-time MCC field, so the
         // format is ops data - a missing one must not block an otherwise complete submission.
-        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(easebuzzApi.createSubMerchant(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Map.of("status", true, "submerchant_id", testSubMerchantId));
 
         EasebuzzSubMerchant submitted = subMerchantService.submitToEasebuzz(sm.getId());

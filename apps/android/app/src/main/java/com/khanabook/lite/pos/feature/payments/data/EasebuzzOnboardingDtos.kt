@@ -57,10 +57,23 @@ data class EasebuzzOnboardingStatusResponse(
     @SerializedName("fssaiNumber") val fssaiNumber: String? = null
 )
 
+data class EasebuzzPortalCredentials(
+    @SerializedName("subMerchantId") val subMerchantId: String? = null,
+    @SerializedName("email") val email: String? = null,
+    @SerializedName("phone") val phone: String? = null,
+    /** False when no copy is stored here; the password must then be reset at Easebuzz. */
+    @SerializedName("retained") val retained: Boolean = false,
+    @SerializedName("password") val password: String? = null,
+    @SerializedName("dashboardUrl") val dashboardUrl: String? = null
+)
+
 data class EasebuzzKycAccessKeyResponse(
     @SerializedName("status") val status: Any? = null,
     @SerializedName("kyc_url") val kycUrl: String? = null,
-    @SerializedName("sub_merchant_id") val subMerchantId: String? = null
+    @SerializedName("sub_merchant_id") val subMerchantId: String? = null,
+    // Easebuzz's own reason when it refuses to issue a link, so the merchant is told why
+    // instead of being asked to "try again" for a product that is switched off upstream.
+    @SerializedName("error") val error: String? = null
 )
 
 data class FssaiLookupResponse(

@@ -59,6 +59,13 @@ class EasebuzzOnboardingRepository @Inject constructor(
     suspend fun generateKycAccessKey(): Result<EasebuzzKycAccessKeyResponse> =
         runApi { api.generateKycAccessKey() }
 
+    /**
+     * The Easebuzz dashboard login issued at creation. Owner-only on the server, and
+     * `retained=false` means there is no stored copy to show.
+     */
+    suspend fun portalCredentials(): Result<EasebuzzPortalCredentials> =
+        runApi { api.getEasebuzzPortalCredentials() }
+
     suspend fun lookupFssai(fssaiNo: String): Result<com.khanabook.lite.pos.feature.payments.data.FssaiLookupResponse> =
         runApi { api.lookupFssai(fssaiNo) }
 

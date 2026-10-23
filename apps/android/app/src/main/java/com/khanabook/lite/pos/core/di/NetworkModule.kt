@@ -9,7 +9,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -25,16 +24,17 @@ import android.content.Context
 object NetworkModule {
 
     private const val BACKEND_BASE_URL = BuildConfig.BACKEND_URL
-    private const val PRODUCTION_HOST = "kbook.iadv.cloud"
-
-    private fun isProductionBackend(url: String): Boolean =
-        url.toHttpUrlOrNull()?.host.equals(PRODUCTION_HOST, ignoreCase = true)
 
     @Provides
     @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG && !isProductionBackend(BACKEND_BASE_URL)) {
+            // Debug APKs log the whole exchange, whatever backend they point at: these builds
+            // never reach a merchant, and seeing the real bytes is the only way to explain a
+            // KYC call that the server answers with an empty portal URL. BuildConfig.DEBUG is
+            // false in every release/App Bundle, so a shipped binary logs nothing — the bodies
+            // carry auth tokens and the KYC portal access key.
+            level = if (BuildConfig.DEBUG) {
                 HttpLoggingInterceptor.Level.BODY
             } else {
                 HttpLoggingInterceptor.Level.NONE

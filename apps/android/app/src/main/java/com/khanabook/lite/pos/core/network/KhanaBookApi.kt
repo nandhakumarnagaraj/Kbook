@@ -316,6 +316,14 @@ interface KhanaBookApi {
         @POST("api/v1/restaurants/payment-config/easebuzz/kyc-access-key")
         suspend fun generateKycAccessKey(): com.khanabook.lite.pos.feature.payments.data.EasebuzzKycAccessKeyResponse
 
+        /**
+         * The Easebuzz dashboard login issued at sub-merchant creation. Owner-only, and
+         * `retained=false` means no copy exists — the merchant needs a reset at Easebuzz.
+         */
+        @GET("api/v1/restaurants/payment-config/easebuzz/portal-credentials")
+        suspend fun getEasebuzzPortalCredentials():
+            com.khanabook.lite.pos.feature.payments.data.EasebuzzPortalCredentials
+
         // ── Easebuzz KYC documents (incl. 2 address/business proofs) ───────
 
         /**

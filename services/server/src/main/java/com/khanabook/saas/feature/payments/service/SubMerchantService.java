@@ -31,6 +31,23 @@ public class SubMerchantService {
     private final EasebuzzSubMerchantWebhookEventRepository webhookEventRepo;
     private final PushNotificationService pushNotificationService;
     private final ObjectMapper objectMapper;
+    private final com.khanabook.saas.core.security.PortalCredentialCipher portalCipher;
+    private final EasebuzzProperties easebuzzProperties;
+
+    /**
+     * Generates the Easebuzz dashboard password issued to a new sub-merchant.
+     *
+     * <p>Generated here rather than inside the API client so the caller can keep an encrypted
+     * copy: without one, an approved merchant owns a dashboard login nobody on our side can
+     * recover, and only an Easebuzz support ticket can get them back in.
+     */
+    static String newPortalPassword() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#";
+        StringBuilder sb = new StringBuilder();
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        for (int i = 0; i < 12; i++) sb.append(chars.charAt(random.nextInt(chars.length())));
+        return sb.toString();
+    }
 
     public List<EasebuzzSubMerchant> listAll() {
         return subMerchantRepo.findAll();
@@ -591,21 +608,38 @@ public class SubMerchantService {
                 "MISSING_EASEBUZZ_ID"
             );
         }
-        Map<String, Object> result = easebuzzApi.updateSubMerchant(
-            sm.getSubMerchantId(), sm.getBusinessName(), sm.getContactEmail(), sm.getContactPhone(),
+        // Update reuses the documented create route with `sub_merchant_id` in the body, so the
+        // whole profile goes back, not just the bank columns. Sending only the bank block meant a
+        // rejection caused by a wrong PAN, address, FSSAI or business type could never be fixed
+        // from the app: the corrected values stayed local while Easebuzz re-reviewed the old ones.
+        Map<String, Object> result = easebuzzApi.createSubMerchant(
+            sm.getSubMerchantId(),
+            sm.getBusinessName(), sm.getContactEmail(), sm.getContactPhone(),
             sm.getBankAccountNo(), sm.getIfsc(), sm.getBankName(),
-            sm.getBeneficiaryName(), sm.getBranchName()
+            sm.getBeneficiaryName(), sm.getBranchName(),
+            sm.getBusinessType(), sm.getPan(), sm.getGst(),
+            sm.getBusinessAddress(),
+            sm.getLegalEntityName(), sm.getState(), sm.getFssaiNumber(),
+            sm.getRestaurantFormat(),
+            sm.getUpiDeductionLtLimit(), sm.getDcDeductionGtTwoThousand(),
+            // Never on an update: the documented update payload carries no password, and a new
+            // random one would silently replace the merchant's dashboard login.
+            null
         );
-        Boolean apiStatus = (Boolean) result.get("status");
-        if (Boolean.TRUE.equals(apiStatus)) {
+        // `status` is documented as a boolean but has been seen as a string on other routes, and
+        // a raw (Boolean) cast turned that into a ClassCastException instead of a reported failure.
+        boolean apiStatus = EasebuzzApiClient.toBool(result != null ? result.get("status") : null);
+        if (apiStatus) {
             sm.setEasebuzzResponse(toStorageSafeJson(result));
         } else {
-            String error = (String) result.get("error");
-            sm.setEasebuzzResponse(error != null ? error : result.toString());
+            // A rejected update must not read as a successful resubmit: the merchant would be told
+            // their corrections were sent while Easebuzz still holds the rejected values.
+            sm.setStatus("FAILED");
+            sm.setEasebuzzResponse(extractProviderError(result));
         }
         sm.setUpdatedAt(System.currentTimeMillis());
         subMerchantRepo.save(sm);
-        log.info("Sub-merchant {} updated on Easebuzz, status={}", id, apiStatus);
+        log.info("Sub-merchant {} updated on Easebuzz, accepted={}", id, apiStatus);
         return sm;
     }
 
@@ -662,7 +696,10 @@ public class SubMerchantService {
         }
         Map<String, Object> result = easebuzzApi.generateKycAccessKey(
             sm.getSubMerchantId(),
-            sm.getBusinessName(),
+            // Same sanitised name the create call registered: quotes and backslashes are stripped
+            // there, and sending the raw business name here made a name with an apostrophe
+            // ("Chef's Kitchen") differ from the profile Easebuzz already holds.
+            EasebuzzApiClient.sanitizeName(sm.getBusinessName()),
             sm.getContactEmail(),
             sm.getContactPhone()
         );
@@ -679,11 +716,20 @@ public class SubMerchantService {
         } else {
             kycUrl = "";
         }
-        return Map.of(
-            "status", result.getOrDefault("status", "failure"),
-            "kyc_url", kycUrl,
-            "sub_merchant_id", sm.getSubMerchantId()
-        );
+        // Pass the gateway's reason through: "no portal link" is the same screen whether the
+        // product is disabled, the hash was rejected or the gateway was down, and only Easebuzz
+        // knows which. Without this the app could say nothing more than "try again".
+        Map<String, Object> response = new java.util.HashMap<>();
+        response.put("status", result.getOrDefault("status", "failure"));
+        response.put("kyc_url", kycUrl);
+        response.put("sub_merchant_id", sm.getSubMerchantId());
+        Object providerError = result.get("error_desc") != null
+                ? result.get("error_desc")
+                : result.get("error");
+        if (providerError != null) {
+            response.put("error", providerError.toString());
+        }
+        return response;
     }
 
     // ============================================================
@@ -923,6 +969,8 @@ public class SubMerchantService {
         // echoed upstream as if it were theirs and then used for KYC calls that only accept
         // the gateway-issued value.
         String subMerchantId = sm.getSubMerchantId();
+        boolean firstCreate = subMerchantId == null || subMerchantId.isBlank();
+        String portalPassword = firstCreate ? newPortalPassword() : null;
 
         Map<String, Object> result = easebuzzApi.createSubMerchant(
             subMerchantId,
@@ -933,7 +981,8 @@ public class SubMerchantService {
             sm.getBusinessAddress(),
             sm.getLegalEntityName(), sm.getState(), sm.getFssaiNumber(),
             sm.getRestaurantFormat(),
-            sm.getUpiDeductionLtLimit(), sm.getDcDeductionGtTwoThousand()
+            sm.getUpiDeductionLtLimit(), sm.getDcDeductionGtTwoThousand(),
+            portalPassword
         );
         Object statusObj = result != null ? result.get("status") : null;
         boolean apiStatus = EasebuzzApiClient.toBool(statusObj);
@@ -962,7 +1011,7 @@ public class SubMerchantService {
             if (createKycUrl == null && sm.getSubMerchantId() != null && !sm.getSubMerchantId().isBlank()) {
                 try {
                     Map<String, Object> keyResult = easebuzzApi.generateKycAccessKey(
-                            sm.getSubMerchantId(), sm.getBusinessName(),
+                            sm.getSubMerchantId(), EasebuzzApiClient.sanitizeName(sm.getBusinessName()),
                             sm.getContactEmail(), sm.getContactPhone());
                     String issuedUrl = extractKycPortalUrl(keyResult);
                     if (issuedUrl != null) {
@@ -975,6 +1024,9 @@ public class SubMerchantService {
                 } catch (Exception e) {
                     log.warn("Sub-merchant {} registered; KYC portal link request failed: {}", id, e.getMessage());
                 }
+            }
+            if (portalPassword != null) {
+                retainPortalPassword(sm, portalPassword);
             }
             sm.setStatus("PENDING_KYC");
             sm.setKycSubmittedAt(System.currentTimeMillis());
@@ -989,6 +1041,45 @@ public class SubMerchantService {
         subMerchantRepo.save(sm);
         log.info("Sub-merchant {} submitted to Easebuzz, status={}", id, sm.getStatus());
         return sm;
+    }
+
+    /**
+     * The Easebuzz dashboard login for this outlet, for the owner only.
+     *
+     * <p>{@code retained=false} is not an error: it means either the row predates password storage
+     * or the encryption key changed since it was written. The merchant's Easebuzz account is
+     * unaffected — only our ability to show the password — so the caller says "ask for a reset"
+     * instead of failing.
+     */
+    public Map<String, Object> portalCredentials(Long restaurantId) {
+        EasebuzzSubMerchant sm = getByRestaurantId(restaurantId);
+        String password = portalCipher.decrypt(sm.getPortalPassword());
+        Map<String, Object> credentials = new java.util.HashMap<>();
+        credentials.put("subMerchantId", sm.getSubMerchantId());
+        credentials.put("email", sm.getContactEmail());
+        credentials.put("phone", sm.getContactPhone());
+        credentials.put("retained", password != null);
+        credentials.put("password", password);
+        credentials.put("dashboardUrl", easebuzzProperties.getDashboardBaseUrl());
+        return credentials;
+    }
+
+    /**
+     * Keeps an encrypted copy of the dashboard password Easebuzz was just given.
+     *
+     * <p>Fails soft: a create that succeeded upstream must not be reported as failed because a
+     * local encryption key is missing. The merchant simply has no recoverable password, which is
+     * logged once here and surfaced as "not retained" by the credentials endpoint.
+     */
+    private void retainPortalPassword(EasebuzzSubMerchant sm, String plaintext) {
+        String encrypted = portalCipher.isConfigured() ? portalCipher.encrypt(plaintext) : null;
+        if (encrypted == null) {
+            log.warn("Sub-merchant {} was created without retaining its Easebuzz dashboard password: "
+                    + "security.portal-secret is not configured. A reset at Easebuzz will be needed "
+                    + "if the merchant asks for dashboard access.", sm.getId());
+            return;
+        }
+        sm.setPortalPassword(encrypted);
     }
 
     /**

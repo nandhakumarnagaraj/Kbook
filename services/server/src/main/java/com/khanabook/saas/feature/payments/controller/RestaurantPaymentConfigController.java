@@ -229,6 +229,21 @@ public class RestaurantPaymentConfigController {
     }
 
     /**
+     * The Easebuzz dashboard login issued when this outlet's sub-merchant was created.
+     * <p>
+     * Owner-only: that password signs in to the merchant's Easebuzz account, which exposes
+     * settlements and bank details. {@code retained=false} means no copy exists here, so the
+     * merchant needs a reset at Easebuzz rather than a retry.
+     */
+    @GetMapping("/portal-credentials")
+    public ResponseEntity<Map<String, Object>> portalCredentials() {
+        if (!isOwner()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Restaurant owner access required");
+        }
+        return ResponseEntity.ok(subMerchantService.portalCredentials(TenantContext.getCurrentTenant()));
+    }
+
+    /**
      * Record that the merchant has a KYC document and return the portal link to upload it.
      * <p>
      * The app must use this instead of {@code POST /restaurants/kyc-document}: Easebuzz accepts
