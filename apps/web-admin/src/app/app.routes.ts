@@ -107,6 +107,12 @@ export const routes: Routes = [
         loadComponent: () => import('./demo/spectrum-demo.component').then(m => m.SpectrumDemoComponent)
       },
       {
+        path: 'demo/shadcn',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./demo/shadcn-demo.component').then(m => m.ShadcnDemoComponent)
+      },
+      {
         path: '',
         pathMatch: 'full',
         redirectTo: () => inject(Router).parseUrl(inject(AuthService).getLandingPath())
