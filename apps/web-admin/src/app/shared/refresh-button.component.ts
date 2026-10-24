@@ -24,7 +24,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
       class="header-action-btn"
       [disabled]="disabled || loading"
       (click)="refresh.emit()"
-      [attr.aria-label]="ariaLabel"
+      [attr.aria-label]="ariaLabel === label ? label : label + ' (' + ariaLabel + ')'"
       [attr.title]="ariaLabel"
       [attr.aria-busy]="loading ? 'true' : null"
     >

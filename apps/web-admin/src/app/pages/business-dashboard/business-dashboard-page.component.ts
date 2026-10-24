@@ -94,9 +94,9 @@ function getTodayIsoDate(): string {
             class="header-pill-btn"
             (click)="toggleTerminalsModal()"
             title="Manage POS terminals"
-            [attr.aria-label]="onlineTerminalsCount() + ' online, ' + totalTerminalsCount() + ' registered terminals'">
+            [attr.aria-label]="onlineTerminalsCount() + ' active, ' + totalTerminalsCount() + ' registered terminals'">
             <span class="dot-beacon" [class.dot-beacon--active]="onlineTerminalsCount() > 0"></span>
-            <span class="pill-btn__text"><strong>{{ onlineTerminalsCount() }} online</strong> · {{ totalTerminalsCount() }} registered</span>
+            <span class="pill-btn__text"><strong>{{ onlineTerminalsCount() }} active</strong> · {{ totalTerminalsCount() }} registered</span>
           </button>
 
           <!-- Low Stock Warning Pill -->
@@ -215,7 +215,7 @@ function getTodayIsoDate(): string {
           <div class="bento-tile__head">
             <span class="bento-tile__eyebrow">Terminal Fleet</span>
             <span class="kpi-tag" [class.kpi-tag--green]="onlineTerminalsCount() > 0" [class.kpi-tag--neutral]="onlineTerminalsCount() === 0">
-              {{ onlineTerminalsCount() }} Online
+              {{ onlineTerminalsCount() }} Active
             </span>
           </div>
           <div class="bento-tile__main-metric">
@@ -571,7 +571,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         return combineLatest([
           this.api.getDashboard(),
           this.api.getDashboardTrends().pipe(catchError(() => of({ yesterdayRevenue: 0, todayRevenue: 0 }))),
-          this.api.getOrdersPaginated(0, 20).pipe(catchError(() => of({ content: [], totalElements: 0 })))
+          this.api.getOrdersPaginated(0, 15, 'draft').pipe(catchError(() => of({ content: [], totalElements: 0 })))
         ]).pipe(
           map(([dashboardData, trendsData, ordersData]) => {
             this.isRefreshing.set(false);
@@ -586,7 +586,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
             // Map live orders
             if (orders && Array.isArray(orders.content)) {
               const liveActive: PosActiveOrder[] = orders.content
-                .filter((o: any) => o.orderStatus !== 'CANCELLED' && o.orderStatus !== 'REFUNDED' && o.orderStatus !== 'VOIDED')
+                .filter((o: any) => (o.orderStatus || '').trim().toLowerCase() === 'draft')
                 .slice(0, 15)
                 .map((o: any) => {
                   let status: PosActiveOrder['status'] = 'Preparing';
@@ -842,10 +842,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   });
 
   readonly completedCount = computed(() => {
-    const c = this.dailyClosingData();
-    if (c && c.completedOrders != null) {
-      return Number(c.completedOrders) || 0;
-    }
     const data = this.dashboard();
     if (data && data.posOrderCount != null) {
       const total = Number(data.posOrderCount) || 0;
@@ -858,7 +854,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly completedRate = computed(() => {
     const total = Number(this.dashboard()?.posOrderCount) || 0;
     const completed = this.completedCount();
-    if (total === 0) return 100;
+    if (total === 0) return 0;
     return Math.min(100, Math.round((completed / total) * 100));
   });
 

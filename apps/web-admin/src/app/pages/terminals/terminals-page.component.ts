@@ -31,7 +31,7 @@ import { formatDate } from '../../shared/formatters';
           [class.kpi-tag--neutral]="activeTerminalsCount === 0"
           *ngIf="!terminalsLoading()">
           <span class="pulse-indicator" aria-hidden="true" *ngIf="activeTerminalsCount > 0"></span>
-          {{ activeTerminalsCount }} Online
+          {{ activeTerminalsCount }} Active
         </span>
 
         <app-refresh-button (refresh)="reload()" [disabled]="terminalsLoading() || requestsLoading()" [loading]="terminalsLoading() || requestsLoading()" ariaLabel="Refresh terminals" />
@@ -90,8 +90,8 @@ import { formatDate } from '../../shared/formatters';
       <section class="panel terminals-panel">
         <div class="section-topbar">
           <div class="topbar-heading">
-            <h3>Assigned Register Hardware</h3>
-            <p class="muted">Active and deactivated Android POS billing registers.</p>
+            <h3>Registered terminals</h3>
+            <p class="muted">Active and deactivated Android POS devices registered to this shop.</p>
           </div>
         </div>
 
@@ -233,7 +233,7 @@ import { formatDate } from '../../shared/formatters';
                 </span>
                 <ng-template #noCardDev>No device assigned</ng-template>
               </p>
-              <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
+              <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
               <div class="mobile-data-card__actions">
                 <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
                   <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)" title="Recover access using the new device ID">Recover access</button>

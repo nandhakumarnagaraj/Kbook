@@ -132,6 +132,9 @@ import { CommonModule } from '@angular/common';
           width: 100%;
         }
 
+        /* The desktop flex-basis is horizontal; reset it when the header stacks. */
+        .kb-page-header__left { flex: 0 1 auto; }
+
         .kb-page-header__right {
           justify-content: flex-start;
           gap: 0.5rem;

@@ -140,9 +140,9 @@ import { environment } from '../../../environments/environment';
               <td>
                 <span
                   class="chip"
-                  [class.success]="item.available"
-                  [class.danger]="!item.available"
-                  [class.warn]="item.stockStatus === 'RUNNING_LOW'"
+                  [class.success]="item.available && item.stockStatus !== 'OUT_OF_STOCK' && item.stockStatus !== 'RUNNING_LOW'"
+                  [class.danger]="!item.available || item.stockStatus === 'OUT_OF_STOCK'"
+                  [class.warn]="item.available && item.stockStatus === 'RUNNING_LOW'"
                 >
                   {{ item.available ? item.stockStatus : 'UNAVAILABLE' }}
                 </span>
@@ -201,7 +201,12 @@ import { environment } from '../../../environments/environment';
                 </div>
                 <strong>{{ item.name }}</strong>
               </div>
-              <span class="chip" [class.success]="item.available" [class.danger]="!item.available">{{ item.available ? item.stockStatus : 'Unavailable' }}</span>
+              <span
+                class="chip"
+                [class.success]="item.available && item.stockStatus !== 'OUT_OF_STOCK' && item.stockStatus !== 'RUNNING_LOW'"
+                [class.danger]="!item.available || item.stockStatus === 'OUT_OF_STOCK'"
+                [class.warn]="item.available && item.stockStatus === 'RUNNING_LOW'"
+              >{{ item.available ? item.stockStatus : 'Unavailable' }}</span>
             </div>
             <p>{{ item.description || 'No description added yet.' }}</p>
             <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd><div class="menu-price-list"><span class="menu-price-row"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span><span class="menu-price-row" *ngFor="let variant of item.variants || []; trackBy: trackByVariantId"><span class="menu-price-label">{{ variant.variantName }}</span><strong>{{ formatCurrencyValue(variant.price) }}</strong></span></div></dd></div><div><dt>Variants</dt><dd>{{ item.variantCount }}</dd></div></dl>

@@ -255,6 +255,11 @@ interface RestaurantProfile {
       font-size: 0.82rem;
       color: var(--kb-color-muted-foreground);
     }
+    @media (max-width: 640px) {
+      .sticky-save-dock {
+        bottom: calc(5rem + env(safe-area-inset-bottom));
+      }
+    }
     .logo-uploader-card {
       display: flex;
       gap: var(--kb-space-4);
