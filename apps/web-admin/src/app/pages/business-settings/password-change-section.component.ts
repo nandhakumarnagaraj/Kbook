@@ -14,22 +14,32 @@ const API = environment.apiBaseUrl;
   imports: [CommonModule, FormsModule],
   template: `
     <section class="panel settings-section">
-      <h3>Change Password</h3>
-      <p class="muted">Update your account password using OTP verification.</p>
-      <div class="form-grid" style="max-width:400px;">
+      <div class="section-title-wrap">
+        <div class="section-icon">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Security &amp; Password Management</h3>
+          <p class="muted">Update your web admin access credentials via verified one-time password (OTP).</p>
+        </div>
+      </div>
+      <div class="form-grid" style="max-width: 440px;">
         <div class="field">
           <label>Phone Number</label>
-          <input class="field-control" [(ngModel)]="pwPhone" placeholder="Registered phone" maxlength="10" aria-label="Registered phone number" />
+          <input class="field-control tabular-num" [(ngModel)]="pwPhone" placeholder="Registered 10-digit phone" maxlength="10" aria-label="Registered phone number" />
         </div>
-        <div class="field" *ngIf="!pwOtpSent()">
+        <div class="field" *ngIf="!pwOtpSent()" style="display:flex;align-items:flex-end;">
           <button class="primary-btn" [disabled]="!pwPhone || pwPhone.length !== 10 || pwLoading()" (click)="requestPasswordOtp()">
-            {{ pwLoading() ? 'Sending...' : 'Send OTP' }}
+            {{ pwLoading() ? 'Sending OTP...' : 'Send OTP' }}
           </button>
         </div>
         <ng-container *ngIf="pwOtpSent()">
           <div class="field">
             <label>OTP</label>
-            <input class="field-control" [(ngModel)]="pwOtp" placeholder="6-digit OTP" maxlength="6" aria-label="One-time password" autocomplete="one-time-code" />
+            <input class="field-control tabular-num" [(ngModel)]="pwOtp" placeholder="6-digit OTP" maxlength="6" aria-label="One-time password" autocomplete="one-time-code" />
           </div>
           <div class="field">
             <label>New Password</label>

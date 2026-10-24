@@ -23,7 +23,19 @@ export interface PaymentMethodsSettings {
   imports: [CommonModule, FormsModule],
   template: `
     <section class="panel settings-section">
-      <h3>Payment Methods</h3>
+      <div class="section-title-wrap">
+        <div class="section-icon">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Payment Channels &amp; Settlement Flow</h3>
+          <p class="muted">Enable counter settlement methods, dynamic UPI QR validation, and order lifecycle behavior.</p>
+        </div>
+      </div>
+
       <div class="form-grid">
         <div class="field">
           <label class="toggle-label">
@@ -65,13 +77,6 @@ export interface PaymentMethodsSettings {
         <div class="field" *ngIf="settings().upiEnabled">
           <label>UPI Mobile</label>
           <input class="field-control" [ngModel]="settings().upiMobile" (ngModelChange)="updateField('upiMobile', $event)" placeholder="Linked mobile number" maxlength="10" aria-label="UPI linked mobile number" />
-        </div>
-        <div class="field">
-          <label>Order Payment Flow</label>
-          <select class="field-select" [ngModel]="settings().orderPaymentFlowMode" (ngModelChange)="updateField('orderPaymentFlowMode', $event)" aria-label="Order payment flow">
-            <option value="pay_before_food">Pay before food (Fast Counter / QSR)</option>
-            <option value="pay_after_food">Pay after food (Dine-in Table Service)</option>
-          </select>
         </div>
       </div>
 
@@ -115,10 +120,19 @@ export interface PaymentMethodsSettings {
     </section>
 
     <section class="panel settings-section">
-      <h3>Online Payments (Easebuzz)</h3>
-      <p class="muted" style="margin:0 0 1rem;font-size:0.85rem">
-        Enable online payment collection via UPI, cards, and net banking through Easebuzz gateway.
-      </p>
+      <div class="section-title-wrap">
+        <div class="section-icon">
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M2 10h20"/>
+            <circle cx="7" cy="15" r="1"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Online Payments Gateway (Easebuzz)</h3>
+          <p class="muted">Enable online payment collection via UPI, credit/debit cards, and net banking.</p>
+        </div>
+      </div>
       <div *ngIf="easebuzzLoading" class="loading" role="status">Loading payment config...</div>
       <div *ngIf="!easebuzzLoading && easebuzzError" class="config-error" role="alert">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -137,20 +151,20 @@ export interface PaymentMethodsSettings {
             </label>
           </div>
         </div>
-        <div *ngIf="easebuzzConfig.subMerchantId" style="margin-top:1rem;padding:0.75rem;background:var(--kb-color-surface-2);border-radius:8px;font-size:0.85rem">
-          <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">
-            <span>Sub-Merchant ID</span>
-            <strong>{{ easebuzzConfig.subMerchantId }}</strong>
+        <div *ngIf="easebuzzConfig.subMerchantId" style="margin-top:1rem;padding:0.85rem 1rem;background:var(--kb-color-surface-2);border:1px solid var(--kb-color-border);border-radius:10px;font-size:0.85rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+            <span style="color:var(--kb-color-muted-foreground);font-weight:500;">Sub-Merchant ID</span>
+            <strong style="font-family:monospace;font-size:0.9rem;">{{ easebuzzConfig.subMerchantId }}</strong>
           </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">
-            <span>Status</span>
-            <span class="chip" [class.chip-green]="easebuzzConfig.subMerchantStatus === 'ACTIVE'" [class.chip-amber]="easebuzzConfig.subMerchantStatus === 'PENDING'">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
+            <span style="color:var(--kb-color-muted-foreground);font-weight:500;">Status</span>
+            <span class="chip" [class.chip-green]="easebuzzConfig.subMerchantStatus === 'ACTIVE'" [class.chip-amber]="easebuzzConfig.subMerchantStatus !== 'ACTIVE'">
               {{ subMerchantStatusLabel(easebuzzConfig.subMerchantStatus) }}
             </span>
           </div>
-          <div style="display:flex;justify-content:space-between">
-            <span>KYC Status</span>
-            <span class="chip" [class.chip-green]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone === 'ok'" [class.chip-amber]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone === 'pending'">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="color:var(--kb-color-muted-foreground);font-weight:500;">KYC Status</span>
+            <span class="chip" [class.chip-green]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone === 'ok'" [class.chip-amber]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone !== 'ok'">
               {{ kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).label }}
             </span>
           </div>
@@ -252,6 +266,27 @@ export interface PaymentMethodsSettings {
     .meta-tag {
       background: var(--kb-color-surface-1); border: 1px solid var(--kb-color-border);
       padding: 3px 8px; border-radius: 4px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+    }
+    .chip-green {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10B981;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .chip-amber {
+      background: rgba(245, 158, 11, 0.12);
+      color: #D97706;
+      border: 1px solid rgba(245, 158, 11, 0.25);
     }
   `]
 })

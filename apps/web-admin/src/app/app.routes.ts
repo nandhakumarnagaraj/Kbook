@@ -101,18 +101,6 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/business-settings/business-settings-page.component').then(m => m.BusinessSettingsPageComponent)
       },
       {
-        path: 'demo/spectrum',
-        canActivate: [roleGuard],
-        data: { roles: ['OWNER'] },
-        loadComponent: () => import('./demo/spectrum-demo.component').then(m => m.SpectrumDemoComponent)
-      },
-      {
-        path: 'demo/shadcn',
-        canActivate: [roleGuard],
-        data: { roles: ['OWNER'] },
-        loadComponent: () => import('./demo/shadcn-demo.component').then(m => m.ShadcnDemoComponent)
-      },
-      {
         path: '',
         pathMatch: 'full',
         redirectTo: () => inject(Router).parseUrl(inject(AuthService).getLandingPath())

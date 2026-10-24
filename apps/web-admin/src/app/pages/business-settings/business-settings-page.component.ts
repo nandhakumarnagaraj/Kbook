@@ -157,10 +157,6 @@ interface RestaurantProfile {
               <input class="field-control" [(ngModel)]="p.shopName" placeholder="Restaurant name" aria-label="Shop name (required)" />
             </div>
             <div class="field">
-              <label>Shop Address</label>
-              <textarea class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" rows="3" style="resize: vertical; min-height: 72px; font-family: inherit;"></textarea>
-            </div>
-            <div class="field">
               <label>WhatsApp Contact Number</label>
               <input class="field-control tabular-num" [(ngModel)]="p.whatsappNumber" placeholder="10-digit mobile number" maxlength="10" aria-label="WhatsApp contact number" />
             </div>
@@ -168,11 +164,15 @@ interface RestaurantProfile {
               <label>Official Email</label>
               <input class="field-control" type="email" [(ngModel)]="p.email" placeholder="Business email" aria-label="Official business email" />
             </div>
+            <div class="field field--span-2">
+              <label>Shop Address</label>
+              <textarea class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" rows="3" style="resize: vertical; min-height: 72px; font-family: inherit;"></textarea>
+            </div>
             <div class="field">
               <label>Thermal Receipt Footer Note</label>
               <input class="field-control" [(ngModel)]="p.invoiceFooter" placeholder="Thank you message on receipts" aria-label="Thermal receipt footer note" />
             </div>
-            <div class="field">
+            <div class="field field--full">
               <label>Google Maps Review URL</label>
               <input class="field-control" [(ngModel)]="p.reviewUrl" placeholder="https://g.page/r/your-restaurant/review" aria-label="Google Maps review URL" />
             </div>
@@ -200,15 +200,24 @@ interface RestaurantProfile {
           (settingsChange)="applyPaymentSettings($event)"
         />
 
-        <div class="sticky-save-dock">
+        <!-- Floating Unsaved Changes Dock (only appears when form is modified) -->
+        <div class="sticky-save-dock" *ngIf="dirty()">
           <div class="save-dock-inner">
-            <span class="dock-hint">Changes sync to POS registers after you save.</span>
-            <button class="primary-btn" type="button" [disabled]="saving()" (click)="saveProfile()" aria-label="Save All Changes">
-              <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
-            </button>
+            <div class="dock-info">
+              <span class="dock-unsaved-badge">Unsaved changes</span>
+              <span class="dock-hint">Changes sync to POS registers after you save.</span>
+            </div>
+            <div class="dock-actions">
+              <button class="ghost-btn" type="button" [disabled]="saving()" (click)="discardChanges()" aria-label="Discard Changes">
+                Discard
+              </button>
+              <button class="primary-btn" type="button" [disabled]="saving()" (click)="saveProfile()" aria-label="Save All Changes">
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -239,11 +248,16 @@ interface RestaurantProfile {
       bottom: var(--kb-space-4);
       z-index: var(--kb-z-topbar, 30);
       margin: var(--kb-space-5) 0;
-      padding: var(--kb-space-4) var(--kb-space-5);
+      padding: var(--kb-space-3) var(--kb-space-5);
       background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-border);
+      border: 1px solid var(--kb-color-primary, #0066cc);
       border-radius: var(--kb-radius-lg);
-      box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 4px 20px rgba(0, 102, 204, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+      animation: slideUpDock 200ms ease;
+    }
+    @keyframes slideUpDock {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
     .save-dock-inner {
       display: flex;
@@ -251,6 +265,30 @@ interface RestaurantProfile {
       align-items: center;
       gap: var(--kb-space-3);
       flex-wrap: wrap;
+    }
+    .dock-info {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-3);
+      flex-wrap: wrap;
+    }
+    .dock-unsaved-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(245, 158, 11, 0.15);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .dock-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
     }
     .dock-hint {
       font-size: 0.82rem;
@@ -436,6 +474,14 @@ export class BusinessSettingsPageComponent {
     const p = this.profile();
     if (!p) return;
     this.profile.set({ ...p, ...patch });
+  }
+
+  discardChanges(): void {
+    const orig = this.originalProfile();
+    if (orig) {
+      this.profile.set({ ...orig });
+      this.toast.info('Unsaved changes reverted to server state.');
+    }
   }
 
   saveProfile(): void {

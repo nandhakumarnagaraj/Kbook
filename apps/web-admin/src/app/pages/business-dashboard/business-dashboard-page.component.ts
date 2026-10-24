@@ -159,16 +159,29 @@ function getTodayIsoDate(): string {
             <app-animated-counter [value]="data.todayRevenueValue" format="currency"></app-animated-counter>
           </div>
           <div class="revenue-split-bar">
-            <div class="split-pill">
-              <span class="split-legend split-legend--cash"></span>
-              <span class="split-label">Cash:</span>
-              <strong class="split-val">{{ cashDrawerFormatted() }}</strong>
+            <!-- Proportional Segmented Meter -->
+            <div class="split-meter" *ngIf="dailyClosingData() && (dailyClosingData()?.netRevenue > 0); else emptySplitBar">
+              <div class="split-meter-segment split-meter-segment--upi" [style.width.%]="upiRatio()" [title]="'UPI/Online: ' + upiRatio() + '%'"></div>
+              <div class="split-meter-segment split-meter-segment--cash" [style.width.%]="cashRatio()" [title]="'Cash: ' + cashRatio() + '%'"></div>
             </div>
-            <span class="split-divider">|</span>
-            <div class="split-pill">
-              <span class="split-legend split-legend--upi"></span>
-              <span class="split-label">UPI/Online:</span>
-              <strong class="split-val">{{ onlineRevenueFormatted() }}</strong>
+            <ng-template #emptySplitBar>
+              <div class="split-meter split-meter--neutral"></div>
+            </ng-template>
+
+            <div class="split-legend-row">
+              <div class="split-pill">
+                <span class="split-legend split-legend--upi"></span>
+                <span class="split-label">UPI:</span>
+                <strong class="split-val">{{ onlineRevenueFormatted() }}</strong>
+                <span class="split-pct" *ngIf="upiRatio() > 0">({{ upiRatio() }}%)</span>
+              </div>
+              <span class="split-divider">|</span>
+              <div class="split-pill">
+                <span class="split-legend split-legend--cash"></span>
+                <span class="split-label">Cash:</span>
+                <strong class="split-val">{{ cashDrawerFormatted() }}</strong>
+                <span class="split-pct" *ngIf="cashRatio() > 0">({{ cashRatio() }}%)</span>
+              </div>
             </div>
           </div>
         </article>
@@ -281,7 +294,10 @@ function getTodayIsoDate(): string {
                     [style.height.%]="bar.heightPct">
                   </div>
                 </div>
-                <span class="bar-tick-label" [class.bar-tick-label--current]="bar.isCurrent">{{ bar.hourLabel }}</span>
+                <span class="bar-tick-label" [class.bar-tick-label--current]="bar.isCurrent">
+                  {{ bar.hourLabel }}
+                  <span *ngIf="bar.isCurrent" class="current-hour-dot" aria-label="Current hour"></span>
+                </span>
               </div>
             </div>
           </div>
@@ -847,6 +863,19 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
       return formatCurrency(online);
     }
     return formatCurrency(0);
+  });
+
+  readonly cashRatio = computed(() => {
+    const c = this.dailyClosingData();
+    if (!c || !c.netRevenue || Number(c.netRevenue) <= 0) return 0;
+    const cash = Number(c.expectedCash) || 0;
+    return Math.min(100, Math.max(0, Math.round((cash / Number(c.netRevenue)) * 100)));
+  });
+
+  readonly upiRatio = computed(() => {
+    const c = this.dailyClosingData();
+    if (!c || !c.netRevenue || Number(c.netRevenue) <= 0) return 0;
+    return 100 - this.cashRatio();
   });
 
   readonly hasHourlySales = computed(() => {

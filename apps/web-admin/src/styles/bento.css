@@ -53,6 +53,17 @@
   gap: var(--kb-space-4);
   row-gap: var(--kb-space-4);
 }
+.settings-section .field--span-2 {
+  grid-column: span 2;
+}
+.settings-section .field--full {
+  grid-column: 1 / -1;
+}
+@media (max-width: 768px) {
+  .settings-section .field--span-2 {
+    grid-column: span 1;
+  }
+}
 .settings-section .field > label:not(.toggle-label) {
   display: block;
   margin-bottom: var(--kb-space-1);
@@ -957,15 +968,47 @@
   color: var(--muted-2, #9E9689);
 }
 
-/* ── Revenue Split Bar ── */
+/* ── Revenue Split Bar (Hero Card) ── */
 .revenue-split-bar {
   display: flex;
-  align-items: center;
-  gap: 0.65rem;
+  flex-direction: column;
+  gap: 0.45rem;
   padding-top: 0.4rem;
   font-size: 0.78rem;
   color: var(--kb-color-muted-foreground);
   font-variant-numeric: tabular-nums;
+}
+
+.split-meter {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+}
+
+.split-meter-segment {
+  height: 100%;
+  transition: width 200ms ease;
+}
+
+.split-meter-segment--upi {
+  background: #38bdf8;
+}
+
+.split-meter-segment--cash {
+  background: #34d399;
+}
+
+.split-meter--neutral {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.split-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .split-pill { display: flex; align-items: center; gap: 0.35rem; }
@@ -976,12 +1019,13 @@
   border-radius: 50%;
 }
 
-.split-legend--cash { background: var(--kb-color-success); }
-.split-legend--upi { background: var(--kb-color-primary); }
+.split-legend--cash { background: #34d399; }
+.split-legend--upi { background: #38bdf8; }
 
 .split-val { color: #FFFFFF; font-weight: 600; }
+.split-pct { color: rgba(255, 255, 255, 0.6); font-size: 0.72rem; }
 
-.split-divider { color: var(--kb-color-muted-foreground); }
+.split-divider { color: rgba(255, 255, 255, 0.25); }
 
 /* ── Hourly Chart ── */
 .hourly-chart-wrapper {
@@ -1042,6 +1086,16 @@
 }
 
 .bar-tick-label--current { color: var(--kb-color-burnt); font-weight: 700; }
+.current-hour-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--kb-color-burnt, #d97706);
+  margin-left: 2px;
+  vertical-align: middle;
+  box-shadow: 0 0 4px rgba(217, 119, 6, 0.6);
+}
 
 /* ── Top Dishes Stack ── */
 .top-dishes-stack {

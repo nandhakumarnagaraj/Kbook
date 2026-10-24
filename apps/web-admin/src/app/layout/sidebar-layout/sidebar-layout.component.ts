@@ -315,25 +315,30 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .user-role { font-size: 0.65rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
-    /* Sign out stays visibly destructive so the action is clear at a glance. */
+    /* Sign out: subtle restrained danger styling with tactile feedback */
     .logout-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
-      padding: 0.65rem 1rem;
-      background: var(--kb-color-danger);
-      color: var(--kb-color-primary-foreground);
-      border: 1px solid var(--kb-color-danger);
+      padding: 0.55rem 0.9rem;
+      background: rgba(220, 38, 38, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(220, 38, 38, 0.28);
       border-radius: 12px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.92rem;
+      font-size: 0.88rem;
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 150ms ease;
     }
     .logout-btn:hover {
-      background: var(--kb-color-danger);
-      color: var(--kb-color-primary-foreground);
-      border-color: var(--kb-color-danger);
+      background: var(--kb-color-danger, #dc2626);
+      color: #ffffff;
+      border-color: var(--kb-color-danger, #dc2626);
+      transform: translateY(-1px);
+    }
+    .logout-btn:active {
+      transform: scale(0.97);
     }
     .logout-btn:focus-visible {
       outline: 2px solid var(--kb-color-foreground-contrast);
