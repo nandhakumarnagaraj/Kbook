@@ -271,29 +271,29 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .user-role { font-size: 0.65rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
-    /* Logout (Secondary / Ghost with gentle danger hover) */
+    /* Sign out stays visibly destructive so the action is clear at a glance. */
     .logout-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.5rem;
       padding: 0.65rem 1rem;
-      background: transparent;
-      color: var(--kb-color-muted);
-      border: 1px solid var(--kb-color-border);
+      background: var(--kb-color-danger);
+      color: var(--kb-color-primary-foreground);
+      border: 1px solid var(--kb-color-danger);
       border-radius: 12px;
       cursor: pointer;
-      font-weight: 500;
-      font-size: 0.85rem;
-      transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      font-weight: 600;
+      font-size: 0.92rem;
     }
     .logout-btn:hover {
-      background: rgba(192, 57, 43, 0.08);
-      color: var(--kb-color-danger);
-      border-color: rgba(192, 57, 43, 0.3);
+      background: var(--kb-color-danger);
+      color: var(--kb-color-primary-foreground);
+      border-color: var(--kb-color-danger);
     }
-    .logout-btn:active {
-      transform: scale(0.97);
+    .logout-btn:focus-visible {
+      outline: 2px solid var(--kb-color-foreground-contrast);
+      outline-offset: 2px;
     }
 
     /* Content */
@@ -381,9 +381,9 @@ export class SidebarLayoutComponent implements OnInit {
     const role = this.session()?.role;
     if (role === 'KBOOK_ADMIN') {
       return [
-        { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '◉', iconKey: 'dashboard' },
-        { label: 'Businesses', path: '/admin/businesses', icon: '🏢', iconKey: 'tables' },
-        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '⚑', iconKey: 'settings' }
+        { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '📊', iconKey: '' },
+        { label: 'Businesses', path: '/admin/businesses', icon: '🏢', iconKey: '' },
+        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '🚩', iconKey: '' }
       ];
     }
     if (role !== 'OWNER') {
@@ -391,15 +391,15 @@ export class SidebarLayoutComponent implements OnInit {
       return [];
     }
     const items: NavLink[] = [
-      { label: 'Dashboard', path: '/business/dashboard', icon: '◉', iconKey: 'dashboard' },
-      { label: 'Orders', path: '/business/orders', icon: '▤', iconKey: 'orders' },
-      { label: 'Menu', path: '/business/menu', icon: '◈', iconKey: 'menu' },
-      { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: 'staff' },
-      { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: 'inventory' },
-      { label: 'Terminals', path: '/business/terminals', icon: '📱', iconKey: 'terminals' },
-      { label: 'Daily Closing', path: '/business/daily-closing', icon: '💳', iconKey: 'payments' },
-      { label: 'Reports', path: '/business/reports', icon: '◔', iconKey: 'reports' },
-      { label: 'Settings', path: '/business/settings', icon: '⚙', iconKey: 'settings' }
+      { label: 'Dashboard', path: '/business/dashboard', icon: '📊', iconKey: '' },
+      { label: 'Orders', path: '/business/orders', icon: '🧾', iconKey: '' },
+      { label: 'Menu', path: '/business/menu', icon: '🍽️', iconKey: '' },
+      { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: '' },
+      { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: '' },
+      { label: 'Terminals', path: '/business/terminals', icon: '🖥️', iconKey: '' },
+      { label: 'Daily Closing', path: '/business/daily-closing', icon: '💰', iconKey: '' },
+      { label: 'Reports', path: '/business/reports', icon: '📈', iconKey: '' },
+      { label: 'Settings', path: '/business/settings', icon: '⚙️', iconKey: '' }
     ];
     return items;
   });
