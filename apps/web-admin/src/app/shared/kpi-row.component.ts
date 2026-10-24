@@ -8,6 +8,16 @@ export interface KpiBadge {
   tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'brand';
 }
 
+/**
+ * A tile's foot action. `label` is display text; `id` is what the page routes
+ * on. Matching on the label instead means a copy edit silently reroutes the
+ * button — "Terminal fleet" → "Manage terminals" and the tile goes nowhere.
+ */
+export interface KpiAction {
+  label: string;
+  id: string;
+}
+
 /** One slice of a tile's tender split (cash vs UPI). `percent` is 0–100. */
 export interface KpiSegment {
   label: string;
@@ -67,7 +77,7 @@ export interface KpiItem {
   /** The tender split, rendered as one proportional bar plus a label/value legend. */
   segments?: KpiSegment[];
   /** A foot action; clicking it emits `action` with this whole item. */
-  action?: { label: string };
+  action?: KpiAction;
 }
 
 @Component({

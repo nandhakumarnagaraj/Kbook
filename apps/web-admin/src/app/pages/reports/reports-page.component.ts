@@ -488,19 +488,16 @@ export class ReportsPageComponent {
         label: 'Net Realized Revenue',
         value: data.netRevenue,
         emphasis: true,
-        badge: { text: 'Net Realized', tone: 'neutral' },
         caption: 'After all refunds',
       },
       {
         label: 'Gross Billed',
         value: data.revenue,
-        badge: { text: 'Gross Volume', tone: 'neutral' },
         caption: 'Total sales before deductions',
       },
       {
         label: 'Bills Minted',
         value: data.billCount,
-        badge: { text: 'POS Tickets', tone: 'neutral' },
         caption: 'Completed & draft orders',
       },
       {

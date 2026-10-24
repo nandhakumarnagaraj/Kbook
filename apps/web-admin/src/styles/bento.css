@@ -9,11 +9,11 @@
      Layout     .page-shell (in styles.css)
      Cards      .bento-tile  .intel-card  .bento-kpi-grid  .bento-intel-grid
      Buttons    .header-action-btn  .header-pill-btn  .icon-action-btn
-                .btn-micro  .tile-action-link  .link-btn-text
-     Chips      .kpi-tag  .status-chip  .badge-*  .channel-chip  .trend-badge
+                .btn-micro  .link-btn-text
+     Chips      .kpi-tag  .status-chip  .badge-*  .channel-chip
      Tables     .data-table  .table-wrap  .clickable-row (in styles.css; one design)
      Modals     .tactile-modal-*  .icon-btn  .modal-lead-note
-     Helpers    .visually-hidden  .skeleton-shimmer  .spinning  .sub-caption
+     Helpers    .visually-hidden  .skeleton-shimmer  .spinning
    ============================================================================ */
 
 .pulse-indicator {
@@ -265,91 +265,10 @@
       transform: scale(0.98);
     }
 
-/* The hero tile's gradient started at --kb-color-foreground, which was the dark
-   ink when this rule was written. Once the theme moved to a midnight canvas that
-   token became near-white, so the revenue tile rendered as a white slab with
-   white text on it. The hero is now brand-tinted: white clears 6.5:1 at the
-   blue end and 18:1 at the dark end. */
-.bento-tile--hero {
-      background: linear-gradient(145deg, var(--kb-color-primary) 0%, var(--kb-color-primary-hover) 100%);
-      border: 1px solid var(--kb-color-primary-hover);
-      color: #FFFFFF;
-      box-shadow: 0 6px 18px rgba(var(--kb-color-primary-rgb), 0.22);
-    }
-
-.bento-tile--warn {
-      border-color: rgba(var(--kb-color-warning-rgb), 0.45);
-      background: rgba(var(--kb-color-warning-rgb), 0.04);
-    }
-
-    .bento-tile--warn .bento-tile__main-metric { color: var(--kb-color-warning); }
-
-.bento-tile--hero .bento-tile__eyebrow { color: rgba(255, 255, 255, 0.86); }
-
-/* Tags and captions inside the hero follow its white-on-brand text. */
-.bento-tile--hero .kpi-tag {
+.kpi-tag {
   background: rgba(255, 255, 255, 0.18);
   color: #FFFFFF;
 }
-
-.bento-tile--hero .metric-unit-sub,
-.bento-tile--hero .metric-total-sub,
-.bento-tile--hero .sub-caption { color: rgba(255, 255, 255, 0.8); }
-
-.bento-tile--hero .bento-tile__main-metric { color: #FFFFFF; }
-
-/* Badges inside the hero sit on the brand gradient, so they cannot use the
-   success/danger tints: a 10% green wash over blue reads as nothing, and the
-   deep green ink would vanish. They go white-on-white-tint instead, and keep
-   their arrow glyph so the direction is never colour-only. */
-.bento-tile--hero .trend-badge {
-  background: rgba(255, 255, 255, 0.18);
-  color: #FFFFFF;
-}
-
-.bento-tile--hero .trend-badge--down {
-  background: rgba(255, 255, 255, 0.18);
-  color: #FFFFFF;
-}
-
-.bento-tile__head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-    }
-
-.bento-tile__eyebrow {
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--kb-color-muted-foreground);
-    }
-
-.trend-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: var(--kb-color-success-soft);
-      color: var(--kb-color-success);
-      font-variant-numeric: tabular-nums;
-    }
-
-.trend-badge--down {
-      background: var(--kb-color-danger-soft);
-      color: var(--kb-color-danger);
-    }
-
-/* A neutral trend is not a boundary: --kb-color-border-strong is a border tone
-   and only reaches 2.5:1 as text. */
-.trend-badge--neutral {
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-    }
 
 .kpi-tag {
   display: inline-flex;
@@ -387,84 +306,9 @@
       gap: 0.35rem;
     }
 
-.metric-total-sub {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      letter-spacing: normal;
-    }
-
-.metric-unit-sub {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      letter-spacing: normal;
-    }
-
-/* Progress Meter */
-    .progress-meter-container {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      padding-top: 0.2rem;
-    }
-
-.progress-meter-track {
-      width: 100%;
-      height: 6px;
-      background: var(--kb-color-surface-2);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-.progress-meter-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--kb-color-success) 0%, var(--kb-color-success) 100%);
-      border-radius: 999px;
-      transition: width 240ms ease;
-    }
-
-.progress-meter-legend {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.74rem;
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-
 .text-amber { color: var(--kb-color-warning) !important; font-weight: 600; }
 
 .text-rose { color: var(--kb-color-danger) !important; }
-
-.bento-tile__footer-action {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 0.25rem;
-    }
-
-.sub-caption {
-      font-size: 0.76rem;
-      color: var(--kb-color-muted-foreground);
-      font-weight: 500;
-    }
-
-.tile-action-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.2rem;
-      background: transparent;
-      border: none;
-      color: var(--kb-color-primary);
-      font-size: 0.76rem;
-      font-weight: 700;
-      cursor: pointer;
-      padding: 0;
-      transition: color 150ms ease;
-    }
-
-.tile-action-link:hover { color: var(--kb-color-primary-hover); }
 
 /* ── Middle Bento Grid ── */
     .bento-intel-grid {
@@ -1058,10 +902,6 @@
   display: flex;
 }
 
-.bento-tile--hero .split-meter {
-  background: rgba(255, 255, 255, 0.18);
-}
-
 .split-meter-segment {
   height: 100%;
   transition: width 200ms ease;
@@ -1102,10 +942,6 @@
 .split-divider { color: var(--kb-color-border-strong); }
 
 /* On the hero the meter sits on the brand gradient, so its labels are white. */
-.bento-tile--hero .split-val { color: #FFFFFF; }
-.bento-tile--hero .split-pct { color: rgba(255, 255, 255, 0.78); }
-.bento-tile--hero .split-divider { color: rgba(255, 255, 255, 0.4); }
-.bento-tile--hero .split-label { color: rgba(255, 255, 255, 0.86); }
 
 /* ── Hourly Chart ── */
 .hourly-chart-wrapper {

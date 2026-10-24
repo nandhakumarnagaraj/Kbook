@@ -1479,7 +1479,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
           ? { text: `${this.takeawayFloorCount()} Takeaway`, tone: 'neutral' }
           : undefined,
         caption: `${this.activeOrderCount()} open bill${this.activeOrderCount() === 1 ? '' : 's'} right now`,
-        action: { label: 'Open bills' },
+        action: { id: 'active-orders', label: 'Open bills' },
       },
       {
         label: 'Running Kitchen KOTs',
@@ -1490,7 +1490,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
           tone: this.cookingOrderCount() > 0 ? 'warning' : 'neutral',
         },
         caption: `${this.preparingOrderCount()} Preparing • ${this.servedOrderCount()} Served`,
-        action: { label: 'Live KOT stream' },
+        action: { id: 'active-orders', label: 'Live KOT stream' },
       },
       {
         label: 'Tender Breakdown',
@@ -1508,19 +1508,24 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         caption: closing
           ? 'Counts all-time POS invoices, not today'
           : "Cash and UPI splits appear once today's closing figures are available.",
-        action: { label: 'Terminal fleet' },
+        action: { id: 'terminals', label: 'Terminal fleet' },
       },
     ];
   });
 
-  /** A tile's foot action, routed where that metric lives. */
+  /**
+   * A tile's foot action, routed where that metric lives. The switch is on the
+   * action's id, not on its label: labels are copy and ids are behaviour, so a
+   * wording change must not be able to reroute a tile.
+   */
   onKpiAction(item: KpiItem): void {
-    switch (item.action?.label) {
-      case 'Terminal fleet':
+    switch (item.action?.id) {
+      case 'terminals':
         this.navigateToTerminals();
         break;
-      default:
+      case 'active-orders':
         this.navigateToActiveOrders();
+        break;
     }
   }
 
