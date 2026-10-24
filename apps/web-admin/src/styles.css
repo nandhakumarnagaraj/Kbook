@@ -1343,6 +1343,17 @@ app-date-range-selector { display: block; width: 100%; }
   display: none;
 }
 
+/* A print-only line that states what the page can no longer say once its
+   controls are gone: which period a report covers, which day a closing slip
+   closes. Typography only — .print-only owns the visibility. */
+.print-meta {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--kb-color-foreground);
+}
+
 @media print {
   /* The shell, and every control that only makes sense on a screen. */
   .sidebar,

@@ -52,7 +52,7 @@ function todayRange(): { from: string; to: string } {
 
       <!-- The period the report covers. On screen the date picker says it; on
            paper the picker is gone, so the same range is stated in words. -->
-      <p class="print-only print-period">
+      <p class="print-only print-meta">
         Period: {{ selectedRange().from }} to {{ selectedRange().to }}
       </p>
 
@@ -306,16 +306,6 @@ function todayRange(): { from: string; to: string } {
 
     /* Page geometry + page header now come from the shared design system
        (styles.css .page-shell + shared/page-header.component). */
-
-    /* Print-only: the period line stands in for the hidden date picker, so it
-       only exists on paper. The shared sheet turns .print-only on. */
-    .print-period {
-      margin: 0 0 1rem;
-      font-size: 0.85rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      color: var(--kb-color-foreground);
-    }
 
     /* Loading state mirrors the shared KPI row's track, so the skeletons land
        exactly where the tiles will. */

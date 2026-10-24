@@ -85,6 +85,12 @@ interface DailyClosingData {
         </app-date-range-toolbar>
       </app-page-header>
 
+      <!-- The picker is hidden on paper, and "Today" is not a date on a slip
+           that will be filed — so the closed day is stated in full. -->
+      <p class="print-only print-meta">
+        Closing date: {{ selectedDate() }}{{ isToday() ? ' (today)' : '' }}
+      </p>
+
       <!-- Alert if Draft Orders are Open -->
       <div class="draft-warning-banner no-print" *ngIf="data() && data()!.draftOrders > 0">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
