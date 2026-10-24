@@ -638,6 +638,13 @@ import { environment } from '../../../environments/environment';
     /* ── Menu table column rhythm (same standard as orders history) ── */
     /* The table design is defined once in the global stylesheet (see the
        "Tables" section of styles.css). Column alignment is layout and stays. */
+    .menu-table tbody tr {
+      min-height: 56px;
+    }
+    .menu-table td, .menu-table th {
+      padding: 12px 16px;
+      vertical-align: middle;
+    }
     .menu-table th:nth-child(5),
     .menu-table td:nth-child(5),
     .menu-table th:nth-child(6),
@@ -688,10 +695,10 @@ import { environment } from '../../../environments/environment';
     
     
     
-    .menu-price-list { display: grid; gap: 0.25rem; min-width: 112px; }
-    .menu-price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.75rem; }
-    .menu-price-label { color: var(--kb-color-muted-foreground); font-size: 0.78rem; }
-    .menu-price-row strong { white-space: nowrap; }
+    .menu-price-list { display: grid; gap: 0.35rem; min-width: 140px; }
+    .menu-price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.9rem; }
+    .menu-price-label { color: var(--kb-color-muted-foreground); font-size: 0.78rem; white-space: nowrap; }
+    .menu-price-row strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
     .ocr-panel { margin-top: var(--kb-space-3); }
     .ocr-state {
       display: flex; align-items: flex-start; gap: var(--kb-space-2);
