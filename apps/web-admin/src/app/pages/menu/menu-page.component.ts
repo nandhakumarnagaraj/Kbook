@@ -10,6 +10,7 @@ import { BusinessCategory, BusinessItemVariant, BusinessMenuItem, MenuExtraction
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -20,7 +21,7 @@ import { environment } from '../../../environments/environment';
   selector: 'app-menu-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, HeaderSearchComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent],
   template: `
     <div class="page-shell">
       <!-- Canonical page header (shared design system) -->
@@ -69,6 +70,59 @@ import { environment } from '../../../environments/environment';
         <button type="button" class="btn-retry" (click)="loadMenu()">Retry</button>
       </div>
 
+      <!-- Summary: every figure is counted from the menu already loaded, so it
+           cannot drift from the table below it. -->
+      <app-kpi-row *ngIf="loaded" [items]="menuKpis" ariaLabel="Menu summary"></app-kpi-row>
+
+      <!-- Filters narrow the same list that search and Favourites narrow. They sit
+           above the table so they stay reachable when nothing matches. -->
+      <section class="menu-filters" *ngIf="loaded" aria-label="Filter menu items">
+        <div class="menu-filters__group" role="group" aria-label="Filter by availability">
+          <button
+            type="button"
+            class="filter-chip"
+            [class.filter-chip--active]="statusFilter === 'all'"
+            [attr.aria-pressed]="statusFilter === 'all'"
+            (click)="setStatusFilter('all')">
+            All items <span class="filter-chip__count">{{ items.length }}</span>
+          </button>
+          <button
+            type="button"
+            class="filter-chip"
+            [class.filter-chip--active]="statusFilter === 'available'"
+            [attr.aria-pressed]="statusFilter === 'available'"
+            (click)="setStatusFilter('available')">
+            Available <span class="filter-chip__count">{{ availableCount }}</span>
+          </button>
+          <button
+            type="button"
+            class="filter-chip"
+            [class.filter-chip--active]="statusFilter === 'out'"
+            [attr.aria-pressed]="statusFilter === 'out'"
+            (click)="setStatusFilter('out')">
+            Out of stock <span class="filter-chip__count">{{ outOfStockCount }}</span>
+          </button>
+        </div>
+
+        <div class="menu-filters__group">
+          <label class="menu-filters__label" for="menu-category-filter">Category</label>
+          <select
+            id="menu-category-filter"
+            class="menu-filter-select"
+            [ngModel]="categoryFilterId"
+            (ngModelChange)="setCategoryFilter($event)">
+            <option [ngValue]="null">All categories</option>
+            <option *ngFor="let cat of categories; trackBy: trackByCategoryId" [ngValue]="cat.categoryId">
+              {{ cat.name }}
+            </option>
+          </select>
+        </div>
+
+        <button type="button" class="menu-filters__reset" *ngIf="filtersActive" (click)="clearFilters()">
+          Clear filters
+        </button>
+      </section>
+
       <!-- Favourites panel: pinned categories first, then the starred dishes in the table below -->
       <div class="panel fav-panel" *ngIf="favouritesOnly && loaded" aria-live="polite">
         <div class="fav-panel__head">
@@ -88,15 +142,18 @@ import { environment } from '../../../environments/environment';
 
       <div class="panel table-wrap" *ngIf="loaded && pagedItems.length; else loading">
         <table class="data-table menu-table">
+          <caption class="visually-hidden">
+            Menu items with their category, dietary type, every price variant, availability and last update
+          </caption>
           <thead>
             <tr>
-              <th>Item</th>
-              <th>Category</th>
-              <th>Type</th>
-              <th>Price</th>
-              <th>Availability</th>
-              <th>Updated</th>
-              <th *ngIf="isOwner">Actions</th>
+              <th scope="col">Item</th>
+              <th scope="col">Category</th>
+              <th scope="col">Type</th>
+              <th scope="col">Price</th>
+              <th scope="col">Availability</th>
+              <th scope="col">Updated</th>
+              <th scope="col" *ngIf="isOwner">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -126,7 +183,9 @@ import { environment } from '../../../environments/environment';
                 </div>
               </td>
               <td>{{ item.categoryName || '-' }}</td>
-              <td>{{ item.foodType || '-' }}</td>
+              <td>
+                <span class="type-badge">{{ item.foodType || 'Not set' }}</span>
+              </td>
               <!-- Base is the anchor (one weight up); the variants below it are the
                    detail. They share one label/value grid, so a 1-variant and a
                    4-variant dish still line up on the same two columns. -->
@@ -632,6 +691,117 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
+    /* ── Workspace bands ──
+       Summary, filters and table are one vertical stack with one gap, so the page
+       reads as three bands instead of three unrelated blocks. Every rule here is
+       component-scoped: nothing below can reach the sidebar or another page. */
+    app-kpi-row { display: block; margin-bottom: 1rem; }
+
+    .menu-filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      padding: 0.6rem 0.75rem;
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-card, 12px);
+    }
+    .menu-filters__group { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+    .menu-filters__label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      min-height: 34px;
+      padding: 0.3rem 0.75rem;
+      border: 1px solid var(--kb-color-border);
+      border-radius: 999px;
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground-2);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+    }
+    .filter-chip:hover { border-color: var(--kb-color-border-strong); color: var(--kb-color-foreground); }
+    .filter-chip:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+    /* Only the active filter wears the accent, so the current view is readable at a
+       glance. It is the action blue, not the brand orange: orange next to stock
+       states reads as a warning. */
+    .filter-chip--active {
+      border-color: var(--kb-color-primary);
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-link);
+    }
+    .filter-chip__count {
+      padding: 0 0.35rem;
+      border-radius: 999px;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .filter-chip--active .filter-chip__count {
+      background: var(--kb-color-surface);
+      color: var(--kb-color-link);
+    }
+
+    .menu-filter-select {
+      min-height: 34px;
+      padding: 0 0.6rem;
+      border: 1px solid var(--kb-color-border-strong);
+      border-radius: var(--kb-radius-md, 6px);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
+      font: inherit;
+      font-size: 0.82rem;
+    }
+    .menu-filter-select:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+
+    .menu-filters__reset {
+      margin-left: auto;
+      padding: 0.3rem 0.2rem;
+      border: 0;
+      background: none;
+      color: var(--kb-color-link);
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .menu-filters__reset:hover { text-decoration: underline; }
+    .menu-filters__reset:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: var(--kb-radius-sm, 4px); }
+
+    /* Dietary type is text first; the border gives it a badge shape without
+       turning a dietary fact into a colour code. */
+    .type-badge {
+      display: inline-block;
+      padding: 0.1rem 0.45rem;
+      border: 1px solid var(--kb-color-border);
+      border-radius: 999px;
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-foreground-2);
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 640px) {
+      .menu-filters { align-items: stretch; }
+      .menu-filters__reset { margin-left: 0; }
+    }
+
     /* ── Menu table column rhythm (same standard as orders history) ── */
     /* The table design is defined once in the global stylesheet (see the
        "Tables" section of styles.css). Column alignment is layout and stays. */
@@ -865,6 +1035,11 @@ export class MenuPageComponent implements OnDestroy {
   pageSize = 10;
   visibleItemCount = 10;
 
+  /** Availability filter. 'all' shows the whole menu; the other two use isSellable. */
+  statusFilter: 'all' | 'available' | 'out' = 'all';
+  /** Category filter; null means every category. */
+  categoryFilterId: number | null = null;
+
   // Form modal state
   showFormModal = false;
   editingItem: BusinessMenuItem | null = null;
@@ -940,6 +1115,49 @@ export class MenuPageComponent implements OnDestroy {
     return this.auth.session()?.role === 'OWNER';
   }
 
+  /**
+   * The one availability rule the page uses: a dish is sellable when the owner has
+   * it switched on and the kitchen has not marked it out of stock. Running low is
+   * still sellable, which is why it is not folded in here.
+   */
+  private isSellable(item: BusinessMenuItem): boolean {
+    return !!item.available && (item.stockStatus || '').toUpperCase() !== 'OUT_OF_STOCK';
+  }
+
+  /** Counted from the loaded menu, never from a literal: the tiles and the filter
+   *  chips must agree with the table they sit above. */
+  get availableCount(): number {
+    return this.items.filter(item => this.isSellable(item)).length;
+  }
+
+  get outOfStockCount(): number {
+    return this.items.length - this.availableCount;
+  }
+
+  get filtersActive(): boolean {
+    return this.statusFilter !== 'all'
+      || this.categoryFilterId !== null
+      || !!this.searchTerm.trim()
+      || this.favouritesOnly;
+  }
+
+  /** The four summary tiles, in the shared KPI row's anatomy. */
+  get menuKpis(): KpiItem[] {
+    const outOfStock = this.outOfStockCount;
+    return [
+      { label: 'Total Dishes', value: this.items.length, caption: 'Every dish on the menu' },
+      { label: 'Categories', value: this.categories.length, tone: 'brand', caption: 'Sections dishes are filed under' },
+      { label: 'Available', value: this.availableCount, tone: 'success', caption: 'Sellable at the counter' },
+      {
+        label: 'Out of Stock',
+        value: outOfStock,
+        tone: outOfStock > 0 ? 'danger' : 'default',
+        alert: outOfStock > 0,
+        caption: outOfStock > 0 ? 'Hidden from the counter' : 'Nothing is out of stock',
+      },
+    ];
+  }
+
   get filteredItems(): BusinessMenuItem[] {
     const search = this.searchTerm.trim().toLowerCase();
     return this.items.filter(item => {
@@ -949,8 +1167,39 @@ export class MenuPageComponent implements OnDestroy {
         item.description ?? ''
       ].some(v => v.toLowerCase().includes(search));
 
-      return matchesSearch && (!this.favouritesOnly || !!item.favourite);
+      const matchesStatus = this.statusFilter === 'all'
+        || (this.statusFilter === 'available' ? this.isSellable(item) : !this.isSellable(item));
+
+      const matchesCategory = this.categoryFilterId === null
+        || item.categoryId === this.categoryFilterId;
+
+      return matchesSearch
+        && matchesStatus
+        && matchesCategory
+        && (!this.favouritesOnly || !!item.favourite);
     });
+  }
+
+  setStatusFilter(filter: 'all' | 'available' | 'out'): void {
+    this.statusFilter = filter;
+    this.resetPage();
+    this.cdr.markForCheck();
+  }
+
+  setCategoryFilter(categoryId: number | null): void {
+    this.categoryFilterId = categoryId ?? null;
+    this.resetPage();
+    this.cdr.markForCheck();
+  }
+
+  /** Back to the whole menu: every filter this page offers, including the search. */
+  clearFilters(): void {
+    this.statusFilter = 'all';
+    this.categoryFilterId = null;
+    this.searchTerm = '';
+    this.favouritesOnly = false;
+    this.resetPage();
+    this.cdr.markForCheck();
   }
 
   /** The starred dishes, in the order the table already shows them. */

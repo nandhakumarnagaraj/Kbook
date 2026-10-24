@@ -228,3 +228,128 @@ describe('MenuPageComponent — bulk move out of a category', () => {
     expect(component.bulkMoveSummary).toBeNull();
   });
 });
+/**
+ * The summary tiles and the filter bar are two views of one dataset. These specs
+ * pin the part that could quietly go wrong: a tile that disagrees with the table
+ * below it, a chip whose pressed state says one thing while the rows say another,
+ * or a category filter that narrows nothing because it compares the wrong id.
+ */
+describe('MenuPageComponent — summary and filters', () => {
+  let api: jasmine.SpyObj<BusinessApiService>;
+
+  function menu(): BusinessMenuItem[] {
+    return [
+      dish(11, 'Tea', 1),
+      { ...dish(12, 'Coffee', 1), available: false },
+      { ...dish(13, 'Cola', 2), stockStatus: 'OUT_OF_STOCK' },
+      dish(14, 'Lassi', 2),
+    ];
+  }
+
+  function mount(): ComponentFixture<MenuPageComponent> {
+    api = jasmine.createSpyObj<BusinessApiService>('BusinessApiService', [
+      'getMenu',
+      'getMenuCategories',
+    ]);
+    api.getMenu.and.returnValue(of(menu()));
+    api.getMenuCategories.and.returnValue(of<BusinessCategory[]>([
+      { categoryId: 1, name: 'Hot Drinks' },
+      { categoryId: 2, name: 'Beverages' },
+    ]));
+
+    TestBed.configureTestingModule({
+      imports: [MenuPageComponent],
+      providers: [
+        provideHttpClient(),
+        { provide: BusinessApiService, useValue: api },
+        { provide: AuthService, useValue: authStub },
+        { provide: ToastService, useValue: jasmine.createSpyObj<ToastService>('ToastService', ['show']) },
+        { provide: Router, useValue: routerStub },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(MenuPageComponent);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  function renderedRows(fixture: ComponentFixture<MenuPageComponent>): string[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('.menu-table tbody tr'))
+      .map((row) => (row as HTMLElement).querySelector('.item-cell strong')?.textContent?.trim() ?? '');
+  }
+
+  it('counts the tiles from the loaded menu, not from a literal', () => {
+    const fixture = mount();
+    const component = fixture.componentInstance;
+
+    // 4 dishes, of which Coffee is switched off and Cola is out of stock.
+    expect(component.availableCount).toBe(2);
+    expect(component.outOfStockCount).toBe(2);
+    expect(component.menuKpis.map((kpi) => kpi.value)).toEqual([4, 2, 2, 2]);
+
+    const tiles = fixture.nativeElement.querySelectorAll('app-kpi-row .kb-kpi');
+    expect(tiles.length).withContext('four summary tiles above the filters').toBe(4);
+    expect(tiles[0].textContent).toContain('Total Dishes');
+    expect(tiles[3].textContent).toContain('Out of Stock');
+  });
+
+  it('narrows the table by availability without changing the counts', () => {
+    const fixture = mount();
+    const component = fixture.componentInstance;
+
+    component.setStatusFilter('out');
+    fixture.detectChanges();
+
+    expect(renderedRows(fixture)).toEqual(['Coffee', 'Cola']);
+    expect(component.outOfStockCount).withContext('the chip counts describe the menu, not the view').toBe(2);
+
+    const pressed = Array.from(fixture.nativeElement.querySelectorAll('.filter-chip[aria-pressed="true"]'))
+      .map((chip) => (chip as HTMLElement).textContent?.replace(/\s+/g, ' ').trim());
+    expect(pressed).toEqual(['Out of stock 2']);
+  });
+
+  it('combines the category filter with the availability filter', () => {
+    const fixture = mount();
+    const component = fixture.componentInstance;
+
+    component.setCategoryFilter(2);
+    component.setStatusFilter('available');
+    fixture.detectChanges();
+
+    // Cola is in Beverages but out of stock; Lassi is the only dish matching both.
+    expect(renderedRows(fixture)).toEqual(['Lassi']);
+  });
+
+  it('clears every filter, including the search, in one action', () => {
+    const fixture = mount();
+    const component = fixture.componentInstance;
+
+    component.searchTerm = 'tea';
+    component.setCategoryFilter(1);
+    component.setStatusFilter('available');
+    fixture.detectChanges();
+    expect(renderedRows(fixture)).toEqual(['Tea']);
+    expect(component.filtersActive).toBeTrue();
+
+    const reset = fixture.nativeElement.querySelector('.menu-filters__reset') as HTMLButtonElement;
+    expect(reset).withContext('a reset is offered once something is filtered').toBeTruthy();
+    reset.click();
+    fixture.detectChanges();
+
+    expect(component.searchTerm).toBe('');
+    expect(component.statusFilter).toBe('all');
+    expect(component.categoryFilterId).toBeNull();
+    expect(component.filtersActive).toBeFalse();
+    expect(renderedRows(fixture).length).toBe(4);
+  });
+
+  it('gives the table a caption and scoped column headers', () => {
+    const fixture = mount();
+    const table = fixture.nativeElement.querySelector('.menu-table') as HTMLTableElement;
+
+    expect(table.querySelector('caption')?.textContent).toContain('Menu items');
+    const headers = Array.from(table.querySelectorAll('thead th'));
+    expect(headers.length).toBe(7);
+    expect(headers.every((th) => th.getAttribute('scope') === 'col')).toBeTrue();
+  });
+});
