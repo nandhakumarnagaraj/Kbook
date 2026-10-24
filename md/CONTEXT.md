@@ -16,8 +16,8 @@ _Avoid_: KYC (prior to registration), gateway registration, merchant verificatio
 Regulatory compliance documentation (address proof, CPV / contact point verification) required by RBI guidelines for daily payout settlement from the gateway into the merchant's bank account.
 _Avoid_: Onboarding documents, gateway agreement, compliance checklist
 
-**Merchant Agreement**:
-The internal platform terms of service between the KhanaBook SaaS platform and the restaurant owner, digitally acknowledged during registration.
+**Merchant Agreement (Retired - Migration V116)**:
+Previously the internal platform terms of service between KhanaBook and the restaurant owner. Retired in migration `V116__drop_merchant_agreement.sql`; payment-link creation and sub-merchant workflows are no longer gated on a signed agreement.
 _Avoid_: Gateway agreement, Easebuzz contract, legal document
 
 **Dynamic UPI QR**:

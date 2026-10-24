@@ -23,7 +23,7 @@ Before making ANY code or architectural modification, the agent MUST inspect and
 1. **Backend Tech Stack:**
    * **Language & Runtime:** Java **17** (Do NOT downgrade to Java 11 or upgrade to Java 21 without explicit user approval).
    * **Framework:** Spring Boot **3.5.12** monolithic application located in `services/server/`.
-   * **Database & Migrations:** PostgreSQL 16+ managed via **115+ Flyway migrations** (`src/main/resources/db/migration/`). Forward-only discipline: **never** edit or delete an existing migration (`V1` through `V115`).
+   * **Database & Migrations:** PostgreSQL 16+ managed via **117+ Flyway migrations** (`src/main/resources/db/migration/`). Forward-only discipline: **never** edit or delete an existing migration (`V1` through `V117`).
 2. **Frontend Tech Stack:**
    * **Framework:** Angular **18.2.0** with Standalone Components (zero `NgModules`).
    * **State & Reactivity:** Angular Signals and RxJS observables.
@@ -42,7 +42,7 @@ Before making ANY code or architectural modification, the agent MUST inspect and
    * **Never** introduce legacy roles (`WAITER`, `CASHIER`, `MANAGER`, `KITCHEN`).
 2. **Surface Boundary Enforcement:**
    * `SHOP_STAFF` is restricted to Android POS counter terminals.
-   * Web Admin login MUST always send `{ surface: 'web' }`. The backend rejects `SHOP_STAFF` with `403 Forbidden` (`STAFF_WEB_ACCESS_DENIED`).
+   * Web Admin login sends `{ surface: 'web' }` (and unconditionally rejects `SHOP_STAFF` on Google SSO). The backend rejects `SHOP_STAFF` with `403 Forbidden` (`"Staff accounts cannot sign in to web admin."`).
 3. **Multi-Tenant Isolation:**
    * Every SQL query against synced entities must enforce `restaurant_id = :restaurantId`.
    * Never trust client-provided tenant IDs; extract identity strictly from verified JWT claims.

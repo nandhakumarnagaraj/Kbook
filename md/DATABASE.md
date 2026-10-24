@@ -2,7 +2,7 @@
 
 **Document Version:** 2.1.0  
 **Status:** Approved Source of Truth for Relational Schema & Local Edge Storage  
-**Database Engines:** PostgreSQL 16+ (Cloud Master, Flyway 115+ Migrations) & SQLite 3 / Room v82 (Android Edge Terminals with SQLCipher)  
+**Database Engines:** PostgreSQL 16+ (Cloud Master, Flyway 117+ Migrations) & SQLite 3 / Room v82 (Android Edge Terminals with SQLCipher)  
 
 ---
 

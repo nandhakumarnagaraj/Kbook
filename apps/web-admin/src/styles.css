@@ -346,8 +346,11 @@ a:hover { color: var(--brand-deep); }
    the change belongs to layout instead. */
 .table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid var(--kb-color-border);
   border-radius: var(--r-xl);
+  scrollbar-width: thin;
+  scrollbar-color: var(--kb-color-border) transparent;
 }
 table { width: 100%; border-collapse: collapse; }
 .data-table thead th {

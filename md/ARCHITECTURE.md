@@ -27,7 +27,7 @@ flowchart TB
     subgraph Cloud["Cloud Infrastructure (kbook.iadv.cloud)"]
         LB["Ingress / Reverse Proxy (Nginx / Cloudflare)"]
         Server["Spring Boot 3.5.12 Backend\n(Java 17 Monolith • services/server)"]
-        PG[("PostgreSQL 16+\n(Flyway 115+ Migrations)")]
+        PG[("PostgreSQL 16+\n(Flyway 117+ Migrations)")]
         Redis[("Redis Sync Cache & Rate Limiting")]
         WebAdmin["Web Admin SPA\n(Angular 18.2.0 Standalone)"]
     end
@@ -59,7 +59,7 @@ flowchart TB
 | **Web Admin Frontend** | Angular 18.2.0 Standalone | `apps/web-admin` (TypeScript, SCSS, ESBuild, Signals, RxJS) | Type-safe, modular enterprise architecture; standalone components with zero NgModules; Angular Signals for fine-grained reactive state; WCAG 2.1 AA compliant. |
 | **Android POS Client** | Kotlin, Jetpack Compose | `apps/android` (Room schema v82, SQLCipher, Dagger Hilt, WorkManager) | Native edge performance; sub-second offline billing; SQLCipher database encryption per restaurant (`khanabook_lite_db_<restaurantId>`); direct ESC/POS hardware printing. |
 | **Cloud Backend** | Spring Boot 3.5.12 on Java 17 | `services/server` (Maven monolith, Spring Data JPA, Hibernate 6) | Strong ACID transactional integrity for financial ledgers; structured monolithic architecture partitioned by domain feature packages (`billing`, `inventory`, `menu`, `auth`, `sync`, `payments`, `compliance`). |
-| **Cloud Database** | PostgreSQL 16+ | 115+ Flyway migrations (`V1` through `V115`) | Relational integrity, composite unique constraints (`restaurant_id`, `device_id`, `local_id`), JSONB support, tenant-isolated data structures. |
+| **Cloud Database** | PostgreSQL 16+ | 117+ Flyway migrations (`V1` through `V117`) | Relational integrity, composite unique constraints (`restaurant_id`, `device_id`, `local_id`), JSONB support, tenant-isolated data structures. |
 | **Edge Database** | SQLite 3 / Room v82 | 17 Room entities (`AppDatabase.kt`) | Local zero-latency reads/writes, transactional outbox pattern, SQLCipher encryption at rest. |
 | **Payment Gateway** | Easebuzz Sub-Merchant API | Webhook HMAC-SHA512 verification | Certified RBI payment aggregator providing automated sub-merchant KYC onboarding, split payments, and instant dynamic UPI QR checkout. |
 | **Push Invalidation** | Firebase Cloud Messaging (FCM) | `DeviceToken`, `NotificationEvent` | Lightweight real-time invalidation pings to edge terminals when menu prices, item availability, or permissions change. |

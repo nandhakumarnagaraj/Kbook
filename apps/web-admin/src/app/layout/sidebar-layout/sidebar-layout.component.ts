@@ -370,7 +370,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       height: 2px;
       border-radius: var(--kb-radius-sm);
       background: var(--kb-color-foreground);
-      transition: transform 160ms ease, opacity 120ms ease;
+      transition: transform 160ms ease, opacity 150ms ease;
     }
     .hamburger--open .hamburger__bar:first-child { transform: translateY(7px) rotate(45deg); }
     .hamburger--open .hamburger__bar:nth-child(2) { opacity: 0; }
@@ -401,7 +401,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         background: rgba(255, 255, 255, 0.06);
         color: var(--kb-color-foreground-contrast, #FFFFFF);
         cursor: pointer;
-        transition: background 120ms var(--ease-out, ease-out), color 120ms var(--ease-out, ease-out);
+        transition: background 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out);
       }
       .sidebar-toggle:hover {
         background: var(--pos-sidebar-hover, #22274A);

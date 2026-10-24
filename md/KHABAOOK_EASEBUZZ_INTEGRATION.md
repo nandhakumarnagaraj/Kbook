@@ -31,8 +31,7 @@ KhanaBook uses Easebuzz as the **RBI-licensed payment aggregator** for digital c
 3. Validation checks:
    - Bill not already paid
    - No active link already sent (`link_sent` status)
-   - Restaurant has signed merchant agreement
-   - Sub-merchant is ACTIVE on Easebuzz
+   - Sub-merchant is ACTIVE on Easebuzz (Merchant Agreement requirement retired in `V116`)
    - Easebuzz Online enabled for this restaurant
 4. Builds data map with:
    - `merchant_txn` (unique: `PL` + bill tail + UUID suffix)

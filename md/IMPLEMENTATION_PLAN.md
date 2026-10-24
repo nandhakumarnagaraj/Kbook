@@ -50,7 +50,7 @@ Enforce strict multi-tenant isolation, session security, and the 3-role surface 
 * `apps/web-admin/src/app/core/auth/auth.guard.ts`
 
 #### Dependencies / Prerequisites
-* PostgreSQL database connected with Flyway migrations up to `V115`.
+* PostgreSQL database connected with Flyway migrations up to `V117`.
 * Node.js & Angular test runners configured.
 
 #### Database / API Changes

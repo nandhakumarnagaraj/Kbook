@@ -32,14 +32,13 @@ The server extracts `restaurant_id` and `role` directly from the validated JWT c
   }
   ```
 * **Standard Error Envelope:**
+  API controller exceptions return structured error envelopes or standard Spring HTTP error responses (e.g., HTTP 403 Forbidden for surface violation):
   ```json
   {
-    "success": false,
-    "error": {
-      "code": "STAFF_WEB_ACCESS_DENIED",
-      "message": "Staff credentials are restricted to the Android POS terminal.",
-      "timestamp": 1729420000000
-    }
+    "status": 403,
+    "error": "Forbidden",
+    "message": "Staff accounts cannot sign in to web admin.",
+    "path": "/api/v1/auth/login"
   }
   ```
 
@@ -69,8 +68,15 @@ The server extracts `restaurant_id` and `role` directly from the validated JWT c
   }
   ```
 * **Staff Rejection Response (403 Forbidden):**
-  If a user with role `SHOP_STAFF` attempts login with `surface: "web"`, the server returns:
-  `{ "success": false, "error": { "code": "STAFF_WEB_ACCESS_DENIED" } }`
+  If a user with role `SHOP_STAFF` attempts login with `surface: "web"` (or via Google SSO), the server throws `ResponseStatusException(HttpStatus.FORBIDDEN, "Staff accounts cannot sign in to web admin.")`:
+  ```json
+  {
+    "status": 403,
+    "error": "Forbidden",
+    "message": "Staff accounts cannot sign in to web admin.",
+    "path": "/api/v1/auth/login"
+  }
+  ```
 
 ### 2.2 Google SSO Login (`POST /auth/google`)
 * **Payload:** `{ "idToken": "<google_id_token>" }`

@@ -1,6 +1,6 @@
 # KhanaBook POS — Architecture & Safe-Change Playbook
 
-**Status:** Living document · **Last reviewed:** 2026-09-28 (Round 2) · **DB version:** 77
+**Status:** Living document · **Last reviewed:** 2026-09-28 (Round 2) · **DB version:** 82
 **Companion docs:** `docs/engineering/VERTICAL_SLICES_BLUEPRINT.md` (package restructure plan), `CONTEXT.md`
 
 This file answers two questions:
@@ -31,7 +31,7 @@ The Android app is **offline-first**: every write goes to the encrypted local Ro
 ```
 com.khanabook.lite.pos
 ├── core/                      # shared infra — the "stable" layer everything may depend on
-│   ├── database/  AppDatabase (v77, SQLCipher, all @Entity tables), DatabaseProvider, TenantDaos
+│   ├── database/  AppDatabase (v82, SQLCipher, all @Entity tables), DatabaseProvider, TenantDaos
 │   ├── network/   KhanaBookApi (Retrofit, 77 endpoints), AuthInterceptor, pinning to kbook.iadv.cloud
 │   ├── navigation/ AppNavGraph (all routes), NavigationItems, gestures
 │   ├── designsystem/ + theme/ + components/   Khana* components, spacing, radii, colors
@@ -59,7 +59,7 @@ com.khanabook.lite.pos
 | `feature/sync/domain/MasterSyncProcessor.kt` | 1748 | Re-writes the whole local DB from server pulls; touches every entity |
 | `feature/billing/viewmodel/BillingViewModel.kt` | 1748 | All money-path writes; injected into by sync (see §4) |
 | `feature/billing/data/BillDao.kt` | 1367 | Every query against `bills`/`bill_items` |
-| `core/database/AppDatabase.kt` | 1298 | Schema v78 + ~25 hand-written migrations |
+| `core/database/AppDatabase.kt` | 1298 | Schema v82 + hand-written migrations |
 | `feature/settings/viewmodel/SettingsViewModel.kt` | 1267 | Writes config consumed by billing/printing/payments |
 | `feature/menu/viewmodel/MenuViewModel.kt` | 1228 | Menu writes → FK targets for billing |
 
