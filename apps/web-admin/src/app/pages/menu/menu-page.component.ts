@@ -94,7 +94,6 @@ import { environment } from '../../../environments/environment';
               <th>Category</th>
               <th>Type</th>
               <th>Price</th>
-              <th>Variants</th>
               <th>Availability</th>
               <th>Updated</th>
               <th *ngIf="isOwner">Actions</th>
@@ -139,7 +138,6 @@ import { environment } from '../../../environments/environment';
                   </span>
                 </div>
               </td>
-              <td>{{ item.variantCount }}</td>
               <!-- Status lives in its own column and is also the control that
                    changes it, so the row does not state availability twice. -->
               <td>
@@ -210,7 +208,7 @@ import { environment } from '../../../environments/environment';
               >{{ item.available ? stockStatusLabel(item.stockStatus) : 'Unavailable' }}</span>
             </div>
             <p>{{ item.description || 'No description added yet.' }}</p>
-            <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd><div class="menu-price-list"><span class="menu-price-row"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span><span class="menu-price-row" *ngFor="let variant of item.variants || []; trackBy: trackByVariantId"><span class="menu-price-label">{{ variant.variantName }}</span><strong>{{ formatCurrencyValue(variant.price) }}</strong></span></div></dd></div><div><dt>Variants</dt><dd>{{ item.variantCount }}</dd></div></dl>
+            <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd><div class="menu-price-list"><span class="menu-price-row"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span><span class="menu-price-row" *ngFor="let variant of item.variants || []; trackBy: trackByVariantId"><span class="menu-price-label">{{ variant.variantName }}</span><strong>{{ formatCurrencyValue(variant.price) }}</strong></span></div></dd></div></dl>
             <div class="mobile-data-card__actions" *ngIf="isOwner">
               <button
                 type="button"
@@ -645,21 +643,17 @@ import { environment } from '../../../environments/environment';
     .menu-table td, .menu-table th {
       vertical-align: middle;
     }
-    /* The variant *count* column is dropped: the price cell already lists every
-       variant, so a number beside it repeats the same fact in a competing
-       column. Availability is NOT dropped — it used to be hidden too, which
-       left the row's operational state with no scannable column at all. */
-    .menu-table th:nth-child(5),
-    .menu-table td:nth-child(5) {
-      display: none;
-    }
-    .menu-table th:nth-child(7),
-    .menu-table td:nth-child(7) {
+    /* Column count is now 7 (Item, Category, Type, Price, Availability, Updated,
+       Actions). The variant *count* column is gone: the price cell already lists
+       every variant, so a number beside it repeated the same fact in a competing
+       column — and it spent the widest gap in the table on that repeat. */
+    .menu-table th:nth-child(6),
+    .menu-table td:nth-child(6) {
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
     }
-    .menu-table th:nth-child(8),
-    .menu-table td:nth-child(8) {
+    .menu-table th:nth-child(7),
+    .menu-table td:nth-child(7) {
       text-align: right;
     }
     .menu-load-more {

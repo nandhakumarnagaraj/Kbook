@@ -39,10 +39,20 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 
 ## Current Locked Palette (Web Admin)
 
-> **Palette revision (2026-10-25):** the ship palette is the **dark command centre**
-> below — midnight canvas, navy surfaces, blue `#2563EB` action fill. Earlier
-> revisions in this table (white/cream surfaces, purple `#6C27D9`, warm brown
-> `#b56a2d`) are recorded only as migration history; none of them are in the code.
+> **Palette revision (2026-10-25, second pass):** the ship palette is a **light
+> workspace** — `#F7F9FC` canvas, white cards, near-black ink — with the same blue
+> `#2563EB` action fill. The dark command-centre pass was reversed on the same day
+> at the product owner's request; orange `#E87A1E` and purple `#5926B8` exist only
+> as accents (`--brand-orange`, `--brand-purple`), never as a second primary.
+>
+> **The sidebar is the one dark plane left and is deliberately self-contained:**
+> every colour inside it comes from its own `--pos-sidebar-*` tokens (`bg`,
+> `hover`, `text`, `ink`, `ink-muted`, `border`, `peek-bg`, `danger`), so a
+> workspace-theme change cannot repaint the rail. It must stay pixel-identical.
+>
+> Earlier revisions in this table (dark navy surfaces, cream `#FAF7F2`, purple
+> `#6C27D9`, warm brown `#b56a2d`) are recorded only as migration history; none of
+> them are in the code.
 >
 > The source of truth is one two-tier token set in
 > `apps/web-admin/src/styles.css`: primitives (`--kb-blue-*`) and semantic aliases
@@ -57,23 +67,30 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 
 | Variable | Hex | Usage |
 |---|---|---|
-| `--kb-color-bg-app` | #0B0E1A | Page canvas |
-| `--kb-color-surface` | #15192C | Card / panel / table |
-| `--kb-color-surface-2` | #1F2440 | Table header, hover, nested tile |
-| `--kb-color-surface-3` | #272D50 | Modal, popover, raised control |
-| `--pos-sidebar-bg` | #12162A | Sidebar rail |
-| `--kb-color-foreground` | #F3F6FB | Primary text |
-| `--kb-color-foreground-2` | #C3CBDA | Values and table cells |
-| `--kb-color-muted-foreground` | #93A0B8 | Secondary text |
-| `--kb-color-border` / `-strong` | #343B66 / #4C5590 | Dividers / control borders |
+| `--kb-color-bg-app` | #F7F9FC | Page canvas |
+| `--kb-color-surface` | #FFFFFF | Card / panel / table |
+| `--kb-color-surface-2` | #F1F5F9 | Table header, hover, nested tile |
+| `--kb-color-surface-3` | #FFFFFF | Modal, popover, raised control (separated by shadow, not by fill) |
+| `--pos-sidebar-bg` | #12162A | Sidebar rail (unchanged, and token-scoped) |
+| `--kb-color-foreground` | #111827 | Primary text (16.9:1 on white) |
+| `--kb-color-foreground-2` | #334155 | Values and table cells |
+| `--kb-color-muted-foreground` | #556377 | Secondary text (6.1:1 on white, 5.6:1 on a table header) |
+| `--kb-color-border` / `-strong` | #E2E8F0 / #8A94A6 | Dividers / control borders (3.1:1) |
 | `--kb-color-primary` | **#2563EB** | Primary action fill (white on it 5.17:1) |
 | `--kb-color-primary-hover` | #1D4ED8 | Fill hover |
-| `--kb-color-link` / `-hover` | #60A5FA / #93C5FD | Brand colour used as **text** |
-| `--kb-color-success` / `-soft` | #34D399 / 14% | Success / available / completed |
-| `--kb-color-warning` / `-soft` | #FBBF24 / 14% | Warning / pending / low stock |
-| `--kb-color-danger` / `-soft` | #F87171 / 14% | Error ink and tints |
-| `--kb-color-danger-solid` | #DC2626 | Destructive **fill** with white content |
-| `--kb-color-info` / `-soft` | #60A5FA / 14% | Informational states |
+| `--kb-color-link` / `-hover` | #1D4ED8 / #1E40AF | Brand colour used as **text** (6.7:1) |
+| `--kb-color-success` / `-soft` | #166534 / 10% | Success / available / completed |
+| `--kb-color-warning` / `-soft` | #9A3F08 / 10% | Warning / pending / low stock |
+| `--kb-color-danger` / `-soft` | #B91C1C / 7% | Error ink and tints |
+| `--kb-color-danger-solid` | #B91C1C | Destructive **fill** with white content |
+| `--kb-color-info` / `-soft` | #1D4ED8 / 8% | Informational states |
+| `--brand-orange` / `-ink` | #E87A1E / #B45309 | Accent marker (fill only) / orange text |
+| `--brand-purple` | #5926B8 | Secondary accent text |
+
+`apps/web-admin/src/app/shared/design-tokens.spec.ts` measures every one of those
+ink/surface pairs with the browser's own resolved colours and fails below 4.5:1
+(3:1 for the control border), so the palette cannot silently regress to a dark
+set of inks on a light canvas.
 
 **Two colour rules that are now enforced by review:**
 
@@ -84,14 +101,16 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 2. Ink and fill are different jobs. `--kb-color-primary` and
    `--kb-color-danger` are readable *inks* on their own tints; behind white text
    they fail, so fills use `--kb-color-primary` (5.17:1 with white) and
-   `--kb-color-danger-solid` (4.83:1).
+   `--kb-color-danger-solid` (6.47:1). On the light canvas the danger ink and the
+   danger fill happen to be the same deep red, which is why there is one token
+   pair rather than two separate palettes.
 
 ### Superseded (do not use)
 
 | Variable | Hex | Note |
 |---|---|---|
-| `--kb-color-bg-app` (cream) | #FAF7F2 | Replaced by #0B0E1A |
-| `--kb-color-surface` (white) | #FFFFFF | Replaced by #15192C |
+| `--kb-color-bg-app` (dark) | #0B0E1A | Replaced by #F7F9FC |
+| `--kb-color-surface` (dark) | #15192C | Replaced by #FFFFFF |
 | `--brand` (purple) | #6C27D9 | Replaced by #2563EB |
 | `--brand` (brown) | #b56a2d | Replaced by #6C27D9, then by #2563EB |
 | `--danger` (old red) | #C0392B | Replaced by #F87171 ink / #DC2626 solid |

@@ -218,15 +218,16 @@ export function orderStatusLabel(status: string | null | undefined): string {
         <!-- Orders Tactile Table -->
         <div class="table-wrap" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
           <table class="data-table">
+            <caption class="visually-hidden">Orders in the selected period, with channel, guest, total, status and actions</caption>
             <thead>
               <tr>
-                <th>Order</th>
-                <th>Channel &amp; Table</th>
-                <th>Guest &amp; Summary</th>
-                <th>Total</th>
-                <th>Status</th>
-                <th>Time</th>
-                <th class="text-right">Action</th>
+                <th scope="col">Order</th>
+                <th scope="col">Channel &amp; Table</th>
+                <th scope="col">Guest &amp; Summary</th>
+                <th scope="col">Total</th>
+                <th scope="col">Status</th>
+                <th scope="col">Time</th>
+                <th scope="col" class="text-right">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -237,12 +238,12 @@ export function orderStatusLabel(status: string | null | undefined): string {
                 [attr.aria-label]="'View order #' + order.orderCode"
                 (click)="openOrderDetail(order)"
                 (keydown.enter)="openOrderDetail(order)">
-                <td>
+                <th scope="row">
                   <span class="order-hash-code">#{{ order.orderCode }}</span>
                   <div *ngIf="order.invoiceNumber && order.invoiceNumber !== order.orderCode" class="invoice-sub-badge font-mono">
                     {{ order.invoiceNumber }}
                   </div>
-                </td>
+                </th>
                 <td>
                   <span class="channel-chip channel-chip--{{ isTakeaway(order) ? 'takeaway' : 'dine_in' }}">
                     {{ isTakeaway(order) ? 'Takeaway' : 'Dine In' }}
@@ -373,7 +374,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
     @media (max-width: 767px) {
       .table-wrap > .data-table { display: none; }
       .mobile-order-list { display: grid; gap: var(--kb-space-3); padding: var(--kb-space-3); }
-      .mobile-order-card { overflow: hidden; background: var(--kb-color-surface); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); box-shadow: var(--kb-shadow-xs); }
+      .mobile-order-card { overflow: hidden; background: var(--kb-color-surface); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-card); box-shadow: var(--kb-shadow-xs); }
       .mobile-order-card--refunded { border-left: 4px solid var(--kb-color-error); }
       .mobile-order-card__main { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--kb-space-2) var(--kb-space-3); padding: var(--kb-space-3); text-align: left; color: var(--kb-color-foreground); background: transparent; border: 0; cursor: pointer; }
       .mobile-order-card__main:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: -2px; }
@@ -434,10 +435,10 @@ export function orderStatusLabel(status: string | null | undefined): string {
     }
     .custom-date-picker-drawer {
       margin-bottom: 1.25rem;
-      padding: 1rem;
+      padding: 1rem 1.15rem;
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
-      border-radius: 14px;
+      border-radius: var(--kb-radius-card);
     }
     /* Tactile CTA Buttons (cta.gallery & 60fps.design) */
     
@@ -449,45 +450,6 @@ export function orderStatusLabel(status: string | null | undefined): string {
     
     
 
-    /* Thermal Receipt Empty State (404s.design) */
-    .receipt-empty-state {
-      background: var(--kb-color-surface);
-      border: 1.5px dashed var(--kb-color-border-strong);
-      border-radius: 20px;
-      padding: 3.5rem 1.5rem;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.65rem;
-      margin: 1.5rem 0;
-    }
-    .receipt-empty-halo {
-      width: 60px;
-      height: 60px;
-      border-radius: 18px;
-      background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-border);
-      color: var(--kb-color-muted-foreground);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-    }
-    .receipt-empty-title {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--kb-color-foreground);
-    }
-    .receipt-empty-sub {
-      margin: 0;
-      font-size: 0.86rem;
-      color: var(--kb-color-muted-foreground);
-      max-width: 380px;
-      line-height: 1.45;
-    }
 
     .chip--dine-in {
       background: var(--kb-color-primary-soft);
@@ -584,26 +546,9 @@ export function orderStatusLabel(status: string | null | undefined): string {
       justify-content: flex-end;
       gap: 0.45rem;
     }
-    .empty-orders-view {
-      padding: 3rem 1.5rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 0.5rem;
-    }
-    .empty-icon-circle {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-border-strong);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--kb-color-muted-foreground);
-      margin-bottom: 0.25rem;
-    }
+    /* .empty-orders-view / .empty-icon-circle come from bento.css; only the
+       spacing this tab needs inside its card is local. */
+    .tab-panel .empty-orders-view { margin: 1rem 0; }
     .empty-actions-row {
       display: flex;
       align-items: center;
@@ -617,7 +562,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
       gap: 0.65rem;
       padding-top: 1rem;
       margin-top: 1rem;
-      border-top: 1px solid var(--kb-color-surface-2);
+      border-top: 1px solid var(--kb-color-border);
       flex-wrap: wrap;
       min-height: 2.5rem;
       color: var(--kb-color-muted-foreground);

@@ -1,6 +1,6 @@
 /*
  * KhanaBook Web Admin — Design System
- * Concept: Dark Command Center (midnight #0B0E1A canvas, navy cards, low-glare)
+ * Concept: light workspace (near-white #F7F9FC canvas, white cards, near-black ink)
  * Invariant: restrained tonal depth, semantic colour only, WCAG AA legibility.
  *
  * Two rules keep this file honest:
@@ -8,9 +8,23 @@
  *      tokens; they do not carry their own palette.
  *   2. A surface is distinguished from its neighbour by a lightness step AND a
  *      border. A near-identical tint alone reads as one flat plane.
+ *
+ * The brand is blue: primary actions, links and selected states. Orange and
+ * purple are accents only (--kb-brand-orange / --kb-brand-purple) and are never
+ * used as an ink unless the --kb-brand-orange-ink step is used, because #E87A1E
+ * is 3.1:1 on white and cannot carry text.
+ *
+ * The sidebar is the one dark plane left. It keeps its own --pos-sidebar-*
+ * tokens and never borrows a workspace token that the light flip changed, so its
+ * pixels are identical in either theme.
  */
 
 :root {
+  /* Native controls (select popups, date pickers, scrollbars) follow the
+     workspace, not the OS: on a light canvas a dark-mode select would open a
+     black listbox into a white form. */
+  color-scheme: light;
+
   /* ---------------------------------------------------------------------- */
   /* Core neutrals & surfaces (existing --* names kept for backward compat)  */
   /* ---------------------------------------------------------------------- */
@@ -40,6 +54,11 @@
 
   --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
   --gradient-hero:    linear-gradient(135deg, var(--kb-color-surface) 0%, var(--kb-color-bg-app) 100%);
+  /* Brand accents. Orange is a fill/marker colour only: on white it is 3.1:1, so
+     text that must be AA uses the --brand-orange-ink step beside it. */
+  --brand-orange:      #E87A1E;
+  --brand-orange-ink:  #B45309;
+  --brand-purple:      #5926B8;
 
   /* ---------------------------------------------------------------------- */
   /* Semantic colours                                                        */
@@ -59,14 +78,14 @@
   --info-soft:     var(--kb-color-info-soft);
 
   /* ---------------------------------------------------------------------- */
-  /* Shadows (Dark command-center depth)                                     */
+  /* Shadows (light workspace: a soft cool cast, never a black smear)        */
   /* ---------------------------------------------------------------------- */
-  --shadow-xs:   0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow:      0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md:   0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-lg:   0 12px 32px rgba(0, 0, 0, 0.65);
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-elevated: 0 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow-xs:   0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow:      0 1px 3px rgba(15, 23, 42, 0.10), 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md:   0 4px 12px rgba(15, 23, 42, 0.10);
+  --shadow-lg:   0 12px 32px rgba(15, 23, 42, 0.16);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-elevated: 0 6px 20px rgba(15, 23, 42, 0.12);
 
   /* ---------------------------------------------------------------------- */
   /* Radii                                                                   */
@@ -93,82 +112,89 @@
   --kb-blue-400:                #60A5FA;
   --kb-blue-500:                #2563EB;
   --kb-blue-600:                #1D4ED8;
-  /* Surfaces are separated by a deliberate lightness step AND a border: the
-     steps below resolve to 1.11 (canvas→card), 1.15 (card→raised) and 1.31
-     (card→modal) relative luminance ratio, with borders at 1.63/2.49. A single
-     navy everywhere is what made every plane look like the same plane. */
-  --kb-color-bg-app:            #0B0E1A; /* Deepest plane: page canvas */
-  --kb-color-foreground:        #F3F6FB; /* Primary text (15.9:1 on card) */
-  --kb-color-foreground-2:      #C3CBDA; /* Values and table cells (10.5:1) */
-  --kb-color-foreground-contrast: #0B0E1A; /* Ink that sits ON foreground fills */
-  --kb-color-surface:           #15192C; /* Cards, tables, panels */
-  --kb-color-surface-2:         #1F2440; /* Table header, hover, nested tiles */
-  --kb-color-surface-3:         #272D50; /* Modal, popover, raised controls */
-  --kb-color-muted:             #101425; /* Recessed input / well */
-  --kb-color-muted-foreground:  #93A0B8; /* Secondary text (6.5:1 on card) */
-  --kb-color-border:            #343B66; /* Dividers and card edges */
-  --kb-color-border-strong:     #4C5590; /* Control borders (2.5:1 on card) */
-  --kb-color-input:             #101425; /* Dark recessed input background */
+  /* Surfaces are separated by a deliberate lightness step AND a border: white
+     cards on a cool #F7F9FC canvas, with #F1F5F9 for a table header or a
+     recessed well. A dialog is white too, but it also carries the largest
+     shadow in the system — on a light canvas, elevation is a shadow, not a
+     darker fill. */
+  --kb-color-bg-app:            #F7F9FC; /* Page canvas */
+  --kb-color-foreground:        #111827; /* Primary text (16.9:1 on white) */
+  --kb-color-foreground-2:      #334155; /* Values and table cells (10.4:1) */
+  --kb-color-foreground-contrast: #FFFFFF; /* Ink that sits ON foreground fills */
+  --kb-color-surface:           #FFFFFF; /* Cards, tables, panels */
+  --kb-color-surface-2:         #F1F5F9; /* Table header, hover, nested tiles */
+  --kb-color-surface-3:         #FFFFFF; /* Modal, popover, raised controls */
+  --kb-color-muted:             #F1F5F9; /* Recessed input / well */
+  --kb-color-muted-foreground:  #556377; /* Secondary text (6.1:1 on white, 5.6:1 on a table header) */
+  --kb-color-border:            #E2E8F0; /* Dividers and card edges */
+  --kb-color-border-strong:     #8A94A6; /* Control borders (>=3:1 on white) */
+  --kb-color-input:             #FFFFFF; /* Field background (reads as recessed on canvas) */
   --kb-color-ring:              rgba(var(--kb-color-primary-rgb), 0.45);
-  --kb-color-espresso:          #0B0E1A;
-  --kb-color-espresso-foreground: #F3F6FB;
-  --kb-color-cream:             #1F2440;
-  --kb-color-saffron:           #FBBF24;
-  --kb-color-turmeric:          #EAB308;
-  --kb-color-burnt:             #F87171;
+  --kb-color-espresso:          #0F172A;
+  --kb-color-espresso-foreground: #F8FAFC;
+  --kb-color-cream:             #F1F5F9;
+  --kb-color-saffron:           #B45309;
+  --kb-color-turmeric:          #A16207;
+  --kb-color-burnt:             #B91C1C;
   --kb-color-primary:           var(--kb-blue-500);
   --kb-color-primary-foreground:#FFFFFF;
   --kb-color-primary-hover:     var(--kb-blue-600);
-  --kb-color-primary-soft:      rgba(37, 99, 235, 0.22);
+  --kb-color-primary-soft:      rgba(37, 99, 235, 0.08);
   /* Semantic status. Each foreground clears 4.5:1 against its own soft tint
      composited on --kb-color-surface, so the pin does not rely on colour alone
-     AND stays readable. */
-  --kb-color-success:           #34D399;
-  --kb-color-success-soft:      rgba(52, 211, 153, 0.14);
-  --kb-color-warning:           #FBBF24;
-  --kb-color-warning-soft:      rgba(251, 191, 36, 0.14);
-  --kb-color-danger:            #F87171;
-  --kb-color-danger-soft:       rgba(248, 113, 113, 0.14);
+     AND stays readable. The inks are the deep steps: the dark theme's pastels
+     (#34D399, #FBBF24, #F87171) sit at 1.9-2.4:1 on white and would vanish. */
+  --kb-color-success:           #166534;
+  --kb-color-success-soft:      rgba(22, 101, 52, 0.10);
+  --kb-color-warning:           #9A3F08;
+  --kb-color-warning-soft:      rgba(154, 63, 8, 0.10);
+  --kb-color-danger:            #B91C1C;
+  --kb-color-danger-soft:       rgba(185, 28, 28, 0.07);
   /* A destructive FILL that carries white text (badge, primary danger button).
-     --kb-color-danger is tuned to be readable as ink on its own tint and only
-     reaches 2.7:1 behind white, so fills use this deeper step (4.8:1). */
-  --kb-color-danger-solid:      #DC2626;
-  --kb-color-danger-solid-hover:#B91C1C;
-  --kb-color-info:              #60A5FA;
-  --kb-color-info-soft:         rgba(96, 165, 250, 0.14);
+     On the light canvas the ink and the fill are the same deep red (6.4:1). */
+  --kb-color-danger-solid:      #B91C1C;
+  --kb-color-danger-solid-hover:#991B1B;
+  --kb-color-info:              #1D4ED8;
+  --kb-color-info-soft:         rgba(29, 78, 216, 0.08);
   /* Aliases for legacy token names still referenced by page components */
   --kb-color-card:              var(--kb-color-surface);
   --kb-color-surface-1:         var(--kb-color-surface);
   --kb-color-on-primary:        #FFFFFF;
   --kb-color-primary-rgb:       37, 99, 235;
-  --kb-color-success-rgb:       52, 211, 153;
-  --kb-color-warning-rgb:       251, 191, 36;
-  --kb-color-danger-rgb:        248, 113, 113;
-  --kb-color-info-rgb:          96, 165, 250;
+  --kb-color-success-rgb:       22, 101, 52;
+  --kb-color-warning-rgb:       154, 63, 8;
+  --kb-color-danger-rgb:        185, 28, 28;
+  --kb-color-info-rgb:          29, 78, 216;
+  --kb-brand-orange:            var(--brand-orange);
+  --kb-brand-orange-ink:        var(--brand-orange-ink);
+  --kb-brand-purple:            var(--brand-purple);
   --kb-color-error:             var(--kb-color-danger);
   --kb-color-error-soft:        var(--kb-color-danger-soft);
   --kb-easing-fast:             var(--kb-ease-standard);
   --kb-font-caption:            0.75rem;
-  --kb-gradient-hero:           linear-gradient(135deg, #1D4ED8 0%, #0B0E1A 100%);
-  --kb-gradient-cream:          linear-gradient(180deg, #15192C 0%, #1F2440 100%);
+  --kb-gradient-hero:           linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  --kb-gradient-cream:          linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
   --kb-font-sans:               "Inter", ui-sans-serif, system-ui, sans-serif;
   --kb-font-display:            "Plus Jakarta Sans", "Inter", sans-serif;
   --kb-font-mono:               "JetBrains Mono", ui-monospace, monospace;
   --kb-font-size-display:       clamp(2rem, 3.2vw, 2.75rem);
   --kb-font-size-h1:            1.75rem;
-  --kb-color-link:              var(--kb-blue-400);
-  --kb-color-link-hover:        var(--kb-blue-300);
+  /* Links are the deep blue: the 500 fill is 5.2:1 on white but the 600 step
+     leaves headroom on tinted rows too. Hover deepens rather than lightens —
+     lightening on a white canvas reads as disabled. */
+  --kb-color-link:              var(--kb-blue-600);
+  --kb-color-link-hover:        #1E40AF;
   --kb-space-1: 4px;  --kb-space-2: 8px;  --kb-space-3: 12px;
   --kb-space-4: 16px; --kb-space-5: 20px; --kb-space-6: 24px;
   --kb-space-8: 32px; --kb-space-10: 40px; --kb-space-12: 48px; --kb-space-16: 64px;
   --kb-radius-sm: 4px; --kb-radius-md: 6px; --kb-radius-lg: 8px;
   --kb-radius-xl: 12px; --kb-radius-2xl: 16px; --kb-radius-full: 9999px;
   --kb-radius-card:             var(--kb-radius-xl);
-  --kb-shadow-xs: 0 1px 2px rgba(0,0,0,0.35);
-  --kb-shadow-sm: 0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.35);
-  --kb-shadow-md: 0 4px 12px rgba(0,0,0,0.5);
-  --kb-shadow-lg: 0 12px 32px rgba(0,0,0,0.65);
-  --kb-shadow-warm: 0 6px 20px rgba(0,0,0,0.5);
+  --kb-shadow-xs: 0 1px 2px rgba(15,23,42,0.06);
+  --kb-shadow-sm: 0 1px 3px rgba(15,23,42,0.10), 0 1px 2px rgba(15,23,42,0.06);
+  --kb-shadow-md: 0 4px 12px rgba(15,23,42,0.10);
+  --kb-shadow-lg: 0 12px 32px rgba(15,23,42,0.16);
+  --kb-shadow-warm: 0 6px 20px rgba(15,23,42,0.12);
   --kb-duration-instant: 80ms; --kb-duration-fast: 150ms; --kb-duration-base: 200ms; --kb-duration-slow: 300ms;
   --kb-ease-standard: cubic-bezier(0.2,0,0.2,1);
   --ease-out:                   cubic-bezier(0.23, 1, 0.32, 1);
@@ -179,12 +205,18 @@
   --kb-touch-min: 44px; --kb-touch-primary: 48px;
 
   /* POS Command Center Theme Tokens.
-     The sidebar is its own plane, not a second card: one step above the canvas
-     and one below a card, separated by a real border so the rail reads as chrome
-     rather than as another panel. */
+     The sidebar is the one dark plane left, and it is self-contained: every
+     colour inside it comes from this block, never from a workspace token, so a
+     workspace theme change cannot repaint the rail. */
   --pos-sidebar-bg:         #12162A;
   --pos-sidebar-hover:      #1C2138;
   --pos-sidebar-text:       #A7B1C6;
+  --pos-sidebar-ink:        #F3F6FB; /* User name, collapse chevron, drawer close */
+  --pos-sidebar-ink-muted:  #93A0B8; /* User role */
+  --pos-sidebar-border:     #343B66; /* The rail's right edge */
+  --pos-sidebar-peek-bg:    #272D50; /* Collapsed-nav hover chip */
+  --pos-sidebar-danger:     #DC2626; /* Sign out fill */
+  --pos-sidebar-danger-hover: #F87171;
   --pos-purple:             var(--kb-color-primary);
   --pos-purple-hover:       var(--kb-color-primary-hover);
   --pos-purple-soft:        var(--kb-color-primary-soft);
@@ -217,10 +249,10 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spac
 
 button, input, select, textarea { font: inherit; }
 
-/* Brand blue is the FILL. As text on a dark plane it only reaches 3.4:1, so
-   links, active tab labels and brand-coloured icons use the lighter link tone
-   (6.8:1 on a card, 4.6:1 on its own tint). Hover lightens rather than darkens:
-   darkening on a dark canvas reads as disabled. */
+/* Brand blue is the FILL. As text it uses the deeper link tone (7.0:1 on white,
+   6.1:1 on its own tint), so a link and a primary button read as the same brand
+   without either one failing AA. Hover deepens: on a white canvas, lightening
+   would read as disabled. */
 a { color: var(--kb-color-link); text-decoration: none; }
 a:hover { color: var(--kb-color-link-hover); }
 
@@ -387,6 +419,16 @@ a:hover { color: var(--kb-color-link-hover); }
   scrollbar-width: thin;
   scrollbar-color: var(--kb-color-border) transparent;
 }
+/* A table's frame is either its own .table-wrap or the .panel it sits in —
+   never both. A wrapper nested inside a panel drops its border, radius and
+   background, so the table reads as the card's content instead of a card
+   inside a card (the double 1px edge and the second radius that used to show
+   up on Terminals, Orders, Reports and the platform dashboard). */
+.panel .table-wrap {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
 table { width: 100%; border-collapse: collapse; }
 .data-table thead th {
   position: sticky;
@@ -427,6 +469,17 @@ th, td {
   text-align: left;
   white-space: nowrap;
   vertical-align: middle;
+}
+/* A `<th scope="row">` in the body is a record's own name, not a column label:
+   it keeps the data-cell type treatment (size, sentence case, body ink) so the
+   invoice or item a row is about still reads as that row's identifier and not
+   as another header. Weight, not colour, is what sets it apart. */
+.data-table tbody th {
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-2);
 }
 th {
   font-size: 0.7rem;
@@ -583,7 +636,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
   padding: 0.55rem 0.8rem;
-  background: var(--kb-color-input, #111429);
+  background: var(--kb-color-input, #FFFFFF);
   color: var(--ink);
   font-size: 0.88rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -611,7 +664,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
   padding: 0.55rem 0.8rem;
-  background: var(--kb-color-input, #111429);
+  background: var(--kb-color-input, #FFFFFF);
   color: var(--ink);
   font-size: 0.88rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -724,7 +777,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 }
 .alert.error {
   background: var(--danger-soft);
-  border-color: rgba(192, 57, 43, 0.18);
+  border-color: rgba(var(--kb-color-danger-rgb), 0.3);
   color: var(--danger);
 }
 
@@ -732,7 +785,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(4, 6, 13, 0.72);
+  background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -822,7 +875,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent);
   animation: shimmer 1.3s infinite;
 }
 @keyframes shimmer { 100% { transform: translateX(100%); } }
@@ -862,7 +915,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 .action-btn--danger { color: var(--danger); }
 .action-btn--danger:hover {
   background: var(--danger-soft);
-  border-color: rgba(192, 57, 43, 0.3);
+  border-color: rgba(var(--kb-color-danger-rgb), 0.3);
   color: var(--danger);
 }
 .action-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
@@ -1072,7 +1125,10 @@ td.price,
 .stacked-meta { display: grid; gap: 0.15rem; line-height: 1.35; }
 .stacked-meta .small { font-size: 0.75rem; color: var(--muted); }
 
-.soft-section { padding: 1.25rem 1.5rem; }
+/* The padded panel: .panel + .soft-section is the card used for table and
+   content panels. Its padding is the shared card padding, so a table card and a
+   .bento-tile tile have the same inner inset. */
+.soft-section { padding: 1.25rem 1.35rem; }
 
 /* ---- Dish photo thumbnail + no-photo placeholder ----
    Items without a photo fall back to a neutral tile carrying the veg /
@@ -1237,22 +1293,202 @@ app-date-range-selector { display: block; width: 100%; }
 }
 
 @media (prefers-contrast: more) {
-  /* Forced-colour borders, text and rings. The old block pushed borders to
-     #1C1A17 — a near-black that vanished on this canvas — so "more contrast"
-     used to remove the boundaries it was meant to strengthen. */
+  /* Forced-colour borders, text and rings. On the light canvas "more contrast"
+     means darker borders and darker ink — never a white outline, which would
+     disappear against the surface it is drawn on. */
   :root {
-    --kb-color-border: #8A94B8;
-    --kb-color-border-strong: #A9B3D4;
-    --kb-color-muted-foreground: #C6CEE0;
-    --line: #8A94B8;
-    --line-strong: #A9B3D4;
+    --kb-color-border: #64748B;
+    --kb-color-border-strong: #475569;
+    --kb-color-muted-foreground: #334155;
+    --line: #64748B;
+    --line-strong: #475569;
   }
   a {
     text-decoration: underline !important;
     font-weight: 600;
   }
   button:focus-visible, a:focus-visible, input:focus-visible {
-    outline: 3px solid #FFFFFF !important;
+    outline: 3px solid #0F172A !important;
     outline-offset: 2px !important;
+  }
+}
+
+/* ── Print ─────────────────────────────────────────────────────────────────
+   Two screens are printed on purpose: the daily closing slip and a report
+   period. Both are assembled from the shared vocabulary — .page-shell,
+   .panel, .data-table, <app-kpi-row> — so their print sheet is written once,
+   here, against those classes instead of once per page. That is also why the
+   daily closing page no longer carries a local @media print block.
+
+   What paper needs that screen does not:
+     · the app chrome is not part of the document: the nav rail, the mobile
+       topbar and bottom bar, the header's date/refresh/export cluster, and any
+       action button inside a KPI tile;
+     · a card loses its shadow and its tint and keeps one hairline — a shadow
+       prints as a grey smear, and a white card on white paper has no edge;
+     · a scroll wrapper clips its table on paper, so .table-wrap must overflow
+       visibly and the sticky header must stop floating: as a real <thead> it
+       repeats on every page instead of painting over the first rows;
+     · the nine-column GST ledger needs a smaller type size to fit A4 portrait.
+
+   Backgrounds are deliberately not forced with print-color-adjust: the text
+   inks already print, and keeping fills off is what stops a report from
+   emptying a toner cartridge. The single exception is the tender-split bar,
+   where the fill itself is the datum. */
+@page {
+  margin: 14mm;
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  /* The shell, and every control that only makes sense on a screen. */
+  .sidebar,
+  .sidebar-backdrop,
+  .nav-peek,
+  .topbar,
+  .hamburger,
+  kb-bottom-action-bar,
+  app-global-toast,
+  .skip-link,
+  .kb-page-header__right,
+  .kb-kpi__action,
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #FFFFFF !important;
+  }
+
+  .layout-shell {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  .workspace,
+  .content-shell,
+  .page-shell,
+  app-reports-page,
+  app-daily-closing-page {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    width: 100% !important;
+  }
+
+  /* Cards: one hairline, no elevation, never split across a page. */
+  .panel,
+  .kb-kpi,
+  .intel-card,
+  .card,
+  .bento-tile,
+  .page-hero,
+  .recon-card,
+  .split-card,
+  .audit-stat {
+    box-shadow: none !important;
+    background: #FFFFFF !important;
+    border: 1px solid #D6DCE5 !important;
+    border-radius: 0 !important;
+    break-inside: avoid;
+  }
+
+  .panel {
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* Four tiles side by side do not fit a page width, and a 3 + 1 wrap reads
+     like a mistake. Paper gets a deliberate 2 x 2 block instead. */
+  .kb-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;
+  }
+
+  /* The split bar is data, not decoration: print its fills and its track. */
+  .kb-kpi__segment-bar,
+  .kb-kpi__segment-fill,
+  .kb-kpi__segment-dot {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .kb-kpi__segment-bar {
+    background: #E2E8F0 !important;
+  }
+
+  /* Tables: unclip the wrapper, repeat the head, keep rows whole. */
+  .table-wrap {
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* On screen a cell never wraps — a table is scanned along a row. On paper
+     that nowrap is what pushes the nine-column GST ledger off the right edge
+     of an A4 sheet, so cells wrap and the type steps down until the ledger
+     fits. */
+  .data-table {
+    font-size: 0.66rem !important;
+  }
+
+  th,
+  td {
+    white-space: normal !important;
+    /* break-word, not anywhere: `anywhere` shrinks a column's min-content to
+       a single character, which collapsed the invoice column to three stacked
+       lines and split the word CUSTOMER in half. */
+    overflow-wrap: break-word;
+  }
+
+  /* Wrapping a money value is how "₹1,84,200.00" becomes "₹1,84,200." and
+     "00" on two lines — a wrong number on a tax return. Figures never break. */
+  .data-table .num-cell,
+  .data-table .tabular-num,
+  .data-table .tabular-nums,
+  .data-table td.num {
+    white-space: nowrap !important;
+    overflow-wrap: normal;
+  }
+
+  .data-table thead {
+    display: table-header-group;
+  }
+
+  .data-table thead th {
+    position: static !important;
+    background: #F1F5F9 !important;
+  }
+
+  .data-table tr {
+    break-inside: avoid;
+  }
+
+  .data-table tfoot {
+    display: table-footer-group;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.2rem 0.25rem !important;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  .print-only {
+    display: block !important;
   }
 }

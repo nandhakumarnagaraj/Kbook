@@ -244,7 +244,7 @@ describe('manual refresh visibly reloads the data', () => {
     const fixture = mount<DailyClosingPageComponent>(DailyClosingPageComponent, [
       { provide: BusinessApiService, useValue: api },
     ]);
-    const figures = () => host(fixture).querySelector('.closing-bento-grid');
+    const figures = () => host(fixture).querySelector('.kb-kpi-row');
 
     expect(skeleton(fixture)).withContext('daily closing: first load shows the skeleton').toBeTruthy();
 

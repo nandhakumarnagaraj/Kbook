@@ -39,7 +39,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       <!-- Bento Cards Grid (bentogrids.com standard) -->
       <div class="active-orders-grid" *ngIf="activeOrders().length && !showReloadSkeleton()">
         <article
-          class="pos-card-tactile"
+          class="bento-tile pos-card-tactile"
           *ngFor="let order of activeOrders(); trackBy: trackByOrderId"
           [class.pos-card--urgent]="isUrgent(order)"
           tabindex="0"
@@ -134,16 +134,16 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       </div>
 
       <!-- Dignified Zero State (404s.design / Anti-Slop standard) -->
-      <div class="all-clear-card" *ngIf="!loading() && !error() && !activeOrders().length">
-        <div class="all-clear-halo" aria-hidden="true">
+      <div class="empty-orders-view" *ngIf="!loading() && !error() && !activeOrders().length">
+        <div class="empty-icon-circle" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
             <rect x="9" y="3" width="6" height="4" rx="1"/>
             <path d="m9 14 2 2 4-4"/>
           </svg>
         </div>
-        <h3>No active orders</h3>
-        <p class="all-clear-sub">
+        <h4>No active orders</h4>
+        <p>
           New POS orders will appear here as they’re placed.
         </p>
       </div>
@@ -247,17 +247,12 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       gap: 1.15rem;
     }
 
+    /* Surface, radius, padding and the idle hover all come from the shared
+       .bento-tile. This adds only what is local to an order card: the wider
+       inner rhythm and the brand-tinted hover lift. */
     .pos-card-tactile {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 18px;
-      padding: 1.25rem 1.35rem;
-      display: flex;
-      flex-direction: column;
       gap: 0.85rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
       cursor: pointer;
-      transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
     .pos-card-tactile:hover {
       transform: translateY(-2px);
@@ -268,8 +263,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       transform: scale(0.98);
     }
     .pos-card--urgent {
-      border-color: var(--kb-color-warning-soft);
-      background: var(--kb-color-surface);
+      border-color: rgba(var(--kb-color-warning-rgb), 0.5);
     }
 
     .card-top-row {
@@ -385,51 +379,15 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       font-weight: 700;
     }
 
-    /* ── All Clear Dignified Empty State (404s.design standard) ── */
-    .all-clear-card {
-      background: #FFFFFF;
-      border: 1.5px dashed var(--kb-color-border-strong);
-      border-radius: 20px;
-      padding: 3.5rem 1.5rem;
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-    }
-    .all-clear-halo {
-      width: 60px;
-      height: 60px;
-      border-radius: 18px;
-      background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-border);
-      color: var(--kb-color-success);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-    }
-    .all-clear-card h3 {
-      margin: 0;
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--kb-color-foreground);
-    }
-    .all-clear-sub {
-      margin: 0;
-      font-size: 0.88rem;
-      color: var(--kb-color-muted-foreground);
-      max-width: 420px;
-      line-height: 1.5;
-    }
+    /* The all-clear state is the shared .empty-orders-view (bento.css), so it
+       matches every other empty state in the app rather than drawing a second
+       dashed card of its own. */
 
     /* ── Card Actions Row ── */
     .card-actions-row {
       display: flex;
       gap: 0.5rem;
-      border-top: 1px solid var(--kb-color-surface-2);
+      border-top: 1px solid var(--kb-color-border);
       padding-top: 0.75rem;
       margin-top: 0.25rem;
     }

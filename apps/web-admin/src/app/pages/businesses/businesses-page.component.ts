@@ -10,13 +10,14 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { HeaderSearchComponent } from '../../shared/header-search.component';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, HeaderSearchComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -183,28 +184,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
           </div>
         </div>
 
-        <div class="stats-grid">
-          <article class="panel stat-card">
-            <h3>Total Revenue</h3>
-            <strong>{{ formatCurrencyValue(detail.totalRevenue) }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>POS Orders</h3>
-            <strong>{{ detail.posOrderCount }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>GST</h3>
-            <strong>{{ detail.gstEnabled ? 'Enabled' : 'Disabled' }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>Timezone</h3>
-            <strong>{{ detail.timezone || '-' }}</strong>
-          </article>
-          <article class="panel stat-card">
-            <h3>Currency</h3>
-            <strong>{{ detail.currency || '-' }}</strong>
-          </article>
-        </div>
+        <app-kpi-row [items]="detailKpis(detail)" ariaLabel="Business summary metrics" />
       </div>
 
       <!-- Create Restaurant Modal -->
@@ -721,6 +701,17 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
 
   formatDateValue(value: number | null): string { return formatDate(value); }
   formatCurrencyValue(value: number): string { return formatCurrency(value); }
+
+  /** The detail strip, in the shared KPI anatomy used by every page. */
+  detailKpis(detail: AdminBusinessDetail): KpiItem[] {
+    return [
+      { label: 'Total revenue', value: this.formatCurrencyValue(detail.totalRevenue), caption: 'Settled lifetime sales' },
+      { label: 'POS orders', value: detail.posOrderCount, caption: 'Bills raised at the counter' },
+      { label: 'GST', value: detail.gstEnabled ? 'Enabled' : 'Disabled', tone: detail.gstEnabled ? 'success' : 'default', caption: detail.gstEnabled ? 'Tax invoicing is on' : 'Tax invoicing is off' },
+      { label: 'Timezone', value: detail.timezone || '-', caption: 'Used for daily closing' },
+      { label: 'Currency', value: detail.currency || '-', caption: 'Billing currency' },
+    ];
+  }
 
   trackByIndex = (_: number, __: unknown) => _;
   trackByRestaurantId = (_: number, biz: AdminBusinessListItem) => biz.restaurantId;

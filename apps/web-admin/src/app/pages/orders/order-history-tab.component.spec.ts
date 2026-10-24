@@ -139,3 +139,90 @@ describe('OrderHistoryTabComponent — the status column wording', () => {
     expect(orderStatusLabel('  ')).toBe('');
   });
 });
+
+/**
+ * A sighted user reads a grid of cells; a screen reader needs the table's name,
+ * each column's label and each row's own name spelled out. Without `scope`, a
+ * cell is announced as "₹640" with no indication of which column or order it
+ * belongs to.
+ */
+describe('OrderHistoryTabComponent — table semantics', () => {
+  let fixture: ComponentFixture<OrderHistoryTabComponent>;
+
+  beforeEach(() => {
+    sessionStorage.removeItem(DATE_RANGE_STORAGE_KEY);
+    const api = jasmine.createSpyObj<BusinessApiService>('BusinessApiService', [
+      'getOrdersPaginated',
+      'voidBill',
+      'getOrderDetail',
+    ]);
+    api.getOrdersPaginated.and.returnValue(of({
+      content: [{
+        sourceType: 'POS',
+        orderType: 'DINE_IN',
+        orderId: 41,
+        orderCode: '1041',
+        invoiceNumber: 'INV-1041',
+        publicToken: null,
+        customerName: 'Table 4',
+        customerContact: null,
+        tableNumber: 4,
+        orderStatus: 'Completed',
+        paymentStatus: 'Paid',
+        paymentMethod: 'Cash',
+        totalAmount: 640,
+        gatewayPaidAmount: null,
+        refundAmount: 0,
+        refundStatus: 'NONE',
+        refundMode: null,
+        cancelReason: null,
+        manualRefundAllowed: false,
+        gatewayRefundAllowed: false,
+        createdAt: Date.now(),
+      }],
+      totalElements: 1,
+      totalPages: 1,
+      page: 0,
+      size: 15,
+    } as PaginatedOrdersResponse));
+
+    TestBed.configureTestingModule({
+      imports: [OrderHistoryTabComponent],
+      providers: [
+        { provide: BusinessApiService, useValue: api },
+        { provide: AuthService, useValue: { session: () => null } },
+        { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['show']) },
+      ],
+    });
+
+    fixture = TestBed.createComponent(OrderHistoryTabComponent);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => sessionStorage.removeItem(DATE_RANGE_STORAGE_KEY));
+
+  it('names the table and scopes every header to its column', () => {
+    const table: HTMLTableElement = fixture.nativeElement.querySelector('table.data-table');
+    expect(table).toBeTruthy();
+
+    const caption = table.querySelector('caption')!;
+    expect(caption).withContext('a table needs an accessible name').toBeTruthy();
+    expect(caption.textContent).toContain('Orders');
+
+    const headers = Array.from(table.querySelectorAll('thead th'));
+    expect(headers.length).toBe(7);
+    for (const header of headers) {
+      expect(header.getAttribute('scope'))
+        .withContext(`"${(header.textContent ?? '').trim()}" must be scoped to its column`)
+        .toBe('col');
+    }
+  });
+
+  it('makes the order number the header of its own row', () => {
+    const rowHeader: HTMLElement = fixture.nativeElement.querySelector('table.data-table tbody th[scope="row"]');
+    expect(rowHeader).withContext('each row needs its own identifier').toBeTruthy();
+    expect(rowHeader.textContent).toContain('1041');
+    // The row header still reads as data, not as an uppercase column label.
+    expect(getComputedStyle(rowHeader).textTransform).not.toBe('uppercase');
+  });
+});

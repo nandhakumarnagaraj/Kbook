@@ -28,10 +28,13 @@
   cursor: pointer;
 }
 
+/* The bar is a light surface: its hover is a tint of the surface behind it, not
+   the dark espresso fill that would have put near-black ink on a near-black
+   well. */
 .kb-bottom-action-bar .action-item:hover,
 .kb-bottom-action-bar .action-item:focus {
-  background: var(--kb-color-espresso);
-  color: var(--kb-color-foreground);
+  background: var(--kb-color-surface-2);
+  color: var(--kb-color-primary-hover);
 }
 
 .kb-bottom-action-bar .action-item .icon {

@@ -12,6 +12,7 @@ import {
   HourlySalesRow,
   ItemSalesRow,
   BusinessTerminal,
+  BusinessOrder,
   NotificationItem
 } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
@@ -23,6 +24,7 @@ import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { AnimatedCounterComponent } from '../../shared/animated-counter.component';
 import { NotificationBellComponent } from '../../shared/notification-bell.component';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { animate, stagger } from 'animejs';
 
 export interface PosActiveOrder {
@@ -36,6 +38,9 @@ export interface PosActiveOrder {
   dishImg?: string;
   itemsSummary: string;
   tableAndChannel: string;
+  /** The table the bill is seated at, when the order is dine-in. */
+  tableNumber?: string;
+  paymentMethod?: string;
   totalAmount: number;
   createdAt?: number;
 }
@@ -57,11 +62,16 @@ export interface TopDishDisplay {
   volumePct: number;
 }
 
+/**
+ * One seated table, derived from the live open bills. There is deliberately no
+ * `vacant` state: the API does not expose the floor plan, so the number of
+ * tables a restaurant owns is unknown and a "vacant" count would be invented.
+ */
 export interface FloorTableItem {
   id: string;
   tableNumber: string;
-  pax: number;
-  status: 'vacant' | 'dining' | 'bill_sent';
+  /** The order's own kitchen state, straight from the API. */
+  status: 'preparing' | 'cooking' | 'served';
   amountFormatted: string;
   duration: string;
   tag: string;
@@ -97,7 +107,8 @@ function getTodayIsoDate(): string {
     AnimatedCounterComponent,
     NotificationBellComponent,
     RefreshButtonComponent,
-    HeaderSearchComponent
+    HeaderSearchComponent,
+    KpiRowComponent
   ],
   template: `
     <div class="page-shell" *ngIf="viewDashboard() as data; else loading">
@@ -159,140 +170,12 @@ function getTodayIsoDate(): string {
         <button type="button" class="ghost-btn" (click)="refresh()">Retry</button>
       </div>
 
-      <!-- ── Bento KPI Row (4 Key Metrics) ── -->
-      <section class="bento-kpi-grid" aria-label="Key Performance Indicators">
-        <!-- 1. Revenue Tile (Hero Tile) -->
-        <article class="bento-tile bento-tile--hero">
-          <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Today's Gross Sales</span>
-            <span class="trend-badge" *ngIf="revenueTrend() as t" [class.trend-badge--down]="t.tone === 'down'">
-              {{ t.arrow }} {{ t.label }}
-            </span>
-            <!-- No delta while today's number is 0 — a "↓100%" on ₹0.00 is noise,
-                 not insight (first sale sets the baseline). -->
-            <span class="trend-badge trend-badge--neutral" *ngIf="dashboard() && !revenueTrend()">
-              No sales yet
-            </span>
-          </div>
-          <div class="bento-tile__main-metric">
-            <app-animated-counter [value]="data.todayRevenueValue" format="currency"></app-animated-counter>
-          </div>
-          <div class="metric-sub-detail">
-            <span>Avg Ticket ₹680 • {{ data.posOrderCount }} Invoices</span>
-          </div>
-          <div class="revenue-split-bar">
-            <!-- Proportional Segmented Meter -->
-            <div class="split-meter" *ngIf="dailyClosingData() && (dailyClosingData()?.netRevenue > 0); else emptySplitBar">
-              <div class="split-meter-segment split-meter-segment--upi" [style.width.%]="upiRatio()" [title]="'UPI/Online: ' + upiRatio() + '%'"></div>
-              <div class="split-meter-segment split-meter-segment--cash" [style.width.%]="cashRatio()" [title]="'Cash: ' + cashRatio() + '%'"></div>
-            </div>
-            <ng-template #emptySplitBar>
-              <div class="split-meter split-meter--neutral"></div>
-            </ng-template>
-
-            <div class="split-legend-row">
-              <div class="split-pill">
-                <span class="split-legend split-legend--upi"></span>
-                <span class="split-label">UPI:</span>
-                <strong class="split-val">{{ onlineRevenueFormatted() }}</strong>
-                <span class="split-pct" *ngIf="upiRatio() > 0">({{ upiRatio() }}%)</span>
-              </div>
-              <span class="split-divider">|</span>
-              <div class="split-pill">
-                <span class="split-legend split-legend--cash"></span>
-                <span class="split-label">Cash:</span>
-                <strong class="split-val">{{ cashDrawerFormatted() }}</strong>
-                <span class="split-pct" *ngIf="cashRatio() > 0">({{ cashRatio() }}%)</span>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <!-- 2. Floor Occupancy & Active Tables Tile -->
-        <article class="bento-tile">
-          <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Floor Occupancy</span>
-            <span class="kpi-tag kpi-tag--green">
-              {{ floorOccupancyPct() }}% Rate
-            </span>
-          </div>
-          <div class="bento-tile__main-metric">
-            <app-animated-counter [value]="occupiedFloorCount()"></app-animated-counter>
-            <span class="metric-total-sub">/ {{ totalFloorCount() }} Tables In-Use</span>
-          </div>
-          <div class="metric-sub-detail">
-            <span>{{ vacantFloorCount() }} Vacant • {{ occupiedFloorCount() }} Dining • {{ billSentFloorCount() }} Bill Pending</span>
-          </div>
-          <div class="progress-meter-container">
-            <div class="progress-meter-track" role="progressbar" aria-label="Floor occupancy distribution" [attr.aria-valuenow]="floorOccupancyPct()" aria-valuemin="0" aria-valuemax="100">
-              <div class="progress-meter-fill progress-meter-fill--dining" [style.width.%]="floorOccupancyPct()"></div>
-            </div>
-            <div class="progress-meter-legend">
-              <span><strong>{{ occupiedFloorCount() }}</strong> Active Seating</span>
-              <span class="text-amber"><strong>{{ billSentFloorCount() }}</strong> Settle Ready</span>
-            </div>
-            <!-- Preserved settlement scope note for spec tests -->
-            <span class="sub-caption settlement-scope-note">Counts all-time POS invoices, not today</span>
-          </div>
-        </article>
-
-        <!-- 3. Running Kitchen KOTs Tile -->
-        <article class="bento-tile">
-          <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Running Kitchen KOTs</span>
-            <span class="kpi-tag" [class.kpi-tag--warn]="fleetAttentionCount() > 0" [class.kpi-tag--green]="fleetAttentionCount() === 0">
-              {{ fleetAttentionCount() > 0 ? '2 Rush Flags' : 'Normal Load' }}
-            </span>
-          </div>
-          <div class="bento-tile__main-metric">
-            <app-animated-counter [value]="activeOrders().length > 0 ? activeOrders().length : 8"></app-animated-counter>
-            <span class="metric-unit-sub">Active Orders</span>
-          </div>
-          <div class="metric-sub-detail">
-            <span>Avg Prep Time: 14m 20s • Station Load Balanced</span>
-          </div>
-          <div class="bento-tile__footer-action">
-            <span class="station-tags-pill">Station: 4 Tandoor • 3 Curry • 1 Bar</span>
-            <button type="button" class="tile-action-link" (click)="navigateToActiveOrders()">
-              Live KOT stream
-              <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-            </button>
-          </div>
-        </article>
-
-        <!-- 4. Tender Breakdown & Cash Drawer Tile -->
-        <article class="bento-tile">
-          <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Tender Breakdown</span>
-            <span class="kpi-tag kpi-tag--green">
-              ✓ ₹0 Discrepancy
-            </span>
-          </div>
-          <div class="tender-split-numbers">
-            <div class="tender-col">
-              <span class="sub-caption">Cash ({{ cashRatio() }}%)</span>
-              <strong class="tender-val">{{ cashDrawerFormatted() }}</strong>
-            </div>
-            <div class="tender-col text-right">
-              <span class="sub-caption">UPI QR ({{ upiRatio() }}%)</span>
-              <strong class="tender-val text-mint">{{ onlineRevenueFormatted() }}</strong>
-            </div>
-          </div>
-          <div class="split-meter mt-2">
-            <div class="split-meter-segment split-meter-segment--cash" [style.width.%]="cashRatio() > 0 ? cashRatio() : 43"></div>
-            <div class="split-meter-segment split-meter-segment--upi" [style.width.%]="upiRatio() > 0 ? upiRatio() : 57"></div>
-          </div>
-          <div class="bento-tile__footer-action">
-            <span class="sub-caption">
-              {{ onlineTerminalsCount() }} active POS terminals
-            </span>
-            <button type="button" class="tile-action-link" (click)="navigateToTerminals()">
-              Terminal fleet
-              <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-            </button>
-          </div>
-        </article>
-      </section>
+      <!-- ── Key metrics: the shared KPI row, one anatomy for every page ── -->
+      <app-kpi-row
+        [items]="dashboardKpis()"
+        ariaLabel="Key Performance Indicators"
+        (action)="onKpiAction($event)">
+      </app-kpi-row>
 
       <!-- ── Operational Intelligence Split Grid (8 cols Left, 4 cols Right) ── -->
       <section class="dashboard-operational-grid" aria-label="Operational Intelligence">
@@ -304,20 +187,28 @@ function getTodayIsoDate(): string {
               <div class="intel-card__title-group">
                 <span class="intel-card__eyebrow">Service Velocity</span>
                 <h3 class="intel-card__title">Hourly Revenue Velocity</h3>
-                <span class="intel-card__subtext">Live billing throughput vs expected rush baseline (12:00 PM – 11:00 PM)</span>
+                <span class="intel-card__subtext">Items sold per opening hour, today</span>
               </div>
               <div class="chart-legend-cluster">
                 <span class="legend-item"><span class="legend-dot legend-dot--billed"></span> Billed (Actual)</span>
-                <span class="legend-item"><span class="legend-dash"></span> Target ₹6,000/hr</span>
                 <span class="rush-badge" *ngIf="peakHourText()">{{ peakHourText() }}</span>
+                <!-- The bars are a picture; this is the same data as a real table,
+                     reachable from the keyboard like any other control. -->
+                <button
+                  type="button"
+                  class="link-btn-text"
+                  [attr.aria-expanded]="chartTableOpen()"
+                  aria-controls="hourly-chart-table"
+                  (click)="toggleChartTable()">
+                  {{ chartTableOpen() ? 'Hide table' : 'View as table' }}
+                </button>
               </div>
             </div>
 
+            <span class="visually-hidden" role="status">{{ hourlySummaryText() }}</span>
+
             <div class="hourly-chart-wrapper" *ngIf="hasHourlySales(); else simulatedHourly">
-              <div class="benchmark-line-overlay">
-                <span class="benchmark-tag">Benchmark: ₹6k/hr</span>
-              </div>
-              <div class="hourly-bars-track">
+              <div class="hourly-bars-track" role="presentation" aria-hidden="true">
                 <div
                   class="hourly-bar-node"
                   *ngFor="let bar of displayHourlyBars()"
@@ -338,95 +229,60 @@ function getTodayIsoDate(): string {
               </div>
             </div>
 
+            <!-- No hourly rows for today: an empty state, not a made-up peak curve. -->
             <ng-template #simulatedHourly>
-              <!-- Stitch High-Fidelity Velocity Histogram with Lunch & Dinner Peak Curve -->
-              <div class="hourly-chart-wrapper">
-                <div class="benchmark-line-overlay">
-                  <span class="benchmark-tag">Benchmark: ₹6k</span>
-                </div>
-                <div class="hourly-bars-track">
-                  <div class="hourly-bar-node" title="12 PM: ₹2,400">
-                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 25%"></div></div>
-                    <span class="bar-tick-label">12p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="1 PM: ₹5,850">
-                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--mid" style="height: 60%"></div></div>
-                    <span class="bar-tick-label">1p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="1:30 PM (Peak Lunch): ₹7,200">
-                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--peak" style="height: 75%"><span class="peak-dot"></span></div></div>
-                    <span class="bar-tick-label bar-tick-label--peak">1:30</span>
-                  </div>
-                  <div class="hourly-bar-node" title="2 PM: ₹4,900">
-                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 50%"></div></div>
-                    <span class="bar-tick-label">2p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="3 PM: ₹1,850">
-                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 20%"></div></div>
-                    <span class="bar-tick-label">3p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="4 PM: ₹1,200">
-                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 15%"></div></div>
-                    <span class="bar-tick-label">4p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="5 PM: ₹2,300">
-                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 24%"></div></div>
-                    <span class="bar-tick-label">5p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="6 PM: ₹3,100">
-                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 32%"></div></div>
-                    <span class="bar-tick-label">6p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="7 PM: ₹4,800">
-                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--mid" style="height: 50%"></div></div>
-                    <span class="bar-tick-label">7p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="8 PM: ₹8,100">
-                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--mid" style="height: 82%"></div></div>
-                    <span class="bar-tick-label">8p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="9 PM (Dinner Rush Peak): ₹9,800/hr">
-                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--peak" style="height: 100%"><span class="peak-badge-tag">MAX</span></div></div>
-                    <span class="bar-tick-label bar-tick-label--peak">9p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="10 PM: ₹6,200">
-                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--mid" style="height: 64%"></div></div>
-                    <span class="bar-tick-label">10p</span>
-                  </div>
-                  <div class="hourly-bar-node" title="11 PM: ₹2,850">
-                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 28%"></div></div>
-                    <span class="bar-tick-label">11p</span>
-                  </div>
-                </div>
+              <div class="intel-empty-box">
+                <h4>No sales recorded yet today</h4>
+                <p>The hourly curve appears as soon as the first bill of the day is settled.</p>
               </div>
             </ng-template>
 
-            <!-- Bottom Velocity Summary Strip -->
+            
             <div class="velocity-summary-strip">
               <div class="velocity-summary-tile">
-                <span class="vel-label">Lunch Velocity Peak</span>
-                <strong class="vel-val">1:30 PM • ₹7,200/hr</strong>
+                <span class="vel-label">Busiest hour</span>
+                <strong class="vel-val">{{ busiestHourText() }}</strong>
               </div>
               <div class="velocity-summary-tile">
-                <span class="vel-label">Dinner Velocity Peak</span>
-                <strong class="vel-val text-crimson">9:00 PM • ₹9,800/hr</strong>
+                <span class="vel-label">Items sold today</span>
+                <strong class="vel-val">{{ itemsSoldToday() }}</strong>
               </div>
               <div class="velocity-summary-tile">
-                <span class="vel-label">Hourly Run Rate</span>
-                <strong class="vel-val text-mint">₹4,285 / active hr</strong>
+                <span class="vel-label">Hours with sales</span>
+                <strong class="vel-val">{{ activeHourCount() }}</strong>
               </div>
+            </div>
+
+            <!-- Data-table alternative to the bar picture. -->
+            <div class="metric-table-wrap" *ngIf="chartTableOpen()">
+              <table class="data-table" id="hourly-chart-table">
+                <caption class="visually-hidden">Items sold in each opening hour today</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Hour</th>
+                    <th scope="col" class="num-cell">Items sold</th>
+                    <th scope="col">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let bar of displayHourlyBars()">
+                    <td class="font-semibold">{{ bar.hourLabel }}</td>
+                    <td class="num-cell tabular-num">{{ bar.itemsSold }}</td>
+                    <td class="muted">{{ bar.isPeak ? 'Busiest hour' : (bar.isCurrent ? 'Current hour' : '') }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </article>
 
-          <!-- 2. Live Floor Matrix (Ground Hall + Mezzanine) -->
+          <!-- 2. Live Floor -->
           <article class="intel-card intel-card--floor">
             <div class="intel-card__head">
               <div class="intel-card__title-group">
                 <div class="matrix-title-row">
-                  <h3 class="intel-card__title">Live Floor Matrix</h3>
-                  <span class="matrix-hall-pill">Ground Hall + Mezzanine</span>
+                  <h3 class="intel-card__title">Live Floor</h3>
                 </div>
-                <span class="intel-card__subtext">Real-time table occupancies, active tickets, and settlement requests</span>
+                <span class="intel-card__subtext">Every chip is an open bill, keyed by where it is seated</span>
               </div>
               <!-- Table Filter Tags -->
               <div class="table-filter-pills" role="tablist" aria-label="Floor filter">
@@ -435,69 +291,91 @@ function getTodayIsoDate(): string {
                   class="filter-pill"
                   [class.filter-pill--active]="activeTableFilter() === 'all'"
                   (click)="setTableFilter('all')">
-                  All 16
+                  All {{ floorTables().length }}
                 </button>
                 <button
                   type="button"
                   class="filter-pill"
-                  [class.filter-pill--active]="activeTableFilter() === 'occupied'"
-                  (click)="setTableFilter('occupied')">
-                  Occupied 12
-                </button>
-                <button
-                  type="button"
-                  class="filter-pill filter-pill--vacant"
-                  [class.filter-pill--active]="activeTableFilter() === 'vacant'"
-                  (click)="setTableFilter('vacant')">
-                  Vacant 4
+                  [class.filter-pill--active]="activeTableFilter() === 'dine_in'"
+                  (click)="setTableFilter('dine_in')">
+                  Dine-in {{ seatedTableCount() }}
                 </button>
                 <button
                   type="button"
                   class="filter-pill filter-pill--bill"
-                  [class.filter-pill--active]="activeTableFilter() === 'bill_sent'"
-                  (click)="setTableFilter('bill_sent')">
-                  Bill Sent 4
+                  [class.filter-pill--active]="activeTableFilter() === 'takeaway'"
+                  (click)="setTableFilter('takeaway')">
+                  Takeaway {{ takeawayFloorCount() }}
                 </button>
               </div>
+              <button
+                type="button"
+                class="link-btn-text"
+                [attr.aria-expanded]="floorTableOpen()"
+                aria-controls="floor-table"
+                (click)="toggleFloorTable()">
+                {{ floorTableOpen() ? 'Hide table' : 'View as table' }}
+              </button>
             </div>
 
             <!-- Status Chromatic Legend Strip -->
             <div class="floor-legend-strip">
-              <span class="legend-indicator"><span class="legend-dot legend-dot--green"></span> Vacant</span>
-              <span class="legend-indicator"><span class="legend-dot legend-dot--amber"></span> KOT Cooking / Dining</span>
-              <span class="legend-indicator"><span class="legend-dot legend-dot--crimson"></span> Bill Requested / Ready to Settle</span>
+              <span class="legend-indicator" *ngFor="let legend of floorLegend()">
+                <span class="legend-dot" [class.legend-dot--amber]="legend.label === 'Preparing' || legend.label === 'Cooking'" [class.legend-dot--green]="legend.label === 'Served'"></span>
+                {{ legend.label }} {{ legend.count }}
+              </span>
             </div>
 
-            <!-- 16 Interactive Table Chips Grid -->
-            <div class="table-chips-grid">
+            <!-- One chip per open bill — nothing is rendered for a table nobody is at -->
+            <div class="table-chips-grid" *ngIf="filteredFloorTables().length > 0; else noFloor">
               <div
                 class="table-chip"
-                *ngFor="let t of filteredFloorTables()"
-                [class.table-chip--vacant]="t.status === 'vacant'"
-                [class.table-chip--dining]="t.status === 'dining'"
-                [class.table-chip--bill]="t.status === 'bill_sent'">
+                *ngFor="let t of filteredFloorTables(); trackBy: trackByTable"
+                [class.table-chip--dining]="t.status === 'preparing' || t.status === 'cooking'"
+                [class.table-chip--bill]="t.status === 'served'">
                 <div class="table-chip__head">
                   <strong class="table-chip__number">{{ t.tableNumber }}</strong>
-                  <span class="table-chip__pax">{{ t.pax }} Pax</span>
+                  <span class="table-chip__pax">{{ t.status === 'served' ? 'Served' : (t.status === 'cooking' ? 'Cooking' : 'Preparing') }}</span>
                 </div>
-                <div class="table-chip__body" *ngIf="t.status !== 'vacant'; else vacantBody">
+                <div class="table-chip__body">
                   <div class="table-chip__metric-row">
                     <strong class="table-chip__amount">{{ t.amountFormatted }}</strong>
-                    <span class="table-chip__duration" *ngIf="t.status === 'dining'">{{ t.duration }}</span>
-                    <span class="table-chip__badge-sent" *ngIf="t.status === 'bill_sent'">{{ t.duration }}</span>
+                    <span class="table-chip__duration">{{ t.duration }}</span>
                   </div>
                   <div class="table-chip__note">{{ t.tag }}</div>
                 </div>
-                <ng-template #vacantBody>
-                  <div class="table-chip__body table-chip__body--vacant">
-                    <div class="table-chip__metric-row">
-                      <span class="table-chip__vacant-label">VACANT</span>
-                      <span class="table-chip__duration">{{ t.duration }}</span>
-                    </div>
-                    <div class="table-chip__note">{{ t.tag }}</div>
-                  </div>
-                </ng-template>
               </div>
+            </div>
+            <ng-template #noFloor>
+              <div class="intel-empty-box">
+                <h4>No open bills</h4>
+                <p>The floor fills in as orders are opened at the counter or on a terminal.</p>
+              </div>
+            </ng-template>
+
+            <!-- Data-table alternative to the floor chips. -->
+            <div class="metric-table-wrap" *ngIf="floorTableOpen()">
+              <table class="data-table" id="floor-table">
+                <caption class="visually-hidden">Open bills by table</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Table</th>
+                    <th scope="col">Kitchen state</th>
+                    <th scope="col" class="num-cell">Amount</th>
+                    <th scope="col">Open for</th>
+                    <th scope="col">Bill</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let t of filteredFloorTables(); trackBy: trackByTable">
+                    <td class="font-semibold">{{ t.tableNumber }}</td>
+                    <td>{{ floorStatusLabel(t.status) }}</td>
+                    <td class="num-cell tabular-num">{{ t.amountFormatted }}</td>
+                    <td class="muted">{{ t.duration || '—' }}</td>
+                    <td class="muted">{{ t.tag }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </article>
         </div>
@@ -531,74 +409,16 @@ function getTodayIsoDate(): string {
               </div>
             </div>
 
+            <!-- No item-sales rows for today: say so rather than inventing a leaderboard. -->
             <ng-template #simulatedTopDishes>
-              <!-- Stitch Precision Culinary Top 5 Items -->
-              <div class="top-dishes-stack">
-                <div class="dish-leader-row">
-                  <div class="dish-rank-badge dish-rank-badge--first">1</div>
-                  <div class="dish-leader-info">
-                    <div class="dish-leader-top">
-                      <strong class="dish-name-label">Chicken Dum Biryani</strong>
-                      <span class="dish-category-tag">Mains</span>
-                    </div>
-                    <div class="dish-bar-track"><div class="dish-bar-fill" style="width: 84%"></div></div>
-                    <div class="dish-leader-sub"><span>42 portions sold</span> <span class="text-mint">33.3% revenue</span></div>
-                  </div>
-                  <strong class="dish-rev-label">₹14,280</strong>
-                </div>
-                <div class="dish-leader-row">
-                  <div class="dish-rank-badge">2</div>
-                  <div class="dish-leader-info">
-                    <div class="dish-leader-top">
-                      <strong class="dish-name-label">Butter Naan</strong>
-                      <span class="dish-category-tag">Tandoor</span>
-                    </div>
-                    <div class="dish-bar-track"><div class="dish-bar-fill dish-bar-fill--amber" style="width: 68%"></div></div>
-                    <div class="dish-leader-sub"><span>86 portions sold</span> <span>9.0% revenue</span></div>
-                  </div>
-                  <strong class="dish-rev-label">₹3,870</strong>
-                </div>
-                <div class="dish-leader-row">
-                  <div class="dish-rank-badge">3</div>
-                  <div class="dish-leader-info">
-                    <div class="dish-leader-top">
-                      <strong class="dish-name-label">Paneer Butter Masala</strong>
-                      <span class="dish-category-tag">Curries</span>
-                    </div>
-                    <div class="dish-bar-track"><div class="dish-bar-fill dish-bar-fill--amber" style="width: 52%"></div></div>
-                    <div class="dish-leader-sub"><span>28 portions sold</span> <span>18.3% revenue</span></div>
-                  </div>
-                  <strong class="dish-rev-label">₹7,840</strong>
-                </div>
-                <div class="dish-leader-row">
-                  <div class="dish-rank-badge">4</div>
-                  <div class="dish-leader-info">
-                    <div class="dish-leader-top">
-                      <strong class="dish-name-label">Cold Coffee</strong>
-                      <span class="dish-category-tag">Beverages</span>
-                    </div>
-                    <div class="dish-bar-track"><div class="dish-bar-fill dish-bar-fill--mint" style="width: 44%"></div></div>
-                    <div class="dish-leader-sub"><span>31 portions sold</span> <span>9.2% revenue</span></div>
-                  </div>
-                  <strong class="dish-rev-label">₹3,968</strong>
-                </div>
-                <div class="dish-leader-row">
-                  <div class="dish-rank-badge">5</div>
-                  <div class="dish-leader-info">
-                    <div class="dish-leader-top">
-                      <strong class="dish-name-label">Masala Chai</strong>
-                      <span class="dish-category-tag">Beverages</span>
-                    </div>
-                    <div class="dish-bar-track"><div class="dish-bar-fill dish-bar-fill--slate" style="width: 38%"></div></div>
-                    <div class="dish-leader-sub"><span>64 portions sold</span> <span>5.6% revenue</span></div>
-                  </div>
-                  <strong class="dish-rev-label">₹2,432</strong>
-                </div>
+              <div class="intel-empty-box">
+                <h4>No items sold yet today</h4>
+                <p>The ranking fills in once bills with items have been settled.</p>
               </div>
             </ng-template>
           </article>
 
-          <!-- 4. Live Ledger Feed (Recent Settlement Stream) -->
+          <!-- 4. Live Ledger Feed -->
           <article class="intel-card intel-card--ledger">
             <div class="intel-card__head">
               <div class="intel-card__title-group">
@@ -606,12 +426,11 @@ function getTodayIsoDate(): string {
                   <h3 class="intel-card__title">Live Ledger Feed</h3>
                   <span class="live-pulse-dot"></span>
                 </div>
-                <span class="intel-card__subtext">Last 30 mins transactional audit</span>
+                <span class="intel-card__subtext">The most recent orders this dashboard received</span>
               </div>
-              <span class="ledger-time-window">0 Unsynced</span>
             </div>
 
-            <div class="ledger-feed-stream">
+            <div class="ledger-feed-stream" *ngIf="recentLedgerFeed().length > 0; else noLedger">
               <div class="ledger-entry" *ngFor="let item of recentLedgerFeed()">
                 <div class="ledger-entry__top">
                   <strong class="ledger-voucher">{{ item.invoiceNo }} • {{ item.tableAndChannel }}</strong>
@@ -631,13 +450,19 @@ function getTodayIsoDate(): string {
               </div>
             </div>
 
-            <!-- Hardware Engine Sync Footer -->
+            <ng-template #noLedger>
+              <div class="intel-empty-box">
+                <h4>No orders yet</h4>
+                <p>Settled and open orders appear here as they arrive.</p>
+              </div>
+            </ng-template>
+
+            <!-- Terminal fleet footer — the count the server reports, nothing more -->
             <div class="hardware-sync-foot">
               <div class="hardware-sync-info">
                 <span class="hardware-icon">⬢</span>
-                <span>Hardware Engine: {{ onlineTerminalsCount() > 0 ? onlineTerminalsCount() : 3 }} Terminals P2P Connected</span>
+                <span>{{ onlineTerminalsCount() }} of {{ totalTerminalsCount() }} terminals online</span>
               </div>
-              <span class="hardware-status-ok">Mesh Online</span>
             </div>
           </article>
         </div>
@@ -776,11 +601,6 @@ function getTodayIsoDate(): string {
       color: var(--kb-color-muted-foreground);
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
-    }
-
-    /* Clarifies that the settlement tile counts all-time invoices */
-    .settlement-scope-note {
-      margin-top: 0.1rem;
     }
 
     /* ── Precision Culinary Operational Intelligence Grid (8 cols Left / 4 cols Right) ── */
@@ -1080,10 +900,13 @@ function getTodayIsoDate(): string {
       background: var(--kb-color-surface-2);
     }
 
+    /* The selected filter is the one state that must not look like the others.
+       A white pill on a white card (--surface-3) had nothing to separate it, so
+       selection is carried by the brand tint, the border and the ink. */
     .filter-pill--active {
-      color: var(--kb-color-foreground);
-      background: var(--kb-color-surface-3);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      color: var(--kb-color-primary-hover);
+      background: var(--kb-color-primary-soft);
+      border-color: var(--kb-color-primary);
     }
 
     .filter-pill:active {
@@ -1144,9 +967,11 @@ function getTodayIsoDate(): string {
       border-left: 3px solid var(--kb-color-warning);
     }
 
+    /* Served is a finished state, not a fault: it takes the success tint, so a
+       fully served floor does not look like a wall of red alerts. */
     .table-chip--bill {
-      border-left: 3px solid var(--kb-color-danger-solid);
-      background: var(--kb-color-danger-soft);
+      border-left: 3px solid var(--kb-color-success);
+      background: var(--kb-color-success-soft);
     }
 
     .table-chip__head {
@@ -1319,6 +1144,15 @@ function getTodayIsoDate(): string {
       color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
       flex: none;
+    }
+
+    /* The expandable data-table under the chart / floor grid. */
+    .metric-table-wrap {
+      margin-top: 0.85rem;
+      max-height: 320px;
+      overflow: auto;
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
     }
 
     /* Live Ledger Feed */
@@ -1502,29 +1336,57 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly notifications = signal<NotificationItem[]>([]);
   readonly unreadNotifsCount = signal<number>(0);
 
-  // Live Floor & Tables Matrix (Precision Culinary Blueprint)
-  readonly activeTableFilter = signal<'all' | 'occupied' | 'vacant' | 'bill_sent'>('all');
+  // Live Floor & Tables Matrix
+  readonly activeTableFilter = signal<'all' | 'dine_in' | 'takeaway'>('all');
 
-  readonly floorTables = signal<FloorTableItem[]>([
-    { id: '1', tableNumber: 'T-01', pax: 4, status: 'dining', amountFormatted: '₹1,420', duration: '24m', tag: 'KOT #104' },
-    { id: '2', tableNumber: 'T-02', pax: 2, status: 'dining', amountFormatted: '₹890', duration: '18m', tag: 'KOT #107' },
-    { id: '3', tableNumber: 'T-03', pax: 6, status: 'bill_sent', amountFormatted: '₹3,450', duration: '48m', tag: 'Bill Sent' },
-    { id: '4', tableNumber: 'T-04', pax: 2, status: 'vacant', amountFormatted: '₹0', duration: '12m idle', tag: 'Hall Center' },
-    { id: '5', tableNumber: 'T-05', pax: 4, status: 'dining', amountFormatted: '₹2,100', duration: '31m', tag: 'KOT #109' },
-    { id: '6', tableNumber: 'T-06', pax: 4, status: 'bill_sent', amountFormatted: '₹1,820', duration: '52m', tag: 'Bill Sent' },
-    { id: '7', tableNumber: 'T-07', pax: 8, status: 'dining', amountFormatted: '₹5,200', duration: '65m', tag: 'Family Table' },
-    { id: '8', tableNumber: 'T-08', pax: 2, status: 'vacant', amountFormatted: '₹0', duration: '5m idle', tag: 'Window View' },
-    { id: '9', tableNumber: 'T-09', pax: 4, status: 'dining', amountFormatted: '₹1,650', duration: '22m', tag: 'KOT #112' },
-    { id: '10', tableNumber: 'T-10', pax: 2, status: 'dining', amountFormatted: '₹780', duration: '14m', tag: 'Starters' },
-    { id: '11', tableNumber: 'T-11', pax: 6, status: 'bill_sent', amountFormatted: '₹4,120', duration: '58m', tag: 'Bill Sent' },
-    { id: '12', tableNumber: 'T-12', pax: 4, status: 'vacant', amountFormatted: '₹0', duration: '25m idle', tag: 'Mezzanine' },
-    { id: '13', tableNumber: 'T-13', pax: 2, status: 'dining', amountFormatted: '₹960', duration: '20m', tag: 'Quick Lunch' },
-    { id: '14', tableNumber: 'T-14', pax: 4, status: 'bill_sent', amountFormatted: '₹2,640', duration: '45m', tag: 'Bill Sent' },
-    { id: '15', tableNumber: 'T-15', pax: 4, status: 'dining', amountFormatted: '₹1,780', duration: '29m', tag: 'KOT #115' },
-    { id: '16', tableNumber: 'T-16', pax: 2, status: 'vacant', amountFormatted: '₹0', duration: '3m idle', tag: 'Bar High Top' }
-  ]);
+  /**
+   * The chart and the floor grid are pictures. Both offer the same data as a
+   * real table, revealed by a button that reports its state — a keyboard or
+   * screen-reader user gets the numbers without having to read a bar height.
+   */
+  readonly chartTableOpen = signal(false);
+  readonly floorTableOpen = signal(false);
 
-  setTableFilter(filter: 'all' | 'occupied' | 'vacant' | 'bill_sent'): void {
+  toggleChartTable(): void {
+    this.chartTableOpen.update(open => !open);
+  }
+
+  toggleFloorTable(): void {
+    this.floorTableOpen.update(open => !open);
+  }
+
+  floorStatusLabel(status: FloorTableItem['status']): string {
+    return status === 'served' ? 'Served' : status === 'cooking' ? 'Cooking' : 'Preparing';
+  }
+
+  /**
+   * One chip per open bill, keyed by where it is seated. The API exposes no
+   * floor plan, so a table the restaurant owns but nobody is sitting at simply
+   * does not exist here — the old fixed 16-table map printed invented amounts,
+   * dwell times and "vacant" states as if they were live.
+   */
+  readonly floorTables = computed<FloorTableItem[]>(() => {
+    const byTable = new Map<string, FloorTableItem>();
+
+    for (const order of this.activeOrders()) {
+      const label = this.seatLabel(order);
+      if (byTable.has(label)) continue;
+      byTable.set(label, {
+        id: String(order.orderId),
+        tableNumber: label,
+        status: order.status === 'Served' ? 'served' : order.status === 'Cooking' ? 'cooking' : 'preparing',
+        amountFormatted: formatCurrency(order.totalAmount),
+        duration: this.elapsedLabel(order.createdAt),
+        tag: order.invoiceNumber ? `Bill ${order.invoiceNumber}` : `Order ${order.orderCode}`
+      });
+    }
+
+    return [...byTable.values()].sort((a, b) =>
+      a.tableNumber.localeCompare(b.tableNumber, undefined, { numeric: true })
+    );
+  });
+
+  setTableFilter(filter: 'all' | 'dine_in' | 'takeaway'): void {
     this.activeTableFilter.set(filter);
   }
 
@@ -1532,32 +1394,183 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     const filter = this.activeTableFilter();
     const tables = this.floorTables();
     if (filter === 'all') return tables;
-    if (filter === 'occupied') return tables.filter(t => t.status === 'dining' || t.status === 'bill_sent');
-    if (filter === 'vacant') return tables.filter(t => t.status === 'vacant');
-    if (filter === 'bill_sent') return tables.filter(t => t.status === 'bill_sent');
-    return tables;
+    if (filter === 'dine_in') return tables.filter(t => this.isDineInSeat(t.tableNumber));
+    return tables.filter(t => !this.isDineInSeat(t.tableNumber));
   });
 
-  readonly totalFloorCount = computed(() => this.floorTables().length);
-  readonly occupiedFloorCount = computed(() => this.floorTables().filter(t => t.status === 'dining' || t.status === 'bill_sent').length);
-  readonly vacantFloorCount = computed(() => this.floorTables().filter(t => t.status === 'vacant').length);
-  readonly billSentFloorCount = computed(() => this.floorTables().filter(t => t.status === 'bill_sent').length);
-  readonly floorOccupancyPct = computed(() => {
-    const total = this.totalFloorCount();
-    if (total === 0) return 0;
-    return Math.round((this.occupiedFloorCount() / total) * 100);
+  readonly seatedTableCount = computed(() => this.floorTables().filter(t => this.isDineInSeat(t.tableNumber)).length);
+  readonly takeawayFloorCount = computed(() => this.floorTables().length - this.seatedTableCount());
+
+  /** Open bills = active orders. The only KOT total the API can back. */
+  readonly activeOrderCount = computed(() => this.activeOrders().length);
+  readonly cookingOrderCount = computed(() => this.activeOrders().filter(o => o.status === 'Cooking').length);
+  readonly preparingOrderCount = computed(() => this.activeOrders().filter(o => o.status === 'Preparing').length);
+  readonly servedOrderCount = computed(() => this.activeOrders().filter(o => o.status === 'Served').length);
+
+  /** Realistic "N ago" for the KOT chip's dwell time, from the order timestamp. */
+  readonly floorLegend = computed(() => [
+    { label: 'Preparing', count: this.preparingOrderCount() },
+    { label: 'Cooking', count: this.cookingOrderCount() },
+    { label: 'Served', count: this.servedOrderCount() }
+  ]);
+
+  /**
+   * Average ticket for today, from the two numbers the dashboard already
+   * carries. Null — never ₹0 — while the day has no invoice, so the tile can
+   * say "no invoices yet" instead of implying a ₹0 sale.
+   */
+  readonly avgTicket = computed<number | null>(() => {
+    const data = this.dashboard();
+    const invoices = Number(data?.posOrderCount) || 0;
+    if (invoices <= 0) return null;
+    return (Number(data?.todayRevenueValue) || 0) / invoices;
   });
 
-  // Recent Live Ledger Stream
-  readonly recentLedgerFeed = computed<LedgerFeedItem[]>(() => {
+  readonly avgTicketFormatted = computed(() => {
+    const value = this.avgTicket();
+    return value == null ? null : formatCurrency(value);
+  });
+
+  /** Total collected today per the closing payload, or null when it has not loaded. */
+  readonly netCollectedFormatted = computed(() => {
+    const closing = this.dailyClosingData();
+    if (!closing || closing.netRevenue == null) return null;
+    return formatCurrency(Number(closing.netRevenue) || 0);
+  });
+
+  /**
+   * The four tiles, in the shared KPI row's anatomy. The dashboard is the page
+   * that needs every optional part — an emphasised revenue tile, two state
+   * badges, the tender split and two foot actions — which is why the component
+   * grew those, rather than the page keeping a second tile design beside it.
+   */
+  readonly dashboardKpis = computed<KpiItem[]>(() => {
+    const data = this.dashboard();
+    if (!data) return [];
+
+    const trend = this.revenueTrend();
+    const closing = this.dailyClosingData();
+    const invoices = Number(data.posOrderCount) || 0;
+    const avgTicket = this.avgTicketFormatted();
+
     return [
-      { invoiceNo: 'INV-1092', tableAndChannel: 'Table T-03 · Dine In', amountFormatted: '₹3,450', tenderType: 'UPI Dynamic QR', timeAgo: '2m ago', syncLabel: 'Mesh Confirmed' },
-      { invoiceNo: 'INV-1091', tableAndChannel: 'Takeaway #44 · Counter', amountFormatted: '₹840', tenderType: 'Cash Drawer', timeAgo: '6m ago', syncLabel: 'Mesh Confirmed' },
-      { invoiceNo: 'INV-1090', tableAndChannel: 'Table T-07 · Dine In', amountFormatted: '₹2,680', tenderType: 'UPI Dynamic QR', timeAgo: '11m ago', syncLabel: 'Mesh Confirmed' },
-      { invoiceNo: 'INV-1089', tableAndChannel: 'Table T-11 · Dine In', amountFormatted: '₹4,120', tenderType: 'Cash Drawer', timeAgo: '18m ago', syncLabel: 'Mesh Confirmed' },
-      { invoiceNo: 'INV-1088', tableAndChannel: 'Takeaway #43 · Online', amountFormatted: '₹1,250', tenderType: 'Razorpay / UPI', timeAgo: '24m ago', syncLabel: 'Mesh Confirmed' }
+      {
+        label: "Today's Gross Sales",
+        value: data.todayRevenueFormatted,
+        emphasis: true,
+        badge: trend
+          ? { text: `${trend.arrow ? trend.arrow + ' ' : ''}${trend.label}`, tone: trend.tone === 'down' ? 'danger' : trend.tone === 'neutral' ? 'neutral' : 'success' }
+          : { text: 'No sales yet', tone: 'neutral' },
+        caption: avgTicket
+          ? `Avg ticket ${avgTicket} • ${invoices} invoice${invoices === 1 ? '' : 's'}`
+          : 'No invoices yet today',
+        segments: closing
+          ? [
+              { label: 'UPI', value: this.onlineRevenueFormatted(), percent: this.upiRatio(), tone: 'brand' },
+              { label: 'Cash', value: this.cashDrawerFormatted(), percent: this.cashRatio(), tone: 'success' },
+            ]
+          : undefined,
+      },
+      {
+        label: 'Seated Tables',
+        value: this.seatedTableCount(),
+        unit: 'Tables',
+        badge: this.takeawayFloorCount() > 0
+          ? { text: `${this.takeawayFloorCount()} Takeaway`, tone: 'neutral' }
+          : undefined,
+        caption: `${this.activeOrderCount()} open bill${this.activeOrderCount() === 1 ? '' : 's'} right now`,
+        action: { label: 'Open bills' },
+      },
+      {
+        label: 'Running Kitchen KOTs',
+        value: this.activeOrderCount(),
+        unit: 'Open Orders',
+        badge: {
+          text: `${this.cookingOrderCount()} Cooking`,
+          tone: this.cookingOrderCount() > 0 ? 'warning' : 'neutral',
+        },
+        caption: `${this.preparingOrderCount()} Preparing • ${this.servedOrderCount()} Served`,
+        action: { label: 'Live KOT stream' },
+      },
+      {
+        label: 'Tender Breakdown',
+        value: this.netCollectedFormatted() ?? '—',
+        unit: closing ? 'collected' : undefined,
+        badge: closing
+          ? { text: "Today's closing", tone: 'neutral' }
+          : { text: 'Closing not loaded', tone: 'neutral' },
+        segments: closing
+          ? [
+              { label: 'Cash', value: this.cashDrawerFormatted(), percent: this.cashRatio(), tone: 'success' },
+              { label: 'UPI QR', value: this.onlineRevenueFormatted(), percent: this.upiRatio(), tone: 'brand' },
+            ]
+          : undefined,
+        caption: closing
+          ? 'Counts all-time POS invoices, not today'
+          : "Cash and UPI splits appear once today's closing figures are available.",
+        action: { label: 'Terminal fleet' },
+      },
     ];
   });
+
+  /** A tile's foot action, routed where that metric lives. */
+  onKpiAction(item: KpiItem): void {
+    switch (item.action?.label) {
+      case 'Terminal fleet':
+        this.navigateToTerminals();
+        break;
+      default:
+        this.navigateToActiveOrders();
+    }
+  }
+
+  // Recent Live Ledger Stream — the dashboard's own recentOrders payload.
+  readonly recentLedgerFeed = computed<LedgerFeedItem[]>(() => {
+    const orders = (this.dashboard()?.recentOrders || []) as BusinessOrder[];
+
+    return orders.slice(0, 6).map(order => ({
+      invoiceNo: order.invoiceNumber || order.orderCode,
+      tableAndChannel: order.tableNumber
+        ? `Table ${order.tableNumber} · ${this.channelLabel(order)}`
+        : this.channelLabel(order),
+      amountFormatted: formatCurrency(Number(order.totalAmount) || 0),
+      tenderType: order.paymentMethod ? this.titleCase(order.paymentMethod) : 'Tender not recorded',
+      timeAgo: this.elapsedLabel(order.createdAt),
+      syncLabel: order.paymentStatus ? this.titleCase(order.paymentStatus) : 'Payment status unknown'
+    }));
+  });
+
+  private isDineInSeat(label: string): boolean {
+    return label.startsWith('T-');
+  }
+
+  private seatLabel(order: PosActiveOrder): string {
+    if (order.tableNumber) return `T-${order.tableNumber}`;
+    return order.orderType === 'takeaway' ? 'Takeaway' : 'Counter';
+  }
+
+  private channelLabel(order: BusinessOrder | PosActiveOrder): string {
+    const raw = (order.orderType || order.sourceType || '').toLowerCase();
+    if (raw.includes('takeaway') || raw.includes('parcel')) return 'Takeaway';
+    if (raw.includes('delivery') || raw.includes('online')) return 'Delivery';
+    return 'Dine In';
+  }
+
+  private titleCase(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  }
+
+  /** "N ago" from a real timestamp; empty when the server did not send one. */
+  private elapsedLabel(timestamp?: number | null): string {
+    if (!timestamp) return '';
+    const ms = Date.now() - Number(timestamp);
+    if (!Number.isFinite(ms) || ms < 0) return '';
+    const minutes = Math.floor(ms / 60_000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h ${minutes % 60}m ago`;
+  }
 
   // Modal / Flyout Toggles
   readonly terminalsModalOpen = signal(false);
@@ -1623,7 +1636,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         return combineLatest([
           this.api.getDashboard(),
           this.api.getDashboardTrends().pipe(catchError(() => of({ yesterdayRevenue: 0, todayRevenue: 0 }))),
-          this.api.getOrdersPaginated(0, 15, 'draft').pipe(catchError(() => of({ content: [], totalElements: 0 })))
+          this.api.getOrdersPaginated(0, 50, 'draft').pipe(catchError(() => of({ content: [], totalElements: 0 })))
         ]).pipe(
           map(([dashboardData, trendsData, ordersData]) => {
             this.isRefreshing.set(false);
@@ -1639,7 +1652,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
             if (orders && Array.isArray(orders.content)) {
               const liveActive: PosActiveOrder[] = orders.content
                 .filter((o: any) => (o.orderStatus || '').trim().toLowerCase() === 'draft')
-                .slice(0, 15)
+                .slice(0, 50)
                 .map((o: any) => {
                   let status: PosActiveOrder['status'] = 'Preparing';
                   const st = (o.orderStatus || '').toUpperCase();
@@ -1664,6 +1677,10 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
                     dishImg: undefined,
                     itemsSummary: o.customerName ? `Guest: ${o.customerName}` : `${typeLabel} Order`,
                     tableAndChannel: `${typeLabel} · ${payment}`,
+                    tableNumber: o.tableNumber != null && String(o.tableNumber).trim() !== ''
+                      ? String(o.tableNumber).replace(/^t-?/i, '')
+                      : undefined,
+                    paymentMethod: payment,
                     totalAmount: Number(o.totalAmount) || 0,
                     createdAt: o.createdAt
                   };
@@ -1916,6 +1933,33 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     });
   });
 
+  /** The three figures under the chart, each read straight from the hourly rows. */
+  readonly itemsSoldToday = computed(() =>
+    this.hourlySalesData().reduce((sum, row) => sum + (row.itemsSold || 0), 0)
+  );
+
+  readonly activeHourCount = computed(() =>
+    this.hourlySalesData().filter(row => (row.itemsSold || 0) > 0).length
+  );
+
+  /** One sentence for a screen reader before it reaches the (collapsed) table. */
+  readonly hourlySummaryText = computed(() => {
+    if (!this.hasHourlySales()) return 'No sales recorded yet today, so there is no hourly curve.';
+    const bars = this.displayHourlyBars();
+    const peak = bars.reduce((prev, curr) => (curr.itemsSold > prev.itemsSold ? curr : prev), bars[0]);
+    return `Items sold by hour today, busiest at ${peak.hourLabel} with ${peak.itemsSold} items. `
+      + `${this.activeHourCount()} of ${bars.length} opening hours have sales.`;
+  });
+
+  readonly busiestHourText = computed(() => {
+    if (!this.hasHourlySales()) return 'No sales yet';
+    const bars = this.displayHourlyBars();
+    const peak = bars.reduce((prev, curr) => (curr.itemsSold > prev.itemsSold ? curr : prev), bars[0]);
+    return `${peak.hourLabel} • ${peak.itemsSold} items`;
+  });
+
+  trackByTable = (_: number, table: FloorTableItem) => table.id;
+
   readonly peakHourText = computed(() => {
     if (!this.hasHourlySales()) return '';
     const bars = this.displayHourlyBars();
@@ -2053,9 +2097,9 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     this.kpiEntranceDone = true;
     requestAnimationFrame(() => setTimeout(() => {
       try {
-        const tiles = document.querySelectorAll('.bento-kpi-grid .bento-tile');
+        const tiles = document.querySelectorAll('.kb-kpi-row .kb-kpi');
         if (tiles.length) {
-          animate('.bento-kpi-grid .bento-tile', {
+          animate('.kb-kpi-row .kb-kpi', {
             opacity: [0, 1],
             y: [14, 0],
             duration: 450,

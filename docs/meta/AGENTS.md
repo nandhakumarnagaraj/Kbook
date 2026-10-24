@@ -164,17 +164,19 @@ Use these custom components from `ui/designsystem/`:
 
 ### Theming & CSS
 - **Plain CSS** with CSS Custom Properties (no SCSS, Tailwind, or frameworks)
-- **Dark palette** in `src/styles.css` (canonical — see `docs/design/DESIGN_SYSTEM_FREEZE.md`):
-  - `--kb-color-bg-app: #0B0E1A` page canvas
-  - `--kb-color-surface: #15192C` card/panel/table surface
-  - `--kb-color-surface-2: #1F2440` table header, hover, nested tile
-  - `--kb-color-surface-3: #272D50` modal, popover, raised control
-  - `--kb-color-foreground: #F3F6FB` primary text / `--kb-color-foreground-2: #C3CBDA` values
-  - `--kb-color-muted-foreground: #93A0B8` secondary text
-  - `--kb-color-border: #343B66` / `--kb-color-border-strong: #4C5590` borders
-  - `--kb-color-primary: #2563EB` action **fill**; `--kb-color-link: #60A5FA` brand colour as **text**
-  - `--kb-color-danger-solid: #DC2626` destructive fill (white content); `--kb-color-danger: #F87171` error ink
-  - `--kb-color-success: #34D399` / `--kb-color-warning: #FBBF24` / `--kb-color-info: #60A5FA`
+- **Light workspace, blue brand** in `src/styles.css` (canonical — see `docs/design/DESIGN_SYSTEM_FREEZE.md`):
+  - `--kb-color-bg-app: #F7F9FC` page canvas
+  - `--kb-color-surface: #FFFFFF` card/panel/table surface
+  - `--kb-color-surface-2: #F1F5F9` table header, hover, nested tile
+  - `--kb-color-surface-3: #FFFFFF` modal/popover (separated by shadow, not fill)
+  - `--kb-color-foreground: #111827` primary text / `--kb-color-foreground-2: #334155` values
+  - `--kb-color-muted-foreground: #556377` secondary text
+  - `--kb-color-border: #E2E8F0` / `--kb-color-border-strong: #8A94A6` borders
+  - `--kb-color-primary: #2563EB` action **fill**; `--kb-color-link: #1D4ED8` brand colour as **text**
+  - `--kb-color-danger-solid: #B91C1C` destructive fill (white content); `--kb-color-danger: #B91C1C` error ink
+  - `--kb-color-success: #166534` / `--kb-color-warning: #9A3F08` / `--kb-color-info: #1D4ED8`
+  - `--brand-orange: #E87A1E` (accent fill only; text uses `--brand-orange-ink`) / `--brand-purple: #5926B8`
+  - The **sidebar is the only dark plane** and reads `--pos-sidebar-*` tokens exclusively; workspace tokens must never style it.
   - Prefer the `--kb-color-*` aliases in new work; the short names (`--bg`, `--brand`, …) are legacy aliases of the same values. Component stylesheets must not declare their own hex colours.
 - **No CSS framework or UI library** — hand-rolled components only
 - **No icon library** — use emoji/unicode icons (⚠️, 🙈, 👁️, 📋) or simple styled elements

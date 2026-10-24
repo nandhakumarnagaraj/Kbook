@@ -11,6 +11,7 @@ import { formatCurrency } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 import { ItemSalesRow, GstLedgerResponse, GstLedgerEntry } from '../../core/models/api.models';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 
 function formatLocalDate(d: Date): string {
   const year = d.getFullYear();
@@ -28,7 +29,7 @@ function todayRange(): { from: string; to: string } {
   selector: 'app-reports-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, DateRangeToolbarComponent, PageHeaderComponent, ApiStateComponent],
+  imports: [CommonModule, DateRangeToolbarComponent, PageHeaderComponent, ApiStateComponent, KpiRowComponent],
   template: `
     <div class="page-shell">
       <!-- Canonical page header (shared design system) -->
@@ -49,8 +50,14 @@ function todayRange(): { from: string; to: string } {
         </app-date-range-toolbar>
       </app-page-header>
 
+      <!-- The period the report covers. On screen the date picker says it; on
+           paper the picker is gone, so the same range is stated in words. -->
+      <p class="print-only print-period">
+        Period: {{ selectedRange().from }} to {{ selectedRange().to }}
+      </p>
+
       <!-- Report View Navigation Tabs -->
-      <nav class="report-tabs-nav" aria-label="Report Views">
+      <nav class="report-tabs-nav no-print" aria-label="Report Views">
         <button
           type="button"
           class="tab-pill"
@@ -96,61 +103,10 @@ function todayRange(): { from: string; to: string } {
 
         <!-- TAB 1: OVERVIEW -->
         <ng-container *ngIf="activeTab() === 'overview'">
-          <!-- Bento Analytics Row (bentogrids.com standard) -->
-          <section class="reports-bento-grid" aria-label="Report summary">
-            <!-- Hero Tile: Net Realized -->
-            <article class="bento-card bento-card--hero">
-              <div class="bento-head">
-                <span class="bento-label">Net Realized Revenue</span>
-                <span class="bento-tag bento-tag--hero">Net Realized</span>
-              </div>
-              <strong class="bento-value">{{ data.netRevenue }}</strong>
-              <div class="bento-foot">
-                <span class="delta-tag delta-tag--up">&#9650; Active Realized</span>
-                <span class="delta-sub">After all refunds</span>
-              </div>
-            </article>
+          <!-- The shared KPI row: one anatomy with every other page. -->
+          <app-kpi-row [items]="overviewKpis()" ariaLabel="Report summary"></app-kpi-row>
 
-            <!-- Gross Billed -->
-            <article class="bento-card">
-              <div class="bento-head">
-                <span class="bento-label">Gross Billed</span>
-                <span class="bento-tag bento-tag--brand">Gross Volume</span>
-              </div>
-              <strong class="bento-value">{{ data.revenue }}</strong>
-              <div class="bento-foot">
-                <span class="delta-sub">Total sales before deductions</span>
-              </div>
-            </article>
-
-            <!-- Bill Records -->
-            <article class="bento-card">
-              <div class="bento-head">
-                <span class="bento-label">Bills Minted</span>
-                <span class="bento-tag bento-tag--success">POS Tickets</span>
-              </div>
-              <strong class="bento-value">{{ data.billCount }}</strong>
-              <div class="bento-foot">
-                <span class="delta-sub">Completed &amp; draft orders</span>
-              </div>
-            </article>
-
-            <!-- Pending Payments -->
-            <article class="bento-card" [class.bento-card--warn]="data.pendingPayments > 0">
-              <div class="bento-head">
-                <span class="bento-label">Unsettled / Pending</span>
-                <span class="bento-tag bento-tag--amber" *ngIf="data.pendingPayments > 0">{{ data.pendingPayments }} Pending</span>
-                <span class="bento-tag" *ngIf="data.pendingPayments === 0">All Cleared</span>
-              </div>
-              <strong class="bento-value">{{ data.pendingPayments }}</strong>
-              <div class="bento-foot">
-                <span class="delta-sub">Awaiting customer payment</span>
-              </div>
-            </article>
-          </section>
-
-          <!-- Secondary Financial Metrics Strip -->
-          <section class="financial-strip-card">
+          <section class="panel financial-strip-card">
             <div class="strip-item">
               <span class="strip-label">Refunded Tickets</span>
               <strong class="strip-val" [class.text-danger]="data.refundedOrders > 0">{{ data.refundedOrders }}</strong>
@@ -169,7 +125,7 @@ function todayRange(): { from: string; to: string } {
           </section>
 
           <!-- Financial Audit Note (unsection.com aesthetic) -->
-          <section class="audit-note-card">
+          <section class="panel audit-note-card">
             <div class="note-icon-halo">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
@@ -189,78 +145,41 @@ function todayRange(): { from: string; to: string } {
         <!-- TAB 2: GST TAX LEDGER -->
         <ng-container *ngIf="activeTab() === 'gst'">
           <div class="gst-ledger-shell" *ngIf="data.gstLedger as ledger">
-            <!-- GST Summary Bento Strip -->
-            <section class="reports-bento-grid">
-              <article class="bento-card bento-card--hero">
-                <div class="bento-head">
-                  <span class="bento-label">Total Tax Liability</span>
-                </div>
-                <strong class="bento-value">{{ formatMoney(ledger.totalTax) }}</strong>
-                <div class="bento-foot">
-                  <span class="delta-sub">CGST + SGST combined</span>
-                </div>
-              </article>
-              <article class="bento-card">
-                <div class="bento-head">
-                  <span class="bento-label">Taxable Turnover</span>
-                </div>
-                <strong class="bento-value">{{ formatMoney(ledger.totalTaxable) }}</strong>
-                <div class="bento-foot">
-                  <span class="delta-sub">Net assessable sales value</span>
-                </div>
-              </article>
-              <article class="bento-card">
-                <div class="bento-head">
-                  <span class="bento-label">CGST (Central)</span>
-                </div>
-                <strong class="bento-value">{{ formatMoney(ledger.totalCgst) }}</strong>
-                <div class="bento-foot">
-                  <span class="delta-sub">Central GST collected</span>
-                </div>
-              </article>
-              <article class="bento-card">
-                <div class="bento-head">
-                  <span class="bento-label">SGST (State)</span>
-                </div>
-                <strong class="bento-value">{{ formatMoney(ledger.totalSgst) }}</strong>
-                <div class="bento-foot">
-                  <span class="delta-sub">State GST collected</span>
-                </div>
-              </article>
-            </section>
+            <app-kpi-row [items]="gstKpis()" ariaLabel="GST summary"></app-kpi-row>
 
-            <!-- GST Invoices Table -->
-            <div class="table-card">
-              <header class="table-card__header">
+            
+            <div class="panel soft-section table-section">
+              <header class="section-head">
                 <div>
                   <h3>Tax Invoices &amp; Bill Breakdown</h3>
                   <p class="muted">All completed invoices in selected period with applicable tax proportions.</p>
                 </div>
-                <span class="records-pill tabular-num">{{ ledger.entries.length }} Invoices</span>
+                <span class="kpi-tag tabular-num">{{ ledger.entries.length }} Invoices</span>
               </header>
 
               <div class="table-wrap" *ngIf="ledger.entries.length > 0; else noGstEntries">
                 <table class="data-table">
+                  <caption class="visually-hidden">Tax invoices in the selected period, with the tax split for each bill</caption>
                   <thead>
                     <tr>
-                      <th>Invoice / Bill #</th>
-                      <th>Date &amp; Time</th>
-                      <th>Customer</th>
-                      <th class="num-cell">Taxable Value</th>
-                      <th class="num-cell">GST %</th>
-                      <th class="num-cell">CGST</th>
-                      <th class="num-cell">SGST</th>
-                      <th class="num-cell">Tax Total</th>
-                      <th class="num-cell">Invoice Total</th>
+                      <th scope="col">Invoice / Bill #</th>
+                      <th scope="col">Date &amp; Time</th>
+                      <th scope="col">Customer</th>
+                      <th scope="col" class="num-cell">Taxable Value</th>
+                      <th scope="col" class="num-cell">GST %</th>
+                      <th scope="col" class="num-cell">CGST</th>
+                      <th scope="col" class="num-cell">SGST</th>
+                      <th scope="col" class="num-cell">Tax Total</th>
+                      <th scope="col" class="num-cell">Invoice Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let row of ledger.entries; trackBy: trackByBillId">
-                      <td class="font-bold">
-                        <a [href]="getInvoiceUrl(row)" target="_blank" rel="noopener noreferrer" style="color: var(--brand, var(--kb-color-primary)); text-decoration: underline;" title="View tax invoice">
+                      <th scope="row" class="font-bold">
+                        <a [href]="getInvoiceUrl(row)" target="_blank" rel="noopener noreferrer" class="invoice-link" title="View tax invoice">
                           {{ row.invoiceNumber }}
                         </a>
-                      </td>
+                      </th>
                       <td class="muted">{{ row.createdAt | date:'short' }}</td>
                       <td>{{ row.customerName || 'Walk-in' }}</td>
                       <td class="num-cell tabular-num">{{ formatMoney(row.subtotal) }}</td>
@@ -302,30 +221,31 @@ function todayRange(): { from: string; to: string } {
         <!-- TAB 3: ITEM SALES -->
         <ng-container *ngIf="activeTab() === 'items'">
           <div class="items-ledger-shell">
-            <div class="table-card">
-              <header class="table-card__header">
+            <div class="panel soft-section table-section">
+              <header class="section-head">
                 <div>
                   <h3>Item-Wise Sales &amp; Quantity Volume</h3>
                   <p class="muted">Aggregate sales breakdown sorted by highest quantity sold.</p>
                 </div>
-                <span class="records-pill tabular-num">{{ data.itemSales.length }} Menu Items</span>
+                <span class="kpi-tag tabular-num">{{ data.itemSales.length }} Menu Items</span>
               </header>
 
               <div class="table-wrap" *ngIf="data.itemSales.length > 0; else noItemSales">
                 <table class="data-table">
+                  <caption class="visually-hidden">Items sold in the selected period, ranked by quantity, with revenue and average price</caption>
                   <thead>
                     <tr>
-                      <th style="width: 60px;"># Rank</th>
-                      <th>Dish / Item Name</th>
-                      <th class="num-cell">Units Sold</th>
-                      <th class="num-cell">Total Revenue</th>
-                      <th class="num-cell">Average Price</th>
+                      <th scope="col" style="width: 60px;"># Rank</th>
+                      <th scope="col">Dish / Item Name</th>
+                      <th scope="col" class="num-cell">Units Sold</th>
+                      <th scope="col" class="num-cell">Total Revenue</th>
+                      <th scope="col" class="num-cell">Average Price</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let row of data.itemSales; let idx = index; trackBy: trackByItemId">
                       <td class="muted tabular-num">{{ idx + 1 }}</td>
-                      <td class="font-semibold">{{ row.name }}</td>
+                      <th scope="row" class="font-semibold">{{ row.name }}</th>
                       <td class="num-cell tabular-num font-bold">{{ row.quantitySold }}</td>
                       <td class="num-cell tabular-num font-bold text-brand">{{ formatMoney(row.revenue) }}</td>
                       <td class="num-cell tabular-num muted">
@@ -367,7 +287,7 @@ function todayRange(): { from: string; to: string } {
           (retry)="refresh()"
         ></app-api-state>
         <ng-template #loadingState>
-          <div class="reports-bento-grid" role="status" aria-busy="true" aria-label="Loading reports">
+          <div class="kpi-skeleton-row" role="status" aria-busy="true" aria-label="Loading reports">
             <span class="visually-hidden">Loading financial reports...</span>
             <div class="skeleton skeleton-stat" *ngFor="let item of [1,2,3,4]; trackBy: trackByIndex"></div>
           </div>
@@ -387,117 +307,45 @@ function todayRange(): { from: string; to: string } {
     /* Page geometry + page header now come from the shared design system
        (styles.css .page-shell + shared/page-header.component). */
 
-    /* ── Bento Analytics Grid (bentogrids.com standard) ── */
-    .reports-bento-grid {
+    /* Print-only: the period line stands in for the hidden date picker, so it
+       only exists on paper. The shared sheet turns .print-only on. */
+    .print-period {
+      margin: 0 0 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--kb-color-foreground);
+    }
+
+    /* Loading state mirrors the shared KPI row's track, so the skeletons land
+       exactly where the tiles will. */
+    .kpi-skeleton-row {
       display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+      gap: 0.85rem;
       margin-bottom: 1.5rem;
     }
-    @media (max-width: 1080px) {
-      .reports-bento-grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 640px) {
-      .reports-bento-grid { grid-template-columns: 1fr; }
-    }
 
-    .bento-card {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 18px;
-      padding: 1.25rem 1.4rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-    .bento-card--hero {
-      background: linear-gradient(135deg, var(--kb-color-espresso) 0%, var(--kb-color-primary) 100%);
-      color: #FFFFFF;
-      border: none;
-    }
-    .bento-card--hero .bento-label { color: rgba(255, 255, 255, 0.75); }
-    .bento-card--hero .bento-value { color: #FFFFFF; }
-    .bento-card--hero .delta-sub { color: rgba(255, 255, 255, 0.7); }
-    .bento-card--warn {
-      border-color: var(--kb-color-warning-soft);
-      background: var(--kb-color-surface);
-    }
-    .bento-card--warn .bento-value { color: var(--kb-color-warning); }
 
-    .bento-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .bento-label {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .bento-tag {
-      font-size: 0.72rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      padding: 0.2rem 0.55rem;
-      border-radius: 999px;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-    }
-    .bento-tag--hero { background: rgba(0, 0, 0, 0.28); color: #FFFFFF; }
-    .bento-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
-    .bento-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
-    .bento-tag--amber { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .bento-value {
-      font-size: 1.65rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-    }
-    .bento-foot {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.78rem;
-    }
-    .delta-tag {
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 0.15rem 0.45rem;
-      border-radius: 999px;
-    }
-    .delta-tag--up {
-      background: rgba(16, 185, 129, 0.2);
-      color: var(--kb-color-success);
-    }
-    .delta-sub {
-      color: var(--kb-color-muted-foreground);
-      font-size: 0.76rem;
-    }
-
-    /* ── Secondary Financial Strip ── */
+    /* ── Secondary Financial Strip ──
+       A .panel supplies the surface, radius and border; this only lays out the
+       three columns and their dividers. */
     .financial-strip-card {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 18px;
       overflow: hidden;
       margin-bottom: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     }
+    .table-section { margin-top: 1.25rem; }
     @media (max-width: 768px) {
       .financial-strip-card { grid-template-columns: 1fr; }
     }
     .strip-item {
-      padding: 1.25rem 1.5rem;
+      padding: 1.25rem 1.35rem;
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
-      border-right: 1px solid var(--kb-color-surface-2);
+      border-right: 1px solid var(--kb-color-border);
     }
     .strip-item:last-child {
       border-right: none;
@@ -527,11 +375,8 @@ function todayRange(): { from: string; to: string } {
       display: flex;
       align-items: flex-start;
       gap: 1rem;
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 18px;
-      padding: 1.25rem 1.5rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      padding: 1.25rem 1.35rem;
+      margin-bottom: 1.5rem;
     }
     .note-icon-halo {
       width: 38px;
@@ -562,7 +407,7 @@ function todayRange(): { from: string; to: string } {
       display: flex;
       gap: 0.5rem;
       margin-bottom: 1.5rem;
-      border-bottom: 1px solid var(--kb-color-surface-2);
+      border-bottom: 1px solid var(--kb-color-border);
       padding-bottom: 0.75rem;
       overflow-x: auto;
     }
@@ -597,37 +442,13 @@ function todayRange(): { from: string; to: string } {
     }
 
     /* ── Tables & Cards ── */
-    .table-card {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 18px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      margin-top: 1.25rem;
+    /* The invoice number is the row header of the GST table, so it uses the link
+       tone rather than an inline style. */
+    .invoice-link {
+      color: var(--kb-color-link);
+      text-decoration: underline;
     }
-    .table-card__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.25rem;
-      flex-wrap: wrap;
-    }
-    .table-card__header h3 {
-      margin: 0 0 0.25rem;
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-    }
-    .records-pill {
-      display: inline-flex;
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-size: 0.78rem;
-      font-weight: 700;
-    }
+
     /* The table design is defined once in the global stylesheet (see the
        "Tables" section of styles.css). Only column layout belongs here. */
     .empty-table-state {
@@ -667,6 +488,72 @@ export class ReportsPageComponent {
    * (as on Terminals) instead of silently swapping the figures underneath it.
    */
   readonly viewReport = computed(() => (this.refreshing() ? null : this.report()));
+
+  /** The overview strip, as shared KPI items rather than a page-local card grid. */
+  readonly overviewKpis = computed<KpiItem[]>(() => {
+    const data = this.viewReport();
+    if (!data) return [];
+    return [
+      {
+        label: 'Net Realized Revenue',
+        value: data.netRevenue,
+        emphasis: true,
+        badge: { text: 'Net Realized', tone: 'neutral' },
+        caption: 'After all refunds',
+      },
+      {
+        label: 'Gross Billed',
+        value: data.revenue,
+        badge: { text: 'Gross Volume', tone: 'neutral' },
+        caption: 'Total sales before deductions',
+      },
+      {
+        label: 'Bills Minted',
+        value: data.billCount,
+        badge: { text: 'POS Tickets', tone: 'neutral' },
+        caption: 'Completed & draft orders',
+      },
+      {
+        label: 'Unsettled / Pending',
+        value: data.pendingPayments,
+        tone: data.pendingPayments > 0 ? 'warning' : 'default',
+        alert: data.pendingPayments > 0,
+        badge: data.pendingPayments > 0
+          ? { text: `${data.pendingPayments} Pending`, tone: 'warning' }
+          : { text: 'All Cleared', tone: 'success' },
+        caption: 'Awaiting customer payment',
+      },
+    ];
+  });
+
+  /** The GST strip uses the same row, so the tax figures scan like sales figures. */
+  readonly gstKpis = computed<KpiItem[]>(() => {
+    const ledger = this.viewReport()?.gstLedger;
+    if (!ledger) return [];
+    return [
+      {
+        label: 'Total Tax Liability',
+        value: this.formatMoney(ledger.totalTax),
+        emphasis: true,
+        caption: 'CGST + SGST combined',
+      },
+      {
+        label: 'Taxable Turnover',
+        value: this.formatMoney(ledger.totalTaxable),
+        caption: 'Net assessable sales value',
+      },
+      {
+        label: 'CGST (Central)',
+        value: this.formatMoney(ledger.totalCgst),
+        caption: 'Central GST collected',
+      },
+      {
+        label: 'SGST (State)',
+        value: this.formatMoney(ledger.totalSgst),
+        caption: 'State GST collected',
+      },
+    ];
+  });
   readonly error = signal('');
   readonly report = toSignal(this.trigger$.pipe(startWith(undefined), switchMap(() => {
     this.refreshing.set(true); this.error.set('');
@@ -699,7 +586,8 @@ export class ReportsPageComponent {
           refundedAmountRaw: refunded,
           netRevenue: formatCurrency(net),
           netRevenueRaw: net,
-          refundRate: billCount ? `${(((dashboard.refundedOrders || 0) / billCount) * 100).toFixed(1)}%` : '0%',
+          // No bills is not a 0% refund rate — there is no denominator yet.
+          refundRate: billCount ? `${(((dashboard.refundedOrders || 0) / billCount) * 100).toFixed(1)}%` : '—',
           itemSales: sortedItems,
           gstLedger: gstLedger
         };

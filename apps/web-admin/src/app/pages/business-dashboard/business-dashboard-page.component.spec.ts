@@ -126,8 +126,9 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
     expect(component.dashboard()).toBeTruthy();
     expect(component.dashboard()?.shopName).toBe('Spice Route Kitchen');
 
-    const bentoGrid = fixture.nativeElement.querySelector('.bento-kpi-grid');
-    expect(bentoGrid).toBeTruthy();
+    const kpiRow = fixture.nativeElement.querySelector('app-kpi-row .kb-kpi-row');
+    expect(kpiRow).withContext('the dashboard renders the shared KPI row').toBeTruthy();
+    expect(kpiRow.querySelectorAll('.kb-kpi').length).toBe(4);
     expect(fixture.nativeElement.querySelector('.state-panel')).toBeFalsy();
     expect(fixture.nativeElement.querySelector('.stale-banner')).toBeFalsy();
   });
@@ -172,7 +173,7 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
     // Data should NOT be wiped from memory or the DOM
     expect(component.dashboard()).toBeTruthy();
     expect(component.dashboard()?.shopName).toBe('Spice Route Kitchen');
-    expect(fixture.nativeElement.querySelector('.bento-kpi-grid')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.kb-kpi-row')).toBeTruthy();
 
     // Stale banner should appear at top
     expect(component.staleError()).toBe('No internet connection. Check your network and try again.');
@@ -222,12 +223,13 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       component = fixture.componentInstance;
       fixture.detectChanges();
 
-      // A "↓100% vs yesterday" badge on ₹0.00 is noise — no badge, no delta.
+      // A "↓100% vs yesterday" badge on ₹0.00 is noise — no delta, just the
+      // plain "no sales" state on the revenue tile.
       expect(component.revenueTrend()).toBeNull();
-      const badges = fixture.nativeElement.querySelectorAll('.trend-badge');
-      expect(badges.length).toBe(1);
-      expect(badges[0].textContent).toContain('No sales yet');
-      expect(badges[0].textContent).not.toContain('100%');
+      const revenueBadge = fixture.nativeElement.querySelector('.kb-kpi--hero .kb-kpi__badge');
+      expect(revenueBadge).toBeTruthy();
+      expect(revenueBadge.textContent).toContain('No sales yet');
+      expect(revenueBadge.textContent).not.toContain('100%');
     });
 
     it('reports the revenue delta once the day has sales', () => {
@@ -246,14 +248,81 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
 
     it('labels the settlement tile as an all-time count', () => {
       api.getDashboard.and.returnValue(of(mockDashboardData));
+      // The caption only exists beside figures, and those come from the closing
+      // payload — so this state is the one where the label has to be honest.
+      api.getDailyClosing.and.returnValue(of({ netRevenue: 10000, expectedCash: 4000 } as any));
 
       fixture = TestBed.createComponent(BusinessDashboardPageComponent);
       component = fixture.componentInstance;
       fixture.detectChanges();
 
-      const note = fixture.nativeElement.querySelector('.settlement-scope-note');
-      expect(note).toBeTruthy();
-      expect(note.textContent).toContain('all-time');
+      const tender = component.dashboardKpis().find(item => item.label === 'Tender Breakdown');
+      expect(tender).withContext('the tender tile is part of the shared row').toBeTruthy();
+      expect(tender!.caption).toContain('all-time');
+      expect(fixture.nativeElement.textContent).toContain('Counts all-time POS invoices');
+    });
+
+    it('withholds the tender split, and the all-time caveat, until closing data loads', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const tender = component.dashboardKpis().find(item => item.label === 'Tender Breakdown');
+      expect(tender!.value).toBe('—');
+      expect(tender!.segments).toBeUndefined();
+      expect(tender!.caption).toContain("today's closing figures");
+      expect(fixture.nativeElement.querySelectorAll('.kb-kpi__segments').length).toBe(0);
+    });
+
+    it('renders the tender split as a bar plus text, never colour alone', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+      api.getDailyClosing.and.returnValue(of({ netRevenue: 10000, expectedCash: 4000 } as any));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const heroSplit = fixture.nativeElement.querySelector('.kb-kpi--hero .kb-kpi__segments');
+      expect(heroSplit).withContext('the revenue tile carries the tender split').toBeTruthy();
+
+      const legend = heroSplit.querySelectorAll('.kb-kpi__segment');
+      expect(legend.length).toBe(2);
+      expect(legend[0].textContent).toContain('UPI');
+      expect(legend[0].textContent).toContain('60%');
+      expect(legend[1].textContent).toContain('Cash');
+      expect(legend[1].textContent).toContain('40%');
+
+      // The bar is a picture; the legend above is the same numbers as text.
+      const bar = heroSplit.querySelector('.kb-kpi__segment-bar');
+      expect(bar.getAttribute('aria-hidden')).toBe('true');
+      expect(bar.querySelectorAll('.kb-kpi__segment-fill').length).toBe(2);
+    });
+
+    it('routes a tile foot action to the page that owns that metric', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const actions = Array.from(
+        fixture.nativeElement.querySelectorAll('.kb-kpi__action')
+      ) as HTMLButtonElement[];
+      expect(actions.map(a => a.textContent!.trim().replace('→', '').trim()))
+        .toEqual(['Open bills', 'Live KOT stream', 'Terminal fleet']);
+
+      const fleet = actions.find(a => a.textContent!.includes('Terminal fleet'))!;
+      fleet.click();
+      expect(router.navigate).toHaveBeenCalledWith(['/business/terminals']);
+
+      const kot = actions.find(a => a.textContent!.includes('Live KOT stream'))!;
+      kot.click();
+      expect(router.navigate).toHaveBeenCalledWith(
+        ['/business/orders'],
+        { queryParams: { tab: 'live' } }
+      );
     });
 
     it('shows a freshness stamp after the first successful load', () => {
@@ -292,6 +361,150 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       expect(statuses[1].tone).toBe('attention');
       expect(statuses[2].label).toBe('Deactivated');
       expect(statuses[3].label).toBe('Replaced');
+    });
+  });
+
+  /**
+   * §14 of the design spec: every figure on the dashboard comes from an
+   * authoritative source. The page used to print a literal `Avg Ticket ₹680`,
+   * a hardcoded 16-table floor map, five invented invoices and `: 8` as the
+   * KOT count fallback. These specs pin the API-derived versions so the
+   * placeholders cannot come back.
+   */
+  describe('figures are derived from the API, never hardcoded', () => {
+    it('computes the average ticket from today\'s revenue and invoice count', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData)); // ₹42,850 across 120 invoices
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.avgTicket()).toBeCloseTo(357.08, 2);
+      const revenueCaption = fixture.nativeElement.querySelector('.kb-kpi--hero .kb-kpi__caption');
+      expect(revenueCaption.textContent).toContain('Avg ticket');
+      // The ticket and the invoice count live in the tile's one caption line.
+      expect(revenueCaption.textContent).toContain('120 invoices');
+      expect(fixture.nativeElement.textContent).not.toContain('₹680');
+    });
+
+    it('says there are no invoices instead of showing ₹0 or a sample ticket', () => {
+      api.getDashboard.and.returnValue(of({ ...mockDashboardData, todayRevenue: 0, posOrderCount: 0 }));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.avgTicket()).toBeNull();
+      expect(fixture.nativeElement.textContent).toContain('No invoices yet today');
+    });
+
+    it('does not fall back to a sample KOT count when no order is open', () => {
+      api.getOrdersPaginated.and.returnValue(of({ content: [], totalElements: 0 } as any));
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.activeOrderCount()).toBe(0);
+      expect(fixture.nativeElement.querySelector('.station-tags-pill')).toBeFalsy();
+      expect(fixture.nativeElement.textContent).not.toContain('Station:');
+    });
+
+    it('builds the floor chips from live open bills and invents no vacant tables', () => {
+      api.getOrdersPaginated.and.returnValue(of({
+        content: [
+          { orderId: 7, orderCode: '1047', orderStatus: 'Draft', orderType: 'DINE_IN', tableNumber: 'T-7', totalAmount: 500, paymentStatus: 'Pending', createdAt: Date.now() },
+          { orderId: 8, orderCode: '1048', orderStatus: 'Draft', orderType: 'TAKEAWAY', totalAmount: 250, paymentStatus: 'Pending', createdAt: Date.now() }
+        ],
+        totalElements: 2
+      } as any));
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.floorTables().map(t => t.tableNumber)).toEqual(['T-7', 'Takeaway']);
+      expect(component.seatedTableCount()).toBe(1);
+      expect(component.takeawayFloorCount()).toBe(1);
+      // A table the API never mentioned must not be rendered as "VACANT".
+      expect(fixture.nativeElement.textContent).not.toContain('VACANT');
+      expect(fixture.nativeElement.textContent).not.toContain('Pax');
+    });
+
+    it('gives the hourly bar chart a keyboard-reachable data table', () => {
+      api.getHourlySales.and.returnValue(of([
+        { hour: 12, itemsSold: 5 },
+        { hour: 13, itemsSold: 9 }
+      ] as any));
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('button[aria-controls="hourly-chart-table"]');
+      expect(toggle).withContext('the chart needs a real control, not a hover tip').toBeTruthy();
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(fixture.nativeElement.querySelector('#hourly-chart-table')).toBeFalsy();
+      // The bars themselves are decorative: their numbers live in the table.
+      expect(fixture.nativeElement.querySelector('.hourly-bars-track').getAttribute('aria-hidden')).toBe('true');
+
+      toggle.click();
+      fixture.detectChanges();
+
+      expect(toggle.getAttribute('aria-expanded')).toBe('true');
+      const table: HTMLTableElement = fixture.nativeElement.querySelector('#hourly-chart-table');
+      expect(table).toBeTruthy();
+      expect(table.querySelector('caption')!.textContent).toContain('Items sold');
+      expect(table.querySelectorAll('tbody tr').length).toBe(13);
+      expect(table.textContent).toContain('12p');
+      expect(table.textContent).toContain('Busiest hour');
+    });
+
+    it('gives the floor grid a keyboard-reachable data table', () => {
+      api.getOrdersPaginated.and.returnValue(of({
+        content: [
+          { orderId: 9, orderCode: '1049', orderStatus: 'Draft', orderType: 'DINE_IN', tableNumber: 'T-2', totalAmount: 640, paymentStatus: 'Pending', createdAt: Date.now() }
+        ],
+        totalElements: 1
+      } as any));
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('button[aria-controls="floor-table"]');
+      expect(toggle).toBeTruthy();
+      toggle.click();
+      fixture.detectChanges();
+
+      const table: HTMLTableElement = fixture.nativeElement.querySelector('#floor-table');
+      expect(table).toBeTruthy();
+      expect(table.textContent).toContain('T-2');
+      expect(table.textContent).toContain('Preparing');
+      expect(table.querySelectorAll('tbody tr').length).toBe(1);
+    });
+
+    it('renders the ledger from recentOrders, not from a sample invoice list', () => {
+      api.getDashboard.and.returnValue(of({
+        ...mockDashboardData,
+        recentOrders: [
+          { orderId: 1, orderCode: '9001', invoiceNumber: 'INV-9001', orderStatus: 'Paid', paymentStatus: 'Paid', paymentMethod: 'UPI', orderType: 'DINE_IN', tableNumber: 4, totalAmount: 1290, sourceType: 'POS', createdAt: Date.now() }
+        ]
+      }));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const feed = component.recentLedgerFeed();
+      expect(feed.length).toBe(1);
+      expect(feed[0].invoiceNo).toBe('INV-9001');
+      expect(feed[0].tableAndChannel).toBe('Table 4 · Dine In');
+      expect(fixture.nativeElement.textContent).not.toContain('INV-1092');
     });
   });
 });

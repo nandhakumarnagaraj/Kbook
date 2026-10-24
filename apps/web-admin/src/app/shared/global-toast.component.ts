@@ -85,8 +85,10 @@ import { ToastService } from '../core/services/toast.service';
       cursor: pointer;
       font-size: 1.25rem;
     }
+    /* The hover wash sits on the toast surface, not on a dark overlay: a white
+       12% tint on a white toast is invisible. */
     .global-toast__close:hover,
-    .global-toast__close:focus-visible { background: rgba(255, 255, 255, 0.12); }
+    .global-toast__close:focus-visible { background: var(--kb-color-surface-2); }
     .global-toast__close:focus-visible { outline: 2px solid var(--kb-color-on-primary); outline-offset: 2px; }
     @media (max-width: 480px) {
       .global-toast { right: 1rem; bottom: 1rem; }

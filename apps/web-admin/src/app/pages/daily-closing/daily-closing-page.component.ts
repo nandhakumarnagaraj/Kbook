@@ -9,6 +9,7 @@ import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { DateRangeToolbarComponent } from '../../shared/date-range-toolbar.component';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 
@@ -48,13 +49,16 @@ interface DailyClosingData {
     EmptyStateComponent,
     PageHeaderComponent,
     DateRangeToolbarComponent,
-    ApiStateComponent
+    ApiStateComponent,
+    KpiRowComponent
   ],
   template: `
     <div class="page-shell">
       <!-- Operational Topbar (shared design system) -->
+      <!-- The title and the day badge belong on a printed slip, so the header
+           itself prints; the shared print sheet hides its action cluster
+           (date picker, export, refresh) instead. -->
       <app-page-header
-        class="no-print"
         title="Daily Closing &amp; Settlement"
         subtitle="Count physical cash, audit payment splits, and verify recognized revenues.">
         <span
@@ -122,38 +126,14 @@ interface DailyClosingData {
 
         <ng-container *ngIf="d.totalOrders > 0">
 
-        <!-- Revenue Bento KPI Row (bentogrids.com standard) -->
-        <section class="closing-bento-grid" aria-label="Closing summary">
-          <article class="bento-kpi bento-kpi--hero">
-            <span class="bento-kpi__label">Net Realized Revenue</span>
-            <strong class="bento-kpi__value">{{ fmt(d.netRevenue) }}</strong>
-            <span class="bento-kpi__sub">Gross billed minus refunded deductions</span>
-          </article>
-
-          <article class="bento-kpi">
-            <span class="bento-kpi__label">Gross Billed</span>
-            <strong class="bento-kpi__value">{{ fmt(d.totalRevenue) }}</strong>
-            <span class="bento-kpi__sub">{{ d.completedOrders }} orders completed</span>
-          </article>
-
-          <article class="bento-kpi" [class.bento-kpi--alert]="d.refundedAmount > 0">
-            <span class="bento-kpi__label">Refunds &amp; Cancellations</span>
-            <strong class="bento-kpi__value">{{ fmt(d.refundedAmount) }}</strong>
-            <span class="bento-kpi__sub">{{ d.cancelledOrders }} orders cancelled</span>
-          </article>
-
-          <article class="bento-kpi" [class.bento-kpi--warn]="d.draftOrders > 0">
-            <span class="bento-kpi__label">Open Tables / Drafts</span>
-            <strong class="bento-kpi__value">{{ d.draftOrders }}</strong>
-            <span class="bento-kpi__sub">Must settle before closing day</span>
-          </article>
-        </section>
+        <!-- Shared KPI row: same anatomy as every other page's summary strip. -->
+        <app-kpi-row [items]="closingKpis()" ariaLabel="Closing summary" />
 
         <!-- Physical Cash Drawer Reconciliation (Tactile Benchmark) -->
-        <section class="reconciliation-panel">
+        <section class="panel soft-section reconciliation-panel">
           <div class="panel-head-row">
             <div>
-              <h3 class="panel-heading">Physical Cash Drawer Reconciliation</h3>
+              <h3 class="intel-card__title">Physical Cash Drawer Reconciliation</h3>
               <p class="panel-sub">Compare physical counted cash against system recorded cash receipts.</p>
             </div>
           </div>
@@ -167,7 +147,12 @@ interface DailyClosingData {
 
             <div class="recon-card recon-card--input">
               <span class="recon-label">Counted Drawer Cash (₹)</span>
-              <div class="input-with-currency">
+              <!-- A number field prints as an empty box, so the slip carries the
+                   counted value as text instead. -->
+              <strong class="recon-value print-only">
+                {{ countedCash() == null ? '—' : fmt(countedCash()!) }}
+              </strong>
+              <div class="input-with-currency no-print">
                 <span class="currency-prefix" aria-hidden="true">₹</span>
                 <input
                   type="number"
@@ -197,8 +182,8 @@ interface DailyClosingData {
         </section>
 
         <!-- Payment Mode Breakdown Cards -->
-        <section class="payment-splits-panel">
-          <h3 class="panel-heading">Payment Channel Breakdown</h3>
+        <section class="panel soft-section payment-splits-panel">
+          <h3 class="intel-card__title">Payment Channel Breakdown</h3>
           <p class="panel-sub">Digital collections are auto-settled via payment gateway. Cash requires manual bank deposit.</p>
 
           <div class="payment-splits-grid">
@@ -229,8 +214,8 @@ interface DailyClosingData {
         </section>
 
         <!-- Order Volume Summary -->
-        <section class="order-dist-panel">
-          <h3 class="panel-heading">Ticket Status Audit</h3>
+        <section class="panel soft-section order-dist-panel">
+          <h3 class="intel-card__title">Ticket Status Audit</h3>
           <div class="audit-row-grid">
             <div class="audit-stat">
               <span class="stat-name">Total Tickets Minted</span>
@@ -290,111 +275,17 @@ interface DailyClosingData {
       color: var(--kb-color-warning);
     }
 
-    @media print {
-      .no-print { display: none !important; }
-      body, .page-shell { background: #FFFFFF !important; padding: 0 !important; }
-      .closing-bento-grid, .reconciliation-panel, .payment-splits-panel, .order-dist-panel {
-        box-shadow: none !important;
-        border: 1px solid var(--kb-color-border) !important;
-      }
-      .bento-kpi--hero {
-        background: #FFFFFF !important;
-        color: var(--kb-color-foreground) !important;
-        border: 2px solid var(--kb-color-foreground) !important;
-        box-shadow: none !important;
-      }
-      .bento-kpi--hero .bento-kpi__value { color: var(--kb-color-foreground) !important; }
-      .bento-kpi--hero .bento-kpi__label, .bento-kpi--hero .bento-kpi__sub { color: var(--kb-color-muted-foreground) !important; }
-    }
-
-    
-    
-    
-
-    /* ── Bento KPI Row (bentogrids.com standard) ── */
-    .closing-bento-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-    @media (max-width: 1024px) {
-      .closing-bento-grid { grid-template-columns: 1fr 1fr; }
-    }
-    @media (max-width: 640px) {
-      .closing-bento-grid { grid-template-columns: 1fr; }
-    }
-
-    .bento-kpi {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 18px;
-      padding: 1.25rem 1.4rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-    .bento-kpi--hero {
-      background: var(--kb-color-primary);
-      color: #FFFFFF;
-      border: none;
-    }
-    .bento-kpi--hero .bento-kpi__label, .bento-kpi--hero .bento-kpi__sub {
-      color: #FFFFFF;
-    }
-    .bento-kpi--hero .bento-kpi__value {
-      color: #FFFFFF;
-    }
-    .bento-kpi__label {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .bento-kpi__value {
-      font-size: 1.65rem;
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      letter-spacing: -0.02em;
-      font-variant-numeric: tabular-nums;
-    }
-    .bento-kpi__sub {
-      font-size: 0.76rem;
-      color: var(--kb-color-muted-foreground);
-    }
-    .bento-kpi--alert {
-      border-color: var(--kb-color-danger-soft);
-      background: var(--kb-color-surface);
-    }
-    .bento-kpi--alert .bento-kpi__value { color: var(--kb-color-danger); }
-    .bento-kpi--warn {
-      border-color: var(--kb-color-warning-soft);
-      background: var(--kb-color-surface);
-    }
-    .bento-kpi--warn .bento-kpi__value { color: var(--kb-color-warning); }
-
     /* ── Cash Reconciliation Panel ── */
+    /* The .panel supplies surface, radius, border and shadow; .soft-section
+       supplies the card padding. Only the rhythm between panels is local. */
     .reconciliation-panel {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 20px;
-      padding: 1.5rem 1.75rem;
       margin-bottom: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     }
     .panel-head-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
       margin-bottom: 1.25rem;
-    }
-    .panel-heading {
-      margin: 0 0 0.2rem;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--kb-color-foreground);
     }
     .panel-sub {
       margin: 0;
@@ -411,10 +302,10 @@ interface DailyClosingData {
     }
 
     .recon-card {
-      background: var(--kb-color-bg-app);
+      background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
-      border-radius: 16px;
-      padding: 1.25rem 1.4rem;
+      border-radius: var(--kb-radius-card);
+      padding: 1rem 1.15rem;
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
@@ -489,12 +380,7 @@ interface DailyClosingData {
 
     /* ── Payment Splits Grid ── */
     .payment-splits-panel {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 20px;
-      padding: 1.5rem 1.75rem;
       margin-bottom: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     }
     .payment-splits-grid {
       display: grid;
@@ -504,7 +390,7 @@ interface DailyClosingData {
     }
     .split-card {
       background: var(--kb-color-bg-app);
-      border: 1px solid var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
       border-radius: 14px;
       padding: 1.15rem 1.25rem;
       display: flex;
@@ -547,11 +433,7 @@ interface DailyClosingData {
 
     /* ── Order Status Audit Row ── */
     .order-dist-panel {
-      background: #FFFFFF;
-      border: 1px solid var(--kb-color-surface-2);
-      border-radius: 20px;
-      padding: 1.5rem 1.75rem;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      margin-bottom: 1.5rem;
     }
     .audit-row-grid {
       display: grid;
@@ -600,6 +482,32 @@ export class DailyClosingPageComponent {
    * (as on Terminals) instead of silently swapping the numbers underneath it.
    */
   readonly viewData = computed(() => (this.loading() ? null : this.data()));
+
+  /** The closing strip, in the shared KPI anatomy used by every page. */
+  readonly closingKpis = computed<KpiItem[]>(() => {
+    const d = this.viewData();
+    if (!d) {
+      return [];
+    }
+    return [
+      { label: 'Net realized revenue', value: this.fmt(d.netRevenue), caption: 'Gross billed minus refunds' },
+      { label: 'Gross billed', value: this.fmt(d.totalRevenue), caption: `${d.completedOrders} orders completed` },
+      {
+        label: 'Refunds & cancellations',
+        value: this.fmt(d.refundedAmount),
+        tone: d.refundedAmount > 0 ? 'danger' : 'default',
+        alert: d.refundedAmount > 0,
+        caption: `${d.cancelledOrders} orders cancelled`,
+      },
+      {
+        label: 'Open tables / drafts',
+        value: d.draftOrders,
+        tone: d.draftOrders > 0 ? 'warning' : 'default',
+        alert: d.draftOrders > 0,
+        caption: 'Must settle before closing day',
+      },
+    ];
+  });
   countedCash = signal<number | null>(null);
   countedCashSavedLocally = signal(false);
 

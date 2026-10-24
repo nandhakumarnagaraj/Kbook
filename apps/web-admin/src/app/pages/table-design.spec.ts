@@ -101,7 +101,11 @@ function designOf(host: HTMLElement, label: string): TableDesign {
     .toBeTrue();
 
   const th = table!.querySelector('thead th') as HTMLElement | null;
-  const td = table!.querySelector('tbody td') as HTMLElement | null;
+  // Measure a plain data cell. `.muted` is a deliberate secondary-value
+  // modifier (a timestamp, a rank) and is not the table's design; a row header
+  // now occupies the first cell of some tables, so the first `td` can be either
+  // of those rather than the body cell the design defines.
+  const td = (table!.querySelector('tbody td:not(.muted)') ?? table!.querySelector('tbody td')) as HTMLElement | null;
   const firstRow = table!.querySelector('tbody tr') as HTMLElement | null;
   expect(th).withContext(`${label}: header cell`).toBeTruthy();
   expect(td).withContext(`${label}: body cell`).toBeTruthy();

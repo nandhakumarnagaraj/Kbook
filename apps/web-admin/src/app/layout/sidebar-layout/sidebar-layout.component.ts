@@ -194,7 +194,10 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       height: 100vh;
       overflow-y: auto;
       background: var(--pos-sidebar-bg, #12162A);
-      border-right: 1px solid var(--kb-color-border);
+      /* The rail's edge belongs to the rail: borrowing the workspace border token
+         would paint a light seam down the side of a dark panel the moment the
+         workspace theme changed. */
+      border-right: 1px solid var(--pos-sidebar-border, #343B66);
       color: var(--pos-sidebar-text, #A7B1C6);
     }
 
@@ -316,8 +319,8 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
        (--kb-color-foreground-contrast, #0B0E1A) and the recessed-input surface
        (--kb-color-muted), which rendered the signed-in name at 1.2:1 and the
        role at 1.2:1 — present in the DOM, invisible on screen. */
-    .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-role { font-size: 0.65rem; color: var(--kb-color-muted-foreground); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .user-name { font-weight: 600; font-size: 0.82rem; color: var(--pos-sidebar-ink, #F3F6FB); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-role { font-size: 0.65rem; color: var(--pos-sidebar-ink-muted, #93A0B8); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
     /* Sign out: subtle restrained danger styling with tactile feedback */
     .logout-btn {
@@ -328,9 +331,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       padding: 0.55rem 0.9rem;
       /* A destructive ACTION is a solid fill with white content — the same pair
          the order card's Cancel button uses, so "danger" means one thing. */
-      background: var(--kb-color-danger-solid);
+      background: var(--pos-sidebar-danger, #DC2626);
       color: #FFFFFF;
-      border: 1px solid var(--kb-color-danger-solid);
+      border: 1px solid var(--pos-sidebar-danger, #DC2626);
       border-radius: 12px;
       cursor: pointer;
       font-weight: 600;
@@ -338,9 +341,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 150ms ease;
     }
     .logout-btn:hover {
-      background: var(--kb-color-danger, #dc2626);
+      background: var(--pos-sidebar-danger-hover, #F87171);
       color: #ffffff;
-      border-color: var(--kb-color-danger, #dc2626);
+      border-color: var(--pos-sidebar-danger-hover, #F87171);
       transform: translateY(-1px);
     }
     .logout-btn:active {
@@ -410,7 +413,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: var(--kb-radius-full, 999px);
         background: rgba(255, 255, 255, 0.06);
-        color: var(--kb-color-foreground);
+        color: var(--pos-sidebar-ink, #F3F6FB);
         cursor: pointer;
         transition: background 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out);
       }
@@ -477,7 +480,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         z-index: 130;
         padding: 0.45rem 0.7rem;
         border-radius: 10px;
-        background: var(--kb-color-surface-3);
+        background: var(--pos-sidebar-peek-bg, #272D50);
         color: #FFFFFF;
         font-size: 0.82rem;
         font-weight: 600;
@@ -544,7 +547,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 10px;
         background: transparent;
-        color: var(--kb-color-foreground);
+        color: var(--pos-sidebar-ink, #F3F6FB);
         cursor: pointer;
       }
       .sidebar-close-btn:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }

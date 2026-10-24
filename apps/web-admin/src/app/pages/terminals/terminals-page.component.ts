@@ -7,6 +7,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { BusinessTerminal, RecoverTerminalResponse, TerminalRequest } from '../../core/models/api.models';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -16,7 +17,7 @@ import { formatDate } from '../../shared/formatters';
   selector: 'app-terminals-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, RefreshButtonComponent, KpiRowComponent],
   template: `
     <div class="page-shell">
       <!-- Operational Header (unified PageHeaderComponent) -->
@@ -37,49 +38,8 @@ import { formatDate } from '../../shared/formatters';
         <app-refresh-button (refresh)="reload()" [disabled]="terminalsLoading() || requestsLoading()" [loading]="terminalsLoading() || requestsLoading()" ariaLabel="Refresh terminals" />
       </app-page-header>
 
-      <!-- Bento Terminal Stat Summary (bentogrids.com standard) -->
-      <section class="terminals-bento-grid" aria-label="Terminal fleet overview">
-        <article class="fleet-tile" [class.fleet-tile--alert]="fleetOverLimit()">
-          <div class="tile-icon-wrap" [class.tile-icon-wrap--amber]="fleetOverLimit()">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-          </div>
-          <div class="tile-body">
-            <span class="tile-label">Registered terminals</span>
-            <span class="tile-metric tabular-num">{{ terminals().length }}</span>
-          </div>
-        </article>
-
-        <article class="fleet-tile">
-          <div class="tile-icon-wrap tile-icon-wrap--green">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-            </svg>
-          </div>
-          <div class="tile-body">
-            <span class="tile-label">Active Counter Terminals</span>
-            <span class="tile-metric tile-metric--green tabular-num" [class.tile-metric--amber]="fleetOverLimit()">{{ activeTerminalsCount }} <small>/ {{ maxActiveTerminals }} max</small></span>
-          </div>
-        </article>
-
-        <article class="fleet-tile" [class.fleet-tile--alert]="pendingRequests().length > 0">
-          <div class="tile-icon-wrap" [class.tile-icon-wrap--amber]="pendingRequests().length > 0">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-          </div>
-          <div class="tile-body">
-            <span class="tile-label">Pairing Requests</span>
-            <span class="tile-metric tabular-num" [class.tile-metric--amber]="pendingRequests().length > 0">
-              {{ pendingRequests().length }} {{ pendingRequests().length === 1 ? 'Pending' : 'Pending' }}
-            </span>
-          </div>
-        </article>
-      </section>
+      <!-- Shared KPI row: same anatomy as every other page's summary strip. -->
+      <app-kpi-row [items]="fleetKpis()" ariaLabel="Terminal fleet overview" />
 
       <div *ngIf="fleetOverLimit()" class="fleet-limit-banner" role="status">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg>
@@ -95,7 +55,7 @@ import { formatDate } from '../../shared/formatters';
           </div>
         </div>
 
-        <div class="panel table-wrap" *ngIf="!terminalsLoading(); else loading">
+        <div class="table-wrap" *ngIf="!terminalsLoading(); else loading">
           <app-api-state
             *ngIf="terminalsError()"
             [message]="terminalsError()"
@@ -106,7 +66,6 @@ import { formatDate } from '../../shared/formatters';
             <thead>
               <tr>
                 <th>Hardware / Terminal</th>
-                <th>Series</th>
                 <th>Role</th>
                 <th>Hardware ID</th>
                 <th>Status</th>
@@ -153,7 +112,6 @@ import { formatDate } from '../../shared/formatters';
                     </div>
                   </ng-template>
                 </td>
-                <td class="tabular-num">{{ terminal.terminalSeries || '-' }}</td>
                 <td>
                   <span class="role-pill" [class.role-pill--billing]="terminal.terminalType === 'BILLING'" [class.role-pill--kot]="terminal.terminalType === 'KOT'">
                     {{ terminal.terminalType || 'BILLING' }}
@@ -226,7 +184,6 @@ import { formatDate } from '../../shared/formatters';
                 </span>
               </div>
               <p>
-                {{ terminal.terminalSeries || 'No series' }} ·
                 <span class="device-pill" *ngIf="terminal.deviceId; else noCardDev" [title]="terminal.deviceId">
                   <code>{{ formatDeviceId(terminal.deviceId) }}</code>
                   <button type="button" class="device-copy-btn" title="Copy full Device ID" [attr.aria-label]="'Copy full Device ID ' + terminal.deviceId" (click)="copyDeviceId(terminal.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
@@ -546,31 +503,8 @@ import { formatDate } from '../../shared/formatters';
     .success-btn:hover {
       background: rgba(var(--kb-color-success-rgb), 0.06);
     }
-    /* Bento Fleet Grid */
-    .terminals-bento-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--kb-space-3);
-      margin-bottom: var(--kb-space-4);
-    }
-    @media (max-width: 768px) {
-      .terminals-bento-grid { grid-template-columns: 1fr; }
-    }
-    /* Page-local fleet stat row. Deliberately NOT .bento-tile: that is the shared
-       KPI-card vocabulary (bento.css) and this row is a different component. */
-    .fleet-tile {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-3);
-      padding: var(--kb-space-3) var(--kb-space-4);
-      background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-lg);
-    }
-    .fleet-tile--alert {
-      border-color: rgba(var(--kb-color-warning-rgb), 0.4);
-      background: rgba(var(--kb-color-warning-rgb), 0.03);
-    }
+    /* The fleet strip itself is the shared <app-kpi-row>; only the over-limit
+       banner (which no other page has) lives here. */
     .fleet-limit-banner {
       display: flex;
       align-items: center;
@@ -585,50 +519,6 @@ import { formatDate } from '../../shared/formatters';
       font-weight: 500;
       line-height: 1.4;
     }
-    .tile-icon-wrap {
-      width: 40px;
-      height: 40px;
-      border-radius: var(--kb-radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      flex-shrink: 0;
-    }
-    .tile-icon-wrap--green {
-      background: rgba(var(--kb-color-success-rgb), 0.1);
-      color: var(--kb-color-success);
-    }
-    .tile-icon-wrap--amber {
-      background: rgba(var(--kb-color-warning-rgb), 0.1);
-      color: var(--kb-color-warning);
-    }
-    .tile-body {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .tile-label {
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: var(--kb-color-muted-foreground);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .tile-metric {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: var(--kb-color-foreground);
-    }
-    .tile-metric small {
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--kb-color-muted-foreground);
-    }
-    .tile-metric--green { color: var(--kb-color-success); }
-    .tile-metric--amber { color: var(--kb-color-warning); }
     .tabular-num { font-variant-numeric: tabular-nums; }
 
     /* Section Topbars */
@@ -894,6 +784,35 @@ export class TerminalsPageComponent implements OnDestroy {
   readonly pendingRequests = computed(() =>
     this.requests().filter((r) => r.status?.toLowerCase() === 'pending')
   );
+
+  /** The fleet strip, expressed once in the shared KPI anatomy. */
+  readonly fleetKpis = computed<KpiItem[]>(() => {
+    const pending = this.pendingRequests().length;
+    const overLimit = this.fleetOverLimit();
+    return [
+      {
+        label: 'Registered terminals',
+        value: this.terminals().length,
+        caption: 'Android registers on this shop',
+      },
+      {
+        label: 'Active counter terminals',
+        value: this.activeTerminalsCount,
+        unit: `/ ${this.maxActiveTerminals} max`,
+        tone: overLimit ? 'warning' : 'success',
+        alert: overLimit,
+        caption: overLimit ? 'Plan limit reached' : 'Currently billing at the counter',
+      },
+      {
+        label: 'Pairing requests',
+        value: pending,
+        unit: pending === 1 ? 'request' : 'requests',
+        tone: pending > 0 ? 'warning' : 'default',
+        alert: pending > 0,
+        caption: pending > 0 ? 'Waiting for your approval' : 'Nothing waiting',
+      },
+    ];
+  });
 
   readonly pendingOrAllRequests = computed(() => {
     if (this.requestFilter() === 'ALL') return this.requests();
