@@ -569,6 +569,12 @@
 
 .badge-completed { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
 
+/* Terminal lifecycle chips: attention (needs recovery) and revoked are distinct
+   server states and must not be flattened into the same "Offline" chip. */
+.badge-recovery { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
+
+.badge-revoked { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
+
 .time-stamp-label {
       font-size: 0.76rem;
       color: var(--kb-color-muted-foreground);

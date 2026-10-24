@@ -212,4 +212,86 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
     expect(fixture.nativeElement.querySelector('.stale-banner')).toBeFalsy();
     expect(component.dashboard()?.todayRevenueValue).toBe(55000);
   });
+
+  describe('clarity fixes', () => {
+    it('shows no revenue delta badge while today has no sales', () => {
+      api.getDashboard.and.returnValue(of({ ...mockDashboardData, todayRevenue: 0 }));
+      api.getDashboardTrends.and.returnValue(of({ ...mockTrends, yesterdayRevenue: 5000, todayRevenue: 0 }));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      // A "↓100% vs yesterday" badge on ₹0.00 is noise — no badge, no delta.
+      expect(component.revenueTrend()).toBeNull();
+      const badges = fixture.nativeElement.querySelectorAll('.trend-badge');
+      expect(badges.length).toBe(1);
+      expect(badges[0].textContent).toContain('No sales yet');
+      expect(badges[0].textContent).not.toContain('100%');
+    });
+
+    it('reports the revenue delta once the day has sales', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData)); // todayRevenue 42850
+      api.getDashboardTrends.and.returnValue(of(mockTrends)); // yesterday 38000
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const trend = component.revenueTrend();
+      expect(trend).not.toBeNull();
+      expect(trend!.tone).toBe('up');
+      expect(trend!.label).toContain('% vs yest.');
+    });
+
+    it('labels the settlement tile as an all-time count', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const note = fixture.nativeElement.querySelector('.settlement-scope-note');
+      expect(note).toBeTruthy();
+      expect(note.textContent).toContain('all-time');
+    });
+
+    it('shows a freshness stamp after the first successful load', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      const chip = fixture.nativeElement.querySelector('.freshness-chip');
+      expect(chip).toBeTruthy();
+      expect(chip.textContent).toContain('Updated');
+    });
+
+    it('counts only terminals the server reports as ACTIVE and flags recovery ones', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+      api.getTerminals.and.returnValue(of([
+        { id: 1, terminalSeries: 'POS-1', status: 'ACTIVE', isActive: true },
+        { id: 2, terminalSeries: 'POS-2', status: 'RECOVERY_REQUIRED', isActive: true },
+        { id: 3, terminalSeries: 'POS-3', status: 'INACTIVE', isActive: false },
+        { id: 4, terminalSeries: 'POS-4', status: 'REPLACED', isActive: false }
+      ] as any));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      // RECOVERY_REQUIRED is not healthy even though isActive is still true.
+      expect(component.onlineTerminalsCount()).toBe(1);
+      expect(component.totalTerminalsCount()).toBe(4);
+      expect(component.fleetAttentionCount()).toBe(1);
+
+      const statuses = component.terminals().map(t => component.terminalStatusOf(t));
+      expect(statuses[0].label).toBe('Active');
+      expect(statuses[1].label).toBe('Needs recovery');
+      expect(statuses[1].tone).toBe('attention');
+      expect(statuses[2].label).toBe('Deactivated');
+      expect(statuses[3].label).toBe('Replaced');
+    });
+  });
 });

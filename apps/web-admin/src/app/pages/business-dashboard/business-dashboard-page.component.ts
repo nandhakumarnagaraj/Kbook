@@ -17,7 +17,6 @@ import {
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
-import { MathPipe } from '../../shared/math.pipe';
 import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { HeaderSearchComponent } from '../../shared/header-search.component';
@@ -74,7 +73,6 @@ function getTodayIsoDate(): string {
     CommonModule,
     FormsModule,
     OrderDetailModalComponent,
-    MathPipe,
     FocusTrapDirective,
     PageHeaderComponent,
     AnimatedCounterComponent,
@@ -94,7 +92,7 @@ function getTodayIsoDate(): string {
             class="header-pill-btn"
             (click)="toggleTerminalsModal()"
             title="Manage POS terminals"
-            [attr.aria-label]="onlineTerminalsCount() + ' active, ' + totalTerminalsCount() + ' registered terminals'">
+            [attr.aria-label]="onlineTerminalsCount() + ' active, ' + totalTerminalsCount() + ' registered terminals' + (fleetAttentionCount() > 0 ? ', ' + fleetAttentionCount() + ' needing recovery' : '')">
             <span class="dot-beacon" [class.dot-beacon--active]="onlineTerminalsCount() > 0"></span>
             <span class="pill-btn__text"><strong>{{ onlineTerminalsCount() }} active</strong> · {{ totalTerminalsCount() }} registered</span>
           </button>
@@ -120,6 +118,13 @@ function getTodayIsoDate(): string {
             (markAllRead)="markAllNotificationsRead()">
           </app-notification-bell>
 
+          <!-- Last successful sync — the dashboard polls every 60s, so the owner
+               should always be able to see how fresh the numbers are. -->
+          <span
+            class="freshness-chip"
+            *ngIf="freshnessLabel()"
+            [title]="lastLoadedTime() ? 'Last successful refresh at ' + lastLoadedTime() : ''">{{ freshnessLabel() }}</span>
+
           <!-- Refresh Button -->
           <app-refresh-button (refresh)="refresh()" [loading]="isRefreshing()" ariaLabel="Refresh live metrics" />
       </app-page-header>
@@ -141,11 +146,13 @@ function getTodayIsoDate(): string {
         <article class="bento-tile bento-tile--hero">
           <div class="bento-tile__head">
             <span class="bento-tile__eyebrow">Today's Revenue</span>
-            <span class="trend-badge" *ngIf="data.deltaToday !== 0" [class.trend-badge--down]="data.deltaToday < 0">
-              {{ data.deltaToday > 0 ? '↑' : '↓' }} {{ data.deltaToday | math:'abs' }}% vs yest.
+            <span class="trend-badge" *ngIf="revenueTrend() as t" [class.trend-badge--down]="t.tone === 'down'">
+              {{ t.arrow }} {{ t.label }}
             </span>
-            <span class="trend-badge trend-badge--neutral" *ngIf="data.deltaToday === 0">
-              Live Intake
+            <!-- No delta while today's number is 0 — a "↓100%" on ₹0.00 is noise,
+                 not insight (first sale sets the baseline). -->
+            <span class="trend-badge trend-badge--neutral" *ngIf="dashboard() && !revenueTrend()">
+              No sales yet
             </span>
           </div>
           <div class="bento-tile__main-metric">
@@ -186,6 +193,9 @@ function getTodayIsoDate(): string {
               <span><strong>{{ completedCount() }}</strong> Paid</span>
               <span [class.text-amber]="unsettledOrdersCount() > 0"><strong>{{ unsettledOrdersCount() }}</strong> Unsettled</span>
             </div>
+            <!-- Scope note: posOrderCount/pendingPosPayments are lifetime counts on
+                 the server, so 291/291 can sit next to ₹0.00 today without being a bug. -->
+            <span class="sub-caption settlement-scope-note">Counts all-time POS invoices, not today</span>
           </div>
         </article>
 
@@ -193,7 +203,7 @@ function getTodayIsoDate(): string {
         <article class="bento-tile">
           <div class="bento-tile__head">
             <span class="bento-tile__eyebrow">Unsettled Orders</span>
-            <span class="kpi-tag" [class.kpi-tag--warn]="unsettledOrdersCount() > 0" [class.kpi-tag--neutral]="unsettledOrdersCount() === 0">
+            <span class="kpi-tag" [class.kpi-tag--warn]="unsettledOrdersCount() > 0" [class.kpi-tag--green]="unsettledOrdersCount() === 0">
               {{ unsettledOrdersCount() > 0 ? 'Pending Settlement' : 'All Clear' }}
             </span>
           </div>
@@ -214,9 +224,14 @@ function getTodayIsoDate(): string {
         <article class="bento-tile">
           <div class="bento-tile__head">
             <span class="bento-tile__eyebrow">Terminal Fleet</span>
-            <span class="kpi-tag" [class.kpi-tag--green]="onlineTerminalsCount() > 0" [class.kpi-tag--neutral]="onlineTerminalsCount() === 0">
-              {{ onlineTerminalsCount() }} Active
+            <span class="kpi-tag" [class.kpi-tag--warn]="fleetAttentionCount() > 0" *ngIf="fleetAttentionCount() > 0; else fleetOkTag">
+              {{ fleetAttentionCount() }} Need recovery
             </span>
+            <ng-template #fleetOkTag>
+              <span class="kpi-tag" [class.kpi-tag--green]="onlineTerminalsCount() > 0" [class.kpi-tag--neutral]="onlineTerminalsCount() === 0">
+                {{ onlineTerminalsCount() }} Active
+              </span>
+            </ng-template>
           </div>
           <div class="bento-tile__main-metric">
             <app-animated-counter [value]="onlineTerminalsCount()"></app-animated-counter>
@@ -334,15 +349,15 @@ function getTodayIsoDate(): string {
         <div class="tactile-modal-body">
           <div class="terminal-item-row" *ngFor="let t of terminals()">
             <div class="terminal-core-info">
-              <span class="dot-beacon" [class.dot-beacon--active]="t.isActive || t.status === 'active' || t.status === 'ACTIVE'"></span>
+              <span class="dot-beacon" [class.dot-beacon--active]="terminalStatusOf(t).tone === 'active'"></span>
               <div>
                 <strong>{{ t.terminalName || 'Terminal ' + (t.terminalSeries || t.id) }}</strong>
                 <span class="terminal-tag">Series: {{ t.terminalSeries || 'POS' }}</span>
               </div>
             </div>
             <div class="terminal-meta-info">
-              <span class="status-chip" [class.badge-completed]="t.isActive || t.status === 'active' || t.status === 'ACTIVE'">
-                {{ (t.isActive || t.status === 'active' || t.status === 'ACTIVE') ? 'Active' : 'Offline' }}
+              <span class="status-chip" [ngClass]="terminalStatusOf(t).cls">
+                {{ terminalStatusOf(t).label }}
               </span>
               <span class="time-sub">Updated: {{ formatDateValue(t.updatedAt) }}</span>
             </div>
@@ -446,6 +461,20 @@ function getTodayIsoDate(): string {
       min-height: 100vh;
       color: var(--kb-color-foreground);
       font-family: var(--kb-font-sans);
+    }
+
+    /* Freshness stamp next to the refresh control */
+    .freshness-chip {
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--kb-color-muted-foreground);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Clarifies that the settlement tile counts all-time invoices */
+    .settlement-scope-note {
+      margin-top: 0.1rem;
     }
   `]
 })
@@ -752,10 +781,51 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   }
 
   // Computed: Terminal Counts
+  /**
+   * A terminal counts as online only when it is flagged active *and* its
+   * lifecycle status is ACTIVE — same rule the Terminals page uses. The old
+   * `isActive || status === 'active'` check could report a terminal that the
+   * server had already moved to RECOVERY_REQUIRED as healthy.
+   */
   readonly onlineTerminalsCount = computed(() => {
     const list = this.terminals();
-    return list.filter(t => t.isActive || (t as any).status === 'active' || (t as any).status === 'ACTIVE').length;
+    return list.filter(t => this.isTerminalOnline(t)).length;
   });
+
+  /** Terminals the server flagged for recovery — these need an owner action. */
+  readonly fleetAttentionCount = computed(() => {
+    const list = this.terminals();
+    return list.filter(t => (t.status || '').toUpperCase() === 'RECOVERY_REQUIRED').length;
+  });
+
+  private isTerminalOnline(t: BusinessTerminal): boolean {
+    return t.isActive === true && (t.status || '').toUpperCase() === 'ACTIVE';
+  }
+
+  /**
+   * Lifecycle state of a terminal for display: ACTIVE / RECOVERY_REQUIRED /
+   * REPLACED / INACTIVE / REVOKED are distinct server states, so the fleet
+   * view says which one applies instead of flattening everything to Offline.
+   */
+  terminalStatusOf(t: BusinessTerminal): { label: string; cls: string; tone: 'active' | 'attention' | 'offline' } {
+    const status = (t.status || '').toUpperCase();
+    if (this.isTerminalOnline(t)) {
+      return { label: 'Active', cls: 'badge-completed', tone: 'active' };
+    }
+    if (status === 'RECOVERY_REQUIRED') {
+      return { label: 'Needs recovery', cls: 'badge-recovery', tone: 'attention' };
+    }
+    if (status === 'REPLACED') {
+      return { label: 'Replaced', cls: '', tone: 'offline' };
+    }
+    if (status === 'REVOKED') {
+      return { label: 'Revoked', cls: 'badge-revoked', tone: 'offline' };
+    }
+    if (status === 'INACTIVE') {
+      return { label: 'Deactivated', cls: '', tone: 'offline' };
+    }
+    return { label: 'Offline', cls: '', tone: 'offline' };
+  }
 
   readonly totalTerminalsCount = computed(() => {
     return this.terminals().length;
@@ -856,6 +926,27 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     const completed = this.completedCount();
     if (total === 0) return 0;
     return Math.min(100, Math.round((completed / total) * 100));
+  });
+
+  /**
+   * Revenue trend badge. Returns null while today has no sales: a "↓100% vs
+   * yesterday" badge on a ₹0.00 day reads like a crisis and is really just
+   * "we have not taken an order yet". The first sale sets the baseline.
+   */
+  readonly revenueTrend = computed<{ arrow: string; label: string; tone: 'up' | 'down' | 'neutral' } | null>(() => {
+    const data = this.dashboard();
+    if (!data) return null;
+    const today = Number(data.todayRevenueValue) || 0;
+    if (today <= 0) return null;
+    const delta = Number(data.deltaToday) || 0;
+    if (delta === 0) {
+      return { arrow: '', label: 'Level with yesterday', tone: 'neutral' };
+    }
+    return {
+      arrow: delta > 0 ? '↑' : '↓',
+      label: `${Math.abs(delta)}% vs yest.`,
+      tone: delta > 0 ? 'up' : 'down'
+    };
   });
 
   toggleTerminalsModal(): void {
