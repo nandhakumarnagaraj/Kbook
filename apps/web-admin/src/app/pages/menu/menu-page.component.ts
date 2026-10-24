@@ -639,13 +639,10 @@ import { environment } from '../../../environments/environment';
     /* The table design is defined once in the global stylesheet (see the
        "Tables" section of styles.css). Column alignment is layout and stays. */
     .menu-table th:nth-child(5),
-    .menu-table td:nth-child(5) {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
+    .menu-table td:nth-child(5),
     .menu-table th:nth-child(6),
     .menu-table td:nth-child(6) {
-      text-align: center;
+      display: none;
     }
     .menu-table th:nth-child(7),
     .menu-table td:nth-child(7) {
