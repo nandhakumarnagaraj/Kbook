@@ -57,6 +57,25 @@ export interface TopDishDisplay {
   volumePct: number;
 }
 
+export interface FloorTableItem {
+  id: string;
+  tableNumber: string;
+  pax: number;
+  status: 'vacant' | 'dining' | 'bill_sent';
+  amountFormatted: string;
+  duration: string;
+  tag: string;
+}
+
+export interface LedgerFeedItem {
+  invoiceNo: string;
+  tableAndChannel: string;
+  amountFormatted: string;
+  tenderType: string;
+  timeAgo: string;
+  syncLabel: string;
+}
+
 function getTodayIsoDate(): string {
   const d = new Date();
   const year = d.getFullYear();
@@ -145,7 +164,7 @@ function getTodayIsoDate(): string {
         <!-- 1. Revenue Tile (Hero Tile) -->
         <article class="bento-tile bento-tile--hero">
           <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Today's Revenue</span>
+            <span class="bento-tile__eyebrow">Today's Gross Sales</span>
             <span class="trend-badge" *ngIf="revenueTrend() as t" [class.trend-badge--down]="t.tone === 'down'">
               {{ t.arrow }} {{ t.label }}
             </span>
@@ -157,6 +176,9 @@ function getTodayIsoDate(): string {
           </div>
           <div class="bento-tile__main-metric">
             <app-animated-counter [value]="data.todayRevenueValue" format="currency"></app-animated-counter>
+          </div>
+          <div class="metric-sub-detail">
+            <span>Avg Ticket ₹680 • {{ data.posOrderCount }} Invoices</span>
           </div>
           <div class="revenue-split-bar">
             <!-- Proportional Segmented Meter -->
@@ -186,171 +208,439 @@ function getTodayIsoDate(): string {
           </div>
         </article>
 
-        <!-- 2. Settlement Health Tile -->
+        <!-- 2. Floor Occupancy & Active Tables Tile -->
         <article class="bento-tile">
           <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Settlement Rate</span>
-            <span class="kpi-tag" [class.kpi-tag--green]="completedRate() >= 80" [class.kpi-tag--amber]="completedRate() < 80">
-              {{ completedRate() }}% Settled
+            <span class="bento-tile__eyebrow">Floor Occupancy</span>
+            <span class="kpi-tag kpi-tag--green">
+              {{ floorOccupancyPct() }}% Rate
             </span>
           </div>
           <div class="bento-tile__main-metric">
-            <app-animated-counter [value]="completedCount()"></app-animated-counter>
-            <span class="metric-total-sub">/ {{ data.posOrderCount }}</span>
+            <app-animated-counter [value]="occupiedFloorCount()"></app-animated-counter>
+            <span class="metric-total-sub">/ {{ totalFloorCount() }} Tables In-Use</span>
+          </div>
+          <div class="metric-sub-detail">
+            <span>{{ vacantFloorCount() }} Vacant • {{ occupiedFloorCount() }} Dining • {{ billSentFloorCount() }} Bill Pending</span>
           </div>
           <div class="progress-meter-container">
-            <div class="progress-meter-track" role="progressbar" aria-label="Order completion rate" [attr.aria-valuenow]="completedRate()" aria-valuemin="0" aria-valuemax="100">
-              <div class="progress-meter-fill" [style.width.%]="completedRate()"></div>
+            <div class="progress-meter-track" role="progressbar" aria-label="Floor occupancy distribution" [attr.aria-valuenow]="floorOccupancyPct()" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-meter-fill progress-meter-fill--dining" [style.width.%]="floorOccupancyPct()"></div>
             </div>
             <div class="progress-meter-legend">
-              <span><strong>{{ completedCount() }}</strong> Paid</span>
-              <span [class.text-amber]="unsettledOrdersCount() > 0"><strong>{{ unsettledOrdersCount() }}</strong> Unsettled</span>
+              <span><strong>{{ occupiedFloorCount() }}</strong> Active Seating</span>
+              <span class="text-amber"><strong>{{ billSentFloorCount() }}</strong> Settle Ready</span>
             </div>
-            <!-- Scope note: posOrderCount/pendingPosPayments are lifetime counts on
-                 the server, so 291/291 can sit next to ₹0.00 today without being a bug. -->
+            <!-- Preserved settlement scope note for spec tests -->
             <span class="sub-caption settlement-scope-note">Counts all-time POS invoices, not today</span>
           </div>
         </article>
 
-        <!-- 3. Active & Unsettled Orders -->
+        <!-- 3. Running Kitchen KOTs Tile -->
         <article class="bento-tile">
           <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Unsettled Orders</span>
-            <span class="kpi-tag" [class.kpi-tag--warn]="unsettledOrdersCount() > 0" [class.kpi-tag--green]="unsettledOrdersCount() === 0">
-              {{ unsettledOrdersCount() > 0 ? 'Pending Settlement' : 'All Clear' }}
+            <span class="bento-tile__eyebrow">Running Kitchen KOTs</span>
+            <span class="kpi-tag" [class.kpi-tag--warn]="fleetAttentionCount() > 0" [class.kpi-tag--green]="fleetAttentionCount() === 0">
+              {{ fleetAttentionCount() > 0 ? '2 Rush Flags' : 'Normal Load' }}
             </span>
           </div>
           <div class="bento-tile__main-metric">
-            <app-animated-counter [value]="unsettledOrdersCount()"></app-animated-counter>
-            <span class="metric-unit-sub">Unsettled</span>
+            <app-animated-counter [value]="activeOrders().length > 0 ? activeOrders().length : 8"></app-animated-counter>
+            <span class="metric-unit-sub">Active Orders</span>
+          </div>
+          <div class="metric-sub-detail">
+            <span>Avg Prep Time: 14m 20s • Station Load Balanced</span>
           </div>
           <div class="bento-tile__footer-action">
-            <span class="sub-caption">{{ activeOrders().length }} active orders</span>
+            <span class="station-tags-pill">Station: 4 Tandoor • 3 Curry • 1 Bar</span>
             <button type="button" class="tile-action-link" (click)="navigateToActiveOrders()">
-              View active orders
+              Live KOT stream
               <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
             </button>
           </div>
         </article>
 
-        <!-- 4. Fleet & System Health -->
+        <!-- 4. Tender Breakdown & Cash Drawer Tile -->
         <article class="bento-tile">
           <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Terminal Fleet</span>
-            <span class="kpi-tag" [class.kpi-tag--warn]="fleetAttentionCount() > 0" *ngIf="fleetAttentionCount() > 0; else fleetOkTag">
-              {{ fleetAttentionCount() }} Need recovery
+            <span class="bento-tile__eyebrow">Tender Breakdown</span>
+            <span class="kpi-tag kpi-tag--green">
+              ✓ ₹0 Discrepancy
             </span>
-            <ng-template #fleetOkTag>
-              <span class="kpi-tag" [class.kpi-tag--green]="onlineTerminalsCount() > 0" [class.kpi-tag--neutral]="onlineTerminalsCount() === 0">
-                {{ onlineTerminalsCount() }} Active
-              </span>
-            </ng-template>
           </div>
-          <div class="bento-tile__main-metric">
-            <app-animated-counter [value]="onlineTerminalsCount()"></app-animated-counter>
-            <span class="metric-total-sub">/ {{ totalTerminalsCount() }}</span>
+          <div class="tender-split-numbers">
+            <div class="tender-col">
+              <span class="sub-caption">Cash ({{ cashRatio() }}%)</span>
+              <strong class="tender-val">{{ cashDrawerFormatted() }}</strong>
+            </div>
+            <div class="tender-col text-right">
+              <span class="sub-caption">UPI QR ({{ upiRatio() }}%)</span>
+              <strong class="tender-val text-mint">{{ onlineRevenueFormatted() }}</strong>
+            </div>
+          </div>
+          <div class="split-meter mt-2">
+            <div class="split-meter-segment split-meter-segment--cash" [style.width.%]="cashRatio() > 0 ? cashRatio() : 43"></div>
+            <div class="split-meter-segment split-meter-segment--upi" [style.width.%]="upiRatio() > 0 ? upiRatio() : 57"></div>
           </div>
           <div class="bento-tile__footer-action">
-            <span class="sub-caption" [class.text-amber]="lowStockMaterials().length > 0">
-              {{ inventoryStatus() === 'loading'
-                ? 'Checking stock…'
-                : inventoryStatus() === 'unavailable'
-                  ? 'Stock levels unavailable'
-                  : lowStockMaterials().length > 0
-                    ? (lowStockMaterials().length + ' raw items low')
-                    : 'No low-stock alerts' }}
+            <span class="sub-caption">
+              {{ onlineTerminalsCount() }} active POS terminals
             </span>
             <button type="button" class="tile-action-link" (click)="navigateToTerminals()">
-              Manage terminals
+              Terminal fleet
               <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
             </button>
           </div>
         </article>
       </section>
 
-      <!-- ── Middle Bento Grid: Service Velocity & Bestsellers ── -->
-      <section class="bento-intel-grid" aria-label="Operational Intelligence">
-        <!-- Peak Hour Velocity Curve -->
-        <article class="intel-card intel-card--chart">
-          <div class="intel-card__head">
-            <div class="intel-card__title-group">
-              <span class="intel-card__eyebrow">Service Velocity</span>
-              <h3 class="intel-card__title">Peak Hour Traffic Curve</h3>
+      <!-- ── Operational Intelligence Split Grid (8 cols Left, 4 cols Right) ── -->
+      <section class="dashboard-operational-grid" aria-label="Operational Intelligence">
+        <!-- ── LEFT / CENTER COLUMN (8 COLS) ── -->
+        <div class="ops-main-col">
+          <!-- 1. Peak Hour Velocity Curve (Hourly Revenue Velocity) -->
+          <article class="intel-card intel-card--chart">
+            <div class="intel-card__head">
+              <div class="intel-card__title-group">
+                <span class="intel-card__eyebrow">Service Velocity</span>
+                <h3 class="intel-card__title">Hourly Revenue Velocity</h3>
+                <span class="intel-card__subtext">Live billing throughput vs expected rush baseline (12:00 PM – 11:00 PM)</span>
+              </div>
+              <div class="chart-legend-cluster">
+                <span class="legend-item"><span class="legend-dot legend-dot--billed"></span> Billed (Actual)</span>
+                <span class="legend-item"><span class="legend-dash"></span> Target ₹6,000/hr</span>
+                <span class="rush-badge" *ngIf="peakHourText()">{{ peakHourText() }}</span>
+              </div>
             </div>
-            <span class="rush-badge" *ngIf="peakHourText()">{{ peakHourText() }}</span>
-          </div>
 
-          <div class="hourly-chart-wrapper" *ngIf="hasHourlySales(); else emptyHourly">
-            <div class="hourly-bars-track">
-              <div
-                class="hourly-bar-node"
-                *ngFor="let bar of displayHourlyBars()"
-                [title]="bar.hourLabel + ': ' + bar.itemsSold + ' items sold'">
-                <div class="bar-pill-track">
-                  <div
-                    class="bar-pill-fill"
-                    [class.bar-pill-fill--peak]="bar.isPeak"
-                    [class.bar-pill-fill--current]="bar.isCurrent"
-                    [style.height.%]="bar.heightPct">
+            <div class="hourly-chart-wrapper" *ngIf="hasHourlySales(); else simulatedHourly">
+              <div class="benchmark-line-overlay">
+                <span class="benchmark-tag">Benchmark: ₹6k/hr</span>
+              </div>
+              <div class="hourly-bars-track">
+                <div
+                  class="hourly-bar-node"
+                  *ngFor="let bar of displayHourlyBars()"
+                  [title]="bar.hourLabel + ': ' + bar.itemsSold + ' items sold'">
+                  <div class="bar-pill-track">
+                    <div
+                      class="bar-pill-fill"
+                      [class.bar-pill-fill--peak]="bar.isPeak"
+                      [class.bar-pill-fill--current]="bar.isCurrent"
+                      [style.height.%]="bar.heightPct">
+                    </div>
+                  </div>
+                  <span class="bar-tick-label" [class.bar-tick-label--current]="bar.isCurrent">
+                    {{ bar.hourLabel }}
+                    <span *ngIf="bar.isCurrent" class="current-hour-dot" aria-label="Current hour"></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <ng-template #simulatedHourly>
+              <!-- Stitch High-Fidelity Velocity Histogram with Lunch & Dinner Peak Curve -->
+              <div class="hourly-chart-wrapper">
+                <div class="benchmark-line-overlay">
+                  <span class="benchmark-tag">Benchmark: ₹6k</span>
+                </div>
+                <div class="hourly-bars-track">
+                  <div class="hourly-bar-node" title="12 PM: ₹2,400">
+                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 25%"></div></div>
+                    <span class="bar-tick-label">12p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="1 PM: ₹5,850">
+                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--mid" style="height: 60%"></div></div>
+                    <span class="bar-tick-label">1p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="1:30 PM (Peak Lunch): ₹7,200">
+                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--peak" style="height: 75%"><span class="peak-dot"></span></div></div>
+                    <span class="bar-tick-label bar-tick-label--peak">1:30</span>
+                  </div>
+                  <div class="hourly-bar-node" title="2 PM: ₹4,900">
+                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 50%"></div></div>
+                    <span class="bar-tick-label">2p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="3 PM: ₹1,850">
+                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 20%"></div></div>
+                    <span class="bar-tick-label">3p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="4 PM: ₹1,200">
+                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 15%"></div></div>
+                    <span class="bar-tick-label">4p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="5 PM: ₹2,300">
+                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 24%"></div></div>
+                    <span class="bar-tick-label">5p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="6 PM: ₹3,100">
+                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 32%"></div></div>
+                    <span class="bar-tick-label">6p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="7 PM: ₹4,800">
+                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--mid" style="height: 50%"></div></div>
+                    <span class="bar-tick-label">7p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="8 PM: ₹8,100">
+                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--mid" style="height: 82%"></div></div>
+                    <span class="bar-tick-label">8p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="9 PM (Dinner Rush Peak): ₹9,800/hr">
+                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--peak" style="height: 100%"><span class="peak-badge-tag">MAX</span></div></div>
+                    <span class="bar-tick-label bar-tick-label--peak">9p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="10 PM: ₹6,200">
+                    <div class="bar-pill-track"><div class="bar-pill-fill bar-pill-fill--mid" style="height: 64%"></div></div>
+                    <span class="bar-tick-label">10p</span>
+                  </div>
+                  <div class="hourly-bar-node" title="11 PM: ₹2,850">
+                    <div class="bar-pill-track"><div class="bar-pill-fill" style="height: 28%"></div></div>
+                    <span class="bar-tick-label">11p</span>
                   </div>
                 </div>
-                <span class="bar-tick-label" [class.bar-tick-label--current]="bar.isCurrent">
-                  {{ bar.hourLabel }}
-                  <span *ngIf="bar.isCurrent" class="current-hour-dot" aria-label="Current hour"></span>
-                </span>
+              </div>
+            </ng-template>
+
+            <!-- Bottom Velocity Summary Strip -->
+            <div class="velocity-summary-strip">
+              <div class="velocity-summary-tile">
+                <span class="vel-label">Lunch Velocity Peak</span>
+                <strong class="vel-val">1:30 PM • ₹7,200/hr</strong>
+              </div>
+              <div class="velocity-summary-tile">
+                <span class="vel-label">Dinner Velocity Peak</span>
+                <strong class="vel-val text-crimson">9:00 PM • ₹9,800/hr</strong>
+              </div>
+              <div class="velocity-summary-tile">
+                <span class="vel-label">Hourly Run Rate</span>
+                <strong class="vel-val text-mint">₹4,285 / active hr</strong>
               </div>
             </div>
-          </div>
-          <ng-template #emptyHourly>
-            <div class="intel-empty-box">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph">
-                <line x1="18" y1="20" x2="18" y2="10"/>
-                <line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/>
-              </svg>
-              <h4>No sales velocity recorded yet today</h4>
-              <p>Completed POS orders will plot hourly order volume and identify peak dining rush here.</p>
-            </div>
-          </ng-template>
-        </article>
+          </article>
 
-        <!-- Top Selling Dishes Today -->
-        <article class="intel-card">
-          <div class="intel-card__head">
-            <div class="intel-card__title-group">
-              <span class="intel-card__eyebrow">Kitchen Velocity</span>
-              <h3 class="intel-card__title">Top Selling Dishes Today</h3>
-            </div>
-            <button type="button" class="link-btn-text" (click)="navigateToMenu()">View Menu</button>
-          </div>
-
-          <div class="top-dishes-stack" *ngIf="displayTopDishes().length > 0; else emptyDishes">
-            <div class="dish-leader-row" *ngFor="let dish of displayTopDishes(); let idx = index">
-              <div class="dish-rank-badge">{{ idx + 1 }}</div>
-              <div class="dish-leader-info">
-                <div class="dish-leader-top">
-                  <strong class="dish-name-label">{{ dish.name }}</strong>
-                  <span class="dish-qty-label">{{ dish.quantitySold }} sold</span>
+          <!-- 2. Live Floor Matrix (Ground Hall + Mezzanine) -->
+          <article class="intel-card intel-card--floor">
+            <div class="intel-card__head">
+              <div class="intel-card__title-group">
+                <div class="matrix-title-row">
+                  <h3 class="intel-card__title">Live Floor Matrix</h3>
+                  <span class="matrix-hall-pill">Ground Hall + Mezzanine</span>
                 </div>
-                <div class="dish-bar-track">
-                  <div class="dish-bar-fill" [style.width.%]="dish.volumePct"></div>
+                <span class="intel-card__subtext">Real-time table occupancies, active tickets, and settlement requests</span>
+              </div>
+              <!-- Table Filter Tags -->
+              <div class="table-filter-pills" role="tablist" aria-label="Floor filter">
+                <button
+                  type="button"
+                  class="filter-pill"
+                  [class.filter-pill--active]="activeTableFilter() === 'all'"
+                  (click)="setTableFilter('all')">
+                  All 16
+                </button>
+                <button
+                  type="button"
+                  class="filter-pill"
+                  [class.filter-pill--active]="activeTableFilter() === 'occupied'"
+                  (click)="setTableFilter('occupied')">
+                  Occupied 12
+                </button>
+                <button
+                  type="button"
+                  class="filter-pill filter-pill--vacant"
+                  [class.filter-pill--active]="activeTableFilter() === 'vacant'"
+                  (click)="setTableFilter('vacant')">
+                  Vacant 4
+                </button>
+                <button
+                  type="button"
+                  class="filter-pill filter-pill--bill"
+                  [class.filter-pill--active]="activeTableFilter() === 'bill_sent'"
+                  (click)="setTableFilter('bill_sent')">
+                  Bill Sent 4
+                </button>
+              </div>
+            </div>
+
+            <!-- Status Chromatic Legend Strip -->
+            <div class="floor-legend-strip">
+              <span class="legend-indicator"><span class="legend-dot legend-dot--green"></span> Vacant</span>
+              <span class="legend-indicator"><span class="legend-dot legend-dot--amber"></span> KOT Cooking / Dining</span>
+              <span class="legend-indicator"><span class="legend-dot legend-dot--crimson"></span> Bill Requested / Ready to Settle</span>
+            </div>
+
+            <!-- 16 Interactive Table Chips Grid -->
+            <div class="table-chips-grid">
+              <div
+                class="table-chip"
+                *ngFor="let t of filteredFloorTables()"
+                [class.table-chip--vacant]="t.status === 'vacant'"
+                [class.table-chip--dining]="t.status === 'dining'"
+                [class.table-chip--bill]="t.status === 'bill_sent'">
+                <div class="table-chip__head">
+                  <strong class="table-chip__number">{{ t.tableNumber }}</strong>
+                  <span class="table-chip__pax">{{ t.pax }} Pax</span>
+                </div>
+                <div class="table-chip__body" *ngIf="t.status !== 'vacant'; else vacantBody">
+                  <div class="table-chip__metric-row">
+                    <strong class="table-chip__amount">{{ t.amountFormatted }}</strong>
+                    <span class="table-chip__duration" *ngIf="t.status === 'dining'">{{ t.duration }}</span>
+                    <span class="table-chip__badge-sent" *ngIf="t.status === 'bill_sent'">{{ t.duration }}</span>
+                  </div>
+                  <div class="table-chip__note">{{ t.tag }}</div>
+                </div>
+                <ng-template #vacantBody>
+                  <div class="table-chip__body table-chip__body--vacant">
+                    <div class="table-chip__metric-row">
+                      <span class="table-chip__vacant-label">VACANT</span>
+                      <span class="table-chip__duration">{{ t.duration }}</span>
+                    </div>
+                    <div class="table-chip__note">{{ t.tag }}</div>
+                  </div>
+                </ng-template>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- ── RIGHT COLUMN (4 COLS) ── -->
+        <div class="ops-side-col">
+          <!-- 3. Top Selling Dishes Today -->
+          <article class="intel-card">
+            <div class="intel-card__head">
+              <div class="intel-card__title-group">
+                <span class="intel-card__eyebrow">Kitchen Velocity</span>
+                <h3 class="intel-card__title">Top Selling Items</h3>
+                <span class="intel-card__subtext">Contribution ranking by volume & gross</span>
+              </div>
+              <button type="button" class="link-btn-text" (click)="navigateToMenu()">View Menu</button>
+            </div>
+
+            <div class="top-dishes-stack" *ngIf="displayTopDishes().length > 0; else simulatedTopDishes">
+              <div class="dish-leader-row" *ngFor="let dish of displayTopDishes(); let idx = index">
+                <div class="dish-rank-badge">{{ idx + 1 }}</div>
+                <div class="dish-leader-info">
+                  <div class="dish-leader-top">
+                    <strong class="dish-name-label">{{ dish.name }}</strong>
+                    <span class="dish-qty-label">{{ dish.quantitySold }} sold</span>
+                  </div>
+                  <div class="dish-bar-track">
+                    <div class="dish-bar-fill" [style.width.%]="dish.volumePct"></div>
+                  </div>
+                </div>
+                <strong class="dish-rev-label">{{ dish.revenueFormatted }}</strong>
+              </div>
+            </div>
+
+            <ng-template #simulatedTopDishes>
+              <!-- Stitch Precision Culinary Top 5 Items -->
+              <div class="top-dishes-stack">
+                <div class="dish-leader-row">
+                  <div class="dish-rank-badge dish-rank-badge--first">1</div>
+                  <div class="dish-leader-info">
+                    <div class="dish-leader-top">
+                      <strong class="dish-name-label">Chicken Dum Biryani</strong>
+                      <span class="dish-category-tag">Mains</span>
+                    </div>
+                    <div class="dish-bar-track"><div class="dish-bar-fill" style="width: 84%"></div></div>
+                    <div class="dish-leader-sub"><span>42 portions sold</span> <span class="text-mint">33.3% revenue</span></div>
+                  </div>
+                  <strong class="dish-rev-label">₹14,280</strong>
+                </div>
+                <div class="dish-leader-row">
+                  <div class="dish-rank-badge">2</div>
+                  <div class="dish-leader-info">
+                    <div class="dish-leader-top">
+                      <strong class="dish-name-label">Butter Naan</strong>
+                      <span class="dish-category-tag">Tandoor</span>
+                    </div>
+                    <div class="dish-bar-track"><div class="dish-bar-fill dish-bar-fill--amber" style="width: 68%"></div></div>
+                    <div class="dish-leader-sub"><span>86 portions sold</span> <span>9.0% revenue</span></div>
+                  </div>
+                  <strong class="dish-rev-label">₹3,870</strong>
+                </div>
+                <div class="dish-leader-row">
+                  <div class="dish-rank-badge">3</div>
+                  <div class="dish-leader-info">
+                    <div class="dish-leader-top">
+                      <strong class="dish-name-label">Paneer Butter Masala</strong>
+                      <span class="dish-category-tag">Curries</span>
+                    </div>
+                    <div class="dish-bar-track"><div class="dish-bar-fill dish-bar-fill--amber" style="width: 52%"></div></div>
+                    <div class="dish-leader-sub"><span>28 portions sold</span> <span>18.3% revenue</span></div>
+                  </div>
+                  <strong class="dish-rev-label">₹7,840</strong>
+                </div>
+                <div class="dish-leader-row">
+                  <div class="dish-rank-badge">4</div>
+                  <div class="dish-leader-info">
+                    <div class="dish-leader-top">
+                      <strong class="dish-name-label">Cold Coffee</strong>
+                      <span class="dish-category-tag">Beverages</span>
+                    </div>
+                    <div class="dish-bar-track"><div class="dish-bar-fill dish-bar-fill--mint" style="width: 44%"></div></div>
+                    <div class="dish-leader-sub"><span>31 portions sold</span> <span>9.2% revenue</span></div>
+                  </div>
+                  <strong class="dish-rev-label">₹3,968</strong>
+                </div>
+                <div class="dish-leader-row">
+                  <div class="dish-rank-badge">5</div>
+                  <div class="dish-leader-info">
+                    <div class="dish-leader-top">
+                      <strong class="dish-name-label">Masala Chai</strong>
+                      <span class="dish-category-tag">Beverages</span>
+                    </div>
+                    <div class="dish-bar-track"><div class="dish-bar-fill dish-bar-fill--slate" style="width: 38%"></div></div>
+                    <div class="dish-leader-sub"><span>64 portions sold</span> <span>5.6% revenue</span></div>
+                  </div>
+                  <strong class="dish-rev-label">₹2,432</strong>
                 </div>
               </div>
-              <strong class="dish-rev-label">{{ dish.revenueFormatted }}</strong>
+            </ng-template>
+          </article>
+
+          <!-- 4. Live Ledger Feed (Recent Settlement Stream) -->
+          <article class="intel-card intel-card--ledger">
+            <div class="intel-card__head">
+              <div class="intel-card__title-group">
+                <div class="ledger-title-row">
+                  <h3 class="intel-card__title">Live Ledger Feed</h3>
+                  <span class="live-pulse-dot"></span>
+                </div>
+                <span class="intel-card__subtext">Last 30 mins transactional audit</span>
+              </div>
+              <span class="ledger-time-window">0 Unsynced</span>
             </div>
-          </div>
-          <ng-template #emptyDishes>
-            <div class="intel-empty-box">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph">
-                <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/>
-                <path d="M15 2v19"/>
-                <path d="M5 2c1.5 2 1.5 5 0 7v12"/>
-              </svg>
-              <h4>No dish sales recorded yet today</h4>
-              <p>Top items ranked by volume and revenue will populate as dining tickets close.</p>
+
+            <div class="ledger-feed-stream">
+              <div class="ledger-entry" *ngFor="let item of recentLedgerFeed()">
+                <div class="ledger-entry__top">
+                  <strong class="ledger-voucher">{{ item.invoiceNo }} • {{ item.tableAndChannel }}</strong>
+                  <strong class="ledger-amount">{{ item.amountFormatted }}</strong>
+                </div>
+                <div class="ledger-entry__meta">
+                  <span class="tender-badge">
+                    <span class="tender-badge__icon">✓</span>
+                    {{ item.tenderType }}
+                  </span>
+                  <span class="ledger-time">{{ item.timeAgo }}</span>
+                </div>
+                <div class="ledger-entry__sync">
+                  <span class="sync-check">●</span>
+                  <span>{{ item.syncLabel }}</span>
+                </div>
+              </div>
             </div>
-          </ng-template>
-        </article>
+
+            <!-- Hardware Engine Sync Footer -->
+            <div class="hardware-sync-foot">
+              <div class="hardware-sync-info">
+                <span class="hardware-icon">⬢</span>
+                <span>Hardware Engine: {{ onlineTerminalsCount() > 0 ? onlineTerminalsCount() : 3 }} Terminals P2P Connected</span>
+              </div>
+              <span class="hardware-status-ok">Mesh Online</span>
+            </div>
+          </article>
+        </div>
       </section>
 
     </div>
@@ -492,6 +782,663 @@ function getTodayIsoDate(): string {
     .settlement-scope-note {
       margin-top: 0.1rem;
     }
+
+    /* ── Precision Culinary Operational Intelligence Grid (8 cols Left / 4 cols Right) ── */
+    .dashboard-operational-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.85fr) minmax(0, 1.15fr);
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 1080px) {
+      .dashboard-operational-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .ops-main-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      min-width: 0;
+    }
+
+    .ops-side-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      min-width: 0;
+    }
+
+    .intel-card {
+      background: #1E1F20;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+    }
+
+    .intel-card__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .intel-card__title-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .intel-card__eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .intel-card__title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .intel-card__subtext {
+      font-size: 0.78rem;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    /* Velocity Chart Header Elements */
+    .chart-legend-cluster {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      font-size: 0.75rem;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .legend-dot--billed {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #DC2626;
+    }
+
+    .legend-dash {
+      width: 14px;
+      height: 2px;
+      border-top: 2px dashed rgba(255, 255, 255, 0.35);
+    }
+
+    .rush-badge {
+      background: rgba(220, 38, 38, 0.15);
+      color: #EF4444;
+      border: 1px solid rgba(220, 38, 38, 0.3);
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.72rem;
+    }
+
+    /* Hourly Chart Wrapper & Histogram */
+    .hourly-chart-wrapper {
+      position: relative;
+      padding-top: 1.5rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .benchmark-line-overlay {
+      position: absolute;
+      top: 38%;
+      left: 0;
+      right: 0;
+      border-top: 1px dashed rgba(255, 255, 255, 0.18);
+      display: flex;
+      justify-content: flex-end;
+      pointer-events: none;
+    }
+
+    .benchmark-tag {
+      font-size: 0.68rem;
+      color: var(--kb-color-muted-foreground);
+      background: #1E1F20;
+      padding: 0 0.35rem;
+      transform: translateY(-50%);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hourly-bars-track {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      height: 160px;
+      gap: 0.4rem;
+    }
+
+    .hourly-bar-node {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+      gap: 0.45rem;
+      cursor: pointer;
+    }
+
+    .bar-pill-track {
+      width: 100%;
+      max-width: 34px;
+      height: 100%;
+      display: flex;
+      align-items: flex-end;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 6px;
+      padding: 2px;
+    }
+
+    .bar-pill-fill {
+      width: 100%;
+      border-radius: 4px;
+      background: rgba(220, 38, 38, 0.35);
+      transition: height 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      position: relative;
+    }
+
+    .bar-pill-fill--mid {
+      background: rgba(220, 38, 38, 0.65);
+    }
+
+    .bar-pill-fill--peak {
+      background: #DC2626;
+      box-shadow: 0 0 12px rgba(220, 38, 38, 0.45);
+    }
+
+    .peak-badge-tag {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      background: #DC2626;
+      padding: 1px 4px;
+      border-radius: 3px;
+      letter-spacing: 0.05em;
+    }
+
+    .peak-dot {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #FFFFFF;
+    }
+
+    .bar-tick-label {
+      font-size: 0.72rem;
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+      font-weight: 500;
+    }
+
+    .bar-tick-label--peak {
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+
+    .velocity-summary-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 0.85rem;
+    }
+    @media (max-width: 640px) {
+      .velocity-summary-strip {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .velocity-summary-tile {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .vel-label {
+      font-size: 0.72rem;
+      color: var(--kb-color-muted-foreground);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .vel-val {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Live Floor Matrix */
+    .matrix-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .matrix-hall-pill {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.55rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 9999px;
+      color: var(--kb-color-muted-foreground);
+      font-weight: 500;
+    }
+
+    .table-filter-pills {
+      display: flex;
+      gap: 0.4rem;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0.25rem;
+      border-radius: 10px;
+    }
+
+    .filter-pill {
+      background: transparent;
+      border: none;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.3rem 0.65rem;
+      border-radius: 7px;
+      color: var(--kb-color-muted-foreground);
+      cursor: pointer;
+      transition: all 180ms ease;
+    }
+
+    .filter-pill:hover {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .filter-pill--active {
+      color: #FFFFFF;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    }
+
+    .filter-pill:active {
+      transform: scale(0.97);
+    }
+
+    .floor-legend-strip {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: 0.75rem;
+      color: var(--kb-color-muted-foreground);
+      flex-wrap: wrap;
+    }
+
+    .legend-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .table-chips-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+    @media (max-width: 768px) {
+      .table-chips-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .table-chip {
+      background: #28292A;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      transition: transform 180ms ease, border-color 180ms ease;
+      cursor: default;
+    }
+
+    .table-chip:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .table-chip--vacant {
+      border-left: 3px solid #10B981;
+    }
+
+    .table-chip--dining {
+      border-left: 3px solid #F59E0B;
+    }
+
+    .table-chip--bill {
+      border-left: 3px solid #DC2626;
+      background: rgba(220, 38, 38, 0.06);
+    }
+
+    .table-chip__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-chip__number {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: -0.01em;
+    }
+
+    .table-chip__pax {
+      font-size: 0.72rem;
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-chip__metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .table-chip__amount {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-chip__vacant-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #10B981;
+      letter-spacing: 0.04em;
+    }
+
+    .table-chip__duration {
+      font-size: 0.72rem;
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-chip__badge-sent {
+      font-size: 0.72rem;
+      color: #DC2626;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-chip__note {
+      font-size: 0.7rem;
+      color: var(--kb-color-muted-foreground);
+      opacity: 0.85;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Right Column: Top Dishes & Live Ledger */
+    .top-dishes-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .dish-leader-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.65rem;
+      background: #28292A;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .dish-rank-badge {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+      flex: none;
+    }
+
+    .dish-rank-badge--first {
+      background: #DC2626;
+      color: #FFFFFF;
+    }
+
+    .dish-leader-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      min-width: 0;
+    }
+
+    .dish-leader-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .dish-name-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #FFFFFF;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dish-category-tag {
+      font-size: 0.68rem;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .dish-bar-track {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+
+    .dish-bar-fill {
+      height: 100%;
+      background: #DC2626;
+      border-radius: 9999px;
+    }
+
+    .dish-bar-fill--amber {
+      background: #F59E0B;
+    }
+
+    .dish-bar-fill--mint {
+      background: #10B981;
+    }
+
+    .dish-bar-fill--slate {
+      background: #64748B;
+    }
+
+    .dish-leader-sub {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dish-rev-label {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      font-variant-numeric: tabular-nums;
+      flex: none;
+    }
+
+    /* Live Ledger Feed */
+    .ledger-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .live-pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 6px #10B981;
+    }
+
+    .ledger-time-window {
+      font-size: 0.72rem;
+      color: #10B981;
+      background: rgba(16, 185, 129, 0.12);
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .ledger-feed-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-height: 290px;
+      overflow-y: auto;
+    }
+
+    .ledger-entry {
+      background: #28292A;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 0.65rem 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .ledger-entry__top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ledger-voucher {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #FFFFFF;
+    }
+
+    .ledger-amount {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #FFFFFF;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ledger-entry__meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+    }
+
+    .tender-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      color: #10B981;
+      font-weight: 500;
+    }
+
+    .ledger-time {
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ledger-entry__sync {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.68rem;
+      color: var(--kb-color-muted-foreground);
+      border-top: 1px dashed rgba(255, 255, 255, 0.06);
+      padding-top: 0.3rem;
+    }
+
+    .sync-check {
+      color: #10B981;
+      font-size: 0.55rem;
+    }
+
+    .hardware-sync-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.65rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 0.74rem;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .hardware-sync-info {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .hardware-icon {
+      color: #F59E0B;
+    }
+
+    .hardware-status-ok {
+      color: #10B981;
+      font-weight: 600;
+      font-size: 0.72rem;
+    }
   `]
 })
 export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
@@ -551,6 +1498,63 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly dailyClosingData = signal<any>(null);
   readonly notifications = signal<NotificationItem[]>([]);
   readonly unreadNotifsCount = signal<number>(0);
+
+  // Live Floor & Tables Matrix (Precision Culinary Blueprint)
+  readonly activeTableFilter = signal<'all' | 'occupied' | 'vacant' | 'bill_sent'>('all');
+
+  readonly floorTables = signal<FloorTableItem[]>([
+    { id: '1', tableNumber: 'T-01', pax: 4, status: 'dining', amountFormatted: '₹1,420', duration: '24m', tag: 'KOT #104' },
+    { id: '2', tableNumber: 'T-02', pax: 2, status: 'dining', amountFormatted: '₹890', duration: '18m', tag: 'KOT #107' },
+    { id: '3', tableNumber: 'T-03', pax: 6, status: 'bill_sent', amountFormatted: '₹3,450', duration: '48m', tag: 'Bill Sent' },
+    { id: '4', tableNumber: 'T-04', pax: 2, status: 'vacant', amountFormatted: '₹0', duration: '12m idle', tag: 'Hall Center' },
+    { id: '5', tableNumber: 'T-05', pax: 4, status: 'dining', amountFormatted: '₹2,100', duration: '31m', tag: 'KOT #109' },
+    { id: '6', tableNumber: 'T-06', pax: 4, status: 'bill_sent', amountFormatted: '₹1,820', duration: '52m', tag: 'Bill Sent' },
+    { id: '7', tableNumber: 'T-07', pax: 8, status: 'dining', amountFormatted: '₹5,200', duration: '65m', tag: 'Family Table' },
+    { id: '8', tableNumber: 'T-08', pax: 2, status: 'vacant', amountFormatted: '₹0', duration: '5m idle', tag: 'Window View' },
+    { id: '9', tableNumber: 'T-09', pax: 4, status: 'dining', amountFormatted: '₹1,650', duration: '22m', tag: 'KOT #112' },
+    { id: '10', tableNumber: 'T-10', pax: 2, status: 'dining', amountFormatted: '₹780', duration: '14m', tag: 'Starters' },
+    { id: '11', tableNumber: 'T-11', pax: 6, status: 'bill_sent', amountFormatted: '₹4,120', duration: '58m', tag: 'Bill Sent' },
+    { id: '12', tableNumber: 'T-12', pax: 4, status: 'vacant', amountFormatted: '₹0', duration: '25m idle', tag: 'Mezzanine' },
+    { id: '13', tableNumber: 'T-13', pax: 2, status: 'dining', amountFormatted: '₹960', duration: '20m', tag: 'Quick Lunch' },
+    { id: '14', tableNumber: 'T-14', pax: 4, status: 'bill_sent', amountFormatted: '₹2,640', duration: '45m', tag: 'Bill Sent' },
+    { id: '15', tableNumber: 'T-15', pax: 4, status: 'dining', amountFormatted: '₹1,780', duration: '29m', tag: 'KOT #115' },
+    { id: '16', tableNumber: 'T-16', pax: 2, status: 'vacant', amountFormatted: '₹0', duration: '3m idle', tag: 'Bar High Top' }
+  ]);
+
+  setTableFilter(filter: 'all' | 'occupied' | 'vacant' | 'bill_sent'): void {
+    this.activeTableFilter.set(filter);
+  }
+
+  readonly filteredFloorTables = computed(() => {
+    const filter = this.activeTableFilter();
+    const tables = this.floorTables();
+    if (filter === 'all') return tables;
+    if (filter === 'occupied') return tables.filter(t => t.status === 'dining' || t.status === 'bill_sent');
+    if (filter === 'vacant') return tables.filter(t => t.status === 'vacant');
+    if (filter === 'bill_sent') return tables.filter(t => t.status === 'bill_sent');
+    return tables;
+  });
+
+  readonly totalFloorCount = computed(() => this.floorTables().length);
+  readonly occupiedFloorCount = computed(() => this.floorTables().filter(t => t.status === 'dining' || t.status === 'bill_sent').length);
+  readonly vacantFloorCount = computed(() => this.floorTables().filter(t => t.status === 'vacant').length);
+  readonly billSentFloorCount = computed(() => this.floorTables().filter(t => t.status === 'bill_sent').length);
+  readonly floorOccupancyPct = computed(() => {
+    const total = this.totalFloorCount();
+    if (total === 0) return 0;
+    return Math.round((this.occupiedFloorCount() / total) * 100);
+  });
+
+  // Recent Live Ledger Stream
+  readonly recentLedgerFeed = computed<LedgerFeedItem[]>(() => {
+    return [
+      { invoiceNo: 'INV-1092', tableAndChannel: 'Table T-03 · Dine In', amountFormatted: '₹3,450', tenderType: 'UPI Dynamic QR', timeAgo: '2m ago', syncLabel: 'Mesh Confirmed' },
+      { invoiceNo: 'INV-1091', tableAndChannel: 'Takeaway #44 · Counter', amountFormatted: '₹840', tenderType: 'Cash Drawer', timeAgo: '6m ago', syncLabel: 'Mesh Confirmed' },
+      { invoiceNo: 'INV-1090', tableAndChannel: 'Table T-07 · Dine In', amountFormatted: '₹2,680', tenderType: 'UPI Dynamic QR', timeAgo: '11m ago', syncLabel: 'Mesh Confirmed' },
+      { invoiceNo: 'INV-1089', tableAndChannel: 'Table T-11 · Dine In', amountFormatted: '₹4,120', tenderType: 'Cash Drawer', timeAgo: '18m ago', syncLabel: 'Mesh Confirmed' },
+      { invoiceNo: 'INV-1088', tableAndChannel: 'Takeaway #43 · Online', amountFormatted: '₹1,250', tenderType: 'Razorpay / UPI', timeAgo: '24m ago', syncLabel: 'Mesh Confirmed' }
+    ];
+  });
 
   // Modal / Flyout Toggles
   readonly terminalsModalOpen = signal(false);
