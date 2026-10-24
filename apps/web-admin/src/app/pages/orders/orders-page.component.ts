@@ -31,7 +31,7 @@ export type OrdersTab = 'live' | 'history';
     <div class="page-shell">
       <app-page-header
         title="Orders"
-        subtitle="Live floor board and settled transaction history in one workspace.">
+        subtitle="See live orders and review past orders and settlements.">
         <app-header-search
           *ngIf="tab() === 'history'"
           [(value)]="historySearch"
@@ -45,6 +45,7 @@ export type OrdersTab = 'live' | 'history';
           [showDownload]="tab() === 'history'"
           [downloadDisabled]="!orderHistoryTab?.ordersLoaded || !orderHistoryTab?.serverTotalElements || !!orderHistoryTab?.exportingCsv"
           [downloadLabel]="'Download order history CSV'"
+          refreshLabel="Refresh orders"
           [refreshDisabled]="isRefreshing()"
           [refreshing]="isRefreshing()"
           (rangeChanged)="onHistoryDateRangeChange($event)"
@@ -66,7 +67,7 @@ export type OrdersTab = 'live' | 'history';
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M4 20V10m5 10V4m5 16v-7m5 7V8" />
           </svg>
-          Live Floor
+          Live orders
         </button>
 
         <button
@@ -83,7 +84,7 @@ export type OrdersTab = 'live' | 'history';
             <path d="M3.05 13a9 9 0 1 0 2.5-6.4L3 8" />
             <path d="M12 7v5l4 2" />
           </svg>
-          History &amp; Settlements
+          Order history
         </button>
       </nav>
 

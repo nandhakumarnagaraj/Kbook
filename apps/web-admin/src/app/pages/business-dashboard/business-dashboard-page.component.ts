@@ -93,10 +93,10 @@ function getTodayIsoDate(): string {
             type="button"
             class="header-pill-btn"
             (click)="toggleTerminalsModal()"
-            title="View active POS terminals fleet"
-            [attr.aria-label]="onlineTerminalsCount() + '/' + totalTerminalsCount() + ' Terminals'">
+            title="Manage POS terminals"
+            [attr.aria-label]="onlineTerminalsCount() + ' online, ' + totalTerminalsCount() + ' registered terminals'">
             <span class="dot-beacon" [class.dot-beacon--active]="onlineTerminalsCount() > 0"></span>
-            <span class="pill-btn__text"><strong>{{ onlineTerminalsCount() }}/{{ totalTerminalsCount() }}</strong> Terminals</span>
+            <span class="pill-btn__text"><strong>{{ onlineTerminalsCount() }} online</strong> · {{ totalTerminalsCount() }} registered</span>
           </button>
 
           <!-- Low Stock Warning Pill -->
@@ -192,7 +192,7 @@ function getTodayIsoDate(): string {
         <!-- 3. Active & Unsettled Orders -->
         <article class="bento-tile">
           <div class="bento-tile__head">
-            <span class="bento-tile__eyebrow">Active Orders</span>
+            <span class="bento-tile__eyebrow">Unsettled Orders</span>
             <span class="kpi-tag" [class.kpi-tag--warn]="unsettledOrdersCount() > 0" [class.kpi-tag--neutral]="unsettledOrdersCount() === 0">
               {{ unsettledOrdersCount() > 0 ? 'Pending Settlement' : 'All Clear' }}
             </span>
@@ -202,9 +202,9 @@ function getTodayIsoDate(): string {
             <span class="metric-unit-sub">Unsettled</span>
           </div>
           <div class="bento-tile__footer-action">
-            <span class="sub-caption">{{ activeOrders().length }} live orders</span>
+            <span class="sub-caption">{{ activeOrders().length }} active orders</span>
             <button type="button" class="tile-action-link" (click)="navigateToActiveOrders()">
-              View Active
+              View active orders
               <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
             </button>
           </div>
@@ -233,7 +233,7 @@ function getTodayIsoDate(): string {
                     : 'No low-stock alerts' }}
             </span>
             <button type="button" class="tile-action-link" (click)="navigateToTerminals()">
-              Hardware
+              Manage terminals
               <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
             </button>
           </div>
@@ -328,7 +328,7 @@ function getTodayIsoDate(): string {
     <div class="tactile-modal-overlay" *ngIf="terminalsModalOpen()" appFocusTrap (click)="toggleTerminalsModal()">
       <div class="tactile-modal-box" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
-          <h3>POS Hardware Terminals</h3>
+          <h3>POS terminals</h3>
           <button type="button" class="icon-btn" (click)="toggleTerminalsModal()">✕</button>
         </div>
         <div class="tactile-modal-body">
@@ -352,7 +352,7 @@ function getTodayIsoDate(): string {
           </div>
         </div>
         <div class="tactile-modal-foot">
-          <button type="button" class="header-action-btn header-action-btn--primary" (click)="navigateToTerminals()">Manage Hardware Fleet</button>
+          <button type="button" class="header-action-btn header-action-btn--primary" (click)="navigateToTerminals()">Manage terminals</button>
         </div>
       </div>
     </div>

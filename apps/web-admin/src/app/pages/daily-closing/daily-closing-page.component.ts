@@ -72,6 +72,7 @@ interface DailyClosingData {
           [initialRange]="closingRange()"
           [downloadDisabled]="!data()"
           downloadLabel="Download daily closing CSV"
+          refreshLabel="Refresh closing figures"
           [refreshDisabled]="loading()"
           [refreshing]="loading()"
           (rangeChanged)="onClosingDateChange($event)"

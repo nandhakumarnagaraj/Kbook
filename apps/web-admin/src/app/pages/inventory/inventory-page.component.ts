@@ -77,7 +77,7 @@ import { ToastService } from '../../core/services/toast.service';
   template: `
     <div class="page-shell">
       <app-page-header title="Inventory" subtitle="Track raw materials, stock levels and low-stock alerts.">
-        <button type="button" class="header-action-btn header-action-btn--primary" (click)="openAddMaterial()">Add Material</button>
+        <button *ngIf="!loading && !error && materials.length > 0" type="button" class="header-action-btn header-action-btn--primary" (click)="openAddMaterial()">Add Material</button>
         <app-refresh-button (refresh)="loadMaterials()" [disabled]="loading" [loading]="loading" ariaLabel="Refresh inventory" />
       </app-page-header>
 
@@ -158,10 +158,10 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
         <div *ngIf="materials.length === 0">
           <app-empty-state
-            title="No materials"
+            title="No materials yet"
             text="Add raw materials to track stock levels."
             icon="📦"
-            actionLabel="Add Material"
+            actionLabel="Add your first material"
             (action)="openAddMaterial()">
           </app-empty-state>
         </div>

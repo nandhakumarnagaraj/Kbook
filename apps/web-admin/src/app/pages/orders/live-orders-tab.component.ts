@@ -142,9 +142,9 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
             <path d="m9 14 2 2 4-4"/>
           </svg>
         </div>
-        <h3>All Tables &amp; Orders Settled</h3>
+        <h3>No active orders</h3>
         <p class="all-clear-sub">
-          There are no active unsettled orders right now. New orders taken from counter POS will stream here in real time.
+          New POS orders will appear here as they’re placed.
         </p>
       </div>
 

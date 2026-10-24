@@ -75,13 +75,13 @@ interface RestaurantProfile {
             </svg>
             {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
           </button>
-        <app-refresh-button (refresh)="load()" [loading]="loading()" ariaLabel="Refresh - Reload settings from server" />
+        <app-refresh-button (refresh)="refreshSettings()" [loading]="loading()" ariaLabel="Reload settings from server" />
       </app-page-header>
 
       <!-- Stale refresh banner (prototype pattern) -->
       <div class="stale-banner" *ngIf="!loading() && loadError() && profile()" role="status" aria-live="polite">
         <span>Couldn't update settings. {{ loadError() }}</span>
-        <button type="button" class="btn-retry" (click)="load()">Retry</button>
+        <button type="button" class="btn-retry" (click)="refreshSettings()">Retry</button>
       </div>
 
       <div class="panel loading" *ngIf="loading()" role="status" aria-busy="true">
@@ -94,7 +94,7 @@ interface RestaurantProfile {
       <app-api-state
         *ngIf="!loading() && loadError() && !profile()"
         [message]="loadError()"
-        (retry)="load()"
+        (retry)="refreshSettings()"
       ></app-api-state>
 
       <ng-container *ngIf="viewProfile() as p">
@@ -202,7 +202,7 @@ interface RestaurantProfile {
 
         <div class="sticky-save-dock">
           <div class="save-dock-inner">
-            <span class="dock-hint">Pending changes will sync automatically to all POS registers.</span>
+            <span class="dock-hint">Changes sync to POS registers after you save.</span>
             <button class="primary-btn" type="button" [disabled]="saving()" (click)="saveProfile()" aria-label="Save All Changes">
               <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"/>
@@ -396,6 +396,12 @@ export class BusinessSettingsPageComponent {
   readonly viewProfile = computed(() => (this.loading() ? null : this.profile()));
 
   constructor() { this.load(); }
+
+  refreshSettings(): void {
+    if (this.loading()) return;
+    if (this.dirty() && !window.confirm('Reload settings from the server? Unsaved changes will be lost.')) return;
+    this.load();
+  }
 
   load(): void {
     this.loading.set(true);

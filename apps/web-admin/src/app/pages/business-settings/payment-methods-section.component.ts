@@ -99,11 +99,10 @@ export interface PaymentMethodsSettings {
             <div *ngIf="generatingQr" class="test-qr-loading">Generating QR...</div>
           </div>
           <div class="test-qr-content">
-            <div class="test-qr-badge">&#10003; Ready to Scan &amp; Verify</div>
-            <h4>Interactive UPI Verification Test</h4>
+            <div class="test-qr-badge">&#10003; ₹1 test QR</div>
+            <h4>Check your UPI details</h4>
             <p class="muted">
-              Point your camera with <strong>Google Pay</strong>, <strong>PhonePe</strong>, or <strong>Paytm</strong> at this test QR.
-              Your UPI app will immediately resolve NPCI records and display your <strong>registered legal bank account name</strong> on your phone.
+              Scan this QR with <strong>Google Pay</strong>, <strong>PhonePe</strong>, or <strong>Paytm</strong> to check the payee shown in your UPI app. It contains a ₹1.00 payment request; approve it only if you intend to pay ₹1.00.
             </p>
             <div class="test-qr-meta">
               <span class="meta-tag">VPA: <strong>{{ settings().upiHandle }}</strong></span>

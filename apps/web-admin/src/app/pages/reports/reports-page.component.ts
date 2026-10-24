@@ -39,7 +39,8 @@ function todayRange(): { from: string; to: string } {
         <app-date-range-toolbar
           [initialRange]="selectedRange()"
           [downloadDisabled]="!report()"
-          downloadLabel="Export report data"
+          downloadLabel="Export report CSV"
+          refreshLabel="Refresh report data"
           [refreshDisabled]="refreshing()"
           [refreshing]="refreshing()"
           (rangeChanged)="setRange($event)"

@@ -37,7 +37,7 @@ import { RefreshButtonComponent } from './refresh-button.component';
         [disabled]="refreshDisabled"
         [loading]="refreshing"
         (refresh)="refresh.emit()"
-        ariaLabel="Refresh"
+        [ariaLabel]="refreshLabel"
       />
       <button
         *ngIf="showPrint"
@@ -102,6 +102,7 @@ export class DateRangeToolbarComponent {
   @Input() showDownload = true;
   @Input() downloadDisabled = false;
   @Input() downloadLabel = 'Download CSV';
+  @Input() refreshLabel = 'Refresh data';
   @Input() refreshDisabled = false;
   @Input() refreshing = false;
   @Input() showPrint = false;

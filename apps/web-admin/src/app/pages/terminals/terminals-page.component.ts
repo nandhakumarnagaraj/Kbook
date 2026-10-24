@@ -48,8 +48,8 @@ import { formatDate } from '../../shared/formatters';
             </svg>
           </div>
           <div class="tile-body">
-            <span class="tile-label">Registered Fleet</span>
-            <span class="tile-metric tabular-num" [class.tile-metric--amber]="fleetOverLimit()">{{ terminals().length }} <small>/ {{ maxActiveTerminals }} Active Max</small></span>
+            <span class="tile-label">Registered terminals</span>
+            <span class="tile-metric tabular-num">{{ terminals().length }}</span>
           </div>
         </article>
 
@@ -61,7 +61,7 @@ import { formatDate } from '../../shared/formatters';
           </div>
           <div class="tile-body">
             <span class="tile-label">Active Counter Terminals</span>
-            <span class="tile-metric tile-metric--green tabular-num">{{ activeTerminalsCount }}</span>
+            <span class="tile-metric tile-metric--green tabular-num" [class.tile-metric--amber]="fleetOverLimit()">{{ activeTerminalsCount }} <small>/ {{ maxActiveTerminals }} max</small></span>
           </div>
         </article>
 
@@ -83,7 +83,7 @@ import { formatDate } from '../../shared/formatters';
 
       <div *ngIf="fleetOverLimit()" class="fleet-limit-banner" role="status">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg>
-        <span>You have more registered terminals ({{ terminals().length }}) than your plan allows ({{ maxActiveTerminals }}). Deactivate unused devices or upgrade your plan to avoid disruptions.</span>
+        <span>You have {{ activeTerminalsCount }} active terminals; your plan allows {{ maxActiveTerminals }}. Deactivate a terminal before activating another.</span>
       </div>
 
       <!-- Registered Terminals Section -->
@@ -185,7 +185,7 @@ import { formatDate } from '../../shared/formatters';
                 <td>
                   <div class="action-stack-row">
                     <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
-                    <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
+                    <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)" title="Recover access using the new device ID">Recover access</button>
                     <button
                       *ngIf="terminal.status.toLowerCase() !== 'inactive'"
                       class="ghost-btn danger-btn small-btn"
@@ -236,7 +236,7 @@ import { formatDate } from '../../shared/formatters';
               <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Active</dt><dd>{{ terminal.isActive ? 'Yes' : 'No' }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
               <div class="mobile-data-card__actions">
                 <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
-                <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)">Recover</button>
+                  <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)" title="Recover access using the new device ID">Recover access</button>
                 <button *ngIf="terminal.status.toLowerCase() !== 'inactive'" class="ghost-btn danger-btn small-btn" [disabled]="saving()" (click)="requestDeactivate(terminal)">Deactivate</button>
                 <button *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()" class="ghost-btn success-btn small-btn" [disabled]="saving()" (click)="confirmReactivate(terminal)">Reactivate</button>
               </div>
@@ -440,7 +440,7 @@ import { formatDate } from '../../shared/formatters';
                 [disabled]="saving() || !recoveryDeviceId.trim()"
                 (click)="recoverTerminal()"
               >
-                {{ saving() ? 'Recovering...' : 'Recover terminal' }}
+                {{ saving() ? 'Recovering access…' : 'Recover terminal access' }}
               </button>
             </div>
           </ng-template>
@@ -864,7 +864,7 @@ export class TerminalsPageComponent implements OnDestroy {
   readonly terminals = signal<BusinessTerminal[]>([]);
   readonly requests = signal<TerminalRequest[]>([]);
   readonly maxActiveTerminals = 5;
-  readonly fleetOverLimit = computed(() => this.terminals().length > this.maxActiveTerminals);
+  readonly fleetOverLimit = computed(() => this.activeTerminalsCount > this.maxActiveTerminals);
   readonly terminalsLoading = signal(true);
   readonly requestsLoading = signal(true);
   readonly terminalsError = signal('');

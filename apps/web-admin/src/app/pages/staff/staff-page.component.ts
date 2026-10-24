@@ -145,7 +145,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       <!-- Canonical page header (shared design system) -->
       <app-page-header
         title="Staff &amp; Team Directory"
-        subtitle="Manage staff accounts, assign granular role permissions, and control multi-terminal sign-in security.">
+        subtitle="Manage staff accounts and review each role’s access. Shop staff permissions are fixed by role and can’t be customized here.">
         <span kbHeaderBadge class="kpi-tag" *ngIf="loaded()">
           {{ activeCount }}/{{ staff().length }} Active Accounts
         </span>
@@ -257,8 +257,9 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
                     class="small-action-btn"
                     *ngIf="item.active"
                     (click)="requestRevoke(item)"
-                    title="Sign this person out of every device without disabling their account"
-                  >Revoke Session</button>
+                    title="Sign out of all devices without deactivating this account"
+                    [attr.aria-label]="'Sign out ' + item.name + ' on all devices'"
+                  >Sign out</button>
                   <button
                     class="small-action-btn small-action-btn--success"
                     *ngIf="!item.active && !isSelf(item)"

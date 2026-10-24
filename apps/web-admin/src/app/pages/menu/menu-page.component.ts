@@ -215,7 +215,7 @@ import { environment } from '../../../environments/environment';
                 [disabled]="togglingItemFavouriteId === item.menuItemId"
                 (click)="toggleItemFavourite(item)"
               >{{ item.favourite ? '★ Starred' : '☆ Star' }}</button>
-              <button class="ghost-btn" [disabled]="togglingId === item.menuItemId" (click)="toggleAvailability(item)">{{ item.available ? 'Set unavailable' : 'Set available' }}</button>
+              <button class="ghost-btn" [disabled]="togglingId === item.menuItemId" (click)="toggleAvailability(item)">{{ item.available ? 'Mark unavailable' : 'Make available' }}</button>
               <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
               <button class="ghost-btn danger-btn" (click)="openDeleteConfirm(item)">Delete</button>
             </div>
