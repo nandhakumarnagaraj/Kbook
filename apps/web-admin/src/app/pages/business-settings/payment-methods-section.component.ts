@@ -215,7 +215,7 @@ export interface PaymentMethodsSettings {
       color: var(--kb-color-primary); border-radius: 4px;
       padding: 2px 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;
     }
-    .suggestion-btn:hover { background: rgba(232, 122, 30, 0.1); }
+    .suggestion-btn:hover { background: rgba(37, 99, 235, 0.15); }
     .flow-mode-cards {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: var(--kb-space-3); margin-top: var(--kb-space-3);
@@ -228,7 +228,7 @@ export interface PaymentMethodsSettings {
     .flow-mode-card:hover { border-color: var(--kb-color-primary); }
     .flow-mode-card.active {
       border-color: var(--kb-color-primary);
-      background: rgba(232, 122, 30, 0.05);
+      background: rgba(37, 99, 235, 0.12);
     }
     .mode-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
     .mode-radio {
@@ -248,8 +248,8 @@ export interface PaymentMethodsSettings {
       border-radius: 10px; padding: 1rem; flex-wrap: wrap;
     }
     .test-qr-media {
-      width: 140px; height: 140px; background: var(--kb-color-surface); border-radius: 8px;
-      padding: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex;
+      width: 140px; height: 140px; background: #FFFFFF; border-radius: 8px;
+      padding: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); display: flex;
       align-items: center; justify-content: center; flex-shrink: 0;
     }
     .test-qr-img { width: 100%; height: 100%; object-fit: contain; }
@@ -257,7 +257,7 @@ export interface PaymentMethodsSettings {
     .test-qr-content { flex: 1; min-width: 240px; }
     .test-qr-badge {
       display: inline-block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.12); color: #1E6B40;
+      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.15); color: #34D399;
       padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
     }
     .test-qr-content h4 { margin: 0 0 4px; font-size: 1rem; color: var(--kb-color-foreground); }
@@ -279,14 +279,14 @@ export interface PaymentMethodsSettings {
       font-variant-numeric: tabular-nums;
     }
     .chip-green {
-      background: rgba(16, 185, 129, 0.12);
-      color: #10B981;
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      background: rgba(16, 185, 129, 0.15);
+      color: #34D399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
     }
     .chip-amber {
-      background: rgba(245, 158, 11, 0.12);
-      color: #D97706;
-      border: 1px solid rgba(245, 158, 11, 0.25);
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
     }
   `]
 })

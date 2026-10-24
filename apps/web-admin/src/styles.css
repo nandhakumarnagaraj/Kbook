@@ -1,7 +1,7 @@
 /*
  * KhanaBook Web Admin — Design System
- * Concept: Service Pass (Balanced SaaS) + selective Warm Kitchen on OWNER dashboard
- * Source: Kitchen Command Center prototype (Lovable React)
+ * Concept: Dark Command Center (POS Navy #181B34, low-glare, high-craft)
+ * Invariant: Restrained tonal depth, zero generic neon slop, strict WCAG AAA legibility
  */
 
 :root {
@@ -15,9 +15,9 @@
   --surface-1:     var(--kb-color-surface);
   --surface-2:     var(--kb-color-surface-2);
   --ink:           var(--kb-color-foreground);
-  --ink-2:         #2A2A28;
+  --ink-2:         #CBD5E1;
   --muted:         var(--kb-color-muted-foreground);
-  --muted-2:       #9E9689;
+  --muted-2:       #64748B;
   --line:          var(--kb-color-border);
   --border:        var(--kb-color-border);
   --line-strong:   var(--kb-color-border-strong);
@@ -28,18 +28,18 @@
   --brand:         var(--kb-blue-500);
   --brand-deep:    var(--kb-blue-600);
   --brand-soft:    var(--kb-color-primary-soft);
-  --brand-ring:    rgba(var(--kb-color-primary-rgb), 0.35);
-  /* Focus indicator: solid blue, 6.19:1 on white (WCAG 2.2 non-text 3:1 minimum). */
-  --brand-focus-ring: var(--kb-blue-500);
+  --brand-ring:    rgba(37, 99, 235, 0.35);
+  /* Focus indicator: solid blue, high contrast against dark navy canvas */
+  --brand-focus-ring: rgba(59, 130, 246, 0.5);
 
-  --gradient-primary: linear-gradient(135deg, #0071E3 0%, #0066CC 100%);
-  --gradient-hero:    linear-gradient(135deg, #1D1D1F 0%, #0066CC 100%);
+  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  --gradient-hero:    linear-gradient(135deg, #181B34 0%, #0F1123 100%);
 
   /* ---------------------------------------------------------------------- */
   /* Semantic colours                                                        */
   /* ---------------------------------------------------------------------- */
-  --accent:        #0F766E;
-  --accent-soft:   #ECFDF5;
+  --accent:        #0D9488;
+  --accent-soft:   rgba(13, 148, 136, 0.18);
   --danger:        var(--kb-color-danger);
   --danger-soft:   var(--kb-color-danger-soft);
   --success:       var(--kb-color-success);
@@ -50,14 +50,14 @@
   --info-soft:     var(--kb-color-info-soft);
 
   /* ---------------------------------------------------------------------- */
-  /* Shadows (espresso-based shadows)                                        */
+  /* Shadows (Dark command-center depth)                                     */
   /* ---------------------------------------------------------------------- */
-  --shadow-xs:   0 1px 2px rgba(42, 31, 23, 0.04);
-  --shadow:      0 1px 3px rgba(42, 31, 23, 0.06), 0 1px 2px rgba(42, 31, 23, 0.04);
-  --shadow-md:   0 4px 12px rgba(42, 31, 23, 0.08);
-  --shadow-lg:   0 12px 32px rgba(42, 31, 23, 0.12);
-  --shadow-card: 0 1px 2px 0 rgba(42, 31, 23, 0.04), 0 4px 12px -2px rgba(42, 31, 23, 0.06);
-  --shadow-elevated: 0 6px 20px rgba(210, 100, 58, 0.12);
+  --shadow-xs:   0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow:      0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md:   0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg:   0 12px 32px rgba(0, 0, 0, 0.65);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-elevated: 0 6px 20px rgba(0, 0, 0, 0.5);
 
   /* ---------------------------------------------------------------------- */
   /* Radii                                                                   */
@@ -77,74 +77,74 @@
   -moz-osx-font-smoothing: grayscale;
 
   /* ---------------------------------------------------------------------- */
-  /* KhanaBook Design Tokens (--kb-* for new components)                     */
+  /* KhanaBook Design Tokens (--kb-* for dark command center)                */
   /* ---------------------------------------------------------------------- */
   /* Primitive palette: raw values only. Semantic tokens below alias these. */
-  --kb-blue-400:                #0077ED;
-  --kb-blue-500:                #0066CC;
-  --kb-blue-600:                #0055B3;
-  --kb-color-bg-app:            #FAF7F2;
-  --kb-color-foreground:        #1C1A17;
-  --kb-color-foreground-contrast: #FAF7F2;
-  --kb-color-surface:           #FFFFFF;
-  --kb-color-surface-2:         #F8F5EF;
-  --kb-color-muted:             #F1EDE4;
-  --kb-color-muted-foreground:  #57524A;
-  --kb-color-border:            #EFE9DE;
-  --kb-color-border-strong:     #E1D9CA;
-  --kb-color-input:             #EFE9DE;
-  --kb-color-ring:              rgba(232, 122, 30, 0.40);
-  --kb-color-espresso:          #2A1F17;
-  --kb-color-espresso-foreground: #F1ECDF;
-  --kb-color-cream:             #F5EFE3;
-  --kb-color-saffron:           #E87A1E;
-  --kb-color-turmeric:          #E4B233;
-  --kb-color-burnt:             #A84218;
+  --kb-blue-400:                #38BDF8;
+  --kb-blue-500:                #2563EB;
+  --kb-blue-600:                #1D4ED8;
+  --kb-color-bg-app:            #0F1123; /* Deep midnight canvas */
+  --kb-color-foreground:        #F8FAFC; /* Crisp legible off-white text */
+  --kb-color-foreground-contrast: #0F1123;
+  --kb-color-surface:           #181B34; /* Command Center Navy cards matching sidebar */
+  --kb-color-surface-2:         #1F2344; /* Secondary elevated/nested surface */
+  --kb-color-muted:             #13162B; /* Recessed input/canvas surface */
+  --kb-color-muted-foreground:  #94A3B8; /* Slate muted text (4.8:1+ contrast) */
+  --kb-color-border:            #282D54; /* Clean subtle navy border */
+  --kb-color-border-strong:     #3B4276; /* Elevated border */
+  --kb-color-input:             #111429; /* Dark recessed input background */
+  --kb-color-ring:              rgba(59, 130, 246, 0.40);
+  --kb-color-espresso:          #0B0D1A;
+  --kb-color-espresso-foreground: #F8FAFC;
+  --kb-color-cream:             #1F2344;
+  --kb-color-saffron:           #F59E0B;
+  --kb-color-turmeric:          #EAB308;
+  --kb-color-burnt:             #EF4444;
   --kb-color-primary:           var(--kb-blue-500);
   --kb-color-primary-foreground:#FFFFFF;
   --kb-color-primary-hover:     var(--kb-blue-600);
-  --kb-color-primary-soft:      #E8F1FB;
-  --kb-color-success:           #1E7044;
-  --kb-color-success-soft:      #E7F4EC;
-  --kb-color-warning:           #8C570A;
-  --kb-color-warning-soft:      #FBF3DF;
-  --kb-color-danger:            #C0392B;
-  --kb-color-danger-soft:       #F9E7E3;
-  --kb-color-info:              #2B6CB0;
-  --kb-color-info-soft:         #E5EEF7;
+  --kb-color-primary-soft:      rgba(37, 99, 235, 0.16);
+  --kb-color-success:           #10B981;
+  --kb-color-success-soft:      rgba(16, 185, 129, 0.16);
+  --kb-color-warning:           #F59E0B;
+  --kb-color-warning-soft:      rgba(245, 158, 11, 0.16);
+  --kb-color-danger:            #EF4444;
+  --kb-color-danger-soft:       rgba(239, 68, 68, 0.16);
+  --kb-color-info:              #38BDF8;
+  --kb-color-info-soft:         rgba(56, 189, 248, 0.16);
   /* Aliases for legacy token names still referenced by page components */
   --kb-color-card:              var(--kb-color-surface);
   --kb-color-surface-1:         var(--kb-color-surface);
   --kb-color-on-primary:        #FFFFFF;
-  --kb-color-primary-rgb:       0, 102, 204;
-  --kb-color-success-rgb:       30, 112, 68;
-  --kb-color-warning-rgb:       140, 87, 10;
-  --kb-color-danger-rgb:        192, 57, 43;
-  --kb-color-info-rgb:          43, 108, 176;
+  --kb-color-primary-rgb:       37, 99, 235;
+  --kb-color-success-rgb:       16, 185, 129;
+  --kb-color-warning-rgb:       245, 158, 11;
+  --kb-color-danger-rgb:        239, 68, 68;
+  --kb-color-info-rgb:          56, 189, 248;
   --kb-color-error:             var(--kb-color-danger);
   --kb-color-error-soft:        var(--kb-color-danger-soft);
   --kb-easing-fast:             var(--kb-ease-standard);
   --kb-font-caption:            0.75rem;
-  --kb-gradient-hero:           linear-gradient(135deg, #0071E3 0%, #0066CC 100%);
-  --kb-gradient-cream:          linear-gradient(180deg, #FBF8F1 0%, #F5EFE3 100%);
+  --kb-gradient-hero:           linear-gradient(135deg, #1D4ED8 0%, #0F1123 100%);
+  --kb-gradient-cream:          linear-gradient(180deg, #181B34 0%, #1F2344 100%);
   --kb-font-sans:               "Inter", ui-sans-serif, system-ui, sans-serif;
   --kb-font-display:            "Plus Jakarta Sans", "Inter", sans-serif;
   --kb-font-mono:               "JetBrains Mono", ui-monospace, monospace;
   --kb-font-size-display:       clamp(2rem, 3.2vw, 2.75rem);
   --kb-font-size-h1:            1.75rem;
-  --kb-color-link:              var(--kb-blue-500);
-  --kb-color-link-hover:        var(--kb-blue-600);
+  --kb-color-link:              var(--kb-blue-400);
+  --kb-color-link-hover:        var(--kb-blue-500);
   --kb-space-1: 4px;  --kb-space-2: 8px;  --kb-space-3: 12px;
   --kb-space-4: 16px; --kb-space-5: 20px; --kb-space-6: 24px;
   --kb-space-8: 32px; --kb-space-10: 40px; --kb-space-12: 48px; --kb-space-16: 64px;
   --kb-radius-sm: 4px; --kb-radius-md: 6px; --kb-radius-lg: 8px;
   --kb-radius-xl: 12px; --kb-radius-2xl: 16px; --kb-radius-full: 9999px;
   --kb-radius-card:             var(--kb-radius-xl);
-  --kb-shadow-xs: 0 1px 2px rgba(42,31,23,0.04);
-  --kb-shadow-sm: 0 1px 3px rgba(42,31,23,0.06), 0 1px 2px rgba(42,31,23,0.04);
-  --kb-shadow-md: 0 4px 12px rgba(42,31,23,0.08);
-  --kb-shadow-lg: 0 12px 32px rgba(42,31,23,0.12);
-  --kb-shadow-warm: 0 6px 20px rgba(210,100,58,0.08);
+  --kb-shadow-xs: 0 1px 2px rgba(0,0,0,0.35);
+  --kb-shadow-sm: 0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.35);
+  --kb-shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --kb-shadow-lg: 0 12px 32px rgba(0,0,0,0.65);
+  --kb-shadow-warm: 0 6px 20px rgba(0,0,0,0.5);
   --kb-duration-instant: 80ms; --kb-duration-fast: 150ms; --kb-duration-base: 200ms; --kb-duration-slow: 300ms;
   --kb-ease-standard: cubic-bezier(0.2,0,0.2,1);
   --ease-out:                   cubic-bezier(0.23, 1, 0.32, 1);
@@ -157,22 +157,22 @@
   /* POS Command Center Theme Tokens */
   --pos-sidebar-bg:         #181B34;
   --pos-sidebar-hover:      #22274A;
-  --pos-sidebar-text:       #8E95A9;
+  --pos-sidebar-text:       #94A3B8;
   --pos-purple:             var(--kb-color-primary);
   --pos-purple-hover:       var(--kb-color-primary-hover);
-  --pos-purple-soft:        rgba(var(--kb-color-primary-rgb), 0.12);
-  --pos-purple-gradient:    linear-gradient(135deg, #0077ED 0%, #0066CC 100%);
-  --pos-bg-body:            #F6F8FD;
-  --pos-card-bg:            #FFFFFF;
-  --pos-card-border:        #EEF0F7;
-  --pos-status-prep-bg:     #FEE2E2;
-  --pos-status-prep-text:   #EF4444;
-  --pos-status-cook-bg:     #FEF3C7;
-  --pos-status-cook-text:   #D97706;
-  --pos-status-serv-bg:     #EDE9FE;
-  --pos-status-serv-text:   #7C3AED;
-  --pos-status-comp-bg:     #D1FAE5;
-  --pos-status-comp-text:   #10B981;
+  --pos-purple-soft:        rgba(37, 99, 235, 0.16);
+  --pos-purple-gradient:    linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  --pos-bg-body:            #0F1123;
+  --pos-card-bg:            #181B34;
+  --pos-card-border:        #282D54;
+  --pos-status-prep-bg:     rgba(239, 68, 68, 0.15);
+  --pos-status-prep-text:   #F87171;
+  --pos-status-cook-bg:     rgba(245, 158, 11, 0.15);
+  --pos-status-cook-text:   #FBBF24;
+  --pos-status-serv-bg:     rgba(139, 92, 246, 0.15);
+  --pos-status-serv-text:   #A78BFA;
+  --pos-status-comp-bg:     rgba(16, 185, 129, 0.15);
+  --pos-status-comp-text:   #34D399;
 }
 
 * { box-sizing: border-box; }
@@ -550,7 +550,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
   padding: 0.55rem 0.8rem;
-  background: var(--panel);
+  background: var(--kb-color-input, #111429);
   color: var(--ink);
   font-size: 0.88rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -578,7 +578,8 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
   padding: 0.55rem 0.8rem;
-  background: var(--panel);
+  background: var(--kb-color-input, #111429);
+  color: var(--ink);
   font-size: 0.88rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
