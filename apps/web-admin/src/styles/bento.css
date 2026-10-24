@@ -40,7 +40,24 @@
     }
 
 /* Settings sections share one form and heading rhythm across child panels. */
-.settings-section { margin-bottom: var(--kb-space-5); }
+.settings-section {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: var(--kb-color-surface, #ffffff);
+  border: 1px solid var(--kb-color-border, #E2E8F0);
+  border-radius: var(--kb-radius-lg, 10px);
+  padding: 1.25rem 1.5rem; /* 20px vertical, 24px horizontal card padding */
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  margin-bottom: var(--kb-space-5, 1.25rem);
+}
+@media (max-width: 640px) {
+  .settings-section {
+    padding: 1rem 1.15rem; /* Compact 16px padding on mobile viewports */
+  }
+}
 .settings-section > h3 {
   margin: 0 0 var(--kb-space-2);
   color: var(--kb-color-foreground);
@@ -73,31 +90,43 @@
 }
 .section-title-wrap {
   display: flex;
-  align-items: flex-start;
-  gap: var(--kb-space-3);
-  margin-bottom: var(--kb-space-5);
-  padding-bottom: var(--kb-space-4);
+  align-items: center; /* Vertically center icon with title and description text */
+  gap: 0.75rem; /* Consistent 12px icon-to-text gap */
+  margin-bottom: var(--kb-space-5, 1.25rem);
+  padding-bottom: var(--kb-space-4, 1rem);
   border-bottom: 1px solid var(--kb-color-border);
 }
+.section-title-wrap > div:last-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
 .section-title-wrap h3 {
-  margin: 0 0 2px;
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
+  color: var(--kb-color-foreground);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 .section-title-wrap p {
-  margin: 2px 0 0;
-  font-size: 0.82rem;
+  margin: 0.2rem 0 0;
+  font-size: 0.84rem;
+  color: var(--kb-color-muted-foreground);
+  line-height: 1.4;
 }
 .section-icon {
   display: flex;
-  flex: 0 0 34px;
+  flex: 0 0 36px;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--kb-radius-md);
-  background: var(--kb-color-primary-soft);
-  color: var(--kb-color-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--kb-radius-md, 8px);
+  background: var(--kb-color-primary-soft, rgba(0, 102, 204, 0.08));
+  color: var(--kb-color-primary, #0066cc);
+  flex-shrink: 0;
 }
 
 /* Tactical Header Buttons */
@@ -285,21 +314,19 @@
     }
 
 .kpi-tag {
-      /* The one header-badge class (see docs/design/DESIGN_SYSTEM_FREEZE.md rule 3 and
-         web-admin/src/app/shared/page-header.component.ts). A flex row so a status dot
-         and its label sit on one baseline with the 4px gap the old per-page badges
-         hand-rolled; layout only, no palette/radius/spacing-token change. */
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.15rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 700;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--kb-color-surface-2);
+  color: var(--kb-color-muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 .kpi-tag--green { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
 

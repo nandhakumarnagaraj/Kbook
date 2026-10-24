@@ -60,7 +60,7 @@ interface RestaurantProfile {
     <div class="page-shell">
       <app-page-header
         title="Business &amp; Restaurant Configuration"
-        subtitle="Configure restaurant identity, automated GST compliance, and payment settlement channels."
+        subtitle="Configure restaurant details, GST compliance, and payment settlement."
       >
         <span kbHeaderBadge class="kpi-tag kpi-tag--green" *ngIf="!loading()">
           <span class="pulse-indicator" aria-hidden="true"></span>
@@ -110,7 +110,7 @@ interface RestaurantProfile {
             </div>
             <div>
               <h3>Restaurant Identity &amp; Invoicing</h3>
-              <p class="muted">Information printed on thermal receipts, customer invoices, and online menus.</p>
+              <p class="muted">Manage details displayed on thermal receipts, customer invoices, and online menus.</p>
             </div>
           </div>
 
@@ -309,6 +309,8 @@ interface RestaurantProfile {
       border-radius: var(--kb-radius-lg);
       margin-bottom: var(--kb-space-5);
       flex-wrap: wrap;
+      box-sizing: border-box;
+      width: 100%;
     }
     .logo-preview-box {
       width: 80px;

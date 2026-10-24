@@ -71,6 +71,7 @@ import { CommonModule } from '@angular/common';
         justify-content: space-between;
         gap: 1.5rem;
         flex-wrap: wrap;
+        margin-bottom: 0.25rem;
       }
 
       .kb-page-header__left {
@@ -93,7 +94,7 @@ import { CommonModule } from '@angular/common';
       .kb-page-header__title-row {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.75rem; /* 12px clean separation between heading and status badge */
         flex-wrap: wrap;
       }
 
@@ -103,14 +104,15 @@ import { CommonModule } from '@angular/common';
         font-weight: 800;
         color: var(--kb-color-foreground);
         letter-spacing: -0.03em;
-        line-height: 1.2;
+        line-height: 1.25;
       }
 
       .kb-page-header__sub {
-        margin: 0.2rem 0 0;
+        margin: 0.25rem 0 0;
         font-size: 0.88rem;
+        line-height: 1.45;
         color: var(--kb-color-muted-foreground);
-        max-width: 62ch;
+        max-width: 75ch; /* Fits introduction cleanly on single line on desktop/tablet viewports */
       }
 
       .kb-page-header__right {
