@@ -22,7 +22,7 @@ import { environment } from '../../../environments/environment';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, HeaderSearchComponent, RefreshButtonComponent],
   template: `
-    <div class="page-shell menu-page-shell">
+    <div class="page-shell">
       <!-- Canonical page header (shared design system) -->
       <app-page-header
         title="Menu &amp; Dishes Catalog"
@@ -626,7 +626,6 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
-    .menu-page-shell { gap: 1.25rem; }
     /* ── Menu table column rhythm (same standard as orders history) ── */
     /* The table design is defined once in the global stylesheet (see the
        "Tables" section of styles.css). Column alignment is layout and stays. */

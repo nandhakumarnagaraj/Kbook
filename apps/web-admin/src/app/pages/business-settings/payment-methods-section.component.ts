@@ -162,8 +162,6 @@ export interface PaymentMethodsSettings {
     </section>
   `,
   styles: [`
-    .settings-section { margin-bottom: var(--kb-space-3); }
-    .settings-section h3 { margin: 0 0 var(--kb-space-2); color: var(--kb-color-foreground); }
     .loading { font-size: 0.85rem; color: var(--kb-color-muted-foreground); padding: var(--kb-space-2) 0; }
     .config-error {
       display: flex;
@@ -189,12 +187,6 @@ export interface PaymentMethodsSettings {
       min-height: 36px;
     }
     .config-error button:hover { background: rgba(192, 57, 43, 0.08); }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-      gap: var(--kb-space-3);
-    }
-    .field label { display: block; font-size: 0.85rem; color: var(--kb-color-foreground); font-weight: 500; margin-bottom: var(--kb-space-1); }
     .toggle-label {
       display: flex; align-items: center; gap: var(--kb-space-2); cursor: pointer;
       font-size: 0.88rem; color: var(--kb-color-foreground); font-weight: 500;

@@ -22,12 +22,13 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
   template: `
     <div class="layout-shell">
       <a class="skip-link" href="#main-content">Skip to main content</a>
-      <header class="topbar topbar--mobile">
+      <header class="topbar topbar--mobile" [attr.aria-hidden]="isMobileView() && menuOpen() ? 'true' : null" [attr.inert]="isMobileView() && menuOpen() ? '' : null">
         <button
           #menuButton
           type="button"
           class="hamburger"
-          aria-label="Toggle navigation menu"
+          [class.hamburger--open]="menuOpen()"
+          [attr.aria-label]="menuOpen() ? 'Close navigation menu' : 'Open navigation menu'"
           [attr.aria-expanded]="menuOpen()"
           aria-controls="sidebar-nav"
           (click)="toggleMenu()">
@@ -39,7 +40,10 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
           <div class="brand-logo-circle brand-logo-circle--sm" aria-hidden="true">
             <img src="/khanabook_logo.png" alt="KhanaBook" class="brand-logo-img" />
           </div>
-          <span class="topbar__title">KhanaBook</span>
+          <div class="topbar__brand-copy">
+            <span class="topbar__title">KhanaBook</span>
+            <span class="topbar__context" aria-live="polite">{{ currentPageLabel() }}</span>
+          </div>
         </div>
       </header>
 
@@ -57,6 +61,8 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         [class.sidebar--open]="menuOpen()"
         id="sidebar-nav"
         aria-label="Primary navigation"
+        [attr.aria-hidden]="isMobileView() && !menuOpen() ? 'true' : null"
+        [attr.inert]="isMobileView() && !menuOpen() ? '' : null"
         tabindex="-1"
       >
         <div class="brand-block">
@@ -67,6 +73,11 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             <div class="brand-copy">
               <span class="brand-title">KhanaBook</span>
             </div>
+            <button type="button" class="sidebar-close-btn" aria-label="Close navigation menu" (click)="closeMenu()">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="m18 6-12 12M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -75,8 +86,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             *ngFor="let link of links(); trackBy: trackByNavLink"
             [routerLink]="link.path"
             routerLinkActive="active-link"
+            ariaCurrentWhenActive="page"
             class="nav-link"
-            (click)="closeMenu()">
+            (click)="closeMenu(false)">
             <span class="nav-link__icon" aria-hidden="true">
               <kb-icon *ngIf="link.iconKey" [name]="link.iconKey" [size]="18"></kb-icon>
               <span *ngIf="!link.iconKey">{{ link.icon }}</span>
@@ -108,7 +120,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         </div>
       </aside>
 
-      <div class="workspace">
+      <div class="workspace" [attr.aria-hidden]="isMobileView() && menuOpen() ? 'true' : null" [attr.inert]="isMobileView() && menuOpen() ? '' : null">
         <main id="main-content" class="content-shell" tabindex="-1">
           <router-outlet />
         </main>
@@ -186,6 +198,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       color: #FFFFFF;
       letter-spacing: -0.02em;
     }
+    .sidebar-close-btn { display: none; }
 
     /* Navigation */
     .nav-links { display: flex; flex-direction: column; gap: 6px; }
@@ -302,22 +315,35 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
 
     /* ── Topbar (mobile only) ── */
     .topbar { display: none; }
-    .topbar__brand { display: flex; align-items: center; gap: var(--kb-space-3); }
+    .topbar__brand { display: flex; align-items: center; gap: var(--kb-space-3); min-width: 0; }
+    .topbar__brand-copy { display: grid; min-width: 0; gap: 0.1rem; }
 
     .hamburger {
       display: inline-flex;
       flex-direction: column;
       justify-content: center;
-      gap: var(--kb-space-2);
+      align-items: center;
+      gap: 5px;
       width: 44px;
       height: 44px;
-      padding: 0 var(--kb-space-3);
+      padding: 0;
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-card);
       background: var(--kb-color-surface);
       cursor: pointer;
+      flex: 0 0 44px;
     }
-    .hamburger__bar { display: block; height: 2px; border-radius: var(--kb-radius-sm); background: var(--kb-color-foreground); }
+    .hamburger__bar {
+      display: block;
+      width: 22px;
+      height: 2px;
+      border-radius: var(--kb-radius-sm);
+      background: var(--kb-color-foreground);
+      transition: transform 160ms ease, opacity 120ms ease;
+    }
+    .hamburger--open .hamburger__bar:first-child { transform: translateY(7px) rotate(45deg); }
+    .hamburger--open .hamburger__bar:nth-child(2) { opacity: 0; }
+    .hamburger--open .hamburger__bar:last-child { transform: translateY(-7px) rotate(-45deg); }
     .sidebar-backdrop { display: none; }
 
     /* ── Responsive ── */
@@ -334,7 +360,8 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         background: var(--kb-color-surface);
         border-bottom: 1px solid var(--kb-color-border);
       }
-      .topbar__title { font-weight: 700; color: var(--kb-color-foreground); letter-spacing: -0.01em; }
+      .topbar__title { font-size: 0.9rem; line-height: 1.15; font-weight: 700; color: var(--kb-color-foreground); letter-spacing: -0.01em; }
+      .topbar__context { overflow: hidden; color: var(--kb-color-muted-foreground); font-size: 0.72rem; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
       .sidebar {
         position: fixed;
         top: 0;
@@ -348,6 +375,20 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         box-shadow: var(--kb-shadow-lg);
       }
       .sidebar--open { transform: translateX(0); }
+      .sidebar-close-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        margin-left: auto;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--kb-color-foreground-contrast);
+        cursor: pointer;
+      }
+      .sidebar-close-btn:focus-visible { outline: 2px solid var(--kb-color-foreground-contrast); outline-offset: 2px; }
       .sidebar-backdrop {
         display: block;
         position: fixed;
@@ -361,6 +402,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     }
     @media (min-width: 1025px) {
       .sidebar-backdrop { display: none !important; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hamburger__bar { transition: none; }
     }
   `]
 })
@@ -415,12 +459,18 @@ export class SidebarLayoutComponent implements OnInit {
     ];
   });
 
-  readonly isMobileView = signal(typeof window !== 'undefined' && window.innerWidth < 1024);
+  readonly isMobileView = signal(typeof window !== 'undefined' && window.innerWidth <= 1024);
 
   readonly showBottomBar = computed(() => this.session()?.role === 'OWNER' && this.isMobileView());
 
+  currentPageLabel(): string {
+    const path = this.router.url.split(/[?#]/, 1)[0];
+    return this.links().find((link) => path === link.path || path.startsWith(`${link.path}/`))?.label
+      ?? (this.session()?.role === 'KBOOK_ADMIN' ? 'Platform' : 'Workspace');
+  }
+
   ngOnInit(): void {
-    this.isMobileView.set(window.innerWidth < 1024);
+    this.isMobileView.set(window.innerWidth <= 1024);
     const role = this.session()?.role;
     if (role === 'OWNER') {
       this.businessApi.getProfile().subscribe({
@@ -442,9 +492,15 @@ export class SidebarLayoutComponent implements OnInit {
     setTimeout(() => this.sidebar?.nativeElement?.focus());
   }
 
-  closeMenu(): void {
+  closeMenu(restoreFocus = true): void {
     this.menuOpen.set(false);
-    setTimeout(() => this.menuButton?.nativeElement?.focus());
+    setTimeout(() => {
+      if (restoreFocus) {
+        this.menuButton?.nativeElement?.focus();
+      } else {
+        document.getElementById('main-content')?.focus();
+      }
+    });
   }
 
   logout(): void {
@@ -457,7 +513,9 @@ export class SidebarLayoutComponent implements OnInit {
 
   @HostListener('window:resize')
   onResize(): void {
-    this.isMobileView.set(window.innerWidth < 1024);
+    const isMobile = window.innerWidth <= 1024;
+    this.isMobileView.set(isMobile);
+    if (!isMobile && this.menuOpen()) this.menuOpen.set(false);
   }
 
   @HostListener('document:keydown.control.k', ['$event'])
@@ -471,6 +529,23 @@ export class SidebarLayoutComponent implements OnInit {
   @HostListener('document:keydown.escape', ['$event'])
   onEscape(event: KeyboardEvent): void {
     if (this.menuOpen()) this.closeMenu();
+  }
+
+  @HostListener('document:keydown.tab', ['$event'])
+  trapMenuFocus(event: KeyboardEvent): void {
+    if (!this.isMobileView() || !this.menuOpen()) return;
+    const focusable = this.sidebar?.nativeElement.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || active === this.sidebar?.nativeElement)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (active === last || active === this.sidebar?.nativeElement)) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   trackByNavLink = (_: number, link: NavLink) => link.path;

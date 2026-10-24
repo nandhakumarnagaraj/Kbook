@@ -232,41 +232,6 @@ interface RestaurantProfile {
     </div>
   `,
   styles: [`
-    .section-title-wrap {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--kb-space-3);
-      margin-bottom: var(--kb-space-4);
-      padding-bottom: var(--kb-space-3);
-      border-bottom: 1px solid var(--kb-color-border);
-    }
-    .section-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: var(--kb-radius-md);
-      background: rgba(var(--kb-color-primary-rgb, 37, 99, 235), 0.08);
-      color: var(--kb-color-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .section-title-wrap h3 {
-      margin: 0;
-      font-size: 1.05rem;
-      font-weight: 600;
-    }
-    .section-title-wrap p {
-      margin: 2px 0 0 0;
-      font-size: 0.82rem;
-    }
-    .settings-section { margin-bottom: var(--kb-space-4); }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-      gap: var(--kb-space-3);
-    }
-    .field label { display: block; font-size: 0.82rem; color: var(--kb-color-foreground); font-weight: 500; margin-bottom: var(--kb-space-1); }
     .tabular-num { font-variant-numeric: tabular-nums; }
     .sticky-save-dock {
       position: sticky;

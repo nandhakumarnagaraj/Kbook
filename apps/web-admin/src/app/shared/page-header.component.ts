@@ -71,6 +71,11 @@ import { CommonModule } from '@angular/common';
         flex-wrap: wrap;
       }
 
+      .kb-page-header__left {
+        flex: 1 1 20rem;
+        min-width: 0;
+      }
+
       .kb-page-header__eyebrow {
         display: flex;
         align-items: center;
@@ -92,10 +97,11 @@ import { CommonModule } from '@angular/common';
 
       .kb-page-header__title {
         margin: 0;
-        font-size: 1.65rem;
+        font-size: clamp(1.4rem, 2vw, 1.65rem);
         font-weight: 800;
         color: var(--kb-color-foreground);
         letter-spacing: -0.03em;
+        line-height: 1.2;
       }
 
       .kb-page-header__sub {
@@ -110,6 +116,26 @@ import { CommonModule } from '@angular/common';
         align-items: center;
         gap: 0.65rem;
         flex-wrap: wrap;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+
+      @media (max-width: 640px) {
+        .kb-page-header {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 0.85rem;
+        }
+
+        .kb-page-header__left,
+        .kb-page-header__right {
+          width: 100%;
+        }
+
+        .kb-page-header__right {
+          justify-content: flex-start;
+          gap: 0.5rem;
+        }
       }
     `,
   ],

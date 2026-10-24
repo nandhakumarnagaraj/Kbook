@@ -47,14 +47,6 @@ const API = environment.apiBaseUrl;
     </section>
   `,
   styles: [`
-    .settings-section { margin-bottom: var(--kb-space-3); }
-    .settings-section h3 { margin: 0 0 var(--kb-space-2); color: var(--kb-color-foreground); }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-      gap: var(--kb-space-3);
-    }
-    .field label { display: block; font-size: 0.85rem; color: var(--kb-color-foreground); font-weight: 500; margin-bottom: var(--kb-space-1); }
     .success-text { color: var(--kb-color-success); font-size: 0.85rem; }
     .error-text { color: var(--kb-color-error); font-size: 0.85rem; }
   `]

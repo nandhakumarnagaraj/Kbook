@@ -39,6 +39,55 @@
       font-weight: 600;
     }
 
+/* Settings sections share one form and heading rhythm across child panels. */
+.settings-section { margin-bottom: var(--kb-space-4); }
+.settings-section > h3 {
+  margin: 0 0 var(--kb-space-2);
+  color: var(--kb-color-foreground);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.settings-section .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: var(--kb-space-3);
+}
+.settings-section .field > label:not(.toggle-label) {
+  display: block;
+  margin-bottom: var(--kb-space-1);
+  color: var(--kb-color-foreground);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+.section-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--kb-space-3);
+  margin-bottom: var(--kb-space-4);
+  padding-bottom: var(--kb-space-3);
+  border-bottom: 1px solid var(--kb-color-border);
+}
+.section-title-wrap h3 {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+.section-title-wrap p {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+}
+.section-icon {
+  display: flex;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--kb-radius-md);
+  background: var(--kb-color-primary-soft);
+  color: var(--kb-color-primary);
+}
+
 /* Tactical Header Buttons */
     .header-pill-btn {
       display: inline-flex;

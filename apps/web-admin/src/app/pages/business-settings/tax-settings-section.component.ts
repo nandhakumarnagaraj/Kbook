@@ -172,30 +172,6 @@ interface VerificationState {
     </section>
   `,
   styles: [`
-    .section-title-wrap {
-      display: flex;
-      align-items: flex-start;
-      gap: var(--kb-space-3);
-      margin-bottom: var(--kb-space-4);
-      padding-bottom: var(--kb-space-3);
-      border-bottom: 1px solid var(--kb-color-border);
-    }
-    .section-title-wrap h3 {
-      margin: 0 0 2px;
-      font-size: 1.05rem;
-      font-weight: 700;
-    }
-    .section-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--kb-radius-md);
-      background: rgba(var(--kb-color-primary-rgb), 0.08);
-      color: var(--kb-color-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
     .toggle-label {
       display: inline-flex;
       align-items: center;
