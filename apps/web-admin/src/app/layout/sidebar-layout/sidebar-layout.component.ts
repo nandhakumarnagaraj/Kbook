@@ -20,7 +20,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, BottomActionBarComponent, IconComponent],
   template: `
-    <div class="layout-shell">
+    <div class="layout-shell" [class.layout-shell--collapsed]="collapsed() && !isMobileView()">
       <a class="skip-link" href="#main-content">Skip to main content</a>
       <header class="topbar topbar--mobile" [attr.aria-hidden]="isMobileView() && menuOpen() ? 'true' : null" [attr.inert]="isMobileView() && menuOpen() ? '' : null">
         <button
@@ -59,6 +59,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         #sidebar
         class="sidebar"
         [class.sidebar--open]="menuOpen()"
+        [class.sidebar--collapsed]="collapsed() && !isMobileView()"
         id="sidebar-nav"
         aria-label="Primary navigation"
         [attr.aria-hidden]="isMobileView() && !menuOpen() ? 'true' : null"
@@ -78,6 +79,17 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
                 <path d="m18 6-12 12M6 6l12 12" />
               </svg>
             </button>
+            <button
+              type="button"
+              class="sidebar-toggle"
+              (click)="toggleCollapsed()"
+              [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+              [attr.aria-expanded]="!collapsed()"
+              aria-controls="sidebar-nav">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path [attr.d]="collapsed() ? 'm9 18 6-6-6-6' : 'm15 18-6-6 6-6'" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -88,6 +100,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             routerLinkActive="active-link"
             ariaCurrentWhenActive="page"
             class="nav-link"
+            [attr.title]="collapsed() && !isMobileView() ? link.label : null"
             (click)="closeMenu(false)">
             <span class="nav-link__icon" aria-hidden="true">
               <kb-icon *ngIf="link.iconKey" [name]="link.iconKey" [size]="18"></kb-icon>
@@ -346,6 +359,93 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .hamburger--open .hamburger__bar:last-child { transform: translateY(-7px) rotate(-45deg); }
     .sidebar-backdrop { display: none; }
 
+    /* ── Desktop collapsible sidebar (icon rail) ── */
+    /* Hidden on mobile/tablet: the drawer there is opened with the hamburger
+       and its collapsed counterpart would make no sense. */
+    .sidebar-toggle { display: none; }
+
+    @media (min-width: 1025px) {
+      .sidebar {
+        width: 240px;
+        transition: width 200ms var(--ease-out, ease-out);
+      }
+      .sidebar-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        width: 30px;
+        height: 30px;
+        margin-left: auto;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: var(--kb-radius-full, 999px);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--kb-color-foreground-contrast, #FFFFFF);
+        cursor: pointer;
+        transition: background 120ms var(--ease-out, ease-out), color 120ms var(--ease-out, ease-out);
+      }
+      .sidebar-toggle:hover {
+        background: var(--pos-sidebar-hover, #22274A);
+        color: #FFFFFF;
+      }
+      .sidebar-toggle:focus-visible {
+        outline: 2px solid var(--kb-color-foreground-contrast);
+        outline-offset: 2px;
+      }
+
+      .layout-shell--collapsed { grid-template-columns: 68px 1fr; }
+      .sidebar--collapsed {
+        width: 68px;
+        padding-inline: 0.65rem;
+      }
+
+      /* Brand block reduces to just the logo, with the expand chevron under it */
+      .sidebar--collapsed .brand-row {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .sidebar--collapsed .brand-block { padding: 0; }
+      .sidebar--collapsed .brand-copy { display: none; }
+      .sidebar--collapsed .sidebar-toggle { margin-left: 0; }
+
+      /* Nav links become icon-only, centered, with the label as a tooltip */
+      .sidebar--collapsed .nav-link {
+        justify-content: center;
+        gap: 0;
+        padding-inline: 0;
+      }
+      .sidebar--collapsed .nav-link__label { display: none; }
+      .sidebar--collapsed .nav-link__badge {
+        position: absolute;
+        top: 7px;
+        right: calc(50% - 14px);
+        width: 8px;
+        height: 8px;
+        padding: 0;
+        font-size: 0;
+        border: none;
+        color: transparent;
+        background: #F04438;
+        overflow: hidden;
+      }
+
+      /* Footer: avatar only, icon-only sign out */
+      .sidebar--collapsed .user-card {
+        justify-content: center;
+        padding-inline: 0;
+        background: transparent;
+        border-color: transparent;
+      }
+      .sidebar--collapsed .user-meta { display: none; }
+      .sidebar--collapsed .logout-btn { padding: 0.65rem 0.55rem; }
+      .sidebar--collapsed .logout-btn span { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hamburger__bar { transition: none; }
+    }
+
     /* ── Responsive ── */
     @media (max-width: 1024px) {
       .layout-shell { grid-template-columns: 1fr; }
@@ -417,6 +517,28 @@ export class SidebarLayoutComponent implements OnInit {
   @ViewChild('sidebar') private sidebar?: ElementRef<HTMLElement>;
 
   readonly menuOpen = signal(false);
+
+  /* Desktop icon-rail collapse. Persisted so operators can keep their layout. */
+  readonly collapsed = signal<boolean>(this.readCollapsedPreference());
+
+  private readCollapsedPreference(): boolean {
+    try {
+      return typeof localStorage !== 'undefined' && localStorage.getItem('kb.sidebar.collapsed') === '1';
+    } catch {
+      // Storage unavailable (private mode, etc.) — default to expanded.
+      return false;
+    }
+  }
+
+  toggleCollapsed(): void {
+    const next = !this.collapsed();
+    this.collapsed.set(next);
+    try {
+      localStorage.setItem('kb.sidebar.collapsed', next ? '1' : '0');
+    } catch {
+      // Ignore persistence failures; the toggle still works this session.
+    }
+  }
   readonly orderPaymentFlowMode = signal<string>('pay_before_food');
 
   readonly session = this.authService.session;
