@@ -344,7 +344,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
     .table-identifier {
       font-size: 0.78rem;
       font-weight: 700;
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       background: var(--kb-color-surface);
       padding: 0.15rem 0.55rem;
       border-radius: 6px;
@@ -461,7 +461,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
     .card-action-btn--primary {
       background: var(--kb-color-primary-soft);
       border-color: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
     }
     .card-action-btn--primary:hover {
       background: var(--kb-color-primary-soft);
@@ -471,13 +471,13 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
        destructive, so it reads as a filled red button with white content rather than a
        tinted chip that blends into the Details / Invoice pair beside it. */
     .card-action-btn--danger {
-      background: var(--kb-color-danger);
-      border-color: var(--kb-color-danger);
+      background: var(--kb-color-danger-solid);
+      border-color: var(--kb-color-danger-solid);
       color: var(--kb-color-on-primary);
     }
     .card-action-btn--danger:hover {
-      background: var(--kb-color-danger);
-      border-color: var(--kb-color-danger);
+      background: var(--kb-color-danger-solid-hover);
+      border-color: var(--kb-color-danger-solid-hover);
       color: var(--kb-color-on-primary);
     }
 
@@ -551,7 +551,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
     
     
     .danger-btn {
-      background: var(--kb-color-danger) !important;
+      background: var(--kb-color-danger-solid) !important;
       color: #FFFFFF !important;
       border: none !important;
     }

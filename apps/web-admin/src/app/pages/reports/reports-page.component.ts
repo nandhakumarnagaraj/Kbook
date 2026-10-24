@@ -446,8 +446,8 @@ function todayRange(): { from: string; to: string } {
       background: var(--kb-color-surface-2);
       color: var(--kb-color-muted-foreground);
     }
-    .bento-tag--hero { background: rgba(255, 255, 255, 0.2); color: #FFFFFF; }
-    .bento-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
+    .bento-tag--hero { background: rgba(0, 0, 0, 0.28); color: #FFFFFF; }
+    .bento-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
     .bento-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
     .bento-tag--amber { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
     .bento-value {
@@ -538,7 +538,7 @@ function todayRange(): { from: string; to: string } {
       height: 38px;
       border-radius: 10px;
       background: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       display: flex;
       align-items: center;
       justify-content: center;

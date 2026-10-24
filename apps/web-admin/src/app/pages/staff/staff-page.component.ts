@@ -36,7 +36,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       height: 32px;
       border-radius: 50%;
       background: var(--kb-color-surface-2);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       font-weight: 700;
       font-size: 0.76rem;
       display: flex;
@@ -57,7 +57,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       font-size: 0.68rem;
       font-weight: 700;
       background: rgba(var(--kb-color-primary-rgb), 0.12);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
@@ -71,7 +71,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
     }
     .role-pill--owner {
       background: rgba(var(--kb-color-primary-rgb), 0.1);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       border: 1px solid rgba(var(--kb-color-primary-rgb), 0.3);
     }
     .role-pill--staff {

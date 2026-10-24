@@ -39,41 +39,63 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 
 ## Current Locked Palette (Web Admin)
 
-> **Palette revision (2026-10-13):** the ship palette is **purple `#6C27D9`**, not the
-> warm brown `#b56a2d` this table previously listed. The brown entry was stale — the
-> code (`apps/web-admin/src/styles.css`, `index.html` favicon) had already moved to purple
-> and the doc had not been updated. Purple is canonical; the brown values below are
-> recorded only for the migration history.
+> **Palette revision (2026-10-25):** the ship palette is the **dark command centre**
+> below — midnight canvas, navy surfaces, blue `#2563EB` action fill. Earlier
+> revisions in this table (white/cream surfaces, purple `#6C27D9`, warm brown
+> `#b56a2d`) are recorded only as migration history; none of them are in the code.
 >
-> Also note the source of truth is now a two-tier token set: the legacy short names
-> (`--bg`, `--brand`, …) and the semantic `--kb-color-*` aliases. New work should use
-> `--kb-color-*`.
+> The source of truth is one two-tier token set in
+> `apps/web-admin/src/styles.css`: primitives (`--kb-blue-*`) and semantic aliases
+> (`--kb-color-*`). The legacy short names (`--bg`, `--panel`, `--ink`, `--brand`, …)
+> are pure aliases of the semantic layer. New work uses `--kb-color-*`.
+>
+> This revision also **deleted `styles/wave-c.css` and `styles/wave-de.css`**. They
+> were the previous light theme, still loaded after `styles.css`, so their
+> `background: #fff` rules beat the dark surfaces: white modals under near-white
+> headings, white filter fields, cream skeletons and light stat cards. The part of
+> those sheets that was layout now lives in `styles.css`, on tokens.
 
 | Variable | Hex | Usage |
 |---|---|---|
-| `--bg` / `--kb-color-bg-app` | #FAF7F2 | Page background |
-| `--panel` / `--kb-color-surface` | #FFFFFF | Card/panel background |
-| `--kb-color-surface-2` | #F8F5EF | Recessed surface / tab rail |
-| `--ink` / `--kb-color-foreground` | #1C1A17 | Text color |
-| `--muted` / `--kb-color-muted-foreground` | #6B655C | Secondary text |
-| `--line` / `--kb-color-border` | #EFE9DE | Borders |
-| `--brand` / `--kb-color-primary` | **#6C27D9** | Primary brand (purple, canonical) |
-| `--accent` | #0F766E | Accent teal/green |
-| `--kb-color-success` | #2F855A | Success states |
-| `--kb-color-warning` | #B7791F | Warning states |
-| `--danger` / `--kb-color-danger` | #C0392B | Error red |
+| `--kb-color-bg-app` | #0B0E1A | Page canvas |
+| `--kb-color-surface` | #15192C | Card / panel / table |
+| `--kb-color-surface-2` | #1F2440 | Table header, hover, nested tile |
+| `--kb-color-surface-3` | #272D50 | Modal, popover, raised control |
+| `--pos-sidebar-bg` | #12162A | Sidebar rail |
+| `--kb-color-foreground` | #F3F6FB | Primary text |
+| `--kb-color-foreground-2` | #C3CBDA | Values and table cells |
+| `--kb-color-muted-foreground` | #93A0B8 | Secondary text |
+| `--kb-color-border` / `-strong` | #343B66 / #4C5590 | Dividers / control borders |
+| `--kb-color-primary` | **#2563EB** | Primary action fill (white on it 5.17:1) |
+| `--kb-color-primary-hover` | #1D4ED8 | Fill hover |
+| `--kb-color-link` / `-hover` | #60A5FA / #93C5FD | Brand colour used as **text** |
+| `--kb-color-success` / `-soft` | #34D399 / 14% | Success / available / completed |
+| `--kb-color-warning` / `-soft` | #FBBF24 / 14% | Warning / pending / low stock |
+| `--kb-color-danger` / `-soft` | #F87171 / 14% | Error ink and tints |
+| `--kb-color-danger-solid` | #DC2626 | Destructive **fill** with white content |
+| `--kb-color-info` / `-soft` | #60A5FA / 14% | Informational states |
+
+**Two colour rules that are now enforced by review:**
+
+1. A colour is declared once, as a `--kb-*` token. Component stylesheets consume
+   tokens; they do not carry their own palette. (Before this revision the app had
+   177 hex and 181 `rgba()` literals inside component files, in four unrelated
+   palettes.)
+2. Ink and fill are different jobs. `--kb-color-primary` and
+   `--kb-color-danger` are readable *inks* on their own tints; behind white text
+   they fail, so fills use `--kb-color-primary` (5.17:1 with white) and
+   `--kb-color-danger-solid` (4.83:1).
 
 ### Superseded (do not use)
 
 | Variable | Hex | Note |
 |---|---|---|
-| `--brand` (brown) | #b56a2d | Replaced by #6C27D9 |
-| `--bg` (brown) | #f6f1e8 | Replaced by #FAF7F2 |
-| `--ink` (brown) | #24170f | Replaced by #1C1A17 |
-| `--muted` (brown) | #7d6b5f | Replaced by #6B655C |
-| `--line` (brown) | #e9dcc9 | Replaced by #EFE9DE |
-| `--accent` (teal) | #1d7b5f | Replaced by #0F766E |
-| `--danger` (red) | #a6372f | Replaced by #C0392B |
+| `--kb-color-bg-app` (cream) | #FAF7F2 | Replaced by #0B0E1A |
+| `--kb-color-surface` (white) | #FFFFFF | Replaced by #15192C |
+| `--brand` (purple) | #6C27D9 | Replaced by #2563EB |
+| `--brand` (brown) | #b56a2d | Replaced by #6C27D9, then by #2563EB |
+| `--danger` (old red) | #C0392B | Replaced by #F87171 ink / #DC2626 solid |
+| `--accent` (teal) | #0F766E | Removed; `--accent` now aliases `--kb-color-info` |
 
 ## Web Admin Layout Rules
 
@@ -117,7 +139,7 @@ These are locked alongside the palette so pages cannot drift apart again:
 
 1. **No color value changes** without a written justification linked to user research or accessibility audit.
 2. **No new color tokens** — use existing semantic tokens. If you need a color, map it to an existing token.
-3. **No theme mode changes** — Android is dark-only, web-admin is light-only. This is final.
+3. **No theme mode changes** — Android is dark-only, web-admin is dark-only. This is final.
 4. **Typography is locked** — Poppins font, 14 M3 type scale slots. No font changes.
 5. **Shapes are locked** — `KhanaRadii.button`, `.card`, `.pill` etc. No radius changes.
 6. **Spacing scale is locked** — 4/8/12/16/20/24/32/48/64dp. No new spacing tokens.

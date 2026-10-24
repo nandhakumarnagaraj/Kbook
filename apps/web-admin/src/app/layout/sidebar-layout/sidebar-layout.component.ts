@@ -193,9 +193,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       top: 0;
       height: 100vh;
       overflow-y: auto;
-      background: var(--pos-sidebar-bg, #181B34);
-      border-right: 1px solid rgba(255, 255, 255, 0.05);
-      color: var(--pos-sidebar-text, #8E95A9);
+      background: var(--pos-sidebar-bg, #12162A);
+      border-right: 1px solid var(--kb-color-border);
+      color: var(--pos-sidebar-text, #A7B1C6);
     }
 
     .brand-block { padding: 0 0.5rem 0.5rem; }
@@ -240,7 +240,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       gap: 0.85rem;
       padding: 0.75rem 1rem;
       border-radius: 12px;
-      color: var(--pos-sidebar-text, #8E95A9);
+      color: var(--pos-sidebar-text, #A7B1C6);
       text-decoration: none;
       font-weight: 500;
       font-size: 0.92rem;
@@ -312,8 +312,12 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       box-shadow: var(--kb-shadow-xs);
     }
     .user-meta { display: grid; min-width: 0; }
-    .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground-contrast); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-role { font-size: 0.65rem; color: var(--kb-color-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    /* These two used the ink for text that sits ON a foreground fill
+       (--kb-color-foreground-contrast, #0B0E1A) and the recessed-input surface
+       (--kb-color-muted), which rendered the signed-in name at 1.2:1 and the
+       role at 1.2:1 — present in the DOM, invisible on screen. */
+    .user-name { font-weight: 600; font-size: 0.82rem; color: var(--kb-color-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-role { font-size: 0.65rem; color: var(--kb-color-muted-foreground); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
     /* Sign out: subtle restrained danger styling with tactile feedback */
     .logout-btn {
@@ -322,9 +326,11 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       justify-content: center;
       gap: 0.5rem;
       padding: 0.55rem 0.9rem;
-      background: rgba(220, 38, 38, 0.12);
-      color: #fca5a5;
-      border: 1px solid rgba(220, 38, 38, 0.28);
+      /* A destructive ACTION is a solid fill with white content — the same pair
+         the order card's Cancel button uses, so "danger" means one thing. */
+      background: var(--kb-color-danger-solid);
+      color: #FFFFFF;
+      border: 1px solid var(--kb-color-danger-solid);
       border-radius: 12px;
       cursor: pointer;
       font-weight: 600;
@@ -341,7 +347,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       transform: scale(0.97);
     }
     .logout-btn:focus-visible {
-      outline: 2px solid var(--kb-color-foreground-contrast);
+      outline: 2px solid #FFFFFF;
       outline-offset: 2px;
     }
 
@@ -404,7 +410,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: var(--kb-radius-full, 999px);
         background: rgba(255, 255, 255, 0.06);
-        color: var(--kb-color-foreground-contrast, #FFFFFF);
+        color: var(--kb-color-foreground);
         cursor: pointer;
         transition: background 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out);
       }
@@ -413,7 +419,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         color: #FFFFFF;
       }
       .sidebar-toggle:focus-visible {
-        outline: 2px solid var(--kb-color-foreground-contrast);
+        outline: 2px solid #FFFFFF;
         outline-offset: 2px;
       }
 
@@ -471,7 +477,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         z-index: 130;
         padding: 0.45rem 0.7rem;
         border-radius: 10px;
-        background: #0F1226;
+        background: var(--kb-color-surface-3);
         color: #FFFFFF;
         font-size: 0.82rem;
         font-weight: 600;
@@ -510,7 +516,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         top: 0;
         z-index: 101;
         padding: var(--kb-space-3) var(--kb-space-4);
-        background: var(--kb-color-surface);
+        background: var(--kb-color-surface-2);
         border-bottom: 1px solid var(--kb-color-border);
       }
       .topbar__title { font-size: 0.9rem; line-height: 1.15; font-weight: 700; color: var(--kb-color-foreground); letter-spacing: -0.01em; }
@@ -538,10 +544,10 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 10px;
         background: transparent;
-        color: var(--kb-color-foreground-contrast);
+        color: var(--kb-color-foreground);
         cursor: pointer;
       }
-      .sidebar-close-btn:focus-visible { outline: 2px solid var(--kb-color-foreground-contrast); outline-offset: 2px; }
+      .sidebar-close-btn:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
       .sidebar-backdrop {
         display: block;
         position: fixed;

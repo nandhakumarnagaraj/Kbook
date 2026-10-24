@@ -71,23 +71,39 @@ import { RefreshButtonComponent } from './refresh-button.component';
       width: 44px;
       height: 44px;
       padding: 0;
-      border: 1px solid #1686f5;
-      border-radius: 5px;
+      border: 1px solid var(--kb-color-border-strong);
+      border-radius: var(--kb-radius-md, 6px);
       cursor: pointer;
       transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
     }
-    .date-toolbar__button--download { color: #fff; background: #1686f5; }
-    .date-toolbar__button--download:hover:not(:disabled) { background: #0872dc; border-color: #0872dc; }
+    /* One solid action in this cluster (download); refresh/print are secondary
+       outlines, so the toolbar does not present two competing primaries. */
+    .date-toolbar__button--download {
+      color: var(--kb-color-primary-foreground);
+      background: var(--kb-color-primary);
+      border-color: var(--kb-color-primary);
+    }
+    .date-toolbar__button--download:hover:not(:disabled) {
+      background: var(--kb-color-primary-hover);
+      border-color: var(--kb-color-primary-hover);
+    }
     .date-toolbar__button--refresh,
-    .date-toolbar__button--secondary { color: #1686f5; background: #fff; }
+    .date-toolbar__button--secondary {
+      color: var(--kb-color-foreground-2);
+      background: var(--kb-color-surface-2);
+    }
     .date-toolbar__button--refresh:hover:not(:disabled),
-    .date-toolbar__button--secondary:hover:not(:disabled) { background: #edf6ff; }
+    .date-toolbar__button--secondary:hover:not(:disabled) {
+      background: var(--kb-color-surface-3);
+      border-color: var(--kb-color-border-strong);
+      color: var(--kb-color-foreground);
+    }
     /* Angular scopes this rule with its own attribute, which outranks the shared
        layer's generic disabled rule in styles.css — so a component that paints
        its own pointer cursor also states the disabled counterpart. Without this
        line the button kept a pointer cursor while disabled. */
     .date-toolbar__button:disabled { opacity: 0.55; cursor: not-allowed; }
-    .date-toolbar__button:focus-visible { outline: 2px solid #1686f5; outline-offset: 2px; }
+    .date-toolbar__button:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
     @media (max-width: 680px) {
       .date-toolbar { justify-content: flex-start; flex-wrap: wrap; }
     }

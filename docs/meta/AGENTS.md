@@ -164,17 +164,18 @@ Use these custom components from `ui/designsystem/`:
 
 ### Theming & CSS
 - **Plain CSS** with CSS Custom Properties (no SCSS, Tailwind, or frameworks)
-- **Purple palette** in `src/styles.css` (canonical — see `docs/design/DESIGN_SYSTEM_FREEZE.md`):
-  - `--kb-color-bg-app: #FAF7F2` page background
-  - `--kb-color-surface: #FFFFFF` card/panel background
-  - `--kb-color-surface-2: #F8F5EF` recessed surface
-  - `--kb-color-foreground: #1C1A17` text color
-  - `--kb-color-muted-foreground: #6B655C` secondary text
-  - `--kb-color-border: #EFE9DE` borders
-  - `--kb-color-primary: #6C27D9` primary brand (purple)
-  - `--accent: #0F766E` accent teal/green
-  - `--kb-color-success: #2F855A` / `--kb-color-warning: #B7791F` / `--kb-color-danger: #C0392B`
-  - Prefer the `--kb-color-*` aliases in new work; the short names (`--bg`, `--brand`, …) are legacy aliases of the same values.
+- **Dark palette** in `src/styles.css` (canonical — see `docs/design/DESIGN_SYSTEM_FREEZE.md`):
+  - `--kb-color-bg-app: #0B0E1A` page canvas
+  - `--kb-color-surface: #15192C` card/panel/table surface
+  - `--kb-color-surface-2: #1F2440` table header, hover, nested tile
+  - `--kb-color-surface-3: #272D50` modal, popover, raised control
+  - `--kb-color-foreground: #F3F6FB` primary text / `--kb-color-foreground-2: #C3CBDA` values
+  - `--kb-color-muted-foreground: #93A0B8` secondary text
+  - `--kb-color-border: #343B66` / `--kb-color-border-strong: #4C5590` borders
+  - `--kb-color-primary: #2563EB` action **fill**; `--kb-color-link: #60A5FA` brand colour as **text**
+  - `--kb-color-danger-solid: #DC2626` destructive fill (white content); `--kb-color-danger: #F87171` error ink
+  - `--kb-color-success: #34D399` / `--kb-color-warning: #FBBF24` / `--kb-color-info: #60A5FA`
+  - Prefer the `--kb-color-*` aliases in new work; the short names (`--bg`, `--brand`, …) are legacy aliases of the same values. Component stylesheets must not declare their own hex colours.
 - **No CSS framework or UI library** — hand-rolled components only
 - **No icon library** — use emoji/unicode icons (⚠️, 🙈, 👁️, 📋) or simple styled elements
 - **BEM-like class naming**: `.page-shell`, `.page-hero`, `.hero-meta`, `.stat-card`, `.filter-group`

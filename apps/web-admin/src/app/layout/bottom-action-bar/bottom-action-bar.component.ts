@@ -84,7 +84,7 @@ export interface BottomActionBarItem {
     }
     .action-item:active { transform: scale(0.95); }
     .action-item--active {
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       background: rgba(var(--kb-color-primary-rgb), 0.1);
     }
     .kb-badge {

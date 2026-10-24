@@ -344,7 +344,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
     .order-modal__correction {
       padding: 1rem 1.5rem;
       border-top: 1px solid var(--line);
-      background: var(--kb-color-surface-2, #f8f5ef);
+      background: var(--kb-color-surface-2);
     }
 
     .correction__toggle {

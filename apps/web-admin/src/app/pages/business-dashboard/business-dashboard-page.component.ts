@@ -812,8 +812,8 @@ function getTodayIsoDate(): string {
     }
 
     .intel-card {
-      background: #1E1F20;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
       border-radius: 16px;
       padding: 1.25rem;
       display: flex;
@@ -847,7 +847,7 @@ function getTodayIsoDate(): string {
     .intel-card__title {
       font-size: 1.1rem;
       font-weight: 700;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
       margin: 0;
     }
@@ -876,19 +876,19 @@ function getTodayIsoDate(): string {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #DC2626;
+      background: var(--kb-color-danger-solid);
     }
 
     .legend-dash {
       width: 14px;
       height: 2px;
-      border-top: 2px dashed rgba(255, 255, 255, 0.35);
+      border-top: 2px dashed var(--kb-color-border-strong);
     }
 
     .rush-badge {
-      background: rgba(220, 38, 38, 0.15);
-      color: #EF4444;
-      border: 1px solid rgba(220, 38, 38, 0.3);
+      background: var(--kb-color-danger-soft);
+      color: var(--kb-color-danger);
+      border: 1px solid rgba(var(--kb-color-danger-rgb), 0.35);
       padding: 0.15rem 0.5rem;
       border-radius: 9999px;
       font-weight: 600;
@@ -916,7 +916,7 @@ function getTodayIsoDate(): string {
     .benchmark-tag {
       font-size: 0.68rem;
       color: var(--kb-color-muted-foreground);
-      background: #1E1F20;
+      background: var(--kb-color-surface);
       padding: 0 0.35rem;
       transform: translateY(-50%);
       font-variant-numeric: tabular-nums;
@@ -947,7 +947,7 @@ function getTodayIsoDate(): string {
       height: 100%;
       display: flex;
       align-items: flex-end;
-      background: rgba(255, 255, 255, 0.03);
+      background: var(--kb-color-muted);
       border-radius: 6px;
       padding: 2px;
     }
@@ -955,18 +955,18 @@ function getTodayIsoDate(): string {
     .bar-pill-fill {
       width: 100%;
       border-radius: 4px;
-      background: rgba(220, 38, 38, 0.35);
+      background: rgba(var(--kb-color-danger-rgb), 0.35);
       transition: height 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
       position: relative;
     }
 
     .bar-pill-fill--mid {
-      background: rgba(220, 38, 38, 0.65);
+      background: rgba(var(--kb-color-danger-rgb), 0.65);
     }
 
     .bar-pill-fill--peak {
-      background: #DC2626;
-      box-shadow: 0 0 12px rgba(220, 38, 38, 0.45);
+      background: var(--kb-color-danger-solid);
+      box-shadow: 0 0 12px rgba(var(--kb-color-danger-rgb), 0.45);
     }
 
     .peak-badge-tag {
@@ -977,7 +977,7 @@ function getTodayIsoDate(): string {
       font-size: 0.62rem;
       font-weight: 800;
       color: #FFFFFF;
-      background: #DC2626;
+      background: var(--kb-color-danger-solid);
       padding: 1px 4px;
       border-radius: 3px;
       letter-spacing: 0.05em;
@@ -1002,7 +1002,7 @@ function getTodayIsoDate(): string {
     }
 
     .bar-tick-label--peak {
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
       font-weight: 700;
     }
 
@@ -1010,7 +1010,7 @@ function getTodayIsoDate(): string {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 0.75rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-top: 1px solid var(--kb-color-border);
       padding-top: 0.85rem;
     }
     @media (max-width: 640px) {
@@ -1035,7 +1035,7 @@ function getTodayIsoDate(): string {
     .vel-val {
       font-size: 0.86rem;
       font-weight: 700;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
 
@@ -1049,7 +1049,7 @@ function getTodayIsoDate(): string {
     .matrix-hall-pill {
       font-size: 0.72rem;
       padding: 0.2rem 0.55rem;
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--kb-color-surface-2);
       border-radius: 9999px;
       color: var(--kb-color-muted-foreground);
       font-weight: 500;
@@ -1058,7 +1058,7 @@ function getTodayIsoDate(): string {
     .table-filter-pills {
       display: flex;
       gap: 0.4rem;
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--kb-color-muted);
       padding: 0.25rem;
       border-radius: 10px;
     }
@@ -1076,13 +1076,13 @@ function getTodayIsoDate(): string {
     }
 
     .filter-pill:hover {
-      color: #FFFFFF;
-      background: rgba(255, 255, 255, 0.06);
+      color: var(--kb-color-foreground);
+      background: var(--kb-color-surface-2);
     }
 
     .filter-pill--active {
-      color: #FFFFFF;
-      background: rgba(255, 255, 255, 0.12);
+      color: var(--kb-color-foreground);
+      background: var(--kb-color-surface-3);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
     }
 
@@ -1117,8 +1117,8 @@ function getTodayIsoDate(): string {
     }
 
     .table-chip {
-      background: #28292A;
-      border: 1px solid rgba(255, 255, 255, 0.07);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
       border-radius: 12px;
       padding: 0.75rem;
       display: flex;
@@ -1129,21 +1129,24 @@ function getTodayIsoDate(): string {
     }
 
     .table-chip:hover {
-      border-color: rgba(255, 255, 255, 0.18);
+      border-color: var(--kb-color-border-strong);
       transform: translateY(-1px);
     }
 
+    /* Table state is a left rule plus a text label in the chip, never the rule
+       alone: vacant / dining / bill-sent must stay distinguishable without
+       colour (and in forced-colours mode). */
     .table-chip--vacant {
-      border-left: 3px solid #10B981;
+      border-left: 3px solid var(--kb-color-success);
     }
 
     .table-chip--dining {
-      border-left: 3px solid #F59E0B;
+      border-left: 3px solid var(--kb-color-warning);
     }
 
     .table-chip--bill {
-      border-left: 3px solid #DC2626;
-      background: rgba(220, 38, 38, 0.06);
+      border-left: 3px solid var(--kb-color-danger-solid);
+      background: var(--kb-color-danger-soft);
     }
 
     .table-chip__head {
@@ -1155,7 +1158,7 @@ function getTodayIsoDate(): string {
     .table-chip__number {
       font-size: 0.95rem;
       font-weight: 700;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
       letter-spacing: -0.01em;
     }
 
@@ -1174,14 +1177,14 @@ function getTodayIsoDate(): string {
     .table-chip__amount {
       font-size: 0.92rem;
       font-weight: 700;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
 
     .table-chip__vacant-label {
       font-size: 0.72rem;
       font-weight: 700;
-      color: #10B981;
+      color: var(--kb-color-success);
       letter-spacing: 0.04em;
     }
 
@@ -1193,7 +1196,7 @@ function getTodayIsoDate(): string {
 
     .table-chip__badge-sent {
       font-size: 0.72rem;
-      color: #DC2626;
+      color: var(--kb-color-danger);
       font-weight: 600;
       font-variant-numeric: tabular-nums;
     }
@@ -1219,16 +1222,16 @@ function getTodayIsoDate(): string {
       align-items: center;
       gap: 0.75rem;
       padding: 0.5rem 0.65rem;
-      background: #28292A;
+      background: var(--kb-color-surface-2);
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--kb-color-border);
     }
 
     .dish-rank-badge {
       width: 22px;
       height: 22px;
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--kb-color-surface-3);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1240,7 +1243,7 @@ function getTodayIsoDate(): string {
     }
 
     .dish-rank-badge--first {
-      background: #DC2626;
+      background: var(--kb-color-danger-solid);
       color: #FFFFFF;
     }
 
@@ -1262,7 +1265,7 @@ function getTodayIsoDate(): string {
     .dish-name-label {
       font-size: 0.85rem;
       font-weight: 600;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -1270,7 +1273,7 @@ function getTodayIsoDate(): string {
 
     .dish-category-tag {
       font-size: 0.68rem;
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--kb-color-surface-3);
       padding: 0.1rem 0.4rem;
       border-radius: 4px;
       color: var(--kb-color-muted-foreground);
@@ -1279,27 +1282,27 @@ function getTodayIsoDate(): string {
     .dish-bar-track {
       width: 100%;
       height: 5px;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--kb-color-muted);
       border-radius: 9999px;
       overflow: hidden;
     }
 
     .dish-bar-fill {
       height: 100%;
-      background: #DC2626;
+      background: var(--kb-color-danger-solid);
       border-radius: 9999px;
     }
 
     .dish-bar-fill--amber {
-      background: #F59E0B;
+      background: var(--kb-color-warning);
     }
 
     .dish-bar-fill--mint {
-      background: #10B981;
+      background: var(--kb-color-success);
     }
 
     .dish-bar-fill--slate {
-      background: #64748B;
+      background: var(--kb-color-muted-foreground);
     }
 
     .dish-leader-sub {
@@ -1313,7 +1316,7 @@ function getTodayIsoDate(): string {
     .dish-rev-label {
       font-size: 0.88rem;
       font-weight: 700;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
       flex: none;
     }
@@ -1329,14 +1332,14 @@ function getTodayIsoDate(): string {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      background: #10B981;
-      box-shadow: 0 0 6px #10B981;
+      background: var(--kb-color-success);
+      box-shadow: 0 0 6px rgba(var(--kb-color-success-rgb), 0.8);
     }
 
     .ledger-time-window {
       font-size: 0.72rem;
-      color: #10B981;
-      background: rgba(16, 185, 129, 0.12);
+      color: var(--kb-color-success);
+      background: var(--kb-color-success-soft);
       padding: 0.15rem 0.5rem;
       border-radius: 9999px;
       font-weight: 600;
@@ -1351,9 +1354,9 @@ function getTodayIsoDate(): string {
     }
 
     .ledger-entry {
-      background: #28292A;
+      background: var(--kb-color-surface-2);
       border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--kb-color-border);
       padding: 0.65rem 0.75rem;
       display: flex;
       flex-direction: column;
@@ -1369,13 +1372,13 @@ function getTodayIsoDate(): string {
     .ledger-voucher {
       font-size: 0.82rem;
       font-weight: 600;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
     }
 
     .ledger-amount {
       font-size: 0.86rem;
       font-weight: 700;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
 
@@ -1390,7 +1393,7 @@ function getTodayIsoDate(): string {
       display: flex;
       align-items: center;
       gap: 0.3rem;
-      color: #10B981;
+      color: var(--kb-color-success);
       font-weight: 500;
     }
 
@@ -1405,12 +1408,12 @@ function getTodayIsoDate(): string {
       gap: 0.3rem;
       font-size: 0.68rem;
       color: var(--kb-color-muted-foreground);
-      border-top: 1px dashed rgba(255, 255, 255, 0.06);
+      border-top: 1px dashed var(--kb-color-border);
       padding-top: 0.3rem;
     }
 
     .sync-check {
-      color: #10B981;
+      color: var(--kb-color-success);
       font-size: 0.55rem;
     }
 
@@ -1419,7 +1422,7 @@ function getTodayIsoDate(): string {
       justify-content: space-between;
       align-items: center;
       padding-top: 0.65rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-top: 1px solid var(--kb-color-border);
       font-size: 0.74rem;
       color: var(--kb-color-muted-foreground);
     }
@@ -1431,11 +1434,11 @@ function getTodayIsoDate(): string {
     }
 
     .hardware-icon {
-      color: #F59E0B;
+      color: var(--kb-color-warning);
     }
 
     .hardware-status-ok {
-      color: #10B981;
+      color: var(--kb-color-success);
       font-weight: 600;
       font-size: 0.72rem;
     }

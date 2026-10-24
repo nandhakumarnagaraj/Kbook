@@ -27,7 +27,7 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
       font-size: 0.875rem; margin-bottom: 1rem;
     }
     .success-section { text-align: center; padding: var(--kb-space-4) 0; }
-    .success-section h4 { color: var(--kb-color-primary); margin: 0 0 var(--kb-space-2); }
+    .success-section h4 { color: var(--kb-color-link); margin: 0 0 var(--kb-space-2); }
     .otp-note {
       background: var(--kb-color-surface); border: 1px solid var(--kb-color-primary);
       border-radius: var(--kb-radius-lg); padding: var(--kb-space-3); margin: var(--kb-space-3) 0;

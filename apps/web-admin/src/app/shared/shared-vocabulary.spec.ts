@@ -45,6 +45,24 @@ function rem(value: number): string {
   return `${Math.round(value * root * 100) / 100}px`;
 }
 
+/**
+ * Resolves a design token in the browser.
+ *
+ * These assertions used to compare against literal rgb() values — the palette as it
+ * stood on the day the spec was written — so every deliberate palette change turned
+ * them red and the class they were guarding was fine. Pinning the *token* keeps the
+ * guarantee (this class paints itself from the shared semantic colour) without
+ * freezing the hex it happens to hold today.
+ */
+function tokenColor(name: string): string {
+  const probe = document.createElement('div');
+  probe.style.color = `var(${name})`;
+  document.body.appendChild(probe);
+  const value = getComputedStyle(probe).color;
+  probe.remove();
+  return value;
+}
+
 describe('shared vocabulary (bento.css)', () => {
   let host: HTMLElement;
 
@@ -62,20 +80,20 @@ describe('shared vocabulary (bento.css)', () => {
   it('renders a .kpi-tag at the shared size, not a page-local one', () => {
     const tag = styleOf(host, '.kpi-tag');
 
-    expect(tag.paddingTop).toBe(rem(0.15));
+    expect(tag.paddingTop).toBe(rem(0.2));
     expect(tag.borderRadius).toBe('999px');
-    expect(tag.fontSize).toBe(rem(0.72));
+    expect(tag.fontSize).toBe(rem(0.74));
     expect(tag.fontWeight).toBe('700');
     expect(tag.fontVariantNumeric).toBe('tabular-nums');
-    expect(tag.backgroundColor).toBe('rgb(248, 245, 239)'); // --kb-color-surface-2
+    expect(tag.backgroundColor).toBe(tokenColor('--kb-color-surface-2'));
   });
 
   it('resolves the .kpi-tag modifiers to semantic tokens', () => {
     // POS Devices and Daily Closing read live state off these two.
-    expect(styleOf(host, '.kpi-tag--green').color).toBe('rgb(30, 112, 68)'); // --kb-color-success
-    expect(styleOf(host, '.kpi-tag--green').backgroundColor).toBe('rgb(231, 244, 236)'); // success-soft
-    expect(styleOf(host, '.kpi-tag--warn').color).toBe('rgb(192, 57, 43)'); // --kb-color-danger
-    expect(styleOf(host, '.kpi-tag--warn').backgroundColor).toBe('rgb(249, 231, 227)'); // danger-soft
+    expect(styleOf(host, '.kpi-tag--green').color).toBe(tokenColor('--kb-color-success'));
+    expect(styleOf(host, '.kpi-tag--green').backgroundColor).toBe(tokenColor('--kb-color-success-soft'));
+    expect(styleOf(host, '.kpi-tag--warn').color).toBe(tokenColor('--kb-color-danger'));
+    expect(styleOf(host, '.kpi-tag--warn').backgroundColor).toBe(tokenColor('--kb-color-danger-soft'));
   });
 
   it('renders .status-chip from the single shared rule', () => {
@@ -90,20 +108,21 @@ describe('shared vocabulary (bento.css)', () => {
   it('renders .btn-micro (on an anchor) without losing the link reset', () => {
     const btn = styleOf(host, 'a.btn-micro');
 
-    expect(btn.backgroundColor).toBe('rgb(255, 255, 255)'); // --kb-color-surface
-    expect(btn.color).toBe('rgb(28, 26, 23)'); // --kb-color-foreground, beats a { color: var(--brand) }
+    expect(btn.backgroundColor).toBe(tokenColor('--kb-color-surface-2'));
+    // --kb-color-foreground: the shared rule beats `a { color: var(--brand) }`.
+    expect(btn.color).toBe(tokenColor('--kb-color-foreground'));
     expect(btn.textDecorationLine).toBe('none');
     expect(btn.display).toBe('inline-flex');
   });
 
   it('renders both .btn-micro modifiers, including the danger variant', () => {
     const primary = styleOf(host, '.btn-micro--primary');
-    expect(primary.backgroundColor).toBe('rgb(0, 102, 204)'); // --kb-color-primary
+    expect(primary.backgroundColor).toBe(tokenColor('--kb-color-primary'));
     expect(primary.color).toBe('rgb(255, 255, 255)');
 
     // Added to bento.css when the order-history copy was removed; two templates use it.
     const danger = styleOf(host, '.btn-micro--danger');
-    expect(danger.color).toBe('rgb(192, 57, 43)'); // --kb-color-danger
-    expect(danger.backgroundColor).toBe('rgb(249, 231, 227)'); // --kb-color-danger-soft
+    expect(danger.color).toBe(tokenColor('--kb-color-danger'));
+    expect(danger.backgroundColor).toBe(tokenColor('--kb-color-danger-soft'));
   });
 });

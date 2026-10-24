@@ -30,8 +30,25 @@ import { ToastService } from '../core/services/toast.service';
  * touched it would be worse than no feedback at all, so every one of these
  * specs checks the resting state first.
  */
-const FLAGGED_BORDER = 'rgb(192, 57, 43)';   // --kb-color-danger
-const RESTING_BORDER = 'rgb(225, 217, 202)'; // --line-strong, on .field-control / .field-select
+/**
+ * The border a field carries, read from the tokens rather than from literals.
+ *
+ * These two used to be hard-coded rgb() values from the palette of the day, so a
+ * palette change failed eleven specs whose actual guarantee — "a rejected field
+ * takes the danger border, an untouched one takes the ordinary border" — was
+ * still true. Resolving the token in the browser keeps that guarantee and stops
+ * the spec from freezing a hex.
+ */
+function tokenBorder(name: string): string {
+  const probe = document.createElement('div');
+  probe.style.borderColor = `var(${name})`;
+  document.body.appendChild(probe);
+  const value = getComputedStyle(probe).borderTopColor;
+  probe.remove();
+  return value;
+}
+const flaggedBorder = () => tokenBorder('--kb-color-danger');
+const restingBorder = () => tokenBorder('--kb-color-border-strong');
 
 const authStub = {
   session: () => ({ role: 'OWNER', restaurantId: 1, loginId: 'owner', restaurantName: 'Test Kitchen' }),
@@ -110,19 +127,19 @@ describe('field-level invalid feedback, remaining forms', () => {
     expect(field).withContext('the create form renders its name field').toBeTruthy();
 
     expect(flagged(field)).withContext('a resting field makes no claim').toBeFalse();
-    expect(borderAfterRecalc(field)).toBe(RESTING_BORDER);
+    expect(borderAfterRecalc(field)).toBe(restingBorder());
 
     leave(field);
     fixture.detectChanges();
     expect(flagged(field)).withContext('an empty required field flags itself').toBeTrue();
     expect(borderAfterRecalc(field))
       .withContext('and the shared rule turns that into the danger border')
-      .toBe(FLAGGED_BORDER);
+      .toBe(flaggedBorder());
 
     type(field, 'Ravi');
     fixture.detectChanges();
     expect(flagged(field)).withContext('a valid value clears the flag').toBeFalse();
-    expect(borderAfterRecalc(field)).toBe(RESTING_BORDER);
+    expect(borderAfterRecalc(field)).toBe(restingBorder());
 
     fixture.destroy();
   });
@@ -142,12 +159,12 @@ describe('field-level invalid feedback, remaining forms', () => {
     leave(field);
     fixture.detectChanges();
     expect(flagged(field)).toBeTrue();
-    expect(borderAfterRecalc(field)).toBe(FLAGGED_BORDER);
+    expect(borderAfterRecalc(field)).toBe(flaggedBorder());
 
     type(field, 'Senior Cashier');
     fixture.detectChanges();
     expect(flagged(field)).toBeFalse();
-    expect(borderAfterRecalc(field)).toBe(RESTING_BORDER);
+    expect(borderAfterRecalc(field)).toBe(restingBorder());
 
     // A name of spaces is still not a name: the flag follows the rule Save
     // applies, not the looser one a required validator would.
@@ -155,7 +172,7 @@ describe('field-level invalid feedback, remaining forms', () => {
     leave(field);
     fixture.detectChanges();
     expect(flagged(field)).toBeTrue();
-    expect(borderAfterRecalc(field)).toBe(FLAGGED_BORDER);
+    expect(borderAfterRecalc(field)).toBe(flaggedBorder());
     expect(messageFor(field)).withContext('and the flag explains itself').toBe('Template name is required.');
 
     expect(danglingReferences(fixture.nativeElement)).toEqual([]);
@@ -187,7 +204,7 @@ describe('field-level invalid feedback, remaining forms', () => {
     leave(rename);
     fixture.detectChanges();
     expect(flagged(rename)).withContext('a blank name flags itself').toBeTrue();
-    expect(borderAfterRecalc(rename)).toBe(FLAGGED_BORDER);
+    expect(borderAfterRecalc(rename)).toBe(flaggedBorder());
     expect(messageFor(rename)).withContext('and says what is missing').toBe('Terminal name is required.');
 
     fixture.componentInstance.cancelEdit();
@@ -203,13 +220,13 @@ describe('field-level invalid feedback, remaining forms', () => {
     leave(deviceId);
     fixture.detectChanges();
     expect(flagged(deviceId)).toBeTrue();
-    expect(borderAfterRecalc(deviceId)).toBe(FLAGGED_BORDER);
+    expect(borderAfterRecalc(deviceId)).toBe(flaggedBorder());
     expect(messageFor(deviceId)).toBe('Enter the device ID shown on the new device.');
 
     type(deviceId, 'dev-2');
     fixture.detectChanges();
     expect(flagged(deviceId)).toBeFalse();
-    expect(borderAfterRecalc(deviceId)).toBe(RESTING_BORDER);
+    expect(borderAfterRecalc(deviceId)).toBe(restingBorder());
     expect(deviceId.getAttribute('aria-describedby'))
       .withContext('a filled-in device id has nothing to answer for')
       .toBeNull();
@@ -235,7 +252,7 @@ describe('field-level invalid feedback, remaining forms', () => {
     rejectedFixture.detectChanges();
 
     expect(flagged(field)).withContext('a rejected GSTIN flags its field').toBeTrue();
-    expect(borderAfterRecalc(field)).toBe(FLAGGED_BORDER);
+    expect(borderAfterRecalc(field)).toBe(flaggedBorder());
     expect((rejectedFixture.nativeElement as HTMLElement).textContent)
       .withContext('and the rejection message is what the border points at')
       .toContain('GSTIN is invalid or unregistered.');
@@ -254,7 +271,7 @@ describe('field-level invalid feedback, remaining forms', () => {
     verifiedFixture.detectChanges();
 
     expect(flagged(okField)).withContext('a verified GSTIN is never flagged').toBeFalse();
-    expect(borderAfterRecalc(okField)).toBe(RESTING_BORDER);
+    expect(borderAfterRecalc(okField)).toBe(restingBorder());
     verifiedFixture.destroy();
   });
 
@@ -282,13 +299,13 @@ describe('field-level invalid feedback, remaining forms', () => {
     leave(name);
     fixture.detectChanges();
     expect(flagged(name)).toBeTrue();
-    expect(borderAfterRecalc(name)).toBe(FLAGGED_BORDER);
+    expect(borderAfterRecalc(name)).toBe(flaggedBorder());
     expect(messageFor(name)).withContext('the flag explains itself').toBe('Material name is required.');
 
     type(name, 'Basmati Rice');
     fixture.detectChanges();
     expect(flagged(name)).toBeFalse();
-    expect(borderAfterRecalc(name)).toBe(RESTING_BORDER);
+    expect(borderAfterRecalc(name)).toBe(restingBorder());
     // Cancel out of the modal the way a user does.
     const cancel = Array.from(host.querySelectorAll('button.ghost-btn'))
       .find((button) => (button.textContent || '').includes('Cancel')) as HTMLButtonElement;
@@ -312,7 +329,7 @@ describe('field-level invalid feedback, remaining forms', () => {
     leave(stockInQty);
     fixture.detectChanges();
     expect(flagged(stockInQty)).withContext('zero is not a stock-in quantity').toBeTrue();
-    expect(borderAfterRecalc(stockInQty)).toBe(FLAGGED_BORDER);
+    expect(borderAfterRecalc(stockInQty)).toBe(flaggedBorder());
     expect(messageFor(stockInQty))
       .withContext('a disabled button is not an explanation')
       .toBe('Enter a quantity greater than zero.');
@@ -320,7 +337,7 @@ describe('field-level invalid feedback, remaining forms', () => {
     type(stockInQty, '12');
     fixture.detectChanges();
     expect(flagged(stockInQty)).toBeFalse();
-    expect(borderAfterRecalc(stockInQty)).toBe(RESTING_BORDER);
+    expect(borderAfterRecalc(stockInQty)).toBe(restingBorder());
 
     expect(danglingReferences(host)).toEqual([]);
     fixture.destroy();

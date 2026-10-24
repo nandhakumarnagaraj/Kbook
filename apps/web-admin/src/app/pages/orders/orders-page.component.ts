@@ -140,10 +140,13 @@ export type OrdersTab = 'live' | 'history';
         color: var(--kb-color-foreground);
       }
 
+      /* The active tab is a raised dark pill, not a white one: a white chip on a
+         dark rail was the last light-theme island on this page, and brand blue
+         on white was 5.2:1 while link blue on white is 2.4:1. */
       .orders-tab--active {
-        background: #ffffff;
-        color: var(--kb-color-primary);
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        background: var(--kb-color-surface-3);
+        color: var(--kb-color-link);
+        box-shadow: var(--shadow-xs);
       }
 
       .orders-tab:focus-visible {

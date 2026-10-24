@@ -32,7 +32,7 @@
 .pill-divider { color: var(--kb-color-border-strong); }
 
 .live-date-pill {
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       background: var(--kb-color-primary-soft);
       padding: 0.1rem 0.5rem;
       border-radius: 999px;
@@ -257,7 +257,7 @@
 
 .bento-tile:hover {
       border-color: var(--kb-color-border-strong);
-      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+      box-shadow: var(--shadow-md);
       transform: translateY(-2px);
     }
 
@@ -265,14 +265,19 @@
       transform: scale(0.98);
     }
 
+/* The hero tile's gradient started at --kb-color-foreground, which was the dark
+   ink when this rule was written. Once the theme moved to a midnight canvas that
+   token became near-white, so the revenue tile rendered as a white slab with
+   white text on it. The hero is now brand-tinted: white clears 6.5:1 at the
+   blue end and 18:1 at the dark end. */
 .bento-tile--hero {
-      background: linear-gradient(145deg, var(--kb-color-foreground) 0%, var(--kb-color-espresso) 100%);
-      border: 1px solid var(--kb-color-foreground);
+      background: linear-gradient(145deg, var(--kb-color-primary-hover) 0%, var(--kb-color-bg-app) 100%);
+      border: 1px solid rgba(var(--kb-color-primary-rgb), 0.55);
       color: #FFFFFF;
-      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.15);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28);
     }
 
-.bento-tile--hero .bento-tile__eyebrow { color: var(--kb-color-muted-foreground); }
+.bento-tile--hero .bento-tile__eyebrow { color: rgba(255, 255, 255, 0.86); }
 
 .bento-tile--hero .bento-tile__main-metric { color: #FFFFFF; }
 
@@ -298,19 +303,21 @@
       border-radius: 999px;
       font-size: 0.72rem;
       font-weight: 700;
-      background: rgba(16, 185, 129, 0.15);
+      background: var(--kb-color-success-soft);
       color: var(--kb-color-success);
       font-variant-numeric: tabular-nums;
     }
 
 .trend-badge--down {
-      background: rgba(239, 68, 68, 0.15);
+      background: var(--kb-color-danger-soft);
       color: var(--kb-color-danger);
     }
 
+/* A neutral trend is not a boundary: --kb-color-border-strong is a border tone
+   and only reaches 2.5:1 as text. */
 .trend-badge--neutral {
-      background: rgba(148, 163, 184, 0.15);
-      color: var(--kb-color-border-strong);
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
     }
 
 .kpi-tag {
@@ -1021,11 +1028,11 @@
 }
 
 .split-meter-segment--upi {
-  background: #38bdf8;
+  background: var(--kb-color-info);
 }
 
 .split-meter-segment--cash {
-  background: #34d399;
+  background: var(--kb-color-success);
 }
 
 .split-meter--neutral {
@@ -1046,8 +1053,8 @@
   border-radius: 50%;
 }
 
-.split-legend--cash { background: #34d399; }
-.split-legend--upi { background: #38bdf8; }
+.split-legend--cash { background: var(--kb-color-success); }
+.split-legend--upi { background: var(--kb-color-info); }
 
 .split-val { color: #FFFFFF; font-weight: 600; }
 .split-pct { color: rgba(255, 255, 255, 0.6); font-size: 0.72rem; }

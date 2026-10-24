@@ -519,7 +519,7 @@ interface DailyClosingData {
       align-items: center;
       justify-content: center;
       background: #FFFFFF;
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       border: 1px solid var(--kb-color-border);
       flex-shrink: 0;
     }

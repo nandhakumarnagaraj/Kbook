@@ -336,7 +336,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
   `,
   styles: [`
     .refunded-label { color: var(--kb-color-error); font-weight: 500; }
-    .refund-meta { font-size: 0.75rem; color: var(--kb-color-primary); }
+    .refund-meta { font-size: 0.75rem; color: var(--kb-color-link); }
 
     .filter-group--full { grid-column: 1 / -1; }
 
@@ -491,7 +491,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
 
     .chip--dine-in {
       background: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       border: 1px solid var(--kb-color-primary-soft);
     }
     .chip--takeaway {
@@ -541,7 +541,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
       font-weight: 700;
       letter-spacing: 0.02em;
     }
-    .channel-chip--dine_in { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
+    .channel-chip--dine_in { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
     .channel-chip--takeaway { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
     .order-guest-desc {
       display: flex;
@@ -570,7 +570,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
     }
     .badge-preparing { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
     .badge-cooking { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
+    .badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
     .badge-completed { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
     .badge-cancelled { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
     .time-stamp-label {

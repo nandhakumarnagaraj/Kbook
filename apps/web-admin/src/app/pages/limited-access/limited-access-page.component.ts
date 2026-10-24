@@ -48,7 +48,7 @@ import { AuthService } from '../../core/auth/auth.service';
       font-weight: 800;
     }
     .eyebrow {
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       text-transform: uppercase;
       letter-spacing: 0.08em;
       font-size: 0.76rem;
@@ -58,7 +58,7 @@ import { AuthService } from '../../core/auth/auth.service';
     .access-note {
       margin: var(--kb-space-4) 0;
       padding: var(--kb-space-3);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);

@@ -212,7 +212,7 @@ export interface PaymentMethodsSettings {
     .feedback-error { color: var(--kb-color-error); font-weight: 500; }
     .suggestion-btn {
       background: none; border: 1px solid var(--kb-color-primary);
-      color: var(--kb-color-primary); border-radius: 4px;
+      color: var(--kb-color-link); border-radius: 4px;
       padding: 2px 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;
     }
     .suggestion-btn:hover { background: rgba(37, 99, 235, 0.15); }

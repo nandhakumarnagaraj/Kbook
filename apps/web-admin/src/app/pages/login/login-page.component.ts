@@ -1144,7 +1144,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transition: color 0.15s ease;
     }
     .back-link:hover {
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       text-decoration: underline;
     }
 

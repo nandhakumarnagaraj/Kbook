@@ -17,26 +17,58 @@
 
 ## 2. Color Palette & Design Tokens
 
+> **Web Admin palette revision (2026-10-25).** The values below are the ones
+> `apps/web-admin/src/styles.css` actually ships: a dark, low-glare command
+> centre. They replace the warm-cream light palette this document recorded,
+> which no longer existed in code. Android remains a separate palette — see the
+> Android section. Only one colour source of truth exists per app.
+
 ### 2.1 Brand & Interactive Tokens
-* **Primary Brand Blue:** `--kb-color-primary: #0066cc;` (Main buttons, active links, primary pills, focused states)
-* **Primary Hover Blue:** `--kb-color-primary-hover: #0055b3;`
-* **Primary Foreground:** `--kb-color-on-primary: #ffffff;`
-* **Focus Outline Tint:** `rgba(0, 102, 204, 0.25)`
+* **Primary Brand Blue (fill):** `--kb-color-primary: #2563EB;` — primary buttons,
+  active navigation, selected pills. White content on it = 5.17:1.
+* **Primary Hover:** `--kb-color-primary-hover: #1D4ED8;`
+* **Primary Foreground (on the fill):** `--kb-color-primary-foreground: #FFFFFF;`
+* **Link / brand-as-text:** `--kb-color-link: #60A5FA;` (hover `#93C5FD`) — links,
+  active tab labels, brand-coloured icons. The fill colour only reaches 3.4:1 as
+  text on a card, so text never uses `--kb-color-primary`.
+* **Focus ring:** `rgba(var(--kb-color-primary-rgb), 0.45)` halo, plus a solid
+  2px outline in `--kb-color-primary`.
 
 ### 2.2 Semantic Status Tokens
-* **Success / Active Green:** `--kb-color-success: #2f855a;` (Background tint: `rgba(47, 133, 90, 0.10);`)
-* **Warning / Alert Amber:** `--kb-color-warning: #d97706;` (Background tint: `rgba(217, 119, 6, 0.12);`)
-* **Danger / Error Red:** `--kb-color-danger: #c0392b;` (Background tint: `rgba(192, 57, 43, 0.08);`)
+Each status has a text/icon ink tuned to sit on its own tint, and a solid fill
+for badges and destructive buttons that carry white content.
+
+| Token | Value | On its tint |
+|---|---|---|
+| `--kb-color-success` / `-soft` | `#34D399` / `rgba(52, 211, 153, 0.14)` | 6.9:1 |
+| `--kb-color-warning` / `-soft` | `#FBBF24` / `rgba(251, 191, 36, 0.14)` | 7.8:1 |
+| `--kb-color-danger` / `-soft` | `#F87171` / `rgba(248, 113, 113, 0.14)` | 5.2:1 |
+| `--kb-color-info` / `-soft` | `#60A5FA` / `rgba(96, 165, 250, 0.14)` | 5.4:1 |
+| `--kb-color-danger-solid` / `-hover` | `#DC2626` / `#B91C1C` | white on it: 4.8:1 |
 
 ### 2.3 Surface & Neutral Tokens
-* **Base Background:** `--kb-color-background: #f8f5ef;` (Warm neutral counter paper tone)
-* **Card & Panel Surface:** `--kb-color-surface: #ffffff;`
-* **Secondary Surface:** `--kb-color-surface-2: #f4efe6;`
-* **Borders & Dividers:** `--kb-color-border: #efe9de;`
-* **Strong Border:** `--kb-color-border-strong: #d8dce7;`
-* **Primary Ink / Heading:** `--kb-color-text-main: #111827;`
-* **Secondary Ink / Body:** `--kb-color-text-body: #1c1a17;`
-* **Muted Text / Subtitles:** `--kb-color-muted: #667085;`
+Surfaces are separated by a deliberate lightness step **and** a border. A
+near-identical tint alone reads as one flat plane.
+
+| Role | Token | Value |
+|---|---|---|
+| Page canvas | `--kb-color-bg-app` | `#0B0E1A` |
+| Cards, tables, panels | `--kb-color-surface` | `#15192C` |
+| Table header, hover, nested tiles | `--kb-color-surface-2` | `#1F2440` |
+| Modal, popover, raised controls | `--kb-color-surface-3` | `#272D50` |
+| Sidebar rail | `--pos-sidebar-bg` | `#12162A` |
+| Recessed input / well | `--kb-color-muted` | `#101425` |
+| Dividers, card edges | `--kb-color-border` | `#343B66` |
+| Control borders | `--kb-color-border-strong` | `#4C5590` |
+| Primary text | `--kb-color-foreground` | `#F3F6FB` (16.1:1 on a card) |
+| Values, table cells | `--kb-color-foreground-2` | `#C3CBDA` (10.7:1) |
+| Labels, metadata | `--kb-color-muted-foreground` | `#93A0B8` (6.6:1) |
+
+**Rules.** Neutral surfaces do the structural work; brand blue is reserved for
+the single primary action per screen plus focus; semantic colours appear only
+inside their meaning; status is never communicated by colour alone (the label
+or glyph always carries it too). Component stylesheets consume tokens — they do
+not declare their own palette.
 
 ---
 

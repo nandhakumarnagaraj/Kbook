@@ -409,8 +409,10 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     }
 
     .kpi-head { display: flex; justify-content: space-between; align-items: center; }
-    .kpi-tag--hero { background: rgba(255, 255, 255, 0.2); color: var(--kb-color-primary-foreground); }
-    .kpi-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-primary); }
+    /* A white tag at 20% over the hero gradient leaves white text at ~4:1; a dark
+       wash instead keeps the label legible at the blue end. */
+    .kpi-tag--hero { background: rgba(0, 0, 0, 0.28); color: var(--kb-color-primary-foreground); }
+    .kpi-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
 
     .kpi-label {
       font-size: 0.78rem; color: var(--kb-color-muted-foreground);
@@ -503,7 +505,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
        "Tables" section of styles.css). Only column layout belongs here. */
     .font-bold { font-weight: 700; }
     .font-semibold { font-weight: 600; }
-    .text-brand { color: var(--kb-color-primary); }
+    .text-brand { color: var(--kb-color-link); }
     .code-badge {
       font-family: var(--kb-font-mono);
       font-size: 0.8rem;

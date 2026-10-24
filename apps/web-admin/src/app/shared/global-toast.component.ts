@@ -41,21 +41,34 @@ import { ToastService } from '../core/services/toast.service';
       gap: 0.75rem;
       width: min(380px, calc(100vw - 2rem));
       padding: 0.8rem 0.9rem;
-      color: var(--kb-color-on-primary);
-      background: var(--ink);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      /* This used --ink as its background: a near-white fill with white text,
+         i.e. 1.05:1. A toast is the topmost plane, so it takes surface-3 and
+         signals its type with the glyph + a matching mark tint, never colour
+         alone. */
+      color: var(--kb-color-foreground);
+      background: var(--kb-color-surface-3);
+      border: 1px solid var(--kb-color-border-strong);
       border-radius: 14px;
-      box-shadow: 0 16px 36px rgba(36, 23, 15, 0.28);
+      box-shadow: var(--shadow-lg);
     }
-    .global-toast--error { background: #5c1a1a; border-color: var(--danger); }
-    .global-toast--success { background: #153f2d; border-color: var(--accent); }
+    .global-toast--error { border-color: rgba(var(--kb-color-danger-rgb), 0.55); }
+    .global-toast--success { border-color: rgba(var(--kb-color-success-rgb), 0.55); }
+    .global-toast--error .global-toast__mark {
+      background: var(--kb-color-danger-soft);
+      color: var(--kb-color-danger);
+    }
+    .global-toast--success .global-toast__mark {
+      background: var(--kb-color-success-soft);
+      color: var(--kb-color-success);
+    }
     .global-toast__mark {
       display: grid;
       place-items: center;
       width: 1.75rem;
       height: 1.75rem;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.14);
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-foreground-2);
       font-weight: 800;
     }
     .global-toast__message { line-height: 1.4; }

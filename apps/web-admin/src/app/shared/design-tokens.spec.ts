@@ -25,14 +25,16 @@ describe('design tokens', () => {
   it('resolves an alpha variant of the primary colour to that colour', () => {
     const tint = probe((el) => (el.style.background = 'rgba(var(--kb-color-primary-rgb), 0.1)'));
     const solid = probe((el) => (el.style.background = 'var(--kb-color-primary)'));
-    const reference = probe((el) => (el.style.background = 'rgba(0, 102, 204, 0.1)'));
 
     const tinted = getComputedStyle(tint).backgroundColor;
     expect(tinted).withContext('an unresolvable token would drop the declaration and leave it transparent').not.toBe('rgba(0, 0, 0, 0)');
-    expect(tinted).toBe(getComputedStyle(reference).backgroundColor);
 
+    // Compared against the solid token, never a literal: the channels must be the
+    // same hue and the alpha must be the 0.1 asked for. A literal here pinned the
+    // palette of the day and failed on every rebrand.
     const solidChannels = (getComputedStyle(solid).backgroundColor.match(/\d+/g) || []).slice(0, 3).join(',');
-    const tintChannels = (tinted.match(/\d+/g) || []).slice(0, 3).join(',');
-    expect(tintChannels).withContext('the tint must be the same hue as the solid token').toBe(solidChannels);
+    const tintNumbers = tinted.match(/[\d.]+/g) || [];
+    expect(tintNumbers.slice(0, 3).join(',')).withContext('the tint must be the same hue as the solid token').toBe(solidChannels);
+    expect(parseFloat(tintNumbers[3] ?? '1')).withContext('the tint must carry the 0.1 alpha it asked for').toBeCloseTo(0.1, 2);
   });
 });

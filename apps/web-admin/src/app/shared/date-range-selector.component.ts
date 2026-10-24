@@ -77,31 +77,34 @@ export function getPresetDateRange(
       white-space: nowrap;
     }
     .date-range__field { display: block; margin: 0; }
+    /* This control is shared by Orders, Reports and Daily Closing. It used to
+       carry its own light-theme palette (white field, #1686f5 ring, #343b46
+       ink), so it was the one white control on an otherwise dark toolbar. */
     .date-range__input {
       box-sizing: border-box;
       width: 142px;
       min-height: 36px;
       padding: 0.4rem 0.55rem;
-      border: 1px solid #cfd3da;
-      border-radius: 5px;
-      background: #f7f8fa;
-      color: #343b46;
+      border: 1px solid var(--kb-color-border-strong);
+      border-radius: var(--kb-radius-md, 6px);
+      background: var(--kb-color-input);
+      color: var(--kb-color-foreground);
       font: 500 0.78rem/1.2 var(--kb-font-sans, Arial, sans-serif);
       font-variant-numeric: tabular-nums;
       cursor: text;
     }
-    .date-range__input:hover { border-color: #aeb6c2; background: #fff; }
+    .date-range__input:hover { border-color: var(--kb-color-primary); }
     .date-range__input:focus-visible {
-      outline: 2px solid rgba(24, 126, 245, 0.28);
+      outline: 2px solid var(--kb-color-primary);
       outline-offset: 1px;
-      border-color: #1686f5;
-      background: #fff;
+      border-color: var(--kb-color-primary);
     }
     .date-range__input::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
       opacity: 0.72;
       cursor: pointer;
     }
-    .date-range__separator { color: #737b87; font-size: 0.78rem; }
+    .date-range__separator { color: var(--kb-color-muted-foreground); font-size: 0.78rem; }
     @media (max-width: 680px) {
       .date-range { flex-wrap: wrap; white-space: normal; }
       .date-range__input { width: 138px; }

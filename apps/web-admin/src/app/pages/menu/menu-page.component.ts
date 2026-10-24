@@ -128,24 +128,34 @@ import { environment } from '../../../environments/environment';
               </td>
               <td>{{ item.categoryName || '-' }}</td>
               <td>{{ item.foodType || '-' }}</td>
+              <!-- Base is the anchor (one weight up); the variants below it are the
+                   detail. They share one label/value grid, so a 1-variant and a
+                   4-variant dish still line up on the same two columns. -->
               <td>
                 <div class="menu-price-list">
-                  <span class="menu-price-row"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span>
+                  <span class="menu-price-row menu-price-row--base"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span>
                   <span class="menu-price-row" *ngFor="let variant of item.variants || []; trackBy: trackByVariantId">
                     <span class="menu-price-label">{{ variant.variantName }}</span><strong>{{ formatCurrencyValue(variant.price) }}</strong>
                   </span>
                 </div>
               </td>
               <td>{{ item.variantCount }}</td>
+              <!-- Status lives in its own column and is also the control that
+                   changes it, so the row does not state availability twice. -->
               <td>
-                <span
-                  class="chip"
+                <button
+                  type="button"
+                  class="chip chip--status"
                   [class.success]="item.available && item.stockStatus !== 'OUT_OF_STOCK' && item.stockStatus !== 'RUNNING_LOW'"
                   [class.danger]="!item.available || item.stockStatus === 'OUT_OF_STOCK'"
                   [class.warn]="item.available && item.stockStatus === 'RUNNING_LOW'"
+                  [disabled]="togglingId === item.menuItemId"
+                  [attr.aria-pressed]="item.available"
+                  [title]="item.available ? 'Mark ' + item.name + ' unavailable' : 'Mark ' + item.name + ' available'"
+                  (click)="toggleAvailability(item)"
                 >
                   {{ item.available ? stockStatusLabel(item.stockStatus) : 'Unavailable' }}
-                </span>
+                </button>
               </td>
               <td>
                 <span [title]="formatDateValue(item.updatedAt)">{{ formatDateValue(item.updatedAt) }}</span>
@@ -162,19 +172,8 @@ import { environment } from '../../../environments/environment';
                     [disabled]="togglingItemFavouriteId === item.menuItemId"
                     (click)="toggleItemFavourite(item)"
                   >{{ item.favourite ? '★' : '☆' }}</button>
-                  <button
-                    class="availability-toggle"
-                    [class.availability-toggle--on]="item.available"
-                    [class.availability-toggle--off]="!item.available"
-                    (click)="toggleAvailability(item)"
-                    [disabled]="togglingId === item.menuItemId"
-                    [attr.aria-pressed]="item.available"
-                    [attr.aria-label]="item.name + ' availability: ' + (item.available ? 'Available' : 'Unavailable')"
-                  >
-                    {{ item.available ? 'Available' : 'Unavailable' }}
-                  </button>
-                  <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
-                  <button class="ghost-btn danger-btn" (click)="openDeleteConfirm(item)">Delete</button>
+                  <button class="action-btn" (click)="openEditModal(item)">Edit</button>
+                  <button class="action-btn action-btn--danger" (click)="openDeleteConfirm(item)">Delete</button>
                 </div>
               </td>
             </tr>
@@ -208,7 +207,7 @@ import { environment } from '../../../environments/environment';
                 [class.success]="item.available && item.stockStatus !== 'OUT_OF_STOCK' && item.stockStatus !== 'RUNNING_LOW'"
                 [class.danger]="!item.available || item.stockStatus === 'OUT_OF_STOCK'"
                 [class.warn]="item.available && item.stockStatus === 'RUNNING_LOW'"
-              >{{ item.available ? item.stockStatus : 'Unavailable' }}</span>
+              >{{ item.available ? stockStatusLabel(item.stockStatus) : 'Unavailable' }}</span>
             </div>
             <p>{{ item.description || 'No description added yet.' }}</p>
             <dl><div><dt>Category</dt><dd>{{ item.categoryName || '-' }}</dd></div><div><dt>Type</dt><dd>{{ item.foodType || '-' }}</dd></div><div><dt>Price</dt><dd><div class="menu-price-list"><span class="menu-price-row"><span class="menu-price-label">Base</span><strong>{{ formatCurrencyValue(item.basePrice) }}</strong></span><span class="menu-price-row" *ngFor="let variant of item.variants || []; trackBy: trackByVariantId"><span class="menu-price-label">{{ variant.variantName }}</span><strong>{{ formatCurrencyValue(variant.price) }}</strong></span></div></dd></div><div><dt>Variants</dt><dd>{{ item.variantCount }}</dd></div></dl>
@@ -641,14 +640,17 @@ import { environment } from '../../../environments/environment';
     .menu-table tbody tr {
       min-height: 56px;
     }
+    /* Padding, type and borders come from the one table design in styles.css;
+       this page owns column layout only (see table-design.spec.ts). */
     .menu-table td, .menu-table th {
-      padding: 12px 16px;
       vertical-align: middle;
     }
+    /* The variant *count* column is dropped: the price cell already lists every
+       variant, so a number beside it repeats the same fact in a competing
+       column. Availability is NOT dropped — it used to be hidden too, which
+       left the row's operational state with no scannable column at all. */
     .menu-table th:nth-child(5),
-    .menu-table td:nth-child(5),
-    .menu-table th:nth-child(6),
-    .menu-table td:nth-child(6) {
+    .menu-table td:nth-child(5) {
       display: none;
     }
     .menu-table th:nth-child(7),
@@ -695,10 +697,59 @@ import { environment } from '../../../environments/environment';
     
     
     
-    .menu-price-list { display: grid; gap: 0.35rem; min-width: 140px; }
-    .menu-price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.9rem; }
-    .menu-price-label { color: var(--kb-color-muted-foreground); font-size: 0.78rem; white-space: nowrap; }
-    .menu-price-row strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    /* One aligned two-column grid for base + variants. Prices are right-aligned
+       on tabular figures so a ₹90 and a ₹1,250 still end on the same edge. */
+    .menu-price-list { display: grid; gap: 0.22rem; min-width: 150px; }
+    .menu-price-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: baseline;
+      gap: 0.9rem;
+    }
+    .menu-price-label {
+      color: var(--kb-color-muted-foreground);
+      font-size: 0.78rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .menu-price-row strong {
+      color: var(--kb-color-foreground-2);
+      font-weight: 600;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    /* Base is the anchor price: one step up in ink and weight, and the rule
+       beneath it separates the anchor from the variant detail. */
+    .menu-price-row--base { padding-bottom: 0.28rem; border-bottom: 1px solid var(--kb-color-border); }
+    .menu-price-row--base strong { color: var(--kb-color-foreground); font-weight: 700; }
+
+    /* Column 1: the dish is the record. Name readable, description one muted
+       line, so a long description cannot reflow the row. */
+    .menu-table .item-cell strong { color: var(--kb-color-foreground); font-weight: 600; }
+    .menu-table .item-cell .muted {
+      display: block;
+      max-width: 34ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.78rem;
+    }
+
+    /* Status chip doubles as the availability control in its own column: same
+       reachable hit area, no second duplicate toggle in the action stack. */
+    .chip--status {
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      min-height: 30px;
+      padding: 0.25rem 0.7rem;
+    }
+    .chip--status:disabled { opacity: 0.55; cursor: progress; }
+    .chip--status:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
     .ocr-panel { margin-top: var(--kb-space-3); }
     .ocr-state {
       display: flex; align-items: flex-start; gap: var(--kb-space-2);
@@ -745,7 +796,7 @@ import { environment } from '../../../environments/environment';
        that collects them. Sizes match the category star in the Categories dialog so the two
        stars read as the same control in two places. */
     .fav-toggle { gap: 0.35rem; }
-    .fav-toggle--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary); }
+    .fav-toggle--on { border-color: var(--kb-color-primary); color: var(--kb-color-link); }
     .fav-toggle__count {
       font-size: 0.7rem;
       font-weight: 600;
@@ -766,7 +817,7 @@ import { environment } from '../../../environments/environment';
       cursor: pointer;
     }
     .fav-btn:disabled { opacity: 0.5; cursor: default; }
-    .fav-btn--on { border-color: var(--kb-color-primary); color: var(--kb-color-primary); }
+    .fav-btn--on { border-color: var(--kb-color-primary); color: var(--kb-color-link); }
     .fav-panel {
       display: grid;
       gap: 0.6rem;
@@ -782,7 +833,7 @@ import { environment } from '../../../environments/environment';
       padding: 0.2rem 0.6rem;
       border-radius: 999px;
       border: 1px solid var(--kb-color-primary);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       font-size: 0.8rem;
       font-weight: 500;
     }

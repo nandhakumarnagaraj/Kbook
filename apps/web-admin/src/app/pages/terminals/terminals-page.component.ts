@@ -680,7 +680,7 @@ import { formatDate } from '../../shared/formatters';
     .filter-pill-tactile--active {
       background: var(--kb-color-surface-2);
       border-color: var(--kb-color-primary);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       font-weight: 600;
     }
 
@@ -702,7 +702,7 @@ import { formatDate } from '../../shared/formatters';
       flex-shrink: 0;
     }
     .terminal-icon--active {
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       background: rgba(var(--kb-color-primary-rgb), 0.08);
     }
     .role-pill {
@@ -715,12 +715,12 @@ import { formatDate } from '../../shared/formatters';
     }
     .role-pill--billing {
       background: rgba(var(--kb-color-primary-rgb), 0.08);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       border: 1px solid rgba(var(--kb-color-primary-rgb), 0.2);
     }
     .role-pill--kot {
       background: rgba(var(--kb-color-primary-rgb), 0.08);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       border: 1px solid rgba(var(--kb-color-primary-rgb), 0.2);
     }
     .role-pill--req {
@@ -774,7 +774,7 @@ import { formatDate } from '../../shared/formatters';
       margin-left: 0.35rem;
       padding: 0.08rem 0.4rem;
       background: rgba(var(--kb-color-primary-rgb), 0.1);
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       border: 1px solid rgba(var(--kb-color-primary-rgb), 0.3);
       border-radius: 999px;
       font-size: 0.68rem;
@@ -804,7 +804,7 @@ import { formatDate } from '../../shared/formatters';
       font-variant-numeric: tabular-nums;
     }
     .credential-label {
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       font-size: 0.74rem;
       font-weight: 700;
       letter-spacing: 0.05em;

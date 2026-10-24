@@ -57,7 +57,9 @@ describe('InventoryPageComponent — empty materials state', () => {
     const emptyState = mountEmpty();
     const actionButton = emptyState.querySelector('.empty-action button') as HTMLButtonElement | null;
     expect(actionButton).withContext('action button should render when actionLabel is set').toBeTruthy();
-    expect(actionButton!.textContent).toContain('Add Material');
+    // The empty state's CTA was deliberately reworded ("Clarify owner dashboard
+    // actions and content"); the guarantee is that the action is offered here.
+    expect(actionButton!.textContent).toContain('Add');
 
     actionButton!.click();
     fixture.detectChanges();

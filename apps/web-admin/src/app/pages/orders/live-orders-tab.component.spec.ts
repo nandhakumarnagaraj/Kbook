@@ -20,6 +20,17 @@ import { BusinessOrder } from '../../core/models/api.models';
  *    solid red fill. The fill is asserted through getComputedStyle, because a class name
  *    cannot tell a tinted chip from a solid button.
  */
+/** The solid destructive token, resolved by the browser rather than written as a
+ *  literal — the literal version froze the palette of the day. */
+function tokenBackground(name: string): string {
+  const probe = document.createElement('div');
+  probe.style.background = `var(${name})`;
+  document.body.appendChild(probe);
+  const value = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return value;
+}
+
 describe('LiveOrdersTabComponent — the card action row', () => {
   let fixture: ComponentFixture<LiveOrdersTabComponent> | undefined;
   let api: jasmine.SpyObj<BusinessApiService>;
@@ -108,11 +119,11 @@ describe('LiveOrdersTabComponent — the card action row', () => {
     const cancel = actionButton('Cancel')!;
     const style = getComputedStyle(cancel);
 
-    // --kb-color-danger / --kb-color-on-primary, the same pair the sidebar's
-    // .logout-btn uses.
-    expect(style.backgroundColor).toBe('rgb(192, 57, 43)');
+    // --kb-color-danger-solid / --kb-color-on-primary, the same pair the
+    // sidebar's .logout-btn uses: a solid destructive fill with white content.
+    expect(style.backgroundColor).toBe(tokenBackground('--kb-color-danger-solid'));
     expect(style.color).toBe('rgb(255, 255, 255)');
-    expect(style.borderTopColor).toBe('rgb(192, 57, 43)');
+    expect(style.borderTopColor).toBe(tokenBackground('--kb-color-danger-solid'));
 
     // Non-vacuity: the tinted chip this replaced is a different colour, so this
     // assertion can actually tell the two apart rather than passing on any button.

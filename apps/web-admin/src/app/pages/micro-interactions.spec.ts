@@ -270,6 +270,17 @@ function borderAfterRecalc(el: HTMLElement): string {
   return getComputedStyle(el).borderTopColor;
 }
 
+/** A token resolved by the browser, so this spec pins the rule (untouched field →
+ *  ordinary border, rejected field → danger border) instead of a palette hex. */
+function tokenBorder(name: string): string {
+  const probe = document.createElement('div');
+  probe.style.borderColor = `var(${name})`;
+  document.body.appendChild(probe);
+  const value = getComputedStyle(probe).borderTopColor;
+  probe.remove();
+  return value;
+}
+
 /** A rule without its state pseudo-classes, so it can be matched against an
  *  element in its resting state. Pseudo-elements cannot be matched at all. */
 function restingSelector(selectorText: string): string | null {
@@ -422,7 +433,7 @@ describe('micro-interactions', () => {
     // Idle: the ordinary border (`--line-strong`), and the binding states the
     // field's state rather than leaving a stale claim behind.
     const restingBorder = borderAfterRecalc(field);
-    expect(restingBorder).withContext('a resting field carries the ordinary border').toBe('rgb(225, 217, 202)');
+    expect(restingBorder).withContext('a resting field carries the ordinary border').toBe(tokenBorder('--kb-color-border-strong'));
     expect(field.getAttribute('aria-invalid')).withContext('an untouched field is not flagged').toBe('false');
 
     // Required and empty: the moment it is touched it both says so in the markup
@@ -433,7 +444,7 @@ describe('micro-interactions', () => {
     expect(field.getAttribute('aria-invalid')).withContext('the field declares its own state').toBe('true');
     expect(borderAfterRecalc(field))
       .withContext('the invalid border is the danger colour, so the message has something to point at')
-      .toBe('rgb(192, 57, 43)');
+      .toBe(tokenBorder('--kb-color-danger'));
 
     // Filling it in clears the flag again.
     fixture.componentInstance.createForm.get('shopName')?.setValue('Test Kitchen');

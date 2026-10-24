@@ -113,7 +113,9 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
         min-width: 16px;
         height: 16px;
         border-radius: 999px;
-        background: var(--kb-color-danger);
+        /* The soft-tuned danger ink is 2.7:1 behind white; the solid fill is the
+           token that exists for text ON it. */
+        background: var(--kb-color-danger-solid);
         color: #FFFFFF;
         font-size: 0.65rem;
         font-weight: 700;
@@ -144,10 +146,10 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
         right: 0;
         width: 320px;
         max-height: 400px;
-        background: #FFFFFF;
-        border: 1px solid var(--kb-color-border);
+        background: var(--kb-color-surface-3);
+        border: 1px solid var(--kb-color-border-strong);
         border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+        box-shadow: var(--shadow-lg);
         z-index: 60;
         display: flex;
         flex-direction: column;
@@ -165,7 +167,7 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
         align-items: center;
         justify-content: space-between;
         padding: 0.85rem 1rem;
-        border-bottom: 1px solid var(--kb-color-surface-2);
+        border-bottom: 1px solid var(--kb-color-border);
         background: var(--kb-color-bg-app);
       }
 

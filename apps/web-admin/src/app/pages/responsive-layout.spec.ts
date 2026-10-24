@@ -340,7 +340,9 @@ describe('Shared text helpers used by page templates', () => {
   it('resolves text-right, font-bold, font-mono and text-brand globally', () => {
     const el = probe('text-right font-bold font-mono text-brand');
     const monoReference = probe('', (node) => (node.style.fontFamily = 'var(--kb-font-mono)'));
-    const brandReference = probe('', (node) => (node.style.color = 'var(--kb-color-primary)'));
+    // Brand-coloured TEXT uses the link tone, not the fill: the fill only reaches
+    // 3.4:1 against a card, so `.text-brand` resolves to --kb-color-link.
+    const brandReference = probe('', (node) => (node.style.color = 'var(--kb-color-link)'));
     const style = getComputedStyle(el);
 
     expect(style.textAlign).toBe('right');

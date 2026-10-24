@@ -44,7 +44,7 @@ import { ToastService } from '../../core/services/toast.service';
     .tabs { display: flex; gap: 0.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--kb-color-border); max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .tab { flex: 0 0 auto; white-space: nowrap; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--kb-color-muted-foreground); border-bottom: 2px solid transparent; transition: color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out); }
     .tab:hover { color: var(--kb-color-foreground); }
-    .tab.active { color: var(--kb-color-primary); border-bottom-color: var(--kb-color-primary); }
+    .tab.active { color: var(--kb-color-link); border-bottom-color: var(--kb-color-primary); }
     .movement-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--kb-color-border); font-size: 0.85rem; }
     .movement-type { font-weight: 500; }
     .movement-qty { font-family: var(--kb-font-mono); }

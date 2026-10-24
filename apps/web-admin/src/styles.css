@@ -1,7 +1,13 @@
 /*
  * KhanaBook Web Admin — Design System
- * Concept: Dark Command Center (POS Navy #181B34, low-glare, high-craft)
- * Invariant: Restrained tonal depth, zero generic neon slop, strict WCAG AAA legibility
+ * Concept: Dark Command Center (midnight #0B0E1A canvas, navy cards, low-glare)
+ * Invariant: restrained tonal depth, semantic colour only, WCAG AA legibility.
+ *
+ * Two rules keep this file honest:
+ *   1. A colour is declared once, as a --kb-* token. Component sheets consume
+ *      tokens; they do not carry their own palette.
+ *   2. A surface is distinguished from its neighbour by a lightness step AND a
+ *      border. A near-identical tint alone reads as one flat plane.
  */
 
 :root {
@@ -15,9 +21,9 @@
   --surface-1:     var(--kb-color-surface);
   --surface-2:     var(--kb-color-surface-2);
   --ink:           var(--kb-color-foreground);
-  --ink-2:         #CBD5E1;
+  --ink-2:         var(--kb-color-foreground-2);
   --muted:         var(--kb-color-muted-foreground);
-  --muted-2:       #64748B;
+  --muted-2:       var(--kb-color-muted-foreground);
   --line:          var(--kb-color-border);
   --border:        var(--kb-color-border);
   --line-strong:   var(--kb-color-border-strong);
@@ -28,18 +34,21 @@
   --brand:         var(--kb-blue-500);
   --brand-deep:    var(--kb-blue-600);
   --brand-soft:    var(--kb-color-primary-soft);
-  --brand-ring:    rgba(37, 99, 235, 0.35);
-  /* Focus indicator: solid blue, high contrast against dark navy canvas */
-  --brand-focus-ring: rgba(59, 130, 246, 0.5);
+  --brand-ring:    rgba(var(--kb-color-primary-rgb), 0.35);
+  /* Focus indicator: solid blue, high contrast against the midnight canvas */
+  --brand-focus-ring: rgba(var(--kb-color-primary-rgb), 0.45);
 
   --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-  --gradient-hero:    linear-gradient(135deg, #181B34 0%, #0F1123 100%);
+  --gradient-hero:    linear-gradient(135deg, var(--kb-color-surface) 0%, var(--kb-color-bg-app) 100%);
 
   /* ---------------------------------------------------------------------- */
   /* Semantic colours                                                        */
   /* ---------------------------------------------------------------------- */
-  --accent:        #0D9488;
-  --accent-soft:   rgba(13, 148, 136, 0.18);
+  /* Accent is informational only. It is NOT a second brand colour: primary
+     actions stay --kb-color-primary, and success/warning/danger keep the
+     meaning listed in the semantic block below. */
+  --accent:        var(--kb-color-info);
+  --accent-soft:   var(--kb-color-info-soft);
   --danger:        var(--kb-color-danger);
   --danger-soft:   var(--kb-color-danger-soft);
   --success:       var(--kb-color-success);
@@ -80,60 +89,75 @@
   /* KhanaBook Design Tokens (--kb-* for dark command center)                */
   /* ---------------------------------------------------------------------- */
   /* Primitive palette: raw values only. Semantic tokens below alias these. */
-  --kb-blue-400:                #38BDF8;
+  --kb-blue-300:                #93C5FD;
+  --kb-blue-400:                #60A5FA;
   --kb-blue-500:                #2563EB;
   --kb-blue-600:                #1D4ED8;
-  --kb-color-bg-app:            #0F1123; /* Deep midnight canvas */
-  --kb-color-foreground:        #F8FAFC; /* Crisp legible off-white text */
-  --kb-color-foreground-contrast: #0F1123;
-  --kb-color-surface:           #181B34; /* Command Center Navy cards matching sidebar */
-  --kb-color-surface-2:         #1F2344; /* Secondary elevated/nested surface */
-  --kb-color-muted:             #13162B; /* Recessed input/canvas surface */
-  --kb-color-muted-foreground:  #94A3B8; /* Slate muted text (4.8:1+ contrast) */
-  --kb-color-border:            #282D54; /* Clean subtle navy border */
-  --kb-color-border-strong:     #3B4276; /* Elevated border */
-  --kb-color-input:             #111429; /* Dark recessed input background */
-  --kb-color-ring:              rgba(59, 130, 246, 0.40);
-  --kb-color-espresso:          #0B0D1A;
-  --kb-color-espresso-foreground: #F8FAFC;
-  --kb-color-cream:             #1F2344;
-  --kb-color-saffron:           #F59E0B;
+  /* Surfaces are separated by a deliberate lightness step AND a border: the
+     steps below resolve to 1.11 (canvas→card), 1.15 (card→raised) and 1.31
+     (card→modal) relative luminance ratio, with borders at 1.63/2.49. A single
+     navy everywhere is what made every plane look like the same plane. */
+  --kb-color-bg-app:            #0B0E1A; /* Deepest plane: page canvas */
+  --kb-color-foreground:        #F3F6FB; /* Primary text (15.9:1 on card) */
+  --kb-color-foreground-2:      #C3CBDA; /* Values and table cells (10.5:1) */
+  --kb-color-foreground-contrast: #0B0E1A; /* Ink that sits ON foreground fills */
+  --kb-color-surface:           #15192C; /* Cards, tables, panels */
+  --kb-color-surface-2:         #1F2440; /* Table header, hover, nested tiles */
+  --kb-color-surface-3:         #272D50; /* Modal, popover, raised controls */
+  --kb-color-muted:             #101425; /* Recessed input / well */
+  --kb-color-muted-foreground:  #93A0B8; /* Secondary text (6.5:1 on card) */
+  --kb-color-border:            #343B66; /* Dividers and card edges */
+  --kb-color-border-strong:     #4C5590; /* Control borders (2.5:1 on card) */
+  --kb-color-input:             #101425; /* Dark recessed input background */
+  --kb-color-ring:              rgba(var(--kb-color-primary-rgb), 0.45);
+  --kb-color-espresso:          #0B0E1A;
+  --kb-color-espresso-foreground: #F3F6FB;
+  --kb-color-cream:             #1F2440;
+  --kb-color-saffron:           #FBBF24;
   --kb-color-turmeric:          #EAB308;
-  --kb-color-burnt:             #EF4444;
+  --kb-color-burnt:             #F87171;
   --kb-color-primary:           var(--kb-blue-500);
   --kb-color-primary-foreground:#FFFFFF;
   --kb-color-primary-hover:     var(--kb-blue-600);
-  --kb-color-primary-soft:      rgba(37, 99, 235, 0.16);
-  --kb-color-success:           #10B981;
-  --kb-color-success-soft:      rgba(16, 185, 129, 0.16);
-  --kb-color-warning:           #F59E0B;
-  --kb-color-warning-soft:      rgba(245, 158, 11, 0.16);
-  --kb-color-danger:            #EF4444;
-  --kb-color-danger-soft:       rgba(239, 68, 68, 0.16);
-  --kb-color-info:              #38BDF8;
-  --kb-color-info-soft:         rgba(56, 189, 248, 0.16);
+  --kb-color-primary-soft:      rgba(37, 99, 235, 0.22);
+  /* Semantic status. Each foreground clears 4.5:1 against its own soft tint
+     composited on --kb-color-surface, so the pin does not rely on colour alone
+     AND stays readable. */
+  --kb-color-success:           #34D399;
+  --kb-color-success-soft:      rgba(52, 211, 153, 0.14);
+  --kb-color-warning:           #FBBF24;
+  --kb-color-warning-soft:      rgba(251, 191, 36, 0.14);
+  --kb-color-danger:            #F87171;
+  --kb-color-danger-soft:       rgba(248, 113, 113, 0.14);
+  /* A destructive FILL that carries white text (badge, primary danger button).
+     --kb-color-danger is tuned to be readable as ink on its own tint and only
+     reaches 2.7:1 behind white, so fills use this deeper step (4.8:1). */
+  --kb-color-danger-solid:      #DC2626;
+  --kb-color-danger-solid-hover:#B91C1C;
+  --kb-color-info:              #60A5FA;
+  --kb-color-info-soft:         rgba(96, 165, 250, 0.14);
   /* Aliases for legacy token names still referenced by page components */
   --kb-color-card:              var(--kb-color-surface);
   --kb-color-surface-1:         var(--kb-color-surface);
   --kb-color-on-primary:        #FFFFFF;
   --kb-color-primary-rgb:       37, 99, 235;
-  --kb-color-success-rgb:       16, 185, 129;
-  --kb-color-warning-rgb:       245, 158, 11;
-  --kb-color-danger-rgb:        239, 68, 68;
-  --kb-color-info-rgb:          56, 189, 248;
+  --kb-color-success-rgb:       52, 211, 153;
+  --kb-color-warning-rgb:       251, 191, 36;
+  --kb-color-danger-rgb:        248, 113, 113;
+  --kb-color-info-rgb:          96, 165, 250;
   --kb-color-error:             var(--kb-color-danger);
   --kb-color-error-soft:        var(--kb-color-danger-soft);
   --kb-easing-fast:             var(--kb-ease-standard);
   --kb-font-caption:            0.75rem;
-  --kb-gradient-hero:           linear-gradient(135deg, #1D4ED8 0%, #0F1123 100%);
-  --kb-gradient-cream:          linear-gradient(180deg, #181B34 0%, #1F2344 100%);
+  --kb-gradient-hero:           linear-gradient(135deg, #1D4ED8 0%, #0B0E1A 100%);
+  --kb-gradient-cream:          linear-gradient(180deg, #15192C 0%, #1F2440 100%);
   --kb-font-sans:               "Inter", ui-sans-serif, system-ui, sans-serif;
   --kb-font-display:            "Plus Jakarta Sans", "Inter", sans-serif;
   --kb-font-mono:               "JetBrains Mono", ui-monospace, monospace;
   --kb-font-size-display:       clamp(2rem, 3.2vw, 2.75rem);
   --kb-font-size-h1:            1.75rem;
   --kb-color-link:              var(--kb-blue-400);
-  --kb-color-link-hover:        var(--kb-blue-500);
+  --kb-color-link-hover:        var(--kb-blue-300);
   --kb-space-1: 4px;  --kb-space-2: 8px;  --kb-space-3: 12px;
   --kb-space-4: 16px; --kb-space-5: 20px; --kb-space-6: 24px;
   --kb-space-8: 32px; --kb-space-10: 40px; --kb-space-12: 48px; --kb-space-16: 64px;
@@ -154,25 +178,28 @@
   --kb-content-max-width: 1400px;
   --kb-touch-min: 44px; --kb-touch-primary: 48px;
 
-  /* POS Command Center Theme Tokens */
-  --pos-sidebar-bg:         #181B34;
-  --pos-sidebar-hover:      #22274A;
-  --pos-sidebar-text:       #94A3B8;
+  /* POS Command Center Theme Tokens.
+     The sidebar is its own plane, not a second card: one step above the canvas
+     and one below a card, separated by a real border so the rail reads as chrome
+     rather than as another panel. */
+  --pos-sidebar-bg:         #12162A;
+  --pos-sidebar-hover:      #1C2138;
+  --pos-sidebar-text:       #A7B1C6;
   --pos-purple:             var(--kb-color-primary);
   --pos-purple-hover:       var(--kb-color-primary-hover);
-  --pos-purple-soft:        rgba(37, 99, 235, 0.16);
+  --pos-purple-soft:        var(--kb-color-primary-soft);
   --pos-purple-gradient:    linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-  --pos-bg-body:            #0F1123;
-  --pos-card-bg:            #181B34;
-  --pos-card-border:        #282D54;
-  --pos-status-prep-bg:     rgba(239, 68, 68, 0.15);
-  --pos-status-prep-text:   #F87171;
-  --pos-status-cook-bg:     rgba(245, 158, 11, 0.15);
-  --pos-status-cook-text:   #FBBF24;
-  --pos-status-serv-bg:     rgba(139, 92, 246, 0.15);
-  --pos-status-serv-text:   #A78BFA;
-  --pos-status-comp-bg:     rgba(16, 185, 129, 0.15);
-  --pos-status-comp-text:   #34D399;
+  --pos-bg-body:            var(--kb-color-bg-app);
+  --pos-card-bg:            var(--kb-color-surface);
+  --pos-card-border:        var(--kb-color-border);
+  --pos-status-prep-bg:     var(--kb-color-danger-soft);
+  --pos-status-prep-text:   var(--kb-color-danger);
+  --pos-status-cook-bg:     var(--kb-color-warning-soft);
+  --pos-status-cook-text:   var(--kb-color-warning);
+  --pos-status-serv-bg:     var(--kb-color-info-soft);
+  --pos-status-serv-text:   var(--kb-color-info);
+  --pos-status-comp-bg:     var(--kb-color-success-soft);
+  --pos-status-comp-text:   var(--kb-color-success);
 }
 
 * { box-sizing: border-box; }
@@ -190,8 +217,12 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spac
 
 button, input, select, textarea { font: inherit; }
 
-a { color: var(--brand); text-decoration: none; }
-a:hover { color: var(--brand-deep); }
+/* Brand blue is the FILL. As text on a dark plane it only reaches 3.4:1, so
+   links, active tab labels and brand-coloured icons use the lighter link tone
+   (6.8:1 on a card, 4.6:1 on its own tint). Hover lightens rather than darkens:
+   darkening on a dark canvas reads as disabled. */
+a { color: var(--kb-color-link); text-decoration: none; }
+a:hover { color: var(--kb-color-link-hover); }
 
 /* ============ Page shell ============ */
 /* Canonical page geometry — single source of truth, matching the business
@@ -272,25 +303,29 @@ a:hover { color: var(--brand-deep); }
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* A status chip is its semantic colour's soft tint, with the border taken from
+   that same colour rather than from a hand-mixed rgba() of an older palette.
+   The three literals that used to live here (rgba(47,133,90) / (183,121,31) /
+   (192,57,43)) belonged to a theme that no longer exists. */
 .chip.success, .chip-pill--ok {
   background: var(--success-soft);
   color: var(--success);
-  border-color: rgba(47, 133, 90, 0.2);
+  border-color: rgba(var(--kb-color-success-rgb), 0.35);
 }
 .chip.warn, .chip-pill--pending {
   background: var(--warning-soft);
   color: var(--warning);
-  border-color: rgba(183, 121, 31, 0.2);
+  border-color: rgba(var(--kb-color-warning-rgb), 0.35);
 }
 .chip.danger, .chip-pill--danger {
   background: var(--danger-soft);
   color: var(--danger);
-  border-color: rgba(192, 57, 43, 0.2);
+  border-color: rgba(var(--kb-color-danger-rgb), 0.35);
 }
 .chip.inactive, .chip.neutral {
-  background: var(--line);
+  background: var(--panel-2);
   color: var(--muted);
-  border-color: transparent;
+  border-color: var(--line);
 }
 
 /* ============ Stats grid ============ */
@@ -400,10 +435,8 @@ th {
   color: var(--kb-color-muted-foreground);
   font-weight: 600;
 }
-/* `--ink-2` (#2A2A28) is deliberately darker than the muted foreground used for
-   the header labels above it, and it has no semantic alias — swapping it for
-   `--kb-color-muted-foreground` would quietly lighten every table cell in the
-   app. The `.numbered`/`.muted` helpers do that on purpose, cell by cell. */
+/* Cell ink is `--ink-2` (alias of --kb-color-foreground-2): one deliberate step
+   below body text, so the value is scannable while labels stay secondary. */
 td { color: var(--ink-2); font-size: 0.88rem; }
 tr:last-child td { border-bottom: none; }
 tbody tr { transition: background 0.15s ease; }
@@ -426,7 +459,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 .font-bold { font-weight: 700; }
 .font-semibold { font-weight: 600; }
 .font-mono { font-family: var(--kb-font-mono); }
-.text-brand { color: var(--kb-color-primary); }
+.text-brand { color: var(--kb-color-link); }
 
 /* ============ Toolbar ============ */
 .toolbar {
@@ -465,9 +498,9 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 .primary-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .primary-btn:disabled,
 .primary-btn[disabled] {
-  background: #e5e7eb;
-  border-color: #e5e7eb;
-  color: #9ca3af;
+  background: var(--panel-2);
+  border-color: var(--line);
+  color: var(--muted);
   box-shadow: none;
   cursor: not-allowed;
   transform: none;
@@ -528,7 +561,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 
 .danger-btn {
   color: var(--danger) !important;
-  border-color: rgba(192, 57, 43, 0.35) !important;
+  border-color: rgba(var(--kb-color-danger-rgb), 0.4) !important;
 }
 .danger-btn:hover {
   background: var(--danger-soft) !important;
@@ -536,7 +569,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 }
 .success-btn {
   color: var(--success) !important;
-  border-color: rgba(47, 133, 90, 0.35) !important;
+  border-color: rgba(var(--kb-color-success-rgb), 0.4) !important;
 }
 .success-btn:hover {
   background: var(--success-soft) !important;
@@ -641,6 +674,10 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   gap: 1rem;
   padding: 0.85rem 1.15rem;
   border-top: 1px solid var(--line);
+  background: var(--panel-2);
+  border-radius: 0 0 var(--r-xl) var(--r-xl);
+  font-size: 0.82rem;
+  color: var(--muted);
   flex-wrap: wrap;
 }
 .pagination-controls {
@@ -695,7 +732,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(42, 31, 23, 0.5);
+  background: rgba(4, 6, 13, 0.72);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -705,8 +742,9 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   animation: fadeIn 0.15s ease;
 }
 .modal-box {
-  background: var(--panel);
-  border: 1px solid var(--line);
+  /* One step above the card it sits on: a dialog is the topmost plane. */
+  background: var(--kb-color-surface-3);
+  border: 1px solid var(--line-strong);
   border-radius: var(--r-2xl);
   padding: 1.5rem;
   min-width: 340px;
@@ -732,7 +770,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   bottom: -1.5rem;
   margin: 1.5rem -1.5rem -1.5rem;
   padding: 0.9rem 1.5rem 1.5rem;
-  background: var(--panel);
+  background: var(--kb-color-surface-3);
   border-top: 1px solid var(--line);
 }
 
@@ -743,12 +781,14 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 }
 
 /* ============ Toast ============ */
+/* The toast sits on --kb-color-surface-3, never on --ink: a near-white fill with
+   white text is 1.05:1, which is how the neutral toast disappeared entirely. */
 .toast {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
-  background: var(--ink);
-  color: #fff;
+  background: var(--kb-color-surface-3);
+  color: var(--ink);
   padding: 0.8rem 1.15rem;
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-lg);
@@ -774,7 +814,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: var(--line);
+  background: var(--kb-color-surface-2);
   border-radius: var(--r-sm);
 }
 .skeleton::after {
@@ -782,7 +822,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
   animation: shimmer 1.3s infinite;
 }
 @keyframes shimmer { 100% { transform: translateX(100%); } }
@@ -1073,6 +1113,80 @@ td.price,
 .mobile-data-card dd { margin: 0.12rem 0 0; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
 .mobile-data-card__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; padding: 0.7rem 1rem; border-top: 1px solid var(--line); background: var(--panel-2); }
 
+/* ============ Migrated from the retired wave sheets ============
+   wave-c.css and wave-de.css were the light theme. They were loaded AFTER this
+   file, so their `background: #fff` rules beat the dark surfaces and produced
+   white modals, white filter inputs, cream skeletons and light stat cards under
+   near-white text. What follows is the part of those sheets that was layout
+   rather than theme, re-expressed on tokens; the rest is gone. */
+
+/* Toolbar: the label sits on the same baseline as the controls beside it. */
+.toolbar {
+  align-items: flex-end;
+  padding: 0.25rem 0.25rem 0.6rem;
+}
+.toolbar h3 { margin: 0 0 0.15rem; font-size: 1.05rem; letter-spacing: -0.005em; }
+.toolbar .muted { margin: 0; font-size: 0.85rem; }
+.toolbar-actions { display: inline-flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* Row actions stay quiet until the row is under the pointer or focused. Four
+   buttons of equal weight on every row is what made the action column shout. */
+.data-table tbody tr .row-actions .action-btn { opacity: 0.75; }
+.data-table tbody tr:hover .row-actions .action-btn,
+.data-table tbody tr:focus-within .row-actions .action-btn { opacity: 1; }
+
+/* Form grouping shared by the create/edit dialogs. */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+.form-group .field-label,
+.form-group label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+.modal-content { display: flex; flex-direction: column; gap: 0.65rem; }
+
+/* Long form panels show their own inline spinner, on the recessed plane. */
+.panel.loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--panel-2);
+  color: var(--muted);
+  font-size: 0.88rem;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--line);
+}
+.panel.loading::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+/* Spinner inside a solid button: white on the action fill. */
+.btn-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: -1px;
+}
+app-date-range-selector { display: block; width: 100%; }
+
 /* ============ Responsive ============ */
 @media (max-width: 900px) {
   .page-shell { padding: 1rem; }
@@ -1123,18 +1237,22 @@ td.price,
 }
 
 @media (prefers-contrast: more) {
+  /* Forced-colour borders, text and rings. The old block pushed borders to
+     #1C1A17 — a near-black that vanished on this canvas — so "more contrast"
+     used to remove the boundaries it was meant to strengthen. */
   :root {
-    --kb-color-border: #78716C;
-    --kb-color-border-strong: #1C1A17;
-    --line: #78716C;
-    --line-strong: #1C1A17;
+    --kb-color-border: #8A94B8;
+    --kb-color-border-strong: #A9B3D4;
+    --kb-color-muted-foreground: #C6CEE0;
+    --line: #8A94B8;
+    --line-strong: #A9B3D4;
   }
   a {
     text-decoration: underline !important;
     font-weight: 600;
   }
   button:focus-visible, a:focus-visible, input:focus-visible {
-    outline: 3px solid #000000 !important;
+    outline: 3px solid #FFFFFF !important;
     outline-offset: 2px !important;
   }
 }
