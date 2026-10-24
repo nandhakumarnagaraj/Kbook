@@ -1,7 +1,10 @@
 export const environment = {
   production: false,
   appVersion: 'dev',
-  apiBaseUrl: 'https://kbook.iadv.cloud/api/v1',
+  // Relative in dev so the Angular dev-server proxy (see proxy.conf.json) can
+  // serve it same-origin — the backend has no CORS config, and preflight
+  // OPTIONS requests to it are refused. Prod uses the absolute URL.
+  apiBaseUrl: '/api/v1',
   googleClientId: '836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com',
   firebase: {
     apiKey: "YOUR_API_KEY",

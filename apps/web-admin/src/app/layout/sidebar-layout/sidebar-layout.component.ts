@@ -22,6 +22,10 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
   template: `
     <div class="layout-shell" [class.layout-shell--collapsed]="collapsed() && !isMobileView()">
       <a class="skip-link" href="#main-content">Skip to main content</a>
+      <!-- Screen-reader feedback for the collapse toggle (role=status = aria-live polite) -->
+      <div class="sr-only" role="status" aria-live="polite">
+        {{ collapsed() && !isMobileView() ? 'Sidebar collapsed' : 'Sidebar expanded' }}
+      </div>
       <header class="topbar topbar--mobile" [attr.aria-hidden]="isMobileView() && menuOpen() ? 'true' : null" [attr.inert]="isMobileView() && menuOpen() ? '' : null">
         <button
           #menuButton
@@ -100,7 +104,11 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             routerLinkActive="active-link"
             ariaCurrentWhenActive="page"
             class="nav-link"
-            [attr.title]="collapsed() && !isMobileView() ? link.label : null"
+            [attr.aria-label]="link.label"
+            (mouseenter)="peek($event, link)"
+            (mouseleave)="hidePeek()"
+            (focus)="peek($event, link)"
+            (blur)="hidePeek()"
             (click)="closeMenu(false)">
             <span class="nav-link__icon" aria-hidden="true">
               <kb-icon *ngIf="link.iconKey" [name]="link.iconKey" [size]="18"></kb-icon>
@@ -144,6 +152,16 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         *ngIf="showBottomBar()"
         [items]="bottomActionItems()"
       />
+
+      <!-- Hover peek label, shown while a nav icon is hovered/focused in collapsed mode.
+           Rendered position:fixed and measured from the link rect so it can escape
+           the sidebar's overflow clipping. -->
+      <div
+        *ngIf="peekTip() as tip"
+        class="nav-peek"
+        role="tooltip"
+        [style.left.px]="tip.x"
+        [style.top.px]="tip.y">{{ tip.label }}</div>
     </div>
   `,
   styles: [`
@@ -440,10 +458,40 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       .sidebar--collapsed .user-meta { display: none; }
       .sidebar--collapsed .logout-btn { padding: 0.65rem 0.55rem; }
       .sidebar--collapsed .logout-btn span { display: none; }
+
+      /* Hover peek chip: anchored to the fixed coords measured off the link rect */
+      .nav-peek {
+        position: fixed;
+        transform: translateY(-50%);
+        z-index: 130;
+        padding: 0.45rem 0.7rem;
+        border-radius: 10px;
+        background: #0F1226;
+        color: #FFFFFF;
+        font-size: 0.82rem;
+        font-weight: 600;
+        white-space: nowrap;
+        pointer-events: none;
+        box-shadow: var(--kb-shadow-md, 0 6px 16px rgba(15, 18, 38, 0.25));
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
       .hamburger__bar { transition: none; }
+      .sidebar { transition: none; }
+    }
+
+    /* Screen-reader only helper for the collapse announcement */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     /* ── Responsive ── */
@@ -533,11 +581,26 @@ export class SidebarLayoutComponent implements OnInit {
   toggleCollapsed(): void {
     const next = !this.collapsed();
     this.collapsed.set(next);
+    this.hidePeek();
     try {
       localStorage.setItem('kb.sidebar.collapsed', next ? '1' : '0');
     } catch {
       // Ignore persistence failures; the toggle still works this session.
     }
+  }
+
+  /* Hover peek: while the rail is collapsed, hovering or focusing a nav link
+     shows its label in an instant styled chip next to the icon. */
+  readonly peekTip = signal<{ label: string; x: number; y: number } | null>(null);
+
+  peek(event: MouseEvent | FocusEvent, link: NavLink): void {
+    if (!this.collapsed() || this.isMobileView()) { this.hidePeek(); return; }
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    this.peekTip.set({ label: link.label, x: rect.right + 10, y: rect.top + rect.height / 2 });
+  }
+
+  hidePeek(): void {
+    this.peekTip.set(null);
   }
   readonly orderPaymentFlowMode = signal<string>('pay_before_food');
 
@@ -547,9 +610,9 @@ export class SidebarLayoutComponent implements OnInit {
     const role = this.session()?.role;
     if (role === 'KBOOK_ADMIN') {
       return [
-        { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '📊', iconKey: '' },
-        { label: 'Businesses', path: '/admin/businesses', icon: '🏢', iconKey: '' },
-        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '🚩', iconKey: '' }
+        { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '', iconKey: 'dashboard' },
+        { label: 'Businesses', path: '/admin/businesses', icon: '', iconKey: 'business' },
+        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '', iconKey: 'flag' }
       ];
     }
     if (role !== 'OWNER') {
@@ -557,15 +620,15 @@ export class SidebarLayoutComponent implements OnInit {
       return [];
     }
     const items: NavLink[] = [
-      { label: 'Dashboard', path: '/business/dashboard', icon: '📊', iconKey: '' },
-      { label: 'Orders', path: '/business/orders', icon: '🧾', iconKey: '' },
-      { label: 'Menu', path: '/business/menu', icon: '🍽️', iconKey: '' },
-      { label: 'Staff', path: '/business/staff', icon: '👥', iconKey: '' },
-      { label: 'Inventory', path: '/business/inventory', icon: '📦', iconKey: '' },
-      { label: 'Terminals', path: '/business/terminals', icon: '🖥️', iconKey: '' },
-      { label: 'Daily Closing', path: '/business/daily-closing', icon: '💰', iconKey: '' },
-      { label: 'Reports', path: '/business/reports', icon: '📈', iconKey: '' },
-      { label: 'Settings', path: '/business/settings', icon: '⚙️', iconKey: '' }
+      { label: 'Dashboard', path: '/business/dashboard', icon: '', iconKey: 'dashboard' },
+      { label: 'Orders', path: '/business/orders', icon: '', iconKey: 'orders' },
+      { label: 'Menu', path: '/business/menu', icon: '', iconKey: 'menu' },
+      { label: 'Staff', path: '/business/staff', icon: '', iconKey: 'staff' },
+      { label: 'Inventory', path: '/business/inventory', icon: '', iconKey: 'inventory' },
+      { label: 'Terminals', path: '/business/terminals', icon: '', iconKey: 'terminals' },
+      { label: 'Daily Closing', path: '/business/daily-closing', icon: '', iconKey: 'payments' },
+      { label: 'Reports', path: '/business/reports', icon: '', iconKey: 'reports' },
+      { label: 'Settings', path: '/business/settings', icon: '', iconKey: 'settings' }
     ];
     return items;
   });
@@ -637,6 +700,7 @@ export class SidebarLayoutComponent implements OnInit {
   onResize(): void {
     const isMobile = window.innerWidth <= 1024;
     this.isMobileView.set(isMobile);
+    this.hidePeek();
     if (!isMobile && this.menuOpen()) this.menuOpen.set(false);
   }
 
@@ -645,6 +709,14 @@ export class SidebarLayoutComponent implements OnInit {
     if (this.session()?.role !== 'OWNER') return;
     event.preventDefault();
     this.openOrders();
+  }
+
+  /* Ctrl+Shift+B toggles the desktop sidebar rail (mirrors Chrome / VS Code). */
+  @HostListener('document:keydown.control.shift.b', ['$event'])
+  onToggleCollapseShortcut(event: KeyboardEvent): void {
+    if (this.isMobileView()) return;
+    event.preventDefault();
+    this.toggleCollapsed();
   }
 
   /* Close menu on Escape key */

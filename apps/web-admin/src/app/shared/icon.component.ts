@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
@@ -14,7 +14,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
  *   <kb-icon name="settings" size="20" color="currentColor"></kb-icon>
  *
  * Icon names: dashboard, orders, kitchen, menu, staff, inventory, terminals,
- * payments, reports, settings
+ * payments, reports, settings, business, flag
  */
 @Component({
   selector: 'kb-icon',
@@ -24,12 +24,12 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
   template: `
     <svg
       *ngIf="safeHtml"
-      [attr.viewBox]="iconTemplate.viewBox"
+      [attr.viewBox]="iconTemplate?.viewBox"
       [attr.width]="size"
       [attr.height]="size"
       fill="none"
       stroke="currentColor"
-      [attr.stroke-width]="iconTemplate.strokeWidth ?? 2"
+      [attr.stroke-width]="iconTemplate?.strokeWidth ?? 2"
       stroke-linecap="round"
       stroke-linejoin="round"
       [attr.aria-hidden]="ariaHidden ? 'true' : null"
@@ -43,23 +43,39 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
     `,
   ],
 })
-export class IconComponent {
+export class IconComponent implements OnChanges {
   @Input() name!: string;
   @Input() size = 18;
   @Input() color?: string;
   @Input() ariaHidden = true;
 
-  readonly iconTemplate = ICONS[this.name];
   safeHtml: SafeHtml | null = null;
 
-  constructor(private readonly sanitizer: DomSanitizer) {
-    // safeHtml is set in ngOnInit after iconTemplate is resolved
+  constructor(private readonly sanitizer: DomSanitizer) {}
+
+  /* Must be a getter: field initializers run before Angular assigns the
+     `name` input, so evaluating ICONS[this.name] in the constructor always
+     yields undefined and no icon is ever rendered. */
+  get iconTemplate(): { viewBox: string; strokeWidth?: number; paths: string[] } | undefined {
+    return ICONS[this.name];
   }
 
   ngOnInit(): void {
-    if (this.iconTemplate) {
-      const html = this.iconTemplate.paths.join('');
-      this.safeHtml = this.sanitizer.bypassSecurityTrustHtml(html);
+    this.updateSafeHtml();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['name']) {
+      this.updateSafeHtml();
+    }
+  }
+
+  private updateSafeHtml(): void {
+    const iconTemplate = this.iconTemplate;
+    if (iconTemplate) {
+      this.safeHtml = this.sanitizer.bypassSecurityTrustHtml(iconTemplate.paths.join(''));
+    } else {
+      this.safeHtml = null;
     }
   }
 }
@@ -141,6 +157,22 @@ const ICONS: Record<string, { viewBox: string; strokeWidth?: number; paths: stri
     paths: [
       '<circle cx="12" cy="12" r="3"/>',
       '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    ],
+  },
+  business: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>',
+      '<path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>',
+      '<path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>',
+      '<path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+    ],
+  },
+  flag: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>',
+      '<line x1="4" x2="4" y1="22" y2="15"/>',
     ],
   },
 };
