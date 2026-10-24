@@ -232,13 +232,14 @@ interface RestaurantProfile {
     </div>
   `,
   styles: [`
+    :host .page-shell { padding-bottom: 120px; }
     .tabular-num { font-variant-numeric: tabular-nums; }
     .sticky-save-dock {
       position: sticky;
       bottom: var(--kb-space-4);
       z-index: var(--kb-z-topbar, 30);
-      margin: var(--kb-space-4) 0;
-      padding: var(--kb-space-3) var(--kb-space-4);
+      margin: var(--kb-space-5) 0;
+      padding: var(--kb-space-4) var(--kb-space-5);
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);
@@ -262,13 +263,13 @@ interface RestaurantProfile {
     }
     .logo-uploader-card {
       display: flex;
-      gap: var(--kb-space-4);
+      gap: var(--kb-space-5);
       align-items: center;
-      padding: var(--kb-space-3);
+      padding: var(--kb-space-4);
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);
-      margin-bottom: var(--kb-space-4);
+      margin-bottom: var(--kb-space-5);
       flex-wrap: wrap;
     }
     .logo-preview-box {
