@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, inject, signal, NgZone, OnDestroy, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, inject, signal, NgZone, OnDestroy, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { catchError, concatMap, forkJoin, from, map, of, tap, toArray } from 'rxjs';
@@ -144,10 +144,12 @@ import { environment } from '../../../environments/environment';
                   [class.danger]="!item.available || item.stockStatus === 'OUT_OF_STOCK'"
                   [class.warn]="item.available && item.stockStatus === 'RUNNING_LOW'"
                 >
-                  {{ item.available ? item.stockStatus : 'UNAVAILABLE' }}
+                  {{ item.available ? stockStatusLabel(item.stockStatus) : 'Unavailable' }}
                 </span>
               </td>
-              <td>{{ formatDateValue(item.updatedAt) }}</td>
+              <td>
+                <span [title]="formatDateValue(item.updatedAt)">{{ formatDateValue(item.updatedAt) }}</span>
+              </td>
               <td *ngIf="isOwner">
                 <div class="action-stack">
                   <button
@@ -161,15 +163,15 @@ import { environment } from '../../../environments/environment';
                     (click)="toggleItemFavourite(item)"
                   >{{ item.favourite ? '★' : '☆' }}</button>
                   <button
-                    class="toggle-btn"
-                    [class.toggle-btn--on]="item.available"
-                    [class.toggle-btn--off]="!item.available"
+                    class="availability-toggle"
+                    [class.availability-toggle--on]="item.available"
+                    [class.availability-toggle--off]="!item.available"
                     (click)="toggleAvailability(item)"
                     [disabled]="togglingId === item.menuItemId"
                     [attr.aria-pressed]="item.available"
-                    [attr.aria-label]="item.name + ' availability: ' + (item.available ? 'On' : 'Off')"
+                    [attr.aria-label]="item.name + ' availability: ' + (item.available ? 'Available' : 'Unavailable')"
                   >
-                    {{ item.available ? 'On' : 'Off' }}
+                    {{ item.available ? 'Available' : 'Unavailable' }}
                   </button>
                   <button class="ghost-btn" (click)="openEditModal(item)">Edit</button>
                   <button class="ghost-btn danger-btn" (click)="openDeleteConfirm(item)">Delete</button>
@@ -369,9 +371,9 @@ import { environment } from '../../../environments/environment';
             <div style="display:flex;align-items:center;gap:0.6rem;">
               <button
                 type="button"
-                class="toggle-btn"
-                [class.toggle-btn--on]="formAvailable"
-                [class.toggle-btn--off]="!formAvailable"
+                class="availability-toggle"
+                [class.availability-toggle--on]="formAvailable"
+                [class.availability-toggle--off]="!formAvailable"
                 [disabled]="formSaving"
                 (click)="formAvailable = !formAvailable"
                 [attr.aria-pressed]="formAvailable"
@@ -509,8 +511,10 @@ import { environment } from '../../../environments/environment';
                   [disabled]="togglingFavouriteId === cat.categoryId"
                   (click)="toggleCategoryFavourite(cat)"
                 >{{ cat.isFavourite ? '★' : '☆' }}</button>
-                <strong style="font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ cat.name }}</strong>
-                <span class="chip" style="font-size:0.7rem;">{{ getItemsCountInCategory(cat.categoryId) }} items</span>
+                <strong
+                  style="font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                  [title]="cat.name">{{ cat.name }}</strong>
+                <span class="chip" style="font-size:0.7rem;">{{ categoryItemCountLabel(cat.categoryId) }}</span>
               </div>
               <div *ngIf="renamingCategoryId === cat.categoryId" style="display:flex; gap:0.4rem; flex:1; margin-right: 0.5rem;">
                 <input
@@ -1013,6 +1017,26 @@ export class MenuPageComponent implements OnDestroy {
     return this.items.filter(i => i.categoryId === categoryId).length;
   }
 
+  /** "1 item" / "3 items" — the chip style uppercases the text, so the count
+   *  must carry its own plural or the card reads "1 ITEMS". */
+  categoryItemCountLabel(categoryId: number): string {
+    const count = this.getItemsCountInCategory(categoryId);
+    return `${count} ${count === 1 ? 'item' : 'items'}`;
+  }
+
+  /**
+   * Human label for the server's stock status codes. The raw values
+   * (IN_STOCK, RUNNING_LOW, OUT_OF_STOCK) are storage detail, not copy.
+   */
+  stockStatusLabel(status: string | null | undefined): string {
+    switch ((status || '').toUpperCase()) {
+      case 'IN_STOCK': return 'In stock';
+      case 'RUNNING_LOW': return 'Running low';
+      case 'OUT_OF_STOCK': return 'Out of stock';
+      default: return status ? status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, ' ') : 'Unknown';
+    }
+  }
+
   createCategoryFromModal(): void {
     const name = this.newCategoryModalName.trim();
     if (!name || this.creatingCategory) return;
@@ -1439,6 +1463,25 @@ export class MenuPageComponent implements OnDestroy {
     this.newMenuVariantDrafts = [];
     this.formError = '';
     this.resetFormPhoto();
+  }
+
+  /**
+   * Escape closes the top-most dialog on this page. Modals that could only be
+   * dismissed with Cancel or a backdrop click trapped keyboard users.
+   */
+  @HostListener('document:keydown.escape')
+  onEscapeCloseMenuDialogs(): void {
+    if (this.bulkMoveSource) {
+      this.cancelBulkMove();
+      return;
+    }
+    if (this.showCategoriesModal) {
+      this.closeCategoriesModal();
+      return;
+    }
+    if (this.showFormModal) {
+      this.closeFormModal();
+    }
   }
 
   private resetFormPhoto(preview?: string | null): void {

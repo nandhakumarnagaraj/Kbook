@@ -46,7 +46,9 @@ import { CommonModule } from '@angular/common';
           {{ eyebrow }}
         </div>
         <div class="kb-page-header__title-row">
-          <h2 class="kb-page-header__title">{{ title }}</h2>
+          <!-- One <h1> per page: this is the page's own title, and the shared
+               header is the only heading-level owner in the layout. -->
+          <h1 class="kb-page-header__title">{{ title }}</h1>
           <ng-content select="[kbHeaderBadge]"></ng-content>
         </div>
         <p class="kb-page-header__sub" *ngIf="subtitle">{{ subtitle }}</p>

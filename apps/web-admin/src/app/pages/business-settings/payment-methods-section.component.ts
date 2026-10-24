@@ -145,13 +145,13 @@ export interface PaymentMethodsSettings {
           <div style="display:flex;justify-content:space-between;margin-bottom:0.25rem">
             <span>Status</span>
             <span class="chip" [class.chip-green]="easebuzzConfig.subMerchantStatus === 'ACTIVE'" [class.chip-amber]="easebuzzConfig.subMerchantStatus === 'PENDING'">
-              {{ easebuzzConfig.subMerchantStatus }}
+              {{ subMerchantStatusLabel(easebuzzConfig.subMerchantStatus) }}
             </span>
           </div>
           <div style="display:flex;justify-content:space-between">
             <span>KYC Status</span>
-            <span class="chip" [class.chip-green]="easebuzzConfig.kycStatus === 'verified'" [class.chip-amber]="easebuzzConfig.kycStatus === 'pending'">
-              {{ easebuzzConfig.kycStatus || 'N/A' }}
+            <span class="chip" [class.chip-green]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone === 'ok'" [class.chip-amber]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone === 'pending'">
+              {{ kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).label }}
             </span>
           </div>
         </div>
@@ -282,6 +282,38 @@ export class PaymentMethodsSectionComponent {
     }, { allowSignalWrites: true });
 
     this.loadEasebuzzConfig();
+  }
+
+  /**
+   * Human label for the gateway's KYC status. The API returns storage codes
+   * (PENDING_KYC, VERIFIED, …) and null when onboarding has not started —
+   * none of which should be shown raw in an owner-facing screen. When the
+   * dedicated KYC field is empty we fall back to the sub-merchant status,
+   * which carries the same onboarding state.
+   */
+  kycStatusLabel(status: string | null | undefined, fallbackStatus?: string | null): { label: string; tone: 'ok' | 'pending' | 'none' } {
+    const value = (status || fallbackStatus || '').toUpperCase();
+    if (!value) return { label: 'Not started', tone: 'none' };
+    if (value === 'VERIFIED' || value === 'APPROVED' || value === 'ACTIVE') {
+      return { label: 'Verified', tone: 'ok' };
+    }
+    if (value.includes('PENDING') || value.includes('IN_PROGRESS') || value.includes('SUBMITTED')) {
+      return { label: 'Pending KYC verification', tone: 'pending' };
+    }
+    if (value.includes('REJECT') || value.includes('FAILED')) {
+      return { label: 'Verification failed', tone: 'pending' };
+    }
+    return { label: value.charAt(0) + value.slice(1).toLowerCase().replace(/_/g, ' '), tone: 'none' };
+  }
+
+  /** Human label for the sub-merchant onboarding status. */
+  subMerchantStatusLabel(status: string | null | undefined): string {
+    const value = (status || '').toUpperCase();
+    if (!value) return 'Unknown';
+    if (value === 'ACTIVE') return 'Active';
+    if (value.includes('PENDING_KYC')) return 'Pending KYC';
+    if (value === 'PENDING') return 'Pending';
+    return value.charAt(0) + value.slice(1).toLowerCase().replace(/_/g, ' ');
   }
 
   updateField<K extends keyof PaymentMethodsSettings>(field: K, value: PaymentMethodsSettings[K]): void {

@@ -286,7 +286,13 @@ function todayRange(): { from: string; to: string } {
               </div>
               <ng-template #noGstEntries>
                 <div class="empty-table-state">
-                  <p class="muted">No tax invoice entries recorded in this date range.</p>
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                    <path d="M8 13h8M8 17h5"/>
+                  </svg>
+                  <h4>No tax invoices in this date range</h4>
+                  <p class="muted">GST entries are written when an invoice is issued. Try a wider date range, or take an order on the POS to start recording them.</p>
                 </div>
               </ng-template>
             </div>
@@ -339,7 +345,13 @@ function todayRange(): { from: string; to: string } {
               </div>
               <ng-template #noItemSales>
                 <div class="empty-table-state">
-                  <p class="muted">No item sales recorded in this date range.</p>
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph" aria-hidden="true">
+                    <path d="M18 2v6a3 3 0 0 1-3 3 3 3 0 0 1-3-3V2"/>
+                    <path d="M15 2v19"/>
+                    <path d="M5 2c1.5 2 1.5 5 0 7v12"/>
+                  </svg>
+                  <h4>No item sales in this date range</h4>
+                  <p class="muted">Completed orders appear here ranked by quantity sold. Try a wider date range, or take an order on the POS to start tracking.</p>
                 </div>
               </ng-template>
             </div>
@@ -622,6 +634,18 @@ function todayRange(): { from: string; to: string } {
       padding: 3rem 1.5rem;
       text-align: center;
     }
+    .empty-table-state svg.empty-icon-glyph {
+      color: var(--kb-color-muted-foreground);
+      opacity: 0.65;
+      margin-bottom: 0.6rem;
+    }
+    .empty-table-state h4 {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--kb-color-foreground);
+    }
+    .empty-table-state p { max-width: 46ch; margin: 0 auto; }
 
     .skeleton { background: var(--kb-color-border); border-radius: 14px; animation: pulse 1.5s ease-in-out infinite; }
     .skeleton-stat { height: 120px; }

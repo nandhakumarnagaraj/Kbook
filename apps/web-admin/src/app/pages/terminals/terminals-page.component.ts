@@ -162,7 +162,7 @@ import { formatDate } from '../../shared/formatters';
                 <td>
                   <span class="device-pill" *ngIf="terminal.deviceId; else noDevice" [title]="terminal.deviceId">
                     <code>{{ formatDeviceId(terminal.deviceId) }}</code>
-                    <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)">
+                    <button type="button" class="device-copy-btn" title="Copy full Device ID" [attr.aria-label]="'Copy full Device ID ' + terminal.deviceId" (click)="copyDeviceId(terminal.deviceId, $event)">
                       <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -229,7 +229,7 @@ import { formatDate } from '../../shared/formatters';
                 {{ terminal.terminalSeries || 'No series' }} ·
                 <span class="device-pill" *ngIf="terminal.deviceId; else noCardDev" [title]="terminal.deviceId">
                   <code>{{ formatDeviceId(terminal.deviceId) }}</code>
-                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(terminal.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+                  <button type="button" class="device-copy-btn" title="Copy full Device ID" [attr.aria-label]="'Copy full Device ID ' + terminal.deviceId" (click)="copyDeviceId(terminal.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
                 </span>
                 <ng-template #noCardDev>No device assigned</ng-template>
               </p>
@@ -316,7 +316,7 @@ import { formatDate } from '../../shared/formatters';
                     <strong>{{ req.deviceName || req.deviceModel || 'Android Device' }}</strong>
                     <span class="device-pill" *ngIf="req.deviceId; else noReqDev" [title]="req.deviceId">
                       <code>{{ formatDeviceId(req.deviceId) }}</code>
-                      <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)">
+                      <button type="button" class="device-copy-btn" title="Copy full Device ID" [attr.aria-label]="'Copy full Device ID ' + req.deviceId" (click)="copyDeviceId(req.deviceId, $event)">
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -369,7 +369,7 @@ import { formatDate } from '../../shared/formatters';
                 {{ req.deviceModel || 'Unknown model' }} ·
                 <span class="device-pill" *ngIf="req.deviceId; else noReqCardDev" [title]="req.deviceId">
                   <code>{{ formatDeviceId(req.deviceId) }}</code>
-                  <button type="button" class="device-copy-btn" title="Copy full Device ID" (click)="copyDeviceId(req.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
+                  <button type="button" class="device-copy-btn" title="Copy full Device ID" [attr.aria-label]="'Copy full Device ID ' + req.deviceId" (click)="copyDeviceId(req.deviceId, $event)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></button>
                 </span>
                 <ng-template #noReqCardDev>No device ID</ng-template>
               </p>

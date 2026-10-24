@@ -93,8 +93,11 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
             <div class="form-group">
               <label [for]="isEdit() ? 'edit-staff-role' : 'staff-role-select'">Role *</label>
               <select [id]="isEdit() ? 'edit-staff-role' : 'staff-role-select'" class="field-select" formControlName="role">
-                <option value="" disabled *ngIf="!isEdit()">Select a role</option>
-                <option value="SHOP_STAFF">Staff</option>
+                <!-- Always present: in edit mode the placeholder used to be
+                     removed, so a record without a resolvable role rendered an
+                     empty select with no clue what to pick. -->
+                <option value="" disabled>Select a role</option>
+                <option value="SHOP_STAFF">Sales Staff</option>
               </select>
               <div class="role-disabled-note" *ngIf="isEdit() && disableRoleForSelf()">Cannot change your own role</div>
             </div>

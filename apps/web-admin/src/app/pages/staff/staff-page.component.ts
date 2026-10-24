@@ -240,7 +240,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
               <td><code>{{ item.loginId }}</code></td>
               <td>
                 <span class="role-pill" [class.role-pill--owner]="item.role === 'OWNER'" [class.role-pill--staff]="item.role !== 'OWNER'">
-                  {{ item.role }}
+                  {{ roleLabel(item.role) }}
                 </span>
               </td>
               <td>{{ item.whatsappNumber || item.email || '-' }}</td>
@@ -296,7 +296,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
               </span>
             </div>
             <p><code>{{ item.loginId }}</code> · {{ item.whatsappNumber || item.email || 'No contact' }}</p>
-            <dl><div><dt>Role</dt><dd>{{ item.role }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(item.updatedAt) }}</dd></div></dl>
+            <dl><div><dt>Role</dt><dd>{{ roleLabel(item.role) }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(item.updatedAt) }}</dd></div></dl>
             <div class="mobile-data-card__actions" *ngIf="isOwner && item.role !== 'OWNER'">
               <button class="ghost-btn danger-btn" [disabled]="isSelf(item) || !item.active" (click)="requestDeactivate(item)">Deactivate</button>
             </div>
@@ -548,6 +548,19 @@ export class StaffPageComponent {
 
   formatDateValue(value: number | null): string {
     return formatDate(value);
+  }
+
+  /**
+   * Human label for a staff role. The server stores OWNER / SHOP_STAFF; those
+   * are storage values, not something an owner should have to decode.
+   */
+  roleLabel(role: string | null | undefined): string {
+    switch ((role || '').toUpperCase()) {
+      case 'OWNER': return 'Owner';
+      case 'SHOP_STAFF': return 'Sales Staff';
+      case 'KBOOK_ADMIN': return 'Platform Admin';
+      default: return role ? role.charAt(0) + role.slice(1).toLowerCase().replace(/_/g, ' ') : 'Unknown';
+    }
   }
 
   trackByIndex = (_: number, __: unknown) => _;
