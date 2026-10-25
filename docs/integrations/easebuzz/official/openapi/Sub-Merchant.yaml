@@ -1,0 +1,2788 @@
+swagger: '2.0'
+x-stoplight:
+  id: 5zi631w3bkjct
+info:
+  title: Sub-Merchant
+  version: '1.0'
+host: wire.easebuzz.in
+schemes:
+  - https
+produces:
+  - application/json
+consumes:
+  - application/json
+paths:
+  /api/v1/merchants/create/:
+    post:
+      summary: Create Sub-merchant
+      operationId: get-api-v1-merchants-create
+      parameters:
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of a string in the format “{key}|{name}|{email}|{phone}|{salt}” '
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: WIRE-API-KEY provided by Easebuzz
+        - in: body
+          name: body
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                key: 1A8376051B
+                name: Neo Banking Support
+                name_on_bank: Neo Banking Support
+                email: neobankingsupport@easebuzz.in
+                phone: '9999999999'
+                business_name: Easebuzz Neobanking
+                state: Maharashtra
+                nature_of_business: Customer Support
+                business_address: 'Easebuzz Pvt Ltd, Block B, Social Street, Opp Vivanta Hotel, Pune'
+                bank_name: HDFC Bank
+                bank_branch: hinjewadi
+                account_number: '12345678901'
+                account_ifsc: HDFC0000001
+                category_code: '5968'
+                pan_number: AAAAA8888A
+                business_type_code: '42'
+                address: 'Easebuzz Pvt Ltd, Block B, Social Street, Opp Vivanta Hotel, Pune'
+                city: Pune
+                pincode: '411057'
+                entity_type: '14'
+                gstin: ''
+                primary_vpa: ''
+            required:
+              - key
+              - name
+              - name_on_bank
+              - email
+              - phone
+              - business_name
+              - state
+              - nature_of_business
+              - business_address
+              - bank_name
+              - bank_branch
+              - account_number
+              - account_ifsc
+              - category_code
+              - pan_number
+              - business_type_code
+              - address
+              - city
+              - pincode
+              - entity_type
+            properties:
+              key:
+                type: string
+              name:
+                type: string
+              name_on_bank:
+                type: string
+              email:
+                type: string
+              phone:
+                type: string
+              business_name:
+                type: string
+              state:
+                type: string
+                description: 'The state in which the business is registered. A list of all the states is provided [here](docs/2.4.1-Sub-Merchants-Codes-List.md) '
+              nature_of_business:
+                type: string
+              business_address:
+                type: string
+              bank_name:
+                type: string
+              bank_branch:
+                type: string
+              account_number:
+                type: string
+              account_ifsc:
+                type: string
+              category_code:
+                type: string
+                description: 'A list of all the category codes is provided [here](docs/2.4.1-Sub-Merchants-Codes-List.md)'
+              pan_number:
+                type: string
+              business_type_code:
+                type: string
+                description: 'A list of all the business type codes is provided [here](docs/2.4.1-Sub-Merchants-Codes-List.md)'
+              address:
+                type: string
+              city:
+                type: string
+              pincode:
+                type: string
+              entity_type:
+                type: string
+                description: 'A list of all the entity type codes is provided [here](docs/2.4.1-Sub-Merchants-Codes-List.md)'
+              gstin:
+                type: string
+              primary_vpa:
+                type: string
+          x-examples:
+            Sample Request:
+              key: string
+              name: string
+              name_on_bank: string
+              email: string
+              phone: string
+              business_name: string
+              state: string
+              nature_of_business: string
+              business_address: string
+              bank_name: string
+              bank_branch: string
+              account_number: string
+              account_ifsc: string
+              category_code: string
+              pan_number: string
+              business_type_code: string
+              address: string
+              city: string
+              pincode: string
+              entity_type: string
+              gstin: string
+              primary_vpa: string
+              webhook_url: string
+          description: ''
+      description: |-
+        Use this API to create a sub-merchant under the parent merchant's account. A sub-merchant gets their individual login credentials and must complete their KYC individually.
+
+        *   Generate SHA-512 hash  sequence in the format specified and add it in the headers under the key "authorization".
+        *   Hash sequence - "{key}|{name}|{email}|{phone}|{salt}"
+
+        For a list of all the eligible values, please refer [**Sub-merchant Creation Codes List**](docs/2.4.1-Sub-Merchants-Codes-List.md)
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                    kyc: {}
+                    commission_charges:
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=0116193812210547889556502122969030686239586785253750920529302709085023676378376173713918322506099019'
+                    salt: R0dXMEQ2RkVXRDFPTzlaWFe/I+/czvXLinlAWnO0HKQ=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-02-28 17:37:29'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '9999999999'
+                    name: Share Credentials in API
+                    key: 20E9190FEE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                        enum:
+                          - pending
+                          - completed
+                          - rejected
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Sampel Response:
+              success: true
+              data:
+                merchant:
+                  id: 1234
+                  virtual_account:
+                    id: string
+                    account_number: string
+                    balance: 0
+                    is_active: true
+                    bank_name: string
+                    status: string
+                  kyc: {}
+                  commission_charges:
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: true
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: true
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: true
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: true
+                  insta_primary_vpa: null
+                  kyc_status: true
+                  bank_status: true
+                  kyc_url: string
+                  salt: string
+                  kyc_profile_status: string
+                  kyc_expiry_date: string
+                  email: string
+                  phone: string
+                  name: string
+                  key: string
+  /api/v1/merchants/retrieve/:
+    get:
+      summary: Get Sub-merchant details by Email
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                      kyc:
+                        type: object
+                        properties:
+                          id_proof_file:
+                            type: string
+                          cancelled_cheque_file:
+                            type: string
+                          other_doc_file:
+                            type: string
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        type: 'null'
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4344
+                    virtual_account:
+                      id: va2cf1f493dd47708893a23a3f3e4e3a
+                      account_number: '000119170604174344'
+                      balance: 5
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc:
+                      id_proof_file: 'https://easewire.s3.amazonaws.com/kyc_documents/id_proof_4344.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Credential=ASIAU675LM7N4WCVH7TO%2F20240115%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20240115T080842Z&X-Expires=20&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjENv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCmFwLXNvdXRoLTEiSDBGAiEA6otiWTJrqFUn%2Bz8Ql8qUZav5WLB4zBRG3VUS7mcq1MsCIQDC%2BfuStRmJuXgnC%2FhPN2eEYw%2B%2ByCZ0gZUvJT0WuE1JOirGBQiE%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAMaDDM0MTQ0NDM1NjA1OSIM2aoFx9GR%2Bi9FgsP8KpoFo%2FVIEI13dFLNDcQSj4vaCEIUiQD1zU1oyz5ysk%2FyN99AHkLIgW%2BgTaN%2BVQYqdcAu57KjGtTJnOp9QomZkdbEb7ZWidi9dLSBqMyMc1ZDGbxOWncI9GeekuhYJ96i33Nap5ABPQkSQniDYgKQRJ%2BRH9XfB7fk7ndHeYG0IqQNtY2HrTUjiBWG4gHaqp5ioDyWzBS4R209CaAXw2bixTWGWSmnuQDatm8GRUpUfZPZ0nLLvhdPCVz6sypcmSJofTR1XMghm9faUNm8%2FG8o29lRfBoWO8uwKKQdrLx53rtz%2FDiSBEaN6AL7fiEDTsrIDhS%2B19esXJgZuidSy3rnRnWDHKoAJFqpB7kwDsFkFEM4LtkffCfMec01vDcpo%2FiwdTxxFAVG7s2VNyc0eMH0Xd6K6DxVBLfE%2BgffHg9Xgz4SjmryqcuaIYvHBncLLeWZtN9CPwTz5FIi0%2Bn3ecQNsL319jTIKmaB7qi3bVSq4nu24rNX2f%2FX5JHiAdRcMdIX%2F3Pf9N2NGNeQnsSZH9c2xt832yRyCoyFvj2zNwdFqefQtMG1QM0mu1LyDUgnEmdho9s9swXP7Nw3So2aeGoVBWYC%2Bq%2BBkCoX6KRrvt7v3Rm7gOw%2Fj0fgVIV4FTHu0ZxNxr8NX8H5w0cDIYTmGyxoBIVa9%2F%2BC5YYcoyNvZbWm6fdF%2FO0Bi9TsYLM0bds2f4jbNPgGokJW3nilNsARWiubkPJMMyM4EkUc8curLX13OIOefJABmqVabjSSwNph8tfmBQ72tUU9ErzS07oKCXUBHqiFqBm5KsRgH44vETI5mcNkhO9xKRrhnLFvzGgZvsX%2BaUs%2B2wWUsBUl0T5q2AYinSOvfG0pGRoJT3WPyy4SBZDFD5F11mtUlQbYMCjJMPK7kq0GOrABNJ6PXTHTHKoYHK44ZEusrilB%2F8Dfl5Ye00XBN7UJemmM%2BTzxsLlEodqQgoVoj1SnvG%2BkweVf8p1qU%2Fl76oweJDx1hrJI6Mz8fz2UpnNd2WAKwv2ggeQmNyDl%2Fbb6FXU1k85UrwbSq654e0YLWoi5aRWy6X%2FuyqOknyB3DJF%2FEmS48CujHrbLHRQoNvFW02YnaoHg1srMu33qnvrbQhml3X4AVLfI7bEp3gxOnt4DmFE%3D&X-Amz-Signature=e0ae1780e4b22e3635267e8c016d49506484a80f78fd2d427819229d4ce82e30'
+                      cancelled_cheque_file: 'https://easewire.s3.amazonaws.com/kyc_documents/cancelled_cheque_4344.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Credential=ASIAU675LM7N4WCVH7TO%2F20240115%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20240115T080842Z&X-Expires=20&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjENv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCmFwLXNvdXRoLTEiSDBGAiEA6otiWTJrqFUn%2Bz8Ql8qUZav5WLB4zBRG3VUS7mcq1MsCIQDC%2BfuStRmJuXgnC%2FhPN2eEYw%2B%2ByCZ0gZUvJT0WuE1JOirGBQiE%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAMaDDM0MTQ0NDM1NjA1OSIM2aoFx9GR%2Bi9FgsP8KpoFo%2FVIEI13dFLNDcQSj4vaCEIUiQD1zU1oyz5ysk%2FyN99AHkLIgW%2BgTaN%2BVQYqdcAu57KjGtTJnOp9QomZkdbEb7ZWidi9dLSBqMyMc1ZDGbxOWncI9GeekuhYJ96i33Nap5ABPQkSQniDYgKQRJ%2BRH9XfB7fk7ndHeYG0IqQNtY2HrTUjiBWG4gHaqp5ioDyWzBS4R209CaAXw2bixTWGWSmnuQDatm8GRUpUfZPZ0nLLvhdPCVz6sypcmSJofTR1XMghm9faUNm8%2FG8o29lRfBoWO8uwKKQdrLx53rtz%2FDiSBEaN6AL7fiEDTsrIDhS%2B19esXJgZuidSy3rnRnWDHKoAJFqpB7kwDsFkFEM4LtkffCfMec01vDcpo%2FiwdTxxFAVG7s2VNyc0eMH0Xd6K6DxVBLfE%2BgffHg9Xgz4SjmryqcuaIYvHBncLLeWZtN9CPwTz5FIi0%2Bn3ecQNsL319jTIKmaB7qi3bVSq4nu24rNX2f%2FX5JHiAdRcMdIX%2F3Pf9N2NGNeQnsSZH9c2xt832yRyCoyFvj2zNwdFqefQtMG1QM0mu1LyDUgnEmdho9s9swXP7Nw3So2aeGoVBWYC%2Bq%2BBkCoX6KRrvt7v3Rm7gOw%2Fj0fgVIV4FTHu0ZxNxr8NX8H5w0cDIYTmGyxoBIVa9%2F%2BC5YYcoyNvZbWm6fdF%2FO0Bi9TsYLM0bds2f4jbNPgGokJW3nilNsARWiubkPJMMyM4EkUc8curLX13OIOefJABmqVabjSSwNph8tfmBQ72tUU9ErzS07oKCXUBHqiFqBm5KsRgH44vETI5mcNkhO9xKRrhnLFvzGgZvsX%2BaUs%2B2wWUsBUl0T5q2AYinSOvfG0pGRoJT3WPyy4SBZDFD5F11mtUlQbYMCjJMPK7kq0GOrABNJ6PXTHTHKoYHK44ZEusrilB%2F8Dfl5Ye00XBN7UJemmM%2BTzxsLlEodqQgoVoj1SnvG%2BkweVf8p1qU%2Fl76oweJDx1hrJI6Mz8fz2UpnNd2WAKwv2ggeQmNyDl%2Fbb6FXU1k85UrwbSq654e0YLWoi5aRWy6X%2FuyqOknyB3DJF%2FEmS48CujHrbLHRQoNvFW02YnaoHg1srMu33qnvrbQhml3X4AVLfI7bEp3gxOnt4DmFE%3D&X-Amz-Signature=bdce90885e78f08c82ab13c2394b1505d5672ff770ea9a386c39f7ec8bfb8a4f'
+                      other_doc_file: 'https://easewire.s3.amazonaws.com/kyc_documents/other_doc_4344.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Credential=ASIAU675LM7N4WCVH7TO%2F20240115%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20240115T080842Z&X-Expires=20&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjENv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCmFwLXNvdXRoLTEiSDBGAiEA6otiWTJrqFUn%2Bz8Ql8qUZav5WLB4zBRG3VUS7mcq1MsCIQDC%2BfuStRmJuXgnC%2FhPN2eEYw%2B%2ByCZ0gZUvJT0WuE1JOirGBQiE%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAMaDDM0MTQ0NDM1NjA1OSIM2aoFx9GR%2Bi9FgsP8KpoFo%2FVIEI13dFLNDcQSj4vaCEIUiQD1zU1oyz5ysk%2FyN99AHkLIgW%2BgTaN%2BVQYqdcAu57KjGtTJnOp9QomZkdbEb7ZWidi9dLSBqMyMc1ZDGbxOWncI9GeekuhYJ96i33Nap5ABPQkSQniDYgKQRJ%2BRH9XfB7fk7ndHeYG0IqQNtY2HrTUjiBWG4gHaqp5ioDyWzBS4R209CaAXw2bixTWGWSmnuQDatm8GRUpUfZPZ0nLLvhdPCVz6sypcmSJofTR1XMghm9faUNm8%2FG8o29lRfBoWO8uwKKQdrLx53rtz%2FDiSBEaN6AL7fiEDTsrIDhS%2B19esXJgZuidSy3rnRnWDHKoAJFqpB7kwDsFkFEM4LtkffCfMec01vDcpo%2FiwdTxxFAVG7s2VNyc0eMH0Xd6K6DxVBLfE%2BgffHg9Xgz4SjmryqcuaIYvHBncLLeWZtN9CPwTz5FIi0%2Bn3ecQNsL319jTIKmaB7qi3bVSq4nu24rNX2f%2FX5JHiAdRcMdIX%2F3Pf9N2NGNeQnsSZH9c2xt832yRyCoyFvj2zNwdFqefQtMG1QM0mu1LyDUgnEmdho9s9swXP7Nw3So2aeGoVBWYC%2Bq%2BBkCoX6KRrvt7v3Rm7gOw%2Fj0fgVIV4FTHu0ZxNxr8NX8H5w0cDIYTmGyxoBIVa9%2F%2BC5YYcoyNvZbWm6fdF%2FO0Bi9TsYLM0bds2f4jbNPgGokJW3nilNsARWiubkPJMMyM4EkUc8curLX13OIOefJABmqVabjSSwNph8tfmBQ72tUU9ErzS07oKCXUBHqiFqBm5KsRgH44vETI5mcNkhO9xKRrhnLFvzGgZvsX%2BaUs%2B2wWUsBUl0T5q2AYinSOvfG0pGRoJT3WPyy4SBZDFD5F11mtUlQbYMCjJMPK7kq0GOrABNJ6PXTHTHKoYHK44ZEusrilB%2F8Dfl5Ye00XBN7UJemmM%2BTzxsLlEodqQgoVoj1SnvG%2BkweVf8p1qU%2Fl76oweJDx1hrJI6Mz8fz2UpnNd2WAKwv2ggeQmNyDl%2Fbb6FXU1k85UrwbSq654e0YLWoi5aRWy6X%2FuyqOknyB3DJF%2FEmS48CujHrbLHRQoNvFW02YnaoHg1srMu33qnvrbQhml3X4AVLfI7bEp3gxOnt4DmFE%3D&X-Amz-Signature=8d394b426ae78ca65b0a2bd217dc922fd13f5cf07a7be7e6288fdba2bef9844e'
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: true
+                    bank_status: true
+                    kyc_url: 'https://kyc.easebuzz.in/118c0cd2344132c3cd90ea32c446dbff34567735?access_key=3592539205228529950860408172936188132593896882688241400405089826292824572891677565662786869575124013'
+                    salt: WjhCRTYwTDlCOTdRVzlGUw0a2mN5Hj8O9pk3u4yQdps=
+                    kyc_profile_status: Completed
+                    kyc_expiry_date: '2024-01-16 13:38:42'
+                    email: testsubmerchant@test.in
+                    phone: '9999999999'
+                    name: Test Sub Merchant 1
+                    key: 32839468D7
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4344
+                  virtual_account:
+                    id: va2cf1f493dd47708893a23a3f3e4e3a
+                    account_number: '000119170604174344'
+                    balance: 5
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc:
+                    id_proof_file: 'https://easewire.s3.amazonaws.com/kyc_documents/id_proof_4344.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Credential=ASIAU675LM7N4WCVH7TO%2F20240115%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20240115T080842Z&X-Amz-Expires=20&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjENv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCmFwLXNvdXRoLTEiSDBGAiEA6otiWTJrqFUn%2Bz8Ql8qUZav5WLB4zBRG3VUS7mcq1MsCIQDC%2BfuStRmJuXgnC%2FhPN2eEYw%2B%2ByCZ0gZUvJT0WuE1JOirGBQiE%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAMaDDM0MTQ0NDM1NjA1OSIM2aoFx9GR%2Bi9FgsP8KpoFo%2FVIEI13dFLNDcQSj4vaCEIUiQD1zU1oyz5ysk%2FyN99AHkLIgW%2BgTaN%2BVQYqdcAu57KjGtTJnOp9QomZkdbEb7ZWidi9dLSBqMyMc1ZDGbxOWncI9GeekuhYJ96i33Nap5ABPQkSQniDYgKQRJ%2BRH9XfB7fk7ndHeYG0IqQNtY2HrTUjiBWG4gHaqp5ioDyWzBS4R209CaAXw2bixTWGWSmnuQDatm8GRUpUfZPZ0nLLvhdPCVz6sypcmSJofTR1XMghm9faUNm8%2FG8o29lRfBoWO8uwKKQdrLx53rtz%2FDiSBEaN6AL7fiEDTsrIDhS%2B19esXJgZuidSy3rnRnWDHKoAJFqpB7kwDsFkFEM4LtkffCfMec01vDcpo%2FiwdTxxFAVG7s2VNyc0eMH0Xd6K6DxVBLfE%2BgffHg9Xgz4SjmryqcuaIYvHBncLLeWZtN9CPwTz5FIi0%2Bn3ecQNsL319jTIKmaB7qi3bVSq4nu24rNX2f%2FX5JHiAdRcMdIX%2F3Pf9N2NGNeQnsSZH9c2xt832yRyCoyFvj2zNwdFqefQtMG1QM0mu1LyDUgnEmdho9s9swXP7Nw3So2aeGoVBWYC%2Bq%2BBkCoX6KRrvt7v3Rm7gOw%2Fj0fgVIV4FTHu0ZxNxr8NX8H5w0cDIYTmGyxoBIVa9%2F%2BC5YYcoyNvZbWm6fdF%2FO0Bi9TsYLM0bds2f4jbNPgGokJW3nilNsARWiubkPJMMyM4EkUc8curLX13OIOefJABmqVabjSSwNph8tfmBQ72tUU9ErzS07oKCXUBHqiFqBm5KsRgH44vETI5mcNkhO9xKRrhnLFvzGgZvsX%2BaUs%2B2wWUsBUl0T5q2AYinSOvfG0pGRoJT3WPyy4SBZDFD5F11mtUlQbYMCjJMPK7kq0GOrABNJ6PXTHTHKoYHK44ZEusrilB%2F8Dfl5Ye00XBN7UJemmM%2BTzxsLlEodqQgoVoj1SnvG%2BkweVf8p1qU%2Fl76oweJDx1hrJI6Mz8fz2UpnNd2WAKwv2ggeQmNyDl%2Fbb6FXU1k85UrwbSq654e0YLWoi5aRWy6X%2FuyqOknyB3DJF%2FEmS48CujHrbLHRQoNvFW02YnaoHg1srMu33qnvrbQhml3X4AVLfI7bEp3gxOnt4DmFE%3D&X-Amz-Signature=e0ae1780e4b22e3635267e8c016d49506484a80f78fd2d427819229d4ce82e30'
+                    cancelled_cheque_file: 'https://easewire.s3.amazonaws.com/kyc_documents/cancelled_cheque_4344.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Credential=ASIAU675LM7N4WCVH7TO%2F20240115%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20240115T080842Z&X-Amz-Expires=20&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjENv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCmFwLXNvdXRoLTEiSDBGAiEA6otiWTJrqFUn%2Bz8Ql8qUZav5WLB4zBRG3VUS7mcq1MsCIQDC%2BfuStRmJuXgnC%2FhPN2eEYw%2B%2ByCZ0gZUvJT0WuE1JOirGBQiE%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAMaDDM0MTQ0NDM1NjA1OSIM2aoFx9GR%2Bi9FgsP8KpoFo%2FVIEI13dFLNDcQSj4vaCEIUiQD1zU1oyz5ysk%2FyN99AHkLIgW%2BgTaN%2BVQYqdcAu57KjGtTJnOp9QomZkdbEb7ZWidi9dLSBqMyMc1ZDGbxOWncI9GeekuhYJ96i33Nap5ABPQkSQniDYgKQRJ%2BRH9XfB7fk7ndHeYG0IqQNtY2HrTUjiBWG4gHaqp5ioDyWzBS4R209CaAXw2bixTWGWSmnuQDatm8GRUpUfZPZ0nLLvhdPCVz6sypcmSJofTR1XMghm9faUNm8%2FG8o29lRfBoWO8uwKKQdrLx53rtz%2FDiSBEaN6AL7fiEDTsrIDhS%2B19esXJgZuidSy3rnRnWDHKoAJFqpB7kwDsFkFEM4LtkffCfMec01vDcpo%2FiwdTxxFAVG7s2VNyc0eMH0Xd6K6DxVBLfE%2BgffHg9Xgz4SjmryqcuaIYvHBncLLeWZtN9CPwTz5FIi0%2Bn3ecQNsL319jTIKmaB7qi3bVSq4nu24rNX2f%2FX5JHiAdRcMdIX%2F3Pf9N2NGNeQnsSZH9c2xt832yRyCoyFvj2zNwdFqefQtMG1QM0mu1LyDUgnEmdho9s9swXP7Nw3So2aeGoVBWYC%2Bq%2BBkCoX6KRrvt7v3Rm7gOw%2Fj0fgVIV4FTHu0ZxNxr8NX8H5w0cDIYTmGyxoBIVa9%2F%2BC5YYcoyNvZbWm6fdF%2FO0Bi9TsYLM0bds2f4jbNPgGokJW3nilNsARWiubkPJMMyM4EkUc8curLX13OIOefJABmqVabjSSwNph8tfmBQ72tUU9ErzS07oKCXUBHqiFqBm5KsRgH44vETI5mcNkhO9xKRrhnLFvzGgZvsX%2BaUs%2B2wWUsBUl0T5q2AYinSOvfG0pGRoJT3WPyy4SBZDFD5F11mtUlQbYMCjJMPK7kq0GOrABNJ6PXTHTHKoYHK44ZEusrilB%2F8Dfl5Ye00XBN7UJemmM%2BTzxsLlEodqQgoVoj1SnvG%2BkweVf8p1qU%2Fl76oweJDx1hrJI6Mz8fz2UpnNd2WAKwv2ggeQmNyDl%2Fbb6FXU1k85UrwbSq654e0YLWoi5aRWy6X%2FuyqOknyB3DJF%2FEmS48CujHrbLHRQoNvFW02YnaoHg1srMu33qnvrbQhml3X4AVLfI7bEp3gxOnt4DmFE%3D&X-Amz-Signature=bdce90885e78f08c82ab13c2394b1505d5672ff770ea9a386c39f7ec8bfb8a4f'
+                    other_doc_file: 'https://easewire.s3.amazonaws.com/kyc_documents/other_doc_4344.jpeg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Credential=ASIAU675LM7N4WCVH7TO%2F20240115%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20240115T080842Z&X-Amz-Expires=20&X-Amz-SignedHeaders=host&X-Amz-Security-Token=IQoJb3JpZ2luX2VjENv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCmFwLXNvdXRoLTEiSDBGAiEA6otiWTJrqFUn%2Bz8Ql8qUZav5WLB4zBRG3VUS7mcq1MsCIQDC%2BfuStRmJuXgnC%2FhPN2eEYw%2B%2ByCZ0gZUvJT0WuE1JOirGBQiE%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F8BEAMaDDM0MTQ0NDM1NjA1OSIM2aoFx9GR%2Bi9FgsP8KpoFo%2FVIEI13dFLNDcQSj4vaCEIUiQD1zU1oyz5ysk%2FyN99AHkLIgW%2BgTaN%2BVQYqdcAu57KjGtTJnOp9QomZkdbEb7ZWidi9dLSBqMyMc1ZDGbxOWncI9GeekuhYJ96i33Nap5ABPQkSQniDYgKQRJ%2BRH9XfB7fk7ndHeYG0IqQNtY2HrTUjiBWG4gHaqp5ioDyWzBS4R209CaAXw2bixTWGWSmnuQDatm8GRUpUfZPZ0nLLvhdPCVz6sypcmSJofTR1XMghm9faUNm8%2FG8o29lRfBoWO8uwKKQdrLx53rtz%2FDiSBEaN6AL7fiEDTsrIDhS%2B19esXJgZuidSy3rnRnWDHKoAJFqpB7kwDsFkFEM4LtkffCfMec01vDcpo%2FiwdTxxFAVG7s2VNyc0eMH0Xd6K6DxVBLfE%2BgffHg9Xgz4SjmryqcuaIYvHBncLLeWZtN9CPwTz5FIi0%2Bn3ecQNsL319jTIKmaB7qi3bVSq4nu24rNX2f%2FX5JHiAdRcMdIX%2F3Pf9N2NGNeQnsSZH9c2xt832yRyCoyFvj2zNwdFqefQtMG1QM0mu1LyDUgnEmdho9s9swXP7Nw3So2aeGoVBWYC%2Bq%2BBkCoX6KRrvt7v3Rm7gOw%2Fj0fgVIV4FTHu0ZxNxr8NX8H5w0cDIYTmGyxoBIVa9%2F%2BC5YYcoyNvZbWm6fdF%2FO0Bi9TsYLM0bds2f4jbNPgGokJW3nilNsARWiubkPJMMyM4EkUc8curLX13OIOefJABmqVabjSSwNph8tfmBQ72tUU9ErzS07oKCXUBHqiFqBm5KsRgH44vETI5mcNkhO9xKRrhnLFvzGgZvsX%2BaUs%2B2wWUsBUl0T5q2AYinSOvfG0pGRoJT3WPyy4SBZDFD5F11mtUlQbYMCjJMPK7kq0GOrABNJ6PXTHTHKoYHK44ZEusrilB%2F8Dfl5Ye00XBN7UJemmM%2BTzxsLlEodqQgoVoj1SnvG%2BkweVf8p1qU%2Fl76oweJDx1hrJI6Mz8fz2UpnNd2WAKwv2ggeQmNyDl%2Fbb6FXU1k85UrwbSq654e0YLWoi5aRWy6X%2FuyqOknyB3DJF%2FEmS48CujHrbLHRQoNvFW02YnaoHg1srMu33qnvrbQhml3X4AVLfI7bEp3gxOnt4DmFE%3D&X-Amz-Signature=8d394b426ae78ca65b0a2bd217dc922fd13f5cf07a7be7e6288fdba2bef9844e'
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: true
+                  bank_status: true
+                  kyc_url: 'https://kyc.easebuzz.in/d2344132c3cd90ea32c446dbff34567735?access_key=3592539205228529950860408172936188132593896882688241400405089826292824572891677565662786869575124013'
+                  salt: WjhCRTYwTDlCOTdRVzlGUw0a2mN5Hj8O9pk3u4yQdps=
+                  kyc_profile_status: Completed
+                  kyc_expiry_date: '2024-01-16 13:38:42'
+                  email: testsubmerchant@test.in
+                  phone: '9999999999'
+                  name: Test Sub Merchant 1
+                  key: 32839468D7
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Parent Merchant Key must be provided as a query parameter
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+        - type: string
+          in: query
+          name: email
+          description: Sub-merchant email against which details to be retrieved must be provided as a query parameter
+          required: true
+      description: Use this API to fetch the details of a sub-merchant using the submerchant's email id. The merchant's key must be provided as a path parameter in this request.
+      x-stoplight:
+        id: odqd6di093dv0
+    get - copy 4:
+      summary: Get Sub-merchant Details by key
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant ID received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+    get - copy 3:
+      summary: Get Sub-merchant Details
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant ID received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+    get - copy 2:
+      summary: Get Sub-merchant Details
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant ID received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+    get - copy:
+      summary: Get Sub-merchant Details
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant ID received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+    parameters: []
+  '/api/v1/merchants/{submerchant_key}':
+    get:
+      summary: Get Sub-merchant details by Key
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          required: true
+          description: API key provided by Easebuzz
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant key received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+      x-stoplight:
+        id: kr34qficq3xib
+    get - copy 4:
+      summary: Get Sub-merchant Details by key
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant ID received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+    get - copy 3:
+      summary: Get Sub-merchant Details
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant ID received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+    get - copy 2:
+      summary: Get Sub-merchant Details
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant ID received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+    get - copy:
+      summary: Get Sub-merchant Details
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  merchant:
+                    id: 4897
+                    virtual_account:
+                      id: va144a9bede24d28a3dcf20298855248
+                      account_number: '000119100604174897'
+                      balance: 0
+                      is_active: true
+                      bank_name: RBL Bank
+                      status: active
+                      ifsc: RATN0000088
+                    kyc: {}
+                    commission_charges:
+                      UPI:
+                        - charge: 0
+                          charge_in_percent: false
+                      IMPS:
+                        - charge: 0
+                          charge_in_percent: false
+                      NEFT:
+                        - charge: 0
+                          charge_in_percent: false
+                      RTGS:
+                        - charge: 0
+                          charge_in_percent: false
+                    insta_primary_vpa: null
+                    kyc_status: false
+                    bank_status: false
+                    kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                    salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                    kyc_profile_status: Pending
+                    kyc_expiry_date: '2023-03-15 14:57:20'
+                    email: chavanprathamesh0512@gmail.com
+                    phone: '6666666666'
+                    name: SUB ME UPDATE
+                    key: 2xxxxxxxxE
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  merchant:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      virtual_account:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          account_number:
+                            type: string
+                          balance:
+                            type: integer
+                          is_active:
+                            type: boolean
+                          bank_name:
+                            type: string
+                          status:
+                            type: string
+                          ifsc:
+                            type: string
+                            example: RATN0000088
+                      kyc:
+                        type: object
+                      commission_charges:
+                        type: object
+                        properties:
+                          UPI:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          IMPS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          NEFT:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                          RTGS:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                charge:
+                                  type: integer
+                                charge_in_percent:
+                                  type: boolean
+                      insta_primary_vpa:
+                        x-nullable: true
+                      kyc_status:
+                        type: boolean
+                      bank_status:
+                        type: boolean
+                      kyc_url:
+                        type: string
+                      salt:
+                        type: string
+                      kyc_profile_status:
+                        type: string
+                      kyc_expiry_date:
+                        type: string
+                      email:
+                        type: string
+                      phone:
+                        type: string
+                      name:
+                        type: string
+                      key:
+                        type: string
+          examples:
+            Successful Response:
+              success: true
+              data:
+                merchant:
+                  id: 4897
+                  virtual_account:
+                    id: va144a9bede24d28a3dcf20298855248
+                    account_number: '000119100604174897'
+                    balance: 0
+                    is_active: true
+                    bank_name: RBL Bank
+                    status: active
+                    ifsc: RATN0000088
+                  kyc: {}
+                  commission_charges:
+                    UPI:
+                      - charge: 0
+                        charge_in_percent: false
+                    IMPS:
+                      - charge: 0
+                        charge_in_percent: false
+                    NEFT:
+                      - charge: 0
+                        charge_in_percent: false
+                    RTGS:
+                      - charge: 0
+                        charge_in_percent: false
+                  insta_primary_vpa: null
+                  kyc_status: false
+                  bank_status: false
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=6909182215491331230435844510186046850636134184105183748033695004980980792805988593615649054710356484'
+                  salt: RENEM1BPT0I1V09FR1IwMG3KNJ8MjJhg2YADrL55Fzw=
+                  kyc_profile_status: Pending
+                  kyc_expiry_date: '2023-03-15 14:57:20'
+                  email: xxxxxxxxxxxx@gmail.com
+                  phone: '6666666666'
+                  name: SUB ME UPDATE
+                  key: 2xxxxxxxxE
+      operationId: get-api-v1-merchants-20E9190FEE
+      parameters:
+        - type: string
+          in: query
+          name: key
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: API key provided by Easebuzz
+      description: Use this API to fetch the details of a sub-merchant using the sub-merchant ID received in the response of the Create Sub-merchant API. The sub-merchant's key must be provided as a path parameter in this request.
+    parameters:
+      - type: string
+        name: submerchant_key
+        in: path
+        required: true
+        description: The submerchant's key must be provided as a path parameter in this request.
+  '/api/v1/merchants/{submerchant_id}/kyc/url/':
+    get:
+      summary: Get KYC Profile URL
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  kyc_url:
+                    type: string
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=4050122184129308892563646557575685973627498238941673355963654067162285215403909665228074170537371160'
+          examples:
+            Successful Response:
+              success: true
+              data:
+                kyc_url: 'https://kyc.easebuzz.in/c63613442d9e7c6982042b04244bbf71c40d6c12?access_key=4050122184129308892563646557575685973627498238941673355963654067162285215403909665228074170537371160'
+      operationId: get-api-v1-merchants
+      parameters:
+        - type: string
+          in: query
+          name: key
+          required: true
+          description: WIRE-API-KEY provided by Easebuzz
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of a string in the format “{key}|{salt}”'
+          required: true
+        - type: string
+          in: header
+          name: WIRE-API-KEY
+          description: WIRE-API-KEY provided by Easebuzz
+      description: Use this API to retrieve the URL to view and update the KYC details of a sub-merchant. The sub-merchant's key must be provided as a path parameter in this request.
+    parameters:
+      - type: string
+        name: submerchant_id
+        in: path
+        required: true
+        description: ID received during creation of sub-merchant
+  /api/v1/merchants/webhooks/:
+    put:
+      summary: Webhook Configuration for WIRE (Payouts)
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  success: true
+                  message: Webhook configuration updated successfully.
+          examples:
+            Successful Response:
+              success: true
+              data:
+                success: true
+                message: Webhook configuration updated successfully.
+      operationId: get-webhook
+      x-stoplight:
+        id: tbao9f66jyg49
+      parameters:
+        - in: body
+          name: body
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                key: 1A8376051B121
+                merchant_key: 32839468D732
+                webhook_conf:
+                  - event_type: TRANSFER_INITIATED
+                    status: enable
+                    url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: TRANSFER_STATUS_UPDATE
+                    status: enable
+                    url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                    interval_unit: minutes
+                    interval_value: 1
+                    max_attempts: 2
+                  - event_type: FUNDING_ACCOUNT_STATUS_UPDATE
+                    status: enable
+                    url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                    interval_unit: minutes
+                    interval_value: 1
+                    max_attempts: 2
+                  - event_type: LOW_BALANCE_ALERT
+                    status: enable
+                    url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                    interval_unit: minutes
+                    interval_value: 1
+                    max_attempts: 2
+                  - event_type: PAYOUT_LINK_STATUS_UPDATE
+                    status: enable
+                    url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                    interval_unit: hours
+                    interval_value: 5
+                    max_attempts: 2
+                  - event_type: MERCHANT_KYC_APPROVAL
+                    status: enable
+                    url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                    interval_unit: minutes
+                    interval_value: 1
+                    max_attempts: 2
+                  - event_type: VA_CREDIT
+                    status: enable
+                    url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                    interval_unit: hours
+                    interval_value: 2
+                    max_attempts: 2
+            required:
+              - key
+              - merchant_key
+              - webhook_conf
+              - merchant_email
+            properties:
+              key:
+                type: string
+                description: Parent Merchant Key
+              merchant_key:
+                type: string
+                description: Submerchant_Key (either email or key is mandatory of sub_merchant)
+              webhook_conf:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - event_type
+                    - status
+                    - url
+                  properties:
+                    event_type:
+                      enum:
+                        - TRANSFER_INITIATED
+                        - TRANSFER_STATUS_UPDATE
+                        - FUNDING_ACCOUNT_STATUS_UPDATE
+                        - LOW_BALANCE_ALERT
+                        - PAYOUT_LINK_STATUS_UPDATE
+                        - MERCHANT_KYC_APPROVAL
+                        - VA_CREDIT
+                      description: To specify the event type for which the event webhook URL needs to be updated
+                    status:
+                      enum:
+                        - enable
+                        - disable
+                      description: To enable or disable the webhook
+                    url:
+                      type: string
+                      description: Webhook Url to be mapped
+                    interval_unit:
+                      enum:
+                        - minutes
+                        - hours
+                      description: Interval unit in which the interval time should be considered
+                    interval_value:
+                      type: integer
+                      description: Interval in which reattempts should be made
+                    max_attempts:
+                      type: integer
+                      description: 'Number of max attempts '
+              merchant_email:
+                type: string
+                x-stoplight:
+                  id: g4eu11iu8y71j
+                description: 'Submerchant_Email (either email or key is mandatory of sub_merchant) '
+          x-examples:
+            Successful Request:
+              key: 1A8376051B321
+              merchant_key: 32839468D7112
+              webhook_conf:
+                - event_type: TRANSFER_INITIATED
+                  status: enable
+                  url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: TRANSFER_STATUS_UPDATE
+                  status: enable
+                  url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                  interval_unit: minutes
+                  interval_value: 1
+                  max_attempts: 2
+                - event_type: FUNDING_ACCOUNT_STATUS_UPDATE
+                  status: enable
+                  url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                  interval_unit: minutes
+                  interval_value: 1
+                  max_attempts: 2
+                - event_type: LOW_BALANCE_ALERT
+                  status: enable
+                  url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                  interval_unit: minutes
+                  interval_value: 1
+                  max_attempts: 2
+                - event_type: PAYOUT_LINK_STATUS_UPDATE
+                  status: enable
+                  url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                  interval_unit: hours
+                  interval_value: 5
+                  max_attempts: 2
+                - event_type: MERCHANT_KYC_APPROVAL
+                  status: enable
+                  url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                  interval_unit: minutes
+                  interval_value: 1
+                  max_attempts: 2
+                - event_type: VA_CREDIT
+                  status: enable
+                  url: 'https://webhook.site/f6b11057-33f7-4eee-8056-1a0d45ca1177'
+                  interval_unit: hours
+                  interval_value: 2
+                  max_attempts: 2
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format of “{key}|{salt}”'
+          required: true
+      description: Use this API to configure the webhook URLs for the different payout-related events.
+  /api/v1/insta-collect/merchants/webhooks/:
+    put:
+      summary: Webhook Configuration for InstaCollect (QR)
+      tags: []
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+              data:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+            x-examples:
+              Example 1:
+                success: true
+                data:
+                  success: true
+                  message: Webhook configuration updated successfully.
+      operationId: get-api-v1-insta-collect-merchants-webhooks
+      x-stoplight:
+        id: 38q993hpr2fn9
+      parameters:
+        - type: string
+          in: header
+          name: Authorization
+          description: 'SHA-512 hash of string in the format of “{key}|{salt}”'
+          required: true
+        - in: body
+          name: body
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                key: 41A0AC5EA3
+                merchant_key: 48EA3CD5DD
+                webhook_conf:
+                  - event_type: ORDER_STATUS_UPDATE
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: TRANSACTION_CREDIT
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: INSTA_COLLECT_VIRTUAL_ACCOUNT_KYC_APPROVAL
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: ORDER_CREATED
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: SPLIT_ACCOUNT_STATUS_UPDATE
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: TRANSACTION_CAPTURED
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: REFUND_INITIATED
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: REFUND_STATUS_UPDATE
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: SETTLEMENT_INITIATED
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+                  - event_type: SETTLEMENT_STATUS_UPDATE
+                    status: enable
+                    url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                    interval_unit: hours
+                    interval_value: 20
+                    max_attempts: 2
+            required:
+              - key
+              - merchant_key
+              - webhook_conf
+              - merchant_email
+            properties:
+              key:
+                type: string
+                description: Provided key
+              merchant_key:
+                type: string
+                description: Submerchant_Key (either email or key is mandatory of sub_merchant)
+              webhook_conf:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - event_type
+                    - status
+                    - url
+                    - interval_unit
+                    - interval_value
+                    - max_attempts
+                  properties:
+                    event_type:
+                      description: To specify the event type for which the webhook URL needs to be updated
+                      enum:
+                        - ORDER_STATUS_UPDATE
+                        - TRANSACTION_CREDIT
+                        - INSTA_COLLECT_VIRTUAL_ACCOUNT_KYC_APPROVAL
+                        - ORDER_CREATED
+                        - SPLIT_ACCOUNT_STATUS_UPDATE
+                        - TRANSACTION_CAPTURED
+                        - REFUND_INITIATED
+                        - REFUND_STATUS_UPDATE
+                        - SETTLEMENT_INITIATED
+                        - SETTLEMENT_STATUS_UPDATE
+                    status:
+                      description: To enable or disable the webhook
+                      enum:
+                        - enable
+                        - disable
+                    url:
+                      type: string
+                      description: Webhook URL
+                    interval_unit:
+                      description: Interval unit in which the interval time should be considered
+                      enum:
+                        - minutes
+                        - hours
+                    interval_value:
+                      type: integer
+                      description: Interval in which reattempts should be made
+                    max_attempts:
+                      type: integer
+                      description: 'Number of max attempts '
+              merchant_email:
+                type: string
+                x-stoplight:
+                  id: xml0lolt1vzhh
+                description: Submerchant_Email (either email or key is mandatory of sub_merchant)
+          x-examples:
+            Successful Request:
+              key: 41A0AC123
+              merchant_key: 48EA3CD321
+              webhook_conf:
+                - event_type: ORDER_STATUS_UPDATE
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: TRANSACTION_CREDIT
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: INSTA_COLLECT_VIRTUAL_ACCOUNT_KYC_APPROVAL
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: ORDER_CREATED
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: SPLIT_ACCOUNT_STATUS_UPDATE
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: TRANSACTION_CAPTURED
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: REFUND_INITIATED
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: REFUND_STATUS_UPDATE
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: SETTLEMENT_INITIATED
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+                - event_type: SETTLEMENT_STATUS_UPDATE
+                  status: enable
+                  url: 'https://webhook.site/27bccc4f-57c3-4224-821b-4f6ae18dd1e8'
+                  interval_unit: hours
+                  interval_value: 20
+                  max_attempts: 2
+      description: Use this API to configure the webhook URLs for the different collection-related events.
+definitions: {}

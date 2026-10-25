@@ -1,0 +1,558 @@
+openapi: 3.0.0
+info:
+  title: Post Transaction Split APIs
+  version: 1.0.0
+  description: |-
+    ## Overview
+    This API enables merchants to **update the split configuration for a transaction even after the transaction has been successfully completed**, but **before it is settled**. Traditionally, transactions are settled based on pre-defined split configurations.
+    However, in dynamic business scenarios, the need may arise to **modify how the transaction amount is distributed across different accounts** after the transaction is processed.
+
+    The **Post-Transaction Split Configuration API** addresses this limitation by providing a flexible mechanism to update split instructions post-transaction but pre-settlement, ensuring businesses can operate with agility without compromising on control or transparency.
+
+    ### Use Cases
+    - Reallocating transaction funds to different internal accounts based on updated business rules or reconciliation insights.
+    - Handling manual overrides or exceptional routing of funds.
+    - Providing operational teams a way to intervene in fund distribution without disrupting the original transaction flow.
+
+    ### Key Capabilities
+    1. **Multiple Updates Before Settlement:**
+        Merchants can modify the split configuration of a transaction up to a defined number of times (e.g., 3 attempts) as long as the transaction is not yet settled. Each update replaces the previous configuration entirely.
+
+    2. **Full Audit Trail:**
+        Every change made to a transaction’s split configuration via this API is logged for auditing purposes. This ensures traceability and accountability, which is crucial for compliance and internal record-keeping.
+
+    3. **Independent Endpoint:**
+        This functionality is offered via a dedicated API endpoint, separate from the original transaction initiation or capture flows. This decouples the split logic from the core transaction processing logic.
+
+    ### Workflow Summary
+    1. The transaction is initiated and completed successfully.
+    2. Before settlement occurs, the merchant can call this API with the desired split configuration.
+    3. The system validates the request (e.g., amount match, attempt limits).
+    4. If valid, the split configuration is accepted and stored.
+    5. The transaction is eventually settled according to the latest accepted configuration.
+
+    ### Important Considerations
+    - The total split amount must exactly match the original transaction amount.
+    - Each request overrides the previous configuration.
+    - A transaction’s split configuration can only be updated a limited number of times (e.g., 3 times).
+    - The system returns appropriate error codes and messages for invalid or failed attempts (e.g., mismatched amounts, exceeded attempt limits, unknown transaction reference).
+    - Once the transaction is settled, no further changes can be made via this API.
+
+    **This API is ideal for merchants who require post-transaction flexibility in fund distribution while maintaining strict compliance and control over financial flows.**
+servers:
+  - url: 'https://dashboard.easebuzz.in'
+    description: Production Environment
+  - url: 'https://testdashboard.easebuzz.in'
+    description: Sandbox Environment
+paths:
+  /post-split/v1/create/:
+    post:
+      summary: Create API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example: |-
+                {
+                    "key": "N8XXXXXXXX",
+                    "merchant_request_id": "UMRID1",
+                    "easebuzz_id": "E250XXXXXXXXXX",
+                    "amount": "10.0",
+                    "description": "Split Config Update Test",
+                    "configuration": [
+                      {
+                        "label": "axisaccount",
+                        "amount": "6.6"
+                      },
+                      {
+                        "label": "hdfcaccount",
+                        "amount": "3.4"
+                      }
+                    ],
+                    "hash": "xxxxxxxxxxxxx"
+                }
+              required:
+                - key
+                - merchant_request_id
+                - easebuzz_id
+                - amount
+                - configuration
+                - hash
+                - token
+              properties:
+                key:
+                  type: string
+                  x-stoplight:
+                    id: 5lizoqtmjxajx
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                  pattern: '^[a-zA-Z0-9_]{1,15}$'
+                  minLength: 1
+                  maxLength: 15
+                  format: regex
+                merchant_request_id:
+                  type: string
+                  x-stoplight:
+                    id: oiy60v4aj30o6
+                  description: This is the unique ID which should be passed by the merchant for every API hit
+                  pattern: '^[a-zA-Z0-9_]{1,50}$'
+                  minLength: 1
+                  maxLength: 50
+                  format: regex
+                  example: UMRID_txn1
+                easebuzz_id:
+                  type: string
+                  x-stoplight:
+                    id: ooava1vf8zh16
+                  description: |-
+                    Unique Easebuzz ID generated by Easebuzz for every transaction.
+                    > **Note:** Configuration update would not be allowed for settled transactions
+                  pattern: '^[a-zA-Z0-9]*$'
+                  format: regex
+                amount:
+                  type: string
+                  x-stoplight:
+                    id: 5uc8ctp9ajbib
+                  description: |-
+                    The payment amount of the particular transaction.
+                    > **Note:** Please type-cast the amount to string type. Example: "103.98", "1.0", "6.8"
+                  pattern: '^([1-9]\\d*)(\\.\\d{1,2})?$'
+                  example: '"10.98"'
+                  format: regex
+                description:
+                  type: string
+                  x-stoplight:
+                    id: uftuvt7zj1shz
+                  description: Optional field that merchants can use to include additional data or context related to the transaction.
+                  pattern: '^[^\\{\\}^*`~<>]*$'
+                  example: Sample Description
+                  maxLength: 255
+                  minLength: 0
+                  format: regex
+                configuration:
+                  type: array
+                  x-stoplight:
+                    id: ehiyoal9phegh
+                  minItems: 1
+                  description: Contains the split configuration for distributing transaction amounts among different labels.
+                  items:
+                    x-stoplight:
+                      id: okbz6mvo224zf
+                    type: object
+                    minProperties: 2
+                    required:
+                      - label
+                      - amount
+                    properties:
+                      label:
+                        type: string
+                        x-stoplight:
+                          id: yd8y294i5886r
+                        description: Name of the split label indicating where a portion of the transaction amount should be allocated.
+                        pattern: '^[a-zA-Z0-9\-\_ ]*$'
+                        format: regex
+                        example: hdfcaccount_1
+                        minLength: 1
+                        maxLength: 255
+                      amount:
+                        type: string
+                        x-stoplight:
+                          id: gul9cwu3mm7ja
+                        description: |-
+                          Amount associated with the specific split label, indicating how much of the transaction total should be allocated to this label.
+                          > **Note:** Please type-cast the amount to string type. Example: "103.98", "1.0", "6.8"
+                        pattern: '^([1-9]\\d*)(\\.\\d{1,2})?$'
+                        format: regex
+                        minLength: 3
+                        maxLength: 10
+                hash:
+                  type: string
+                  x-stoplight:
+                    id: v0qrnnw5dxjk3
+                  description: This is sha512 encrypted string. Hash Sequence is mentioned at the top of the page for reference.
+                  pattern: '^[a-zA-Z0-9_]{64,128}$'
+                  minLength: 64
+                  maxLength: 128
+                  format: regex
+                  example: be0e6203cdea98e3f22da303242d9367ee50328f5776ebb56a36314eb9c9b80c9364f952615eca43766b62084b327ac6a38ed7f0fedc91fcb1cc22a08299e15a
+                token:
+                  type: string
+                  x-stoplight:
+                    id: ednvmj7t7szgx
+                  description: |-
+                    Token received from EasyCollect Token Authentication API.
+                    > This parameter is mandatory if you are not using key and salt for API Authentication.
+            examples:
+              Example 1:
+                value:
+                  key: N8XXXXXXXX
+                  merchant_request_id: UMRID1
+                  easebuzz_id: E250XXXXXXXXXX
+                  amount: '10.0'
+                  description: Split Config Update Test
+                  configuration:
+                    - label: axisaccount
+                      amount: '6.6'
+                    - label: hdfcaccount
+                      amount: '3.4'
+                  hash: '****************'
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                    x-stoplight:
+                      id: b28324gg3oyzw
+                    description: |-
+                      Indicates whether the API call was processed successfully.
+
+                      - true: API call was successful.
+                      - false: API call failed or was rejected
+                  request_status:
+                    type: string
+                    x-stoplight:
+                      id: cn2eie7mmv0yj
+                    description: |-
+                      Provides the high-level status of the configuration update.
+                      - **success:** Successful update
+                      - **rejected:** Error occurred while validating payload
+                  merchant_request_id:
+                    type: string
+                    x-stoplight:
+                      id: w20f5b0qg7des
+                    description: The unique request ID that was originally sent by the merchant in the API request. Helps correlate the response with the corresponding request.
+                    pattern: '^[a-zA-Z0-9_]{0,50}$'
+                    maxLength: 50
+                    minLength: 1
+                    example: UMRIDtxn_1
+                    format: regex
+                  configuration:
+                    type: array
+                    x-stoplight:
+                      id: wdhiuhratwrpb
+                    description: 'Contains the split configuration for distributing transaction amount among different labels, which will override the existing split configuration for the Easebuzz Transaction ID mentioned in the payload.'
+                    minItems: 1
+                    items:
+                      x-stoplight:
+                        id: jescuxdmx6kpy
+                      type: object
+                      minProperties: 2
+                      properties:
+                        label:
+                          type: string
+                          x-stoplight:
+                            id: tvqidpgds01io
+                          description: Name of the split label indicating where a portion of the transaction amount should be allocated.
+                        status:
+                          type: string
+                          x-stoplight:
+                            id: ob5y12wnzwvp1
+                          description: |-
+                            Status of the split configuration update for the respective label.
+                            - **success:** Split Label details evaluated successfully
+                            - **false:** Error while validating and evaluating split label details.
+                  meta:
+                    type: object
+                    x-stoplight:
+                      id: v96fg3wcsbrdo
+                    description: Provides additional metadata about split configuration attempts.
+                    properties:
+                      description:
+                        type: string
+                        x-stoplight:
+                          id: zwcxf3o8nioeb
+                        description: |-
+                          Informational message or guideline informing about Split Configuration Update attempts for a transaction
+                          > Currently, **only 3 attempts are allowed** to update the split configuration per transaction (Easebuzz ID)
+                      total_attempts:
+                        type: string
+                        x-stoplight:
+                          id: jbh3mktsaddyw
+                        description: Total number of times split configuration updates are allowed per transaction. Defaults to "3"
+                      remaining_attempts:
+                        type: string
+                        x-stoplight:
+                          id: k6w0iqqel4tdo
+                        description: Number of update attempts remaining for the current transaction.
+              examples:
+                Success:
+                  value:
+                    status: true
+                    request_status: success
+                    merchant_request_id: UMRID1
+                    configuration:
+                      - label: hdfcaccount
+                        status: success
+                      - label: axisaccount
+                        status: success
+                    meta:
+                      description: Split Configuration for a transaction can be changed upto 3 times
+                      total_attempts: '3'
+                      remaining_attempts: '1'
+                Failure - Duplicate Merchant Request ID:
+                  value:
+                    status: false
+                    error_code: EBPTSURVE01
+                    error_message: A request with the same Merchant Request ID has already been processed
+                Failure - Post Transaction Split feature not enabled:
+                  value:
+                    status: false
+                    error_code: EBPTSURVE02
+                    error_message: This feature has not been activated for the merchant
+                Failure - Split Payout feature not enabled for merchant:
+                  value:
+                    status: false
+                    error_code: EBPTSURVE04
+                    error_message: Split Payouts is disabled for this merchant
+                Failure - Maximum split config update attempts reached:
+                  value:
+                    status: false
+                    error_code: EBPTSURVE06
+                    error_message: Maximum split configuration update attempts exceeded for this transaction
+                Failure - configuration parameter list empty:
+                  value:
+                    status: false
+                    error_code: EBPTSURVE07
+                    error_message: No splits were provided
+                Failure - Summation of Split Amount doesn't match Total Amount:
+                  value:
+                    status: false
+                    error_code: EBPTSURVE08
+                    error_message: Total split amount does not match transaction amount
+                Failure - Transaction related to the merchant Not Found:
+                  value:
+                    status: false
+                    error_code: EBPTSUTVE01
+                    error_message: Transaction not found
+                Failure - Not a "Success" Transaction:
+                  value:
+                    status: false
+                    error_code: EBPTSUTVE02
+                    error_message: Transaction is not a successful transaction
+                Failure - Transaction Amount doesn't match with Database's value:
+                  value:
+                    status: false
+                    error_code: EBPTSUTVE03
+                    error_message: Transaction amount does not match
+                Failure - Transaction already Settled:
+                  value:
+                    status: false
+                    error_code: EBPTSUTVE04
+                    error_message: Cannot update split labels for settled transaction
+                Failure - Existing refunds prevent split configuration update:
+                  value:
+                    status: false
+                    error_code: EBPTSUTVE05
+                    error_message: Cannot update split labels as refund(s) have been raised against this transaction
+      parameters: []
+      description: |-
+        This API allows merchants to update the split configuration of a completed transaction before settlement. It enables businesses to dynamically reallocate transaction funds across internal accounts based on updated rules, reconciliation insights, or manual interventions. Each update fully replaces the previous configuration. The summation of split amounts must match the original transaction amount exactly.
+
+        > **Note:** Updating the split configuration can be performed up to 3 times for every transaction.
+
+        **Hash Sequence:** `key|merchant_request_id|easebuzz_id|salt`
+        > Hash generation would **not be required** if [**Token is used to authenticate the API request**](https://docs.easebuzz.in/docs/payment-gateway/fatyf4r58zdj0-token-authentication-api).
+
+        ### Error scenarios
+
+         Error Code | Error Message | Description
+         ----------|---------|---------
+         EBPTSURVE01 | A request with the same Merchant Request ID has already been processed | Duplicate Merchant Request ID sent in the payload
+         EBPTSURVE02 | This feature has not been activated for the merchant | When Post Transaction Split feature is not enabled for the merchant
+         EBPTSURVE03 | This feature has not been activated for the submerchant | When Post Transaction Split feature is not enabled for the submerchant
+         EBPTSURVE04 | Split Payouts is disabled for this merchant | Split Payout feature is not enabled for the merchant
+         EBPTSURVE05 | Split Payouts is disabled for this submerchant | Split Payout feature is not enabled for the submerchant
+         EBPTSURVE06 | Maximum split configuration update attempts exceeded for this transaction | No. of attempts to update configuration exceeded the allowed no. of attempts
+         EBPTSURVE07 | No splits were provided | **configuration** parameter was sent as empty list
+         EBPTSURVE08 | Total split amount does not match transaction amount | Total amount does not tally the summation of amount defined under **configurations** paramrter
+         EBPTSUTVE01 | Transaction not found | Easebuzz ID related to the merchant was not found
+         EBPTSUTVE02 | Transaction is not a successful transaction | This error indicates that the API request has failed because the referenced transaction (Easebuzz ID) has not been successfully completed
+         EBPTSUTVE03 | Transaction amount does not match | Given amount in payload doesn’t match the actual amount  
+         EBPTSUTVE04 | Cannot update split labels for settled transaction | If the transaction is settled, split configuration update would be prohibited
+         EBPTSUTVE05 | Cannot update split labels as refund(s) have been raised against this transaction | Self explainatory
+  /post-split/v1/retrieve/:
+    post:
+      summary: Retrieve API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                key: '{{key}}'
+                merchant_request_id: '{{merchant_request_id}}'
+                hash: '{{hash}}'
+              required:
+                - key
+                - merchant_request_id
+                - hash
+              properties:
+                key:
+                  type: string
+                  x-stoplight:
+                    id: anpo9sg5ciub2
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                  pattern: '^[a-zA-Z0-9_]{1,15}$'
+                  minLength: 1
+                  maxLength: 15
+                  format: regex
+                merchant_request_id:
+                  type: string
+                  x-stoplight:
+                    id: iyfcjxz37iplf
+                  description: This is the unique ID which was passed by the merchant on Create API call
+                  pattern: '^[a-zA-Z0-9_]{0,50}$'
+                  minLength: 1
+                  maxLength: 50
+                  format: regex
+                  example: UMRID_txnid1
+                hash:
+                  type: string
+                  x-stoplight:
+                    id: ect72vzemvjsc
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    > **Hash sequence:** key|merchant_request_id|salt
+                  pattern: '^[a-zA-Z0-9_]{64,128}$'
+                  minLength: 64
+                  maxLength: 128
+                  format: regex
+                  example: be0e6203cdea98e3f22da303242d9367ee50328f5776ebb56a36314eb9c9b80c9364f952615eca43766b62084b327ac6a38ed7f0fedc91fcb1cc22a08299e15a
+            examples:
+              Example 1:
+                value:
+                  key: N8XXXXXXXXX
+                  merchant_request_id: UMRID1
+                  hash: '*****************'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  Example 1:
+                    status: success
+                    merchant_request_id: UMRID2
+                    description: First Split Test
+                    error: null
+                    split_configuration:
+                      - label: hdfcaccount
+                        amount: 2
+                properties:
+                  status:
+                    type: string
+                    description: |-
+                      Provides the high-level status of the configuration update.
+                      - **success:** Successful update
+                      - **rejected:** Error occurred while validating payload
+                  merchant_request_id:
+                    type: string
+                    description: This is the unique ID passed by the merchant in the request payload
+                  description:
+                    type: string
+                    description: Optional field that merchants can use to include additional data or context related to the transaction.
+                  error:
+                    type:
+                      - object
+                      - string
+                    description: |-
+                      A human-readable error message indicating the reason for failure.
+                      Example: "Transaction amount does not match" means that the sum of the split configuration did not match the total transaction amount.
+                  split_configuration:
+                    type: array
+                    minItems: 1
+                    description: 'Contains the split configuration for distributing transaction amount among different labels, which overrode the previous split configuration for the Easebuzz Transaction ID.'
+                    items:
+                      type: object
+                      minProperties: 2
+                      maxProperties: 2
+                      properties:
+                        label:
+                          type: string
+                          description: Name of the split label indicating where a portion of the transaction amount should be allocated.
+                        amount:
+                          type: integer
+                          description: 'Amount associated with the specific split label, indicating how much of the transaction total should be allocated to this label.'
+              examples:
+                Example 1:
+                  value:
+                    status: success
+                    merchant_request_id: UMRID1
+                    description: Split Config Update Test
+                    error: null
+                    split_configuration:
+                      - label: hdfcaccount
+                        amount: 6.6
+                      - label: axisaccount
+                        amount: 3.4
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  Example 1:
+                    status: false
+                    validation_errors:
+                      key: Cannot find associated request
+                    error_desc: Cannot find associated request
+                    module: post_transaction_request_retrieve
+                    error_code: EBODSI01
+                properties:
+                  status:
+                    type: boolean
+                    description: |-
+                      Indicates the success or failure of the API request.
+                      -**false:** The request was unsuccessful due to a validation error
+                  validation_errors:
+                    type: object
+                    description: |-
+                      A key-value object providing detailed error messages tied to specific request parameters.
+                      - **Example 1:** "key": "Cannot find associated request" means the provided key was not recognized or linked to a valid request.
+                      - **Example 2:** "error": "Cannot find associated request" is a more generic fallback when a specific key isn't identified.
+                  error_desc:
+                    type: string
+                    description: A brief description of the error in human-readable form. Matches the value in ***validation_errors***.
+                  module:
+                    type: string
+                    description: |-
+                      Name of the internal module or service where the error occurred.
+                      - If null, it means the module was not set or couldn't be determined during the failure.
+                      - If populated (e.g., "post_transaction_request_retrieve"), it helps identify the processing stage of the error.
+                    default: 'n'
+                    nullable: true
+                  error_code:
+                    type: string
+                    description: |-
+                      A predefined error code for easier error tracking and debugging.
+                      - **Example:** "EBPTSR01" is a code that likely maps to "request not found" or "invalid reference".
+              examples:
+                Example 1:
+                  value:
+                    status: false
+                    validation_errors:
+                      key: Cannot find associated request
+                    error_desc: Cannot find associated request
+                    module: post_transaction_request_retrieve
+                    error_code: EBPTSR01
+                Example 2:
+                  value:
+                    detail: 'JSON parse error - Expecting property name enclosed in double quotes: line 5 column 1 (char 205)'
+                Example 3:
+                  value:
+                    status: false
+                    validation_errors:
+                      error: Cannot find associated request
+                    error_desc: Cannot find associated request
+                    module: null
+                    error_code: EBPTSR01
+      description: "This API retrieves the current split configuration for a given transaction, provided they were updated using the Post-Transaction Split API. It enables merchants and operational teams to view the latest accepted split details applied to a transaction before settlement. This provides transparency into the fund distribution setup and aids in reconciliation and oversight.\r\n\r\n\r\n**Hash Sequence:** `key|merchant_request_id|salt`"

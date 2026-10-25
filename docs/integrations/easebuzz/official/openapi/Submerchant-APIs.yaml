@@ -1,0 +1,462 @@
+openapi: 3.0.0
+x-stoplight:
+  id: ai079zykm502x
+info:
+  title: Submerchant APIs
+  version: 1.0.0
+servers:
+  - url: 'https://testdashboard.easebuzz.in'
+    description: Sandbox URL
+  - url: 'https://dashboard.easebuzz.in'
+    description: Production URL
+paths:
+  /merchant/v1/submerchant/create/:
+    post:
+      summary: Create Sub-Merchant API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  merchant_details:
+                    merchant_key: CJFX28Z1BG
+                    hash: 4cb46e8c0aec6e9c093cb12709763f4f07f25cecf34ca416b31dd0d1e3291a8be89312271e81ff8bd59d79ad786b2ff2e6f3e08cb481e8f3825733b2d22a1e80
+                  submerchant_details:
+                    sub_merchant_name: Sagar
+                    sub_merchant_email: sagar.sawant@easebuzz.in
+                    sub_merchant_phone: '8805596828'
+                    sub_merchant_name_in_bank: Sagar
+                    sub_merchant_account_number: '123456987'
+                    sub_merchant_bank_name: HDFC
+                    sub_merchant_branch_name: PUNE
+                    sub_merchant_ifsc_code: HDFC0000794
+              properties:
+                merchant_details:
+                  type: object
+                  required:
+                    - merchant_key
+                    - hash
+                  properties:
+                    merchant_key:
+                      type: string
+                      description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                    hash:
+                      type: string
+                      description: |-
+                        This is sha512 encrypted string. And hash sequence is mentioned above.The value should be in lower case.
+                        Hash sequence: key|submerchant_email|submerchant_phone|salt
+                submerchant_details:
+                  type: object
+                  required:
+                    - sub_merchant_name
+                    - sub_merchant_email
+                    - sub_merchant_phone
+                    - sub_merchant_name_in_bank
+                    - sub_merchant_account_number
+                    - sub_merchant_bank_name
+                    - sub_merchant_branch_name
+                    - sub_merchant_ifsc_code
+                    - sub_merchant_password
+                    - sub_merchant_confirm_password
+                  properties:
+                    sub_merchant_name:
+                      type: string
+                      description: Name of Sub-Merchant's firm/entity.
+                    sub_merchant_email:
+                      type: string
+                      description: Official email ID of Sub-Merchant.
+                    sub_merchant_phone:
+                      type: string
+                      description: Sub-Merchant mobile number.
+                    sub_merchant_name_in_bank:
+                      type: string
+                      description: Name of Sub-Merchant's as per bank.
+                    sub_merchant_account_number:
+                      type: string
+                      description: Account number for Sub-Merchant.
+                    sub_merchant_bank_name:
+                      type: string
+                      description: Name of the Sub-Merchant bank. E.g. SBI
+                    sub_merchant_branch_name:
+                      type: string
+                      description: Name of the Sub-Merchant bank branch. E.g. Dhanori Branch.
+                    sub_merchant_ifsc_code:
+                      type: string
+                      description: IFSC code of given bank name.
+                    sub_merchant_password:
+                      type: string
+                      description: Password for the Sub-merchant account
+                    sub_merchant_confirm_password:
+                      type: string
+                      description: Confirm password for the Sub-merchant account
+              required:
+                - merchant_details
+                - submerchant_details
+            examples:
+              example-1:
+                value:
+                  merchant_details:
+                    merchant_key: RXXXXX5ZA
+                    hash: 99f59e29b2b68304acc0a0e5095294a7ab2e83e1dde44eafba56d59f4b1ab29ca398f766f64f7eeae5fdba351cb9043acf5c1f1f89f8d22308436893364059b7
+                  submerchant_details:
+                    sub_merchant_name: Rushi Agarwal
+                    sub_merchant_email: newdocs@gmail.com
+                    sub_merchant_phone: 629XXXXXX65
+                    sub_merchant_name_in_bank: Rushi
+                    sub_merchant_account_number: 192XXXXXX108
+                    sub_merchant_bank_name: ICICI
+                    sub_merchant_branch_name: Bankura
+                    sub_merchant_ifsc_code: ICIXXXXX25
+                    sub_merchant_password: XXXXXXXXX
+                    sub_merchant_confirm_password: XXXXXXXXXX
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    status: true
+                    submerchant:
+                      email: xxx@xxxx.xxx
+                      account_number: xxxxxxxxxxxx
+                      submerchant_id: XXXXXXXXXX
+                      name: XXXXXX XXXXX
+                      mobile_number: xxxxxxxxxxx
+                    submerchant_id: xxxxxxxxxx
+                    error: XX
+                    error_desc: XX
+                properties:
+                  status:
+                    type: boolean
+                  submerchant:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                      account_number:
+                        type: string
+                      name:
+                        type: string
+                      mobile_number:
+                        type: string
+                  submerchant_id:
+                    type: string
+                  error:
+                    type: string
+                  error_desc:
+                    type: string
+              examples:
+                Success Response:
+                  value:
+                    status: true
+                    submerchant_id: S645900003
+                    submerchant:
+                      name: Rajesh K
+                      email: rajesh+1@easebuzz.in
+                      mobile_number: '9575000000'
+                      account_number: '420000000000051'
+                    error: NA
+                    error_desc: NA
+                    kyc_details:
+                      status: true
+                      message: Token generated successfully
+                      kyc_dashboard_url: 'https://kyc.easebuzz.in/2585e6a7f4b0fa76cfa57cbac6ac7a50e877cc85f07411f613827ba6c08d8e18f3983e45ec16f931f7c2824c090dba882ca57c4e63687e0bb0cd2cb?access_key=8261098598360322501015409046266988131222920591346272913748894475240968916647964997543265481323382965'
+                Failure Response:
+                  value:
+                    status: false
+                    submerchant_id: ''
+                    submerchant:
+                      name: Rajesh K
+                      email: rajesh+1@easebuzz.in
+                      mobile_number: '9575000000'
+                      account_number: '420000000000051'
+                    error: Duplicate email
+                    error_desc: Submerchant with same email already exist
+      description: |-
+        Once a sub-merchant profile is done, the following API setup is required. This API is to Create / Update a sub-merchant.
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+        **Hash sequence:**
+        ```
+        key|submerchant_email|submerchant_phone|salt
+        ```
+  /merchant/v1/submerchant/create:
+    post:
+      summary: Update Sub-Merchant API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  merchant_details:
+                    merchant_key: xxxxx
+                    hash: xxxxxxx
+                  submerchant_details:
+                    sub_merchant_name: xxxxxxx
+                    sub_merchant_email: 'xxxxxx @xxxx.xxx '
+                    sub_merchant_phone: xxxxxx
+                    sub_merchant_name_in_bank: xxxxxx
+                    sub_merchant_account_number: xxxxxxxx
+                    sub_merchant_bank_name: xxxxxxxxx
+                    sub_merchant_branch_name: xxxxxx
+                    sub_merchant_ifsc_code: xxxxxxxx
+                    sub_merchant_id: xxxxxxx
+                  kyc_details:
+                    bank_proof:
+                      file_url: 'https://xxxxxx.jpg'
+                      base_64: ''
+                    id_proof:
+                      file_url: 'https://xxxxxx.jpg'
+                      base_64: ''
+                    extra_doc:
+                      - base64: < BASE 64 DATA >
+                      - file_path: 'http://example.com/xxxx.jpg'
+                  submerchant_deduction_percentage:
+                    dc_deduction_percentage_lt_one_thousand: xx
+                    dc_deduction_percentage_lt_two_thousand: xx
+                    dc_deduction_percentage_gt_two_thousand: xx
+                    nb_deduction: 'xxxx '
+                    is_nb_rs_percentage: '0'
+                    upi_deduction_percentage_lt_limit: xxx
+                    upi_deduction_percentage_gt_limit: xx
+                    upi_limit: '2000'
+                    is_upi_rs_percentage: '0'
+                    cashcard_deduction_percentage: xxxx
+                    debitatm_deduction_percentage: xxx
+                    other_deduction_percentage: xxxx
+                  business_details:
+                    sub_merchant_gstin: xxxxx
+                    sub_merchant_business_name: xxxxx
+                    sub_merchant_business_address: xxxxx
+                    sub_merchant_state: xxxxx
+                    sub_merchant_business_nature: xxxxxxx
+              properties:
+                merchant_details:
+                  type: object
+                  required:
+                    - merchant_key
+                    - hash
+                  properties:
+                    merchant_key:
+                      type: string
+                      description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                    hash:
+                      type: string
+                      description: 'This is sha512 encrypted string. And hash sequence is mentioned above.The value should be in lower case. Hash sequence: key|submerchant_email|submerchant_phone|salt'
+                submerchant_details:
+                  type: object
+                  required:
+                    - sub_merchant_name
+                    - sub_merchant_email
+                    - sub_merchant_phone
+                    - sub_merchant_name_in_bank
+                    - sub_merchant_account_number
+                    - sub_merchant_bank_name
+                    - sub_merchant_branch_name
+                    - sub_merchant_ifsc_code
+                    - sub_merchant_id
+                  properties:
+                    sub_merchant_name:
+                      type: string
+                      description: Name of Sub-Merchant's firm/entity.
+                    sub_merchant_email:
+                      type: string
+                      description: Official email ID of Sub-Merchant.
+                    sub_merchant_phone:
+                      type: string
+                      description: Sub-Merchant mobile number
+                    sub_merchant_name_in_bank:
+                      type: string
+                      description: Name of Sub-Merchant's as per bank.
+                    sub_merchant_account_number:
+                      type: string
+                      description: Account number for Sub-Merchant.
+                    sub_merchant_bank_name:
+                      type: string
+                      description: Name of the Sub-Merchant bank. E.g. SBI
+                    sub_merchant_branch_name:
+                      type: string
+                      description: Name of the Sub-Merchant bank branch. E.g. Dhanori Branch.
+                    sub_merchant_ifsc_code:
+                      type: string
+                      description: IFSC code of given bank name.
+                    sub_merchant_id:
+                      type: string
+                      description: ID associated with the sub-merchant
+            examples:
+              example-1:
+                value:
+                  merchant_details:
+                    merchant_key: R7XXXXXA
+                    hash: 99f59e29b2b68304acc0a0e5095294a7ab2e83e1dde44eafba56d59f4b1ab29ca398f766f64f7eeae5fdba351cb9043acf5c1f1f89f8d22308436893364059b7
+                  submerchant_details:
+                    sub_merchant_name: Rushi
+                    sub_merchant_email: newdocs@gmail.com
+                    sub_merchant_phone: 6XXXXXX5
+                    sub_merchant_name_in_bank: Rushi
+                    sub_merchant_account_number: 1XXXXXXXX5
+                    sub_merchant_bank_name: HDFC
+                    sub_merchant_branch_name: Pune
+                    sub_merchant_ifsc_code: ICXXXXXXX25
+                    sub_merchant_id: S360DILA
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    status: true
+                    submerchant:
+                      email: xxx@xxxx.xxx
+                      account_number: xxxxxxxxxxxx
+                      submerchant_id: XXXXXXXXXX
+                      name: XXXXXX XXXXX
+                      mobile_number: xxxxxxxxxxx
+                    submerchant_id: xxxxxxxxxx
+                    error: XX
+                    error_desc: XX
+                properties:
+                  status:
+                    type: boolean
+                  submerchant:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                      account_number:
+                        type: string
+                      name:
+                        type: string
+                      mobile_number:
+                        type: string
+                  submerchant_id:
+                    type: string
+                  error:
+                    type: string
+                  error_desc:
+                    type: string
+              examples:
+                success:
+                  value:
+                    status: true
+                    submerchant:
+                      email: xxx@xxxx.xxx
+                      account_number: xxxxxxxxxxxx
+                      submerchant_id: XXXXXXXXXX
+                      name: XXXXXX XXXXX
+                      mobile_number: xxxxxxxxxxx
+                    submerchant_id: xxxxxxxxxx
+                    error: XX
+                    error_desc: XX
+      description: |-
+        Once a sub-merchant profile is done, the following API setup is required. This API is to Create / Update a sub-merchant.
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+        **Hash sequence:** 
+
+        ```
+        key|submerchant_email|submerchant_phone|salt
+        ```
+    parameters: []
+  /submerchant/v1/generate_kyc_access_key:
+    post:
+      summary: Generate Sub-Merchant KYC Access Key API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  merchant_key: R7EZ9C05ZA
+                  hash: eac95ef5209ce85cec9a1083db93fc85545d39cf75bed56e37fa4052c34f1652fe767452c302756a4b3c2de1f9698dc1e2a17f93dce2304a181c0197b134ce64
+                  sub_merchant_id: S360DILA
+              required:
+                - merchant_key
+                - sub_merchant_id
+                - name
+                - email
+                - phone
+                - hash
+              properties:
+                merchant_key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                sub_merchant_id:
+                  type: string
+                  description: Unique ID for Submerchant created by EaseBuzz.
+                name:
+                  type: string
+                  x-stoplight:
+                    id: t26fbwti6bra9
+                  description: Name of Sub-Merchant's firm/entity.
+                email:
+                  type: string
+                  x-stoplight:
+                    id: kawioh98rla5o
+                  description: Official email ID of Sub-Merchant.
+                phone:
+                  type: string
+                  x-stoplight:
+                    id: pq50t3iisbjyb
+                  description: Sub-Merchant mobile number.
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above.The value should be in lower case.
+                    Hash sequence: **merchant_key|sub_merchant_id|name|email|phone|salt**
+            examples:
+              example-1:
+                value:
+                  merchant_key: RXXXXXXXA
+                  sub_merchant_id: SXXXABCD
+                  name: Cristiano
+                  email: ronaldo@gmail.com
+                  phone: 9XXXXXXXXX
+                  hash: 0e37bbdd89e9022f5e766110ac028f80b8858c60ef1c8fd7dd658dd6d978a1e3daba81e43bcf3be960b4b0cdf6421edc9c337220334f109b3d2e94bdd6528e09
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  kyc_dashboard_url:
+                    type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    kyc_dashboard_url: 'https://kyc.easebuzz.in/cfa4294068d3102a7fa95d44e04fa2887b3550b0?access_key=7410782217806'
+              examples:
+                success:
+                  value:
+                    status: true
+                    kyc_dashboard_url: 'https://kyc.easebuzz.in/cfa4294068d3102a7fa95d44e04fa2887b3550b0?access_key=741078221780630'
+      description: |-
+        This API allows merchants to generate the access key for redirecting to the KYC portal wherein the documents can be uploaded.
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+        **Hash sequence:** 
+
+        ```
+        merchant_key|sub_merchant_id|name|email|phone|salt
+        ```
+    parameters: []

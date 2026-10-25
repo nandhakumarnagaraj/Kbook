@@ -1,0 +1,2159 @@
+openapi: 3.0.0
+x-stoplight:
+  id: yl0zfrnpk63sb
+info:
+  title: Settlement APIs
+  version: 1.0.0
+  description: ''
+servers:
+  - url: 'https://dashboard.easebuzz.in'
+    description: Production URL
+paths:
+  /payout/v1/retrieve:
+    post:
+      summary: Payout API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  merchant_email: suratkaryogita@gmail.com
+                  merchant_key: 4Z9D9HGPNL
+                  hash: b2a83f0fa7116fa85a055a109a529a5cca61d07e14c63a7c35fd2bd5c8592c652033b7eb8a18bdf4df7a7aafa08ddc061fe5f213aa3fb5c9d62f746f8cbd1f72
+                  payout_date: 26-09-2022
+              required:
+                - merchant_key
+                - hash
+                - payout_date
+              properties:
+                merchant_email:
+                  type: string
+                  description: Registered email ID of the Merchant.
+                merchant_key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|merchant_email|payout_date|salt
+                payout_date:
+                  type: string
+                  description: Date of the payout of which you want to get the details
+                submerchant_id:
+                  type: string
+                  description: Pass submerchant_id if you wish to filter the payout by submerchant (Aggregator Model)
+            examples:
+              example-1:
+                value:
+                  merchant_email: suXXXyogita@gmail.com
+                  merchant_key: 4XXXXXXXL
+                  hash: b2a83f0fa7116fa85a055a109a529a5cca61d07e14c63a7c35fd2bd5c8592c652033b7eb8a18bdf4df7a7aafa08ddc061fe5f213aa3fb5c9d62f746f8cbd1f72
+                  payout_date: 26-09-2022
+        description: Payout API
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    status: true
+                    payouts_history_data:
+                      - payout_scheduled_date: '2017-08-22T11:24:51.686390Z'
+                        bank_name: Bank of Baroda
+                        peb_transactions:
+                          - status: settled
+                            peb_transaction_id: TRXNID0001
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0002
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0003
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0004
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0005
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0006
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0007
+                            peb_service_tax: 5.13
+                            transaction_type: Netbanking
+                            amount: 1500
+                            peb_settlement_amount: 1466.37
+                            peb_service_charge: 28.5
+                        peb_refunds:
+                          - status: refund
+                            transaction_amount: 113
+                            refund_id: ROZXMBW4MB
+                            txnid: JCJAUU2N
+                            peb_transaction_id: TRMJL15GGL
+                            refund_amount: 113
+                            transaction_type: Netbanking
+                            peb_settlement_amount: 110.86
+                            peb_service_tax: 0.33
+                            peb_service_charge: 1.81
+                          - status: refund
+                            transaction_amount: 50
+                            refund_id: RK7SN5JOL2
+                            txnid: JCT72X2Y
+                            peb_transaction_id: TZH52NO8T5
+                            refund_amount: 50
+                            transaction_type: Debit Card
+                            peb_settlement_amount: 49.71
+                            peb_service_tax: 0.04
+                            peb_service_charge: 0.25
+                        payout_id: PAYOUTID01
+                        payout_amount: 10338.93
+                        paid_out: true
+                        bank_transaction_id: XXXXXXXXXXXXXX
+                        account_number: XXXXXXXXXXXXXXX
+                        service_charge_amount: 136.5
+                properties:
+                  status:
+                    type: boolean
+                  payouts_history_data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        payout_scheduled_date:
+                          type: string
+                          description: The date and time (in UTC) when the bank transaction ID (UTR No.) was updated in the Easebuzz system.
+                        bank_name:
+                          type: string
+                        peb_transactions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              status:
+                                type: string
+                              peb_transaction_id:
+                                type: string
+                              peb_service_tax:
+                                type: number
+                              transaction_type:
+                                type: string
+                              amount:
+                                type: integer
+                              peb_settlement_amount:
+                                type: number
+                              peb_service_charge:
+                                type: number
+                        peb_refunds:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              status:
+                                type: string
+                              transaction_amount:
+                                type: integer
+                              refund_id:
+                                type: string
+                              txnid:
+                                type: string
+                              peb_transaction_id:
+                                type: string
+                              refund_amount:
+                                type: integer
+                              transaction_type:
+                                type: string
+                              peb_settlement_amount:
+                                type: number
+                              peb_service_tax:
+                                type: number
+                              peb_service_charge:
+                                type: number
+                        payout_id:
+                          type: string
+                        payout_amount:
+                          type: number
+                        paid_out:
+                          type: boolean
+                        bank_transaction_id:
+                          type: string
+                        account_number:
+                          type: string
+                        service_charge_amount:
+                          type: number
+              examples:
+                PG Response:
+                  value:
+                    status: true
+                    payouts_history_data:
+                      - payout_scheduled_date: '2017-08-22T11:24:51.686390Z'
+                        bank_name: Bank of Baroda
+                        peb_transactions:
+                          - status: settled
+                            peb_transaction_id: TRXNID0001
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0002
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0003
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0004
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0005
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0006
+                            peb_service_tax: 3.24
+                            transaction_type: Debit Card
+                            amount: 1500
+                            peb_settlement_amount: 1478.76
+                            peb_service_charge: 18
+                          - status: settled
+                            peb_transaction_id: TRXNID0007
+                            peb_service_tax: 5.13
+                            transaction_type: Netbanking
+                            amount: 1500
+                            peb_settlement_amount: 1466.37
+                            peb_service_charge: 28.5
+                        peb_refunds:
+                          - status: refund
+                            transaction_amount: 113
+                            refund_id: ROZXMBW4MB
+                            txnid: JCJAUU2N
+                            peb_transaction_id: TRMJL15GGL
+                            refund_amount: 113
+                            transaction_type: Netbanking
+                            peb_settlement_amount: 110.86
+                            peb_service_tax: 0.33
+                            peb_service_charge: 1.81
+                          - status: refund
+                            transaction_amount: 50
+                            refund_id: RK7SN5JOL2
+                            txnid: JCT72X2Y
+                            peb_transaction_id: TZH52NO8T5
+                            refund_amount: 50
+                            transaction_type: Debit Card
+                            peb_settlement_amount: 49.71
+                            peb_service_tax: 0.04
+                            peb_service_charge: 0.25
+                        payout_id: PAYOUTID01
+                        payout_amount: 10338.93
+                        paid_out: true
+                        bank_transaction_id: XXXXXXXXXXXXXX
+                        account_number: XXXXXXXXXXXXXXX
+                        service_charge_amount: 136.5
+                Split Payout Response:
+                  value:
+                    status: true
+                    payouts_history_data:
+                      - payout_scheduled_date: string
+                        bank_name: string
+                        peb_transactions:
+                          - status: string
+                            peb_transaction_id: string
+                            peb_service_tax: 0
+                            transaction_type: string
+                            amount: 0
+                            peb_settlement_amount: 0
+                            peb_service_charge: 0
+                        peb_refunds:
+                          - status: string
+                            transaction_amount: 0
+                            refund_id: string
+                            txnid: string
+                            peb_transaction_id: string
+                            refund_amount: 0
+                            transaction_type: string
+                            peb_settlement_amount: 0
+                            peb_service_tax: 0
+                            peb_service_charge: 0
+                        payout_id: string
+                        payout_amount: 0
+                        paid_out: true
+                        bank_transaction_id: string
+                        account_number: string
+                        service_charge_amount: 0
+      description: |
+        Easebuzz automatically creates payouts of your available account balance based on the transaction date. To check your settlement via the API, perform a create payout request call, providing the payout date. We can check the settlement transactions and refund charges via Payout API. Query the payout of a particular date.
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+        **Hash sequence:** 
+        ```
+        merchant_key||payout_date|salt
+        ```
+      deprecated: true
+  /settlements/v1/retrieve:
+    post:
+      summary: Payout API V2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  merchant_email: suratkaryogita@gmail.com
+                  merchant_key: 4Z9D9HGPNL
+                  hash: b2a83f0fa7116fa85a055a109a529a5cca61d07e14c63a7c35fd2bd5c8592c652033b7eb8a18bdf4df7a7aafa08ddc061fe5f213aa3fb5c9d62f746f8cbd1f72
+                  payout_date: 26-09-2022
+              required:
+                - merchant_key
+                - hash
+              properties:
+                merchant_email:
+                  type: string
+                  description: Registered email ID of the customer.
+                merchant_key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                hash:
+                  type: string
+                  description: |
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: `merchant_key|start_date|end_date|salt`
+                payout_date:
+                  type: object
+                  description: "Parameter contains two keys `start_date` and `end_date`, `end_date` must be greater than or equal to `start_date` (Date Format - DD-MM-YYYY).\r\n"
+                  required:
+                    - start_date
+                    - end_date
+                  properties:
+                    start_date:
+                      type: string
+                      x-stoplight:
+                        id: 54b5pqx9ni8rc
+                    end_date:
+                      type: string
+                      x-stoplight:
+                        id: hgpxmop90c18e
+                submerchant_id:
+                  type: string
+                  description: Pass the `submerchant_id` if the payout UTR (bank transaction ID) number is required for the submerchant (Aggregator Model).
+                token:
+                  type: string
+                  x-stoplight:
+                    id: i8ls7d0vd8gpf
+                  description: "A new key “token” is passed into payload instead of “hash\".  It is generated via Easebuzz TOKEN Authentication API. The token will be valid for 1 hour.\r\n> Note : Hash is not required to pass through payload if token is present in it.\r\n"
+            examples:
+              Normal Payouts:
+                value:
+                  merchant_key: DEV78405ZA
+                  merchant_email: john@gmail.com
+                  payout_date:
+                    start_date: 21-10-2024
+                    end_date: 23-10-2024
+                  hash: 91a2dee6de4daf6afa08ee8f5a77cbd07f57cbd6d5a01666fc3e27be7bb7faf500c791ddc7b41e751052cb809e5894943da1a4a4165de0c9703 0e7
+              Submerchants Payouts:
+                value:
+                  merchant_key: DE74105ZA
+                  merchant_email: john@gmail.com
+                  payout_date:
+                    start_date: 21-10-2024
+                    end_date: 23-10-2024
+                  hash: 91a2dee6de4da74485ee8f5a77cbd07f57cbd6d5a01666fc3e27be7bb7faf500c791ddc7b41e751052cb809e5894943da1a4a4165de0c9703 0e78328971310
+                  submerchant_id: S3607465
+        description: Payout API
+      responses:
+        '200':
+          description: "- Response is paginated with each page containing a maximum 20 records.\r\n- Page size can be controlled by passing “page_size” in API payload, max 500.\r\n- API response contains a link to the next page, we can get to the next page by passing “page” in payload with value “next” in response."
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  Example 1:
+                    next: null
+                    previous: null
+                    count: 6
+                    data:
+                      - paid_out: true
+                        payout_actual_date: 'Nov-27-2024 10:33:29 AM'
+                        payout_amount: 7399.57
+                        payout_id: PXXXXXXXXXXXC
+                        peb_refunds:
+                          - refund_id: R0XXXXXXXXXXXCB
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411090XXXXXXXXXXXC
+                            txnid: Shncir17XXXXXXXXXXXC
+                            refund_amount: 487.35
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '483.9'
+                            peb_service_charge: '2.92'
+                            transaction_amount: '487.35'
+                            peb_service_tax: '0.53'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                        bank_name: Mahindra Bank
+                        account_number: '3114000000000000000'
+                        service_charge_amount: 462.17
+                        bank_transaction_id: YESB40000000000000019
+                        peb_transactions:
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 1037.87
+                            peb_service_charge: 14.53
+                            peb_service_tax: 2.62
+                            peb_settlement_amount: 1020.72
+                            transaction_type: Netbanking
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 997.26
+                            peb_service_charge: 17.45
+                            peb_service_tax: 3.14
+                            peb_settlement_amount: 976.67
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 529.25
+                            peb_service_charge: 9.26
+                            peb_service_tax: 1.67
+                            peb_settlement_amount: 518.32
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 532.47
+                            peb_service_charge: 9.32
+                            peb_service_tax: 1.68
+                            peb_settlement_amount: 521.47
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 451.25
+                            peb_service_charge: 7.9
+                            peb_service_tax: 1.42
+                            peb_settlement_amount: 441.93
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: ShfmlpXXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 779
+                            peb_service_charge: 13.63
+                            peb_service_tax: 2.45
+                            peb_settlement_amount: 762.92
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 456
+                            peb_service_charge: 6.38
+                            peb_service_tax: 1.15
+                            peb_settlement_amount: 448.47
+                            transaction_type: Netbanking
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 1207.54
+                            peb_service_charge: 21.13
+                            peb_service_tax: 3.8
+                            peb_settlement_amount: 1182.61
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                      - paid_out: true
+                        payout_actual_date: 'Nov-26-2024 11:18:34 AM'
+                        payout_amount: 411111.1
+                        payout_id: XXXXXXXXXXXC
+                        peb_refunds:
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411110XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 451.25
+                            status: refund
+                            transaction_type: Netbanking
+                            peb_settlement_amount: '443.79'
+                            peb_service_charge: '6.32'
+                            transaction_amount: '451.25'
+                            peb_service_tax: '1.14'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411080XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 884.45
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '878.18'
+                            peb_service_charge: '5.31'
+                            transaction_amount: '884.45'
+                            peb_service_tax: '0.96'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411250XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 384.75
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '382.02'
+                            peb_service_charge: '2.31'
+                            transaction_amount: '384.75'
+                            peb_service_tax: '0.42'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411060XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 249
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '247.24'
+                            peb_service_charge: '1.49'
+                            transaction_amount: '249.0'
+                            peb_service_tax: '0.27'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                        bank_name: Mahindra Bank
+                        account_number: '31000000000004'
+                        service_charge_amount: 307.52
+                        bank_transaction_id: N3312438
+                        peb_transactions:
+                          - peb_transaction_id: E2411200XXXXXXXXXXXC
+                            amount: 455.76
+                            peb_service_charge: 2.73
+                            peb_service_tax: 0.49
+                            peb_settlement_amount: 452.54
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 422.75
+                            peb_service_charge: 2.54
+                            peb_service_tax: 0.46
+                            peb_settlement_amount: 419.75
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 368
+                            peb_service_charge: 2.21
+                            peb_service_tax: 0.4
+                            peb_settlement_amount: 365.39
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 798.71
+                            peb_service_charge: 4.79
+                            peb_service_tax: 0.86
+                            peb_settlement_amount: 793.06
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 308.75
+                            peb_service_charge: 1.85
+                            peb_service_tax: 0.33
+                            peb_settlement_amount: 306.57
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 451.25
+                            peb_service_charge: 2.71
+                            peb_service_tax: 0.49
+                            peb_settlement_amount: 448.05
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 455.76
+                            peb_service_charge: 2.73
+                            peb_service_tax: 0.49
+                            peb_settlement_amount: 452.54
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 475
+                            peb_service_charge: 2.85
+                            peb_service_tax: 0.51
+                            peb_settlement_amount: 471.64
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                      - paid_out: true
+                        payout_actual_date: 'Nov-25-2024 07:04:14 AM'
+                        payout_amount: 123.29
+                        payout_id: TestPayoutID1
+                        peb_refunds:
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 1285.16
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '1276.06'
+                            peb_service_charge: '7.71'
+                            transaction_amount: '1285.16'
+                            peb_service_tax: '1.39'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 456
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '452.77'
+                            peb_service_charge: '2.74'
+                            transaction_amount: '456.0'
+                            peb_service_tax: '0.49'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                        bank_name: Mahindra Bank
+                        account_number: '0000000000'
+                        service_charge_amount: 141.89
+                        bank_transaction_id: '000000000000'
+                        peb_transactions:
+                          - peb_transaction_id: XXXXXXXXXXXC
+                            amount: 487.35
+                            peb_service_charge: 2.92
+                            peb_service_tax: 0.53
+                            peb_settlement_amount: 483.9
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: XXXXXXXXXXXC
+                            amount: 2124
+                            peb_service_charge: 12.74
+                            peb_service_tax: 2.29
+                            peb_settlement_amount: 2108.97
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: XXXXXXXXXXXC
+                            amount: 380
+                            peb_service_charge: 2.28
+                            peb_service_tax: 0.41
+                            peb_settlement_amount: 377.31
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: XXXXXXXXXXXC
+                            amount: 970.19
+                            peb_service_charge: 5.82
+                            peb_service_tax: 1.05
+                            peb_settlement_amount: 963.32
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: XXXXXXXXXXXC
+                            amount: 422.75
+                            peb_service_charge: 2.54
+                            peb_service_tax: 0.46
+                            peb_settlement_amount: 419.75
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                    status: true
+                properties:
+                  next:
+                    nullable: true
+                  previous:
+                    nullable: true
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        paid_out:
+                          type: boolean
+                        payout_actual_date:
+                          type: string
+                          description: The date and time (in UTC) when the bank transaction ID (UTR No.) was updated in the Easebuzz system.
+                        payout_amount:
+                          type: number
+                        payout_id:
+                          type: string
+                        peb_refunds:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              refund_id:
+                                type: string
+                              merchant_refund_id:
+                                nullable: true
+                              peb_transaction_id:
+                                type: string
+                              txnid:
+                                type: string
+                              refund_amount:
+                                type:
+                                  - integer
+                                  - number
+                              status:
+                                type: string
+                              transaction_type:
+                                type: string
+                              peb_settlement_amount:
+                                type: string
+                              peb_service_charge:
+                                type: string
+                              transaction_amount:
+                                type: string
+                              peb_service_tax:
+                                type: string
+                              submerchant_id:
+                                nullable: true
+                              udf1:
+                                nullable: true
+                              udf2:
+                                nullable: true
+                              udf3:
+                                nullable: true
+                              split_refunds:
+                                type: array
+                                items:
+                                  type: object
+                        bank_name:
+                          type: string
+                        account_number:
+                          type: string
+                        service_charge_amount:
+                          type: number
+                        bank_transaction_id:
+                          type: string
+                        peb_transactions:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              peb_transaction_id:
+                                type: string
+                              amount:
+                                type:
+                                  - integer
+                                  - number
+                              peb_service_charge:
+                                type: number
+                              peb_service_tax:
+                                type: number
+                              peb_settlement_amount:
+                                type: number
+                              transaction_type:
+                                type: string
+                              submerchant_id:
+                                nullable: true
+                              split_transactions:
+                                type: array
+                                items:
+                                  type: object
+                              realised_payment_date:
+                                type: string
+                              status:
+                                type: string
+                              txnid:
+                                type: string
+                              udf1:
+                                type: string
+                              udf2:
+                                type: string
+                              udf3:
+                                type: string
+                              udf4:
+                                type: string
+                              udf5:
+                                type: string
+                              express_transaction_service_charge:
+                                type: integer
+                              express_transaction_service_tax:
+                                type: integer
+                  status:
+                    type: boolean
+              examples:
+                Response for Normal Merchant:
+                  value:
+                    next: null
+                    previous: null
+                    count: 2
+                    data:
+                      - paid_out: true
+                        payout_actual_date: 'Nov-27-2024 10:33:29 AM'
+                        payout_amount: 7399.57
+                        payout_id: PXXXXXXXXXXXC
+                        peb_refunds:
+                          - refund_id: R0XXXXXXXXXXXCB
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411090XXXXXXXXXXXC
+                            txnid: Shncir17XXXXXXXXXXXC
+                            refund_amount: 487.35
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '483.9'
+                            peb_service_charge: '2.92'
+                            transaction_amount: '487.35'
+                            peb_service_tax: '0.53'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                        bank_name: Mahindra Bank
+                        account_number: '3114000000000000000'
+                        service_charge_amount: 462.17
+                        bank_transaction_id: YESB40000000000000019
+                        peb_transactions:
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 1037.87
+                            peb_service_charge: 14.53
+                            peb_service_tax: 2.62
+                            peb_settlement_amount: 1020.72
+                            transaction_type: Netbanking
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 997.26
+                            peb_service_charge: 17.45
+                            peb_service_tax: 3.14
+                            peb_settlement_amount: 976.67
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 529.25
+                            peb_service_charge: 9.26
+                            peb_service_tax: 1.67
+                            peb_settlement_amount: 518.32
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 532.47
+                            peb_service_charge: 9.32
+                            peb_service_tax: 1.68
+                            peb_settlement_amount: 521.47
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 451.25
+                            peb_service_charge: 7.9
+                            peb_service_tax: 1.42
+                            peb_settlement_amount: 441.93
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: ShfmlpXXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 779
+                            peb_service_charge: 13.63
+                            peb_service_tax: 2.45
+                            peb_settlement_amount: 762.92
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 456
+                            peb_service_charge: 6.38
+                            peb_service_tax: 1.15
+                            peb_settlement_amount: 448.47
+                            transaction_type: Netbanking
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411220XXXXXXXXXXXC
+                            amount: 1207.54
+                            peb_service_charge: 21.13
+                            peb_service_tax: 3.8
+                            peb_settlement_amount: 1182.61
+                            transaction_type: Mobile Wallet
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                      - paid_out: true
+                        payout_actual_date: 'Nov-26-2024 11:18:34 AM'
+                        payout_amount: 411111.1
+                        payout_id: XXXXXXXXXXXC
+                        peb_refunds:
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411110XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 451.25
+                            status: refund
+                            transaction_type: Netbanking
+                            peb_settlement_amount: '443.79'
+                            peb_service_charge: '6.32'
+                            transaction_amount: '451.25'
+                            peb_service_tax: '1.14'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411080XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 884.45
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '878.18'
+                            peb_service_charge: '5.31'
+                            transaction_amount: '884.45'
+                            peb_service_tax: '0.96'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411250XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 384.75
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '382.02'
+                            peb_service_charge: '2.31'
+                            transaction_amount: '384.75'
+                            peb_service_tax: '0.42'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                          - refund_id: XXXXXXXXXXXC
+                            merchant_refund_id: null
+                            peb_transaction_id: E2411060XXXXXXXXXXXC
+                            txnid: XXXXXXXXXXXC
+                            refund_amount: 249
+                            status: refund
+                            transaction_type: UPI
+                            peb_settlement_amount: '247.24'
+                            peb_service_charge: '1.49'
+                            transaction_amount: '249.0'
+                            peb_service_tax: '0.27'
+                            submerchant_id: null
+                            udf1: null
+                            udf2: null
+                            udf3: null
+                            split_refunds: []
+                        bank_name: Mahindra Bank
+                        account_number: '31000000000004'
+                        service_charge_amount: 307.52
+                        bank_transaction_id: N3312438
+                        peb_transactions:
+                          - peb_transaction_id: E2411200XXXXXXXXXXXC
+                            amount: 455.76
+                            peb_service_charge: 2.73
+                            peb_service_tax: 0.49
+                            peb_settlement_amount: 452.54
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 422.75
+                            peb_service_charge: 2.54
+                            peb_service_tax: 0.46
+                            peb_settlement_amount: 419.75
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 368
+                            peb_service_charge: 2.21
+                            peb_service_tax: 0.4
+                            peb_settlement_amount: 365.39
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 798.71
+                            peb_service_charge: 4.79
+                            peb_service_tax: 0.86
+                            peb_settlement_amount: 793.06
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 308.75
+                            peb_service_charge: 1.85
+                            peb_service_tax: 0.33
+                            peb_settlement_amount: 306.57
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 451.25
+                            peb_service_charge: 2.71
+                            peb_service_tax: 0.49
+                            peb_settlement_amount: 448.05
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 455.76
+                            peb_service_charge: 2.73
+                            peb_service_tax: 0.49
+                            peb_settlement_amount: 452.54
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                          - peb_transaction_id: E2411250XXXXXXXXXXXC
+                            amount: 475
+                            peb_service_charge: 2.85
+                            peb_service_tax: 0.51
+                            peb_settlement_amount: 471.64
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions: []
+                            realised_payment_date: ''
+                            status: settled
+                            txnid: XXXXXXXXXXXC
+                            udf1: ''
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_service_tax: 0
+                    status: true
+                Response for Sub-merchant Aggregator:
+                  value:
+                    next: null
+                    previous: null
+                    count: 1
+                    data:
+                      - paid_out: true
+                        payout_actual_date: 'Jan-11-2026 12:16:59 PM'
+                        payout_amount: 17979
+                        service_tax_amount: 0
+                        payout_id: PTPABCDEFS
+                        peb_refunds: []
+                        bank_name: Kotak Mahindra Bank
+                        account_number: '0123456789'
+                        total_amount: 17979
+                        service_charge_amount: 0
+                        express_service_charge_amount: 0
+                        express_service_tax_amount: 0
+                        bank_transaction_id: NA
+                        peb_transactions:
+                          - peb_transaction_id: E240111B6QRF
+                            amount: 10231
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 10231
+                            transaction_type: UPI
+                            submerchant_id: S9100000DL
+                            split_transactions: []
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: 02fc65a445c20cc4
+                            udf1: PL
+                            udf2: 9e08f19e983fc5
+                            udf3: '725438'
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E240111OMU1M
+                            amount: 7748
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 7748
+                            transaction_type: UPI
+                            submerchant_id: S9100000DL1
+                            split_transactions: []
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: ed136e3c930010c
+                            udf1: PL
+                            udf2: 528f7448d29f79f8a87
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                    status: true
+                Response for Split payout:
+                  value:
+                    next: null
+                    previous: null
+                    count: 1
+                    data:
+                      - paid_out: true
+                        payout_actual_date: 'Mar-24-2026 12:21:47 PM'
+                        payout_amount: 5594
+                        service_tax_amount: 0
+                        payout_id: PxxxxxxxxP
+                        peb_refunds: []
+                        bank_name: HDFC Bank
+                        account_number: '50000000000008'
+                        total_amount: 5594
+                        service_charge_amount: 0
+                        express_service_charge_amount: 0
+                        express_service_tax_amount: 0
+                        bank_transaction_id: NA
+                        peb_transactions:
+                          - peb_transaction_id: E2603230VS22021
+                            amount: 499
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 499
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 460.13
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92.21
+                                label: lable01
+                                split_payout_id: SPV6WFM
+                              - amount: 38.87
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 7.79
+                                label: label02
+                                split_payout_id: SP3CMMM
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: KC99MN223CQV3
+                            udf1: Order Id - 2455063957
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603230VSAMJM2
+                            amount: 1099
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 1099
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 1013.39
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92.21
+                                label: label01
+                                split_payout_id: SPV33ZMO
+                              - amount: 85.61
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 7.79
+                                label: label02
+                                split_payout_id: SP3CMRBH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: UT234N2VZA8D
+                            udf1: Order Id - 2522505
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603230VSEQZX3
+                            amount: 299
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 299
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 275.71
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92.21
+                                label: label01
+                                split_payout_id: SPV6MZMO
+                              - amount: 23.29
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 7.79
+                                label: label02
+                                split_payout_id: SP3CMMBH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: LU3MN2Y03M7
+                            udf1: Order Id - 6472897
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603230VSHJ1W4
+                            amount: 1099
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 1099
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 1013.39
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92.21
+                                label: label01
+                                split_payout_id: SPV6WFMZMO
+                              - amount: 85.61
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 7.79
+                                label: label02
+                                split_payout_id: SP3CMMMRBH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: U0MN2ZJIX1
+                            udf1: Order Id - 2582332624
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603230VSJUB95
+                            amount: 299
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 299
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 275.71
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92.21
+                                label: label01
+                                split_payout_id: SPVMZMO
+                              - amount: 23.29
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 7.79
+                                label: label02
+                                split_payout_id: SP3CMRBH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: NKM30TMDX
+                            udf1: Order Id - 603848094
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603230VSM6ZU6
+                            amount: 300
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 300
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 276.63
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92.21
+                                label: label01
+                                split_payout_id: SPV6MZMO
+                              - amount: 23.37
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 7.79
+                                label: label02
+                                split_payout_id: SP3MMRBH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: YMN325MBP
+                            udf1: Order Id - 26236135
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603230VSPXB7
+                            amount: 799
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 799
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 736.76
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92.21
+                                label: label01
+                                split_payout_id: SPV6MZMO
+                              - amount: 62.24
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 7.79
+                                label: label02
+                                split_payout_id: SPMMMBH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: MN3476MD
+                            udf1: Order Id - 60556486
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603230VSXQ8Q9
+                            amount: 1
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 1
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 0.92
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92
+                                label: label01
+                                split_payout_id: SPV6MZMO
+                              - amount: 0.08
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 8
+                                label: label02
+                                split_payout_id: SP3MMBH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: MN38NBZS
+                            udf1: Order Id - 735270614
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603230VT4JSP8
+                            amount: 1199
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 1199
+                            transaction_type: UPI
+                            submerchant_id: null
+                            split_transactions:
+                              - amount: 1105.6
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 92.21
+                                label: label01
+                                split_payout_id: SPVMZMO
+                              - amount: 93.4
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 7.79
+                                label: label02
+                                split_payout_id: SPMMMRBH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: MN3CBQVQ
+                            udf1: Order Id - 2797058154
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                        split_payouts:
+                          - split_payout_id: SPVMZMO
+                            payout_date: 'Mar-24-2026 05:51:46 PM'
+                            account_number: '5000000000008'
+                            account_label: label01
+                            bank_name: HDFC Bank
+                            paid_out: true
+                            payout_amount: 5158.24
+                            bank_transaction_id: YESF123456789
+                          - split_payout_id: SPMMRBH
+                            payout_date: 'Mar-24-2026 05:51:47 PM'
+                            account_number: '5000000000003'
+                            account_label: label02
+                            bank_name: HDFC bank
+                            paid_out: true
+                            payout_amount: 435.76
+                            bank_transaction_id: YESF1234567891
+                    status: true
+                'Response for Sub-merchant + Split ':
+                  value:
+                    next: null
+                    previous: null
+                    count: 1
+                    data:
+                      - paid_out: true
+                        payout_actual_date: 'Mar-11-2026 07:33:57 AM'
+                        payout_amount: x.0
+                        service_tax_amount: x.82
+                        payout_id: PTO00000L9
+                        peb_refunds: []
+                        bank_name: Kotak Mahindra Bank
+                        account_number: '123123123123'
+                        total_amount: x.03
+                        service_charge_amount: 0
+                        express_service_charge_amount: 0
+                        express_service_tax_amount: 0
+                        bank_transaction_id: NA
+                        peb_transactions:
+                          - peb_transaction_id: E2603100WIM
+                            amount: 56384.9
+                            peb_service_charge: 0
+                            peb_service_tax: 0.9
+                            peb_settlement_amount: 56379
+                            transaction_type: UPI
+                            submerchant_id: S160700F9
+                            split_transactions:
+                              - amount: 38200.61
+                                service_charge: 0
+                                service_tax: 0.61
+                                split_payout_percentage: 67.76
+                                label: S160700F9_L1
+                                split_payout_id: SPVDLAV
+                              - amount: 18179.29
+                                service_charge: 0
+                                service_tax: 0.29
+                                split_payout_percentage: 32.24
+                                label: S160700F9_L2
+                                split_payout_id: SPTTTTBW
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: b16cee2f136466828
+                            udf1: ZOM4XII8E4
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603100TWXI
+                            amount: 59387.9
+                            peb_service_charge: 0
+                            peb_service_tax: 0.9
+                            peb_settlement_amount: 59382
+                            transaction_type: UPI
+                            submerchant_id: S160700F9
+                            split_transactions:
+                              - amount: 40000.61
+                                service_charge: 0
+                                service_tax: 0.61
+                                split_payout_percentage: 67.36
+                                label: S160700F9_L1
+                                split_payout_id: SPVDLAV
+                              - amount: 19382.29
+                                service_charge: 0
+                                service_tax: 0.29
+                                split_payout_percentage: 32.64
+                                label: S160700F9_L2
+                                split_payout_id: SPTTTTBW
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: 1be960072efa470fa303
+                            udf1: 3CIVS2H8UC4
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603100UD57
+                            amount: 3355.9
+                            peb_service_charge: 0
+                            peb_service_tax: 0.9
+                            peb_settlement_amount: 3350
+                            transaction_type: UPI
+                            submerchant_id: S16077UN2
+                            split_transactions:
+                              - amount: 3350.9
+                                service_charge: 0
+                                service_tax: 0.9
+                                split_payout_percentage: 100
+                                label: S16077UN2_L1
+                                split_payout_id: SPWPG4GV
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: 412ca9b477096f97478
+                            udf1: XRW5M9C04J4
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603100UEQZ
+                            amount: 205.9
+                            peb_service_charge: 0
+                            peb_service_tax: 0.9
+                            peb_settlement_amount: 200
+                            transaction_type: UPI
+                            submerchant_id: S16077UN2
+                            split_transactions:
+                              - amount: 200.9
+                                service_charge: 0
+                                service_tax: 0.9
+                                split_payout_percentage: 100
+                                label: S16077UN2_L1
+                                split_payout_id: SPWPG4GV
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: 1d187bf63c63b35e62a
+                            udf1: 33N60H5E780
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603103WPT7
+                            amount: 3000
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 3000
+                            transaction_type: UPI
+                            submerchant_id: S16077J9B
+                            split_transactions:
+                              - amount: 3000
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 100
+                                label: S16077J9B_L1
+                                split_payout_id: SPX3YH8
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: 607ad4268e0c9499d6e8
+                            udf1: JQ2Y09IRUZF
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603100WQ1V
+                            amount: 3155.9
+                            peb_service_charge: 0
+                            peb_service_tax: 0.9
+                            peb_settlement_amount: 3150
+                            transaction_type: UPI
+                            submerchant_id: S16077UN2
+                            split_transactions:
+                              - amount: 3150.9
+                                service_charge: 0
+                                service_tax: 0.9
+                                split_payout_percentage: 100
+                                label: S16077UN2_L1
+                                split_payout_id: SPWPG4GV
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: 679e42f88fbc04a7a90f
+                            udf1: 4UVTD8VAUZR
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603100X78I
+                            amount: 97200
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 97200
+                            transaction_type: UPI
+                            submerchant_id: S16077QB
+                            split_transactions:
+                              - amount: 97200
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 100
+                                label: S16077QB_L1
+                                split_payout_id: SP9HESUH
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: 942d6ed0b58d53ce8531
+                            udf1: S6LSLYZKRYW
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E26031003PMI
+                            amount: 4000
+                            peb_service_charge: 0
+                            peb_service_tax: 0
+                            peb_settlement_amount: 4000
+                            transaction_type: UPI
+                            submerchant_id: S1607704
+                            split_transactions:
+                              - amount: 4000
+                                service_charge: 0
+                                service_tax: 0
+                                split_payout_percentage: 100
+                                label: S1607704_L1
+                                split_payout_id: SPCXIJZISA
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: eb9a6a9589afd71ab5b
+                            udf1: QLCB5HKYKTW
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603100325P
+                            amount: 39105.9
+                            peb_service_charge: 0
+                            peb_service_tax: 0.9
+                            peb_settlement_amount: 39100
+                            transaction_type: UPI
+                            submerchant_id: S160700F9
+                            split_transactions:
+                              - amount: 39100.9
+                                service_charge: 0
+                                service_tax: 0.9
+                                split_payout_percentage: 100
+                                label: S160700F9_L1
+                                split_payout_id: SPVDLAV
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: f293503d4d01dd15923b
+                            udf1: VL897BUOI5N
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                          - peb_transaction_id: E2603100Z9O7
+                            amount: 12523.1
+                            peb_service_charge: 0
+                            peb_service_tax: 29.3
+                            peb_settlement_amount: 12331
+                            transaction_type: Credit Card
+                            submerchant_id: S160700F9
+                            split_transactions:
+                              - amount: 12360.3
+                                service_charge: 0
+                                service_tax: 29.3
+                                split_payout_percentage: 100
+                                label: S160700F9_L2
+                                split_payout_id: SPTTTTBW
+                            realised_payment_date: ''
+                            express_transaction_service_charge: 0
+                            express_transaction_serivce_tax: 0
+                            status: settled
+                            txnid: cdfeb6dbaccdb9c18674
+                            udf1: E2OKCIPBMFG
+                            udf2: ''
+                            udf3: ''
+                            udf4: ''
+                            udf5: ''
+                        split_payouts:
+                          - split_payout_id: SPVDLAV
+                            payout_date: 'Mar-11-2026 11:37:49 AM'
+                            account_number: '98798798798'
+                            account_label: S1607798F_L1
+                            bank_name: State Bank of India
+                            paid_out: true
+                            payout_amount: x.0
+                            bank_transaction_id: YESF262622626
+                          - split_payout_id: SPTTTTBW
+                            payout_date: 'Mar-11-2026 11:37:49 AM'
+                            account_number: '132564879'
+                            account_label: S1607798F_L2
+                            bank_name: State Bank of India
+                            paid_out: true
+                            payout_amount: x.0
+                            bank_transaction_id: YESF262622626626
+                          - split_payout_id: SPWPG4GV
+                            payout_date: 'Mar-11-2026 11:37:50 AM'
+                            account_number: '98798798798712'
+                            account_label: S160700F9_L1
+                            bank_name: CITY UNION BANK LTD
+                            paid_out: true
+                            payout_amount: x.0
+                            bank_transaction_id: YESF260705987987
+                          - split_payout_id: SPX3YH8
+                            payout_date: 'Mar-11-2026 11:37:51 AM'
+                            account_number: '923020039879564561'
+                            account_label: S16077J9B_L1
+                            bank_name: Axis Bank Ltd
+                            paid_out: true
+                            payout_amount: x.0
+                            bank_transaction_id: YESF26070987455
+                          - split_payout_id: SP9HESUH
+                            payout_date: 'Mar-11-2026 11:37:52 AM'
+                            account_number: '13000000546'
+                            account_label: S16077QB_L1
+                            bank_name: IDBI Bank
+                            paid_out: true
+                            payout_amount: x.0
+                            bank_transaction_id: YESF2600334517
+                          - split_payout_id: SPCXIJZISA
+                            payout_date: 'Mar-11-2026 12:53:23 PM'
+                            account_number: '09879879879879'
+                            account_label: S1607704_L1
+                            bank_name: IDBI Bank
+                            paid_out: true
+                            payout_amount: x.0
+                            bank_transaction_id: YESF260325123456
+                    status: true
+      description: |
+        Easebuzz provides an API to fetch all the information of payouts by providing the payout date.
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+        **Hash sequence:** 
+        ```
+        merchant_key|start_date|end_date|salt
+
+        ```
+      x-stoplight:
+        id: xsrzv37a3ksv0
+      x-internal: false
+      parameters: []
+    parameters: []

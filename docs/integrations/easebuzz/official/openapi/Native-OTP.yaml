@@ -1,0 +1,474 @@
+openapi: 3.0.0
+x-stoplight:
+  id: 4xdf15v7z2j1z
+info:
+  title: Native OTP APIs
+  version: 1.0.0
+  description: "## Native OTP APIs \r\n---\r\n\r\n\r\nGenerate an access_key using Easebuzz **[Initiate Payment API](../apis/Initiate-Transaction-APIs.yaml)**. With this API, provide `request_flow` parameter with value `SEAMLESS` in order to generate an `access_key` for seamless\r\ntransaction.\r\n\r\n\r\n## Initiate Seamless Payment\r\n---\r\nTo complete the payment with card payment mode trigger the Seamless payment API.\r\nPass the browser details as per the request payload below and `request_mode` = `S2S` for Easebuzz to\r\ncheck if the card is enabled for Native OTP flow.\r\n\r\nRefer **[Request and Response APIs](https://docs.easebuzz.in/docs/payment-gateway/k3ho860cy66zh-seamless-integration-merchant-hosted)** to Initiate Seamless Payment API.\r\n\r\n\r\n## Card Encryption Guidelines\r\n---\r\n- In case of payment mode being Debit Card or Credit Card, parameters carrying card details (card_number, card_holder_name, card_cvv, card_expiry_date) need to be encrypted.\r\n- Encryption should be done using AES-256 in CBC mode.\r\n- For AES-256 KEY, create an SHA-256 hash of your EASEBUZZ MERCHANT KEY and use the first 32 bytes of it.\r\n- For AES-256 IV, create an SHA-256 hash of your EASEBUZZ SALT and use the first 16 bytes of it.\r\n- Padding size of encrypted data should be maintained with a padding length of multiples of 16.\r\n\r\n> **Note:** Special characters allowed in UDF field : _#@-=+&]$\r\n\r\n> **Note:** ACS URL is dynamic, therefore construct an auto-submit form as dynamic, retrieve payload data as a form input field, request_method as form method, and redirection_url as action URL.\r\n\r\n---\r\n\r\n"
+servers:
+  - description: Sandbox URL
+    url: 'https://testdashboard.easebuzz.in'
+  - url: 'https://dashboard.easebuzz.in'
+    description: Production URL
+paths:
+  /otp/v1/confirm:
+    post:
+      summary: Confirm OTP/Verify OTP API
+      responses:
+        '200':
+          description: "If the verification of OTP fails, then we will send the following response, since multiple attempts of\r\nOTP are allowed for the cardholder"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+              examples:
+                Example 1:
+                  value: {}
+        default:
+          description: "In case of other failure or successful transactions, the API will respond with the following response\r\nwith the key ‘transaction_data’ containing the standard PG response also present in transaction\r\nstatus check API and Transaction Webhook. For further details on the response please refer to the\r\nfollowing link -\r\nhttps://docs.easebuzz.in/docs/payment-gateway/paw9n1qc3kuoz-transaction-webhook#transaction-response"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      otp_verification_status:
+                        type: boolean
+                      error:
+                        type: string
+                      “state”:
+                        type: string
+                      attempts_left:
+                        type: integer
+                      easepayid:
+                        type: string
+                      “transaction_data”:
+                        type: object
+                        properties:
+                          txnid:
+                            type: string
+                          firstname:
+                            type: string
+                          email:
+                            type: string
+                          phone:
+                            type: string
+                          key:
+                            type: string
+                          mode:
+                            type: string
+                          status:
+                            type: string
+                          unmappedstatus:
+                            type: string
+                          cardCategory:
+                            type: string
+                          addedon:
+                            type: string
+                          payment_source:
+                            type: string
+                          PG_TYPE:
+                            type: string
+                          bank_ref_num:
+                            type: string
+                          bankcode:
+                            type: string
+                          error:
+                            type: string
+                          name_on_card:
+                            type: string
+                          cardnum:
+                            type: string
+                          issuing_bank:
+                            type: string
+                          card_type:
+                            type: string
+                          easepayid:
+                            type: string
+                          amount:
+                            type: string
+                          net_amount_debit:
+                            type: string
+                          cash_back_percentage:
+                            type: string
+                          deduction_percentage:
+                            type: string
+                          productinfo:
+                            type: string
+                          udf10:
+                            type: string
+                          udf9:
+                            type: string
+                          udf8:
+                            type: string
+                          udf7:
+                            type: string
+                          udf6:
+                            type: string
+                          udf5:
+                            type: string
+                          udf4:
+                            type: string
+                          udf3:
+                            type: string
+                          udf2:
+                            type: string
+                          udf1:
+                            type: string
+                          'hash:"<hash>"':
+                            type: 'null'
+                          surl:
+                            type: string
+                          furl:
+                            type: string
+                          error_Message:
+                            type: string
+                          merchant_logo:
+                            type: string
+                x-examples:
+                  Example 1:
+                    status: false
+                    data:
+                      otp_verification_status: true
+                      error: '”NOPV0E010” “message”:”Authorization Failed”'
+                      “state”: “AUTHORIZATION_FAILED”
+                      attempts_left: 0
+                      easepayid: D231114002UHO2
+                      “transaction_data”:
+                        txnid: '1001'
+                        firstname: Dummy Customer
+                        email: dummycustomer@test.com
+                        phone: '1234567890'
+                        key: DFXXXFDSF
+                        mode: DC
+                        status: failure
+                        unmappedstatus: NA
+                        cardCategory: NA
+                        addedon: '2016-07-22 17:17:08'
+                        payment_source: Easebuzz
+                        PG_TYPE: NA
+                        bank_ref_num: ''
+                        bankcode: NA
+                        error: Insufficient Balance
+                        name_on_card: Dummy
+                        cardnum: 5XX0XXXXXXXX5420
+                        issuing_bank: ''
+                        card_type: Debit Card
+                        easepayid: XXXXXXX
+                        amount: '100.00'
+                        net_amount_debit: '100.00'
+                        cash_back_percentage: '50'
+                        deduction_percentage: '2.50'
+                        productinfo: Tshirt
+                        udf10: ''
+                        udf9: ''
+                        udf8: ''
+                        udf7: ''
+                        udf6: ''
+                        udf5: ''
+                        udf4: ''
+                        udf3: ''
+                        udf2: ''
+                        udf1: ''
+                        'hash:"<hash>"': null
+                        surl: ''
+                        furl: ''
+                        error_Message: Failed Transaction
+                        merchant_logo: NA
+              examples:
+                Failure:
+                  value:
+                    status: false
+                    data:
+                      otp_verification_status: true
+                      error: '”NOPV0E010” “message”:”Authorization Failed”'
+                      “state”: “AUTHORIZATION_FAILED”
+                      attempts_left: 0
+                      easepayid: D231114002UHO2
+                      “transaction_data”:
+                        txnid: '1001'
+                        firstname: Dummy Customer
+                        email: dummycustomer@test.com
+                        phone: '1234567890'
+                        key: DFXXXFDSF
+                        mode: DC
+                        status: failure
+                        unmappedstatus: NA
+                        cardCategory: NA
+                        addedon: '2016-07-22 17:17:08'
+                        payment_source: Easebuzz
+                        PG_TYPE: NA
+                        bank_ref_num: ''
+                        bankcode: NA
+                        error: Insufficient Balance
+                        name_on_card: Dummy
+                        cardnum: 5XX0XXXXXXXX5420
+                        issuing_bank: ''
+                        card_type: Debit Card
+                        easepayid: XXXXXXX
+                        amount: '100.00'
+                        net_amount_debit: '100.00'
+                        cash_back_percentage: '50'
+                        deduction_percentage: '2.50'
+                        productinfo: Tshirt
+                        udf10: ''
+                        udf9: ''
+                        udf8: ''
+                        udf7: ''
+                        udf6: ''
+                        udf5: ''
+                        udf4: ''
+                        udf3: ''
+                        udf2: ''
+                        udf1: ''
+                        'hash:"<hash>"': null
+                        surl: ''
+                        furl: ''
+                        error_Message: Failed Transaction
+                        merchant_logo: NA
+                Success:
+                  value:
+                    status: true
+                    data:
+                      otp_verification_status: true
+                      authentication_status: true
+                      error: '”NA” “message”:”OTP Verified successfully”'
+                      “state”: “SUCCESS”
+                      attempts_left: 0
+                      easepayid: D231114002UHO2
+                      “transaction_data”:
+                        txnid: '1001'
+                        firstname: Dummy Customer
+                        email: dummycustomer@test.com
+                        phone: '1234567890'
+                        key: DFXXXFDSF
+                        mode: DC
+                        status: success
+                        unmappedstatus: NA
+                        cardCategory: NA
+                        addedon: '2016-07-22 17:17:08'
+                        payment_source: Easebuzz
+                        PG_TYPE: NA
+                        bank_ref_num: ''
+                        bankcode: NA
+                        error: Successful Transaction
+                        name_on_card: Dummy
+                        cardnum: 5XX0XXXXXXXX5420
+                        issuing_bank: ''
+                        card_type: Debit Card
+                        easepayid: XXXXXXX
+                        amount: '100.00'
+                        net_amount_debit: '100.00'
+                        cash_back_percentage: '50'
+                        deduction_percentage: '2.50'
+                        productinfo: Tshirt
+                        udf10: ''
+                        udf9: ''
+                        udf8: ''
+                        udf7: ''
+                        udf6: ''
+                        udf5: ''
+                        udf4: ''
+                        udf3: ''
+                        udf2: ''
+                        udf1: ''
+                        'hash:"<hash>"': null
+                        surl: ''
+                        furl: ''
+                        error_Message: Successful Transaction
+                        merchant_logo: NA
+      description: |-
+        Use this API to verify the OTP entered by customer on the OTP page. 
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+        Generate checksum value with SHA512 hashing algorithm
+        **Hash sequence:** 
+
+        ```
+         (key+'|' +otp+'|'+ easepayid+'|'+ salt) 
+
+        ```
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - easepayid
+                - otp
+                - checksum
+                - merchant_key
+              properties:
+                easepayid:
+                  type: string
+                  x-stoplight:
+                    id: a27upki6fm5zl
+                otp:
+                  type: string
+                  x-stoplight:
+                    id: y0y90yucrqq26
+                checksum:
+                  type: string
+                  x-stoplight:
+                    id: itzv374hwga4a
+                merchant_key:
+                  type: string
+                  x-stoplight:
+                    id: 2mk5x16h9n4hz
+        description: ''
+      security: []
+      parameters: []
+      x-stoplight:
+        id: ifudkz7jpfadk
+    parameters: []
+  /otp/v1/resend:
+    post:
+      summary: Resend OTP API
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      “resend_otp_status":
+                        type: string
+                      error:
+                        type: string
+                      “state”:
+                        type: string
+                      attempts_left:
+                        type: string
+                      easepayid:
+                        type: string
+                x-examples:
+                  Example 1:
+                    status: True/False
+                    data:
+                      “resend_otp_status": True/False
+                      error: '”NA/OTPFAILED/OTP_EXPIRED” “message”:”OTP Verified successfully”'
+                      “state”: “AUTHENTICATION_SUCCESSFUL/AUTHENTICATION_FAILED”
+                      attempts_left: 1/2/0
+                      easepayid: D231114002UHO2
+              examples:
+                Success:
+                  value:
+                    status: True/False
+                    data:
+                      “resend_otp_status": True/False
+                      error: '”NA/OTPFAILED/OTP_EXPIRED” “message”:”OTP Verified successfully”'
+                      “state”: “AUTHENTICATION_SUCCESSFUL/AUTHENTICATION_FAILED”
+                      attempts_left: 1/2/0
+                      easepayid: D231114002UHO2
+                Example 1:
+                  value:
+                    status: string
+                    data:
+                      “resend_otp_status": string
+                      error: string
+                      “state”: string
+                      attempts_left: string
+                      easepayid: string
+      description: |-
+        ## Description
+        ---
+
+        Trigger this API when customer clicks on Resend OTP.
+
+        ## Checksum
+        ---
+
+        Generate checksum value (key+'|'+ easepayid+'|'+ salt) with SHA512 encryption algorithm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - easepayid
+                - checksum
+                - merchant_key
+              properties:
+                easepayid:
+                  type: string
+                  x-stoplight:
+                    id: gv8h8go8tvkyv
+                checksum:
+                  type: string
+                  x-stoplight:
+                    id: e9fl38hwcwmdx
+                merchant_key:
+                  type: string
+                  x-stoplight:
+                    id: auj1r5jl6uh62
+        description: ''
+      security: []
+      parameters: []
+      x-stoplight:
+        id: 3b9hki8thr6pn
+      x-internal: false
+    parameters: []
+  /otp/v1/cancel:
+    post:
+      summary: Cancel Transaction API
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+              examples:
+                Success: {}
+      description: |-
+        ## Description
+        ---
+
+        Trigger this API when customer chooses to cancel the transaction.
+
+        ## Checksum
+        ---
+        Generate checksum value (key+'|'+ easepayid+'|'+ salt) with SHA512 encryption algorithm
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - easepayid
+                - checksum
+                - merchant_key
+              properties:
+                easepayid:
+                  type: string
+                  x-stoplight:
+                    id: k7cb498f01ric
+                checksum:
+                  type: string
+                  x-stoplight:
+                    id: didle5417jw9o
+                merchant_key:
+                  type: string
+                  x-stoplight:
+                    id: szgwzu4q1bu1n
+        description: ''
+      x-stoplight:
+        id: vjykxhu9v65zf
+    parameters: []
+security: []
+components:
+  securitySchemes: {}
+x-internal: false

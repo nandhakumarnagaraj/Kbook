@@ -1,0 +1,3732 @@
+openapi: 3.0.0
+x-stoplight:
+  id: a3d38f4e88cc8
+info:
+  title: Wire (Payouts)
+  version: 1.0.0
+  contact:
+    name: Easebuzz Support
+    url: 'https://easebuzz.in/contact/'
+    email: support@easebuzz.in
+  termsOfService: 'https://easebuzz.in/terms/'
+servers:
+  - url: 'https://wire.easebuzz.in'
+    description: Prod
+paths:
+  /api/v1/transfers/initiate/:
+    post:
+      tags:
+        - Transfers
+      summary: Initiate Transfer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 1Z1234567X
+                  virtual_account_number: 1000010000000xxxxx
+                  beneficiary_code: bene89e604fa46ada71221b76be79a72
+                  unique_request_number: '234567'
+                  payment_mode: IMPS
+                  amount: 1
+                  narration: Testinitiatetransfer
+                  udf1: Initiatetransfertest
+                  udf2: Initiatetransfer21425
+                  udf3: '214313525'
+                  udf4: Initiatetransfer
+                  udf5: Initiate
+              properties:
+                key:
+                  type: string
+                virtual_account_number:
+                  type: string
+                beneficiary_code:
+                  type: string
+                unique_request_number:
+                  type: string
+                  minLength: 5
+                  maxLength: 32
+                  example: ARCVZ234567
+                  description: Alphanumeric string which is the unique indentifier for a transfer.
+                payment_mode:
+                  type: string
+                  enum:
+                    - IMPS
+                    - NEFT
+                    - RTGS
+                    - UPI
+                  example: IMPS
+                amount:
+                  type: number
+                  example: '1.00'
+                  format: float
+                scheduled_for:
+                  type: string
+                  format: date
+                  example: '2022-09-30'
+                narration:
+                  type: string
+                udf1:
+                  type: string
+                  maxLength: 255
+                udf2:
+                  type: string
+                  maxLength: 255
+                udf3:
+                  type: string
+                  maxLength: 255
+                udf4:
+                  type: string
+                  maxLength: 255
+                udf5:
+                  type: string
+                  maxLength: 255
+              required:
+                - key
+                - beneficiary_code
+                - unique_request_number
+                - payment_mode
+                - amount
+            examples:
+              Request Body:
+                value:
+                  key: 1Z1234567X
+                  virtual_account_number: 100001000000xxxxx
+                  beneficiary_code: bene89e604fa46ada71221b76be79a72
+                  unique_request_number: '234567'
+                  payment_mode: IMPS
+                  amount: 1
+                  narration: Testinitiatetransfer
+                  udf1: Initiatetransfertest
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 8211839f0d5e6c7e02d86d964a7a3563f85eb52d886080b0e348fdb5e893ec5851be4c5f8cf299f1ab8bf4c696f5877c794f47bd082c4bf960339077729023d4
+          description: 'SHA-512 hash of string in the format “{key}|{beneficiary_code}|{unique_request_number}|{amount}|{salt}”'
+          required: true
+        - name: WIRE-API-KEY
+          in: header
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-Key provided by Easebuzz
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      transfer_request:
+                        id: tra5d1b1c83212427aab6a20f84facc6
+                        unique_request_number: '234567'
+                        failure_reason: null
+                        source_virtual_account: 100001000000xxxxxx
+                        beneficiary_id: bene89e604fa46ada71221b76be79a72
+                        created_at: '2022-02-01T15:01:43.751735+05:30'
+                        unique_transaction_reference: null
+                        payment_mode: IMPS
+                        amount: 1
+                        currency: INR
+                        narration: Testinitiatetransfer
+                        beneficiary_bank_name: HDFC Bank
+                        beneficiary_account_name: Dev D
+                        beneficiary_account_number: '50900180000000'
+                        beneficiary_account_ifsc: HDFC000001
+                        beneficiary_upi_handle: null
+                        service_charge: 0
+                        gst_amount: 0
+                        service_charge_with_gst: 0
+                        status: accepted
+                        queue_on_low_balance: false
+                        transfer_date: '2022-02-01T15:01:43.765934+05:30'
+                        udf1: Initiatetransfertest
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        created_by: null
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      transfer_request:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          unique_request_number:
+                            type: string
+                          failure_reason:
+                            nullable: true
+                          source_virtual_account:
+                            type: string
+                          source_virtual_account_ifsc:
+                            type: string
+                            x-stoplight:
+                              id: uj5hdkk5egqn9
+                          beneficiary_id:
+                            type: string
+                          created_at:
+                            type: string
+                          unique_transaction_reference:
+                            nullable: true
+                          payment_mode:
+                            type: string
+                          amount:
+                            type: number
+                            format: float
+                          currency:
+                            type: string
+                          narration:
+                            type: string
+                          beneficiary_bank_name:
+                            type: string
+                          beneficiary_account_name:
+                            type: string
+                          beneficiary_account_number:
+                            type: string
+                          beneficiary_account_ifsc:
+                            type: string
+                          beneficiary_upi_handle:
+                            nullable: true
+                          service_charge:
+                            type: number
+                            format: float
+                          gst_amount:
+                            type: number
+                            format: float
+                          service_charge_with_gst:
+                            type: number
+                            format: float
+                          status:
+                            type: string
+                          queue_on_low_balance:
+                            type: boolean
+                          transfer_date:
+                            type: string
+                          udf1:
+                            type: string
+                          udf2:
+                            type: string
+                          udf3:
+                            type: string
+                          udf4:
+                            type: string
+                          udf5:
+                            type: string
+                          created_by:
+                            nullable: true
+              example:
+                success: true
+                data:
+                  transfer_request:
+                    id: tra5d1b1c83212427aab6a20f84facc6
+                    unique_request_number: '234567'
+                    failure_reason: null
+                    source_virtual_account: 100001000000xxxxxx
+                    beneficiary_id: bene89e604fa46ada71221b76be79a72
+                    created_at: '2022-02-01T15:01:43.751735+05:30'
+                    unique_transaction_reference: null
+                    payment_mode: IMPS
+                    amount: 1
+                    currency: INR
+                    narration: Testinitiatetransfer
+                    beneficiary_bank_name: HDFC Bank
+                    beneficiary_account_name: John Doe
+                    beneficiary_account_number: 5010018880XXXX
+                    beneficiary_account_ifsc: HDFC0000001
+                    beneficiary_upi_handle: null
+                    service_charge: 0
+                    gst_amount: 0
+                    service_charge_with_gst: 0
+                    status: accepted
+                    queue_on_low_balance: false
+                    transfer_date: '2022-02-01T15:01:43.765934+05:30'
+                    udf1: Initiatetransfertest
+                    udf2: null
+                    udf3: null
+                    udf4: null
+                    udf5: null
+                    created_by: null
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      transfer_request:
+                        id: string
+                        unique_request_number: string
+                        failure_reason: null
+                        source_virtual_account: string
+                        beneficiary_id: string
+                        created_at: string
+                        unique_transaction_reference: null
+                        payment_mode: string
+                        amount: 0
+                        currency: string
+                        narration: string
+                        beneficiary_bank_name: string
+                        beneficiary_account_name: string
+                        beneficiary_account_number: string
+                        beneficiary_account_ifsc: string
+                        beneficiary_upi_handle: null
+                        service_charge: 0
+                        gst_amount: 0
+                        service_charge_with_gst: 0
+                        status: string
+                        queue_on_low_balance: true
+                        transfer_date: string
+                        udf1: string
+                        udf2: string
+                        udf3: string
+                        udf4: string
+                        udf5: string
+                        created_by: null
+      operationId: ''
+      description: |-
+        Initiate a transfer request against an existing beneficiary. A transfer request is used to disburse funds from the Wire virtual account to a beneficiary.
+
+        NOTE: Timed-out requests are not supposed to be considered as failure transactions. Please use the Retrieve Transfers APIs to check the status of timed-out transfer requests.
+  /api/v1/transfers/:
+    get:
+      tags:
+        - Transfers
+      summary: Retrieve All Transfers v1
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          description: 'SHA-512 hash of string in the format "{key}|{salt}"'
+          required: true
+        - schema:
+            type: string
+            example: 1Z1234567X
+          in: query
+          name: key
+          required: true
+          description: Same as the WIRE-API-Key provided by Easebuzz
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: KEY provided by Easebuzz
+        - schema:
+            type: string
+            example: '2023-06-14'
+          in: query
+          name: created_at
+          required: true
+          description: Transactions can be retrieved for a particular date. created_at_start and created_at_end should not be passed if created_at is passed
+        - schema:
+            type: string
+            example: '2023-04-01'
+          in: query
+          name: created_at_start
+          required: true
+          description: Created At Start Date. Retrieve the transaction for a date range. created_at should not be passed if this parameter is being provided. Data can be retrieved for the last 3 months.
+        - schema:
+            type: string
+            example: '2023-06-10'
+          in: query
+          name: created_at_end
+          required: true
+          description: Created At End Date. Retrieve the transaction for a date range. created_at should not be passed if this parameter is being provided. Data can be retrieved for the last 3 months.
+        - schema:
+            type: string
+          in: query
+          name: pageSize
+          description: Number of transactions in a page
+        - schema:
+            type: string
+          in: query
+          name: current
+          description: Current Page
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      count: 3
+                      results:
+                        - id: tra5d1b1c83212427aab6a20f84facc6
+                          unique_request_number: '234567'
+                          failure_reason: null
+                          source_virtual_account: 100001000000xxxxxx
+                          beneficiary_id: bene89e604fa46ada71221b76be79a72
+                          created_at: '2022-02-01T15:01:43.751735+05:30'
+                          unique_transaction_reference: '203215753729'
+                          payment_mode: IMPS
+                          amount: 1
+                          currency: INR
+                          narration: Testinitiatetransfer
+                          beneficiary_bank_name: HDFC Bank
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: '50900180000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-02-01T15:01:43.765934+05:30'
+                          udf1: Initiatetransfertest
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: trb97d880c66ac4821b5cd49b21c468a
+                          unique_request_number: 600FB99688E24FF
+                          failure_reason: null
+                          source_virtual_account: 100001000000xxxxxx
+                          beneficiary_id: benee05a31b44604b5fa09bddf659802
+                          created_at: '2022-01-31T15:51:12.267508+05:30'
+                          unique_transaction_reference: '203132593000'
+                          payment_mode: UPI
+                          amount: 1
+                          currency: INR
+                          narration: ''
+                          beneficiary_bank_name: NA
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: null
+                          beneficiary_account_ifsc: null
+                          beneficiary_upi_handle: demo@oksbi
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-01-31T15:51:12.281695+05:30'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: tr3b29de76aece4bcdb09426ece253ba
+                          unique_request_number: '123456'
+                          failure_reason: null
+                          source_virtual_account: 100001000000xxxxxx
+                          beneficiary_id: bene89e604fa46ada71221b76be79a72
+                          created_at: '2022-01-31T13:41:47.125341+05:30'
+                          unique_transaction_reference: '203113788987'
+                          payment_mode: IMPS
+                          amount: 1
+                          currency: INR
+                          narration: TEST
+                          beneficiary_bank_name: HDFC Bank
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-01-31T13:41:47.140034+05:30'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                      total_pages: 1
+                      page_size: 10
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            unique_request_number:
+                              type: string
+                            failure_reason:
+                              nullable: true
+                            source_virtual_account:
+                              type: string
+                            beneficiary_id:
+                              type: string
+                            created_at:
+                              type: string
+                            unique_transaction_reference:
+                              type: string
+                            payment_mode:
+                              type: string
+                            amount:
+                              type: number
+                              format: float
+                              example: '1.0'
+                            currency:
+                              type: string
+                            narration:
+                              type: string
+                            beneficiary_bank_name:
+                              type: string
+                            beneficiary_account_name:
+                              type: string
+                            beneficiary_account_number:
+                              type: string
+                              nullable: true
+                            beneficiary_account_ifsc:
+                              type: string
+                              nullable: true
+                            beneficiary_upi_handle:
+                              type: string
+                              nullable: true
+                            service_charge:
+                              type: number
+                              example: '1.0'
+                              format: float
+                            gst_amount:
+                              type: number
+                              example: '1.0'
+                              format: float
+                            service_charge_with_gst:
+                              type: number
+                              format: float
+                              example: '1.0'
+                            status:
+                              type: string
+                            queue_on_low_balance:
+                              type: boolean
+                            transfer_date:
+                              type: string
+                            udf1:
+                              type: string
+                              nullable: true
+                            udf2:
+                              nullable: true
+                            udf3:
+                              nullable: true
+                            udf4:
+                              nullable: true
+                            udf5:
+                              nullable: true
+                            created_by:
+                              nullable: true
+                      total_pages:
+                        type: integer
+                      page_size:
+                        type: integer
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      count: 3
+                      results:
+                        - id: tra5d1b1c83212427aab6a20f84facc6
+                          unique_request_number: '234567'
+                          failure_reason: null
+                          source_virtual_account: 10000100000xxxxxx
+                          beneficiary_id: bene89e604fa46ada71221b76be79a72
+                          created_at: '2022-02-01T15:01:43.751735+05:30'
+                          unique_transaction_reference: '203215753729'
+                          payment_mode: IMPS
+                          amount: 1
+                          currency: INR
+                          narration: Testinitiatetransfer
+                          beneficiary_bank_name: HDFC Bank
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-02-01T15:01:43.765934+05:30'
+                          udf1: Initiatetransfertest
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: trb97d880c66ac4821b5cd49b21c468a
+                          unique_request_number: 600FB99688E24FF
+                          failure_reason: null
+                          source_virtual_account: 10000100000xxxxxx
+                          beneficiary_id: benee05a31b44604b5fa09bddf659802
+                          created_at: '2022-01-31T15:51:12.267508+05:30'
+                          unique_transaction_reference: '203132593000'
+                          payment_mode: UPI
+                          amount: 1
+                          currency: INR
+                          narration: ''
+                          beneficiary_bank_name: NA
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: null
+                          beneficiary_account_ifsc: null
+                          beneficiary_upi_handle: demo@oksbi
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-01-31T15:51:12.281695+05:30'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: tr3b29de76aece4bcdb09426ece253ba
+                          unique_request_number: '123456'
+                          failure_reason: null
+                          source_virtual_account: 100001000000xxxxxx
+                          beneficiary_id: bene89e604fa46ada71221b76be79a72
+                          created_at: '2022-01-31T13:41:47.125341+05:30'
+                          unique_transaction_reference: '203113788987'
+                          payment_mode: IMPS
+                          amount: 1
+                          currency: INR
+                          narration: TEST
+                          beneficiary_bank_name: HDFC Bank
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-01-31T13:41:47.140034+05:30'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                      total_pages: 1
+                      page_size: 10
+      description: |-
+        Retrieve a paginated list of all the transfers initiated from the merchant's account.
+
+        > **NOTE:** Retrieve All Transfers v1 APIs will be deprecated after sometime. 
+    parameters: []
+  /api/v2/transfers/:
+    get:
+      tags:
+        - Transfers
+      summary: Retrieve All Transfers v2
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          description: 'SHA-512 hash of string in the format "{key}|{salt}"'
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: key
+          required: true
+          description: Same as the WIRE-API-Key provided by Easebuzz
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: KEY provided by Easebuzz
+        - schema:
+            type: string
+            example: '2023-03-13'
+          in: query
+          name: created_at
+          required: true
+          description: Transactions can be retrieved for a particular date. created_at_start and created_at_end should not be passed if created_at is passed
+        - schema:
+            type: string
+            example: '2023-02-01'
+          in: query
+          name: created_at_start
+          required: true
+          description: Created At Start Date. Retrieve the transaction for a date range. created_at should not be passed. Data can be retrieved for the last 3 months.
+        - schema:
+            type: string
+            example: '2023-03-10'
+          in: query
+          name: created_at_end
+          required: true
+          description: Created At End Date. Retrieve the transaction for a date range. created_at should not be passed. Data can be retrieved for the last 3 months.
+        - schema:
+            type: string
+            example: va49bbf147ff4e1286b241f2c2152423
+          in: query
+          name: virtual_account
+          description: Retrieve transactions with respect to particular Virtual Account. Virtual_Account_ID retrieved from the Virtual Account Fetch API
+        - schema:
+            type: string
+          in: query
+          name: merchant_request_number
+          description: Merchant unique transaction request number
+        - schema:
+            type: string
+            example: '304759402774'
+          in: query
+          name: unique_transaction_reference
+          description: Bank UTR
+        - schema:
+            type: string
+            enum:
+              - IMPS
+              - UPI
+              - NEFT
+              - RTGS
+          in: query
+          name: payment_mode
+        - schema:
+            type: string
+          in: query
+          name: beneficiary_account_name
+        - schema:
+            type: string
+            enum:
+              - queued
+              - cancelled
+              - pending
+              - accepted
+              - failure
+              - in_process
+              - rejected
+              - reversed
+              - success
+              - unapproved
+              - scheduled
+          in: query
+          name: status
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      count: 3
+                      results:
+                        - id: tra5d1b1c83212427aab6a20f84facc6
+                          unique_request_number: '234567'
+                          failure_reason: null
+                          source_virtual_account: 100001000000xxxxxx
+                          beneficiary_id: bene89e604fa46ada71221b76be79a72
+                          created_at: '2022-02-01T15:01:43.751735+05:30'
+                          unique_transaction_reference: '203215753729'
+                          payment_mode: IMPS
+                          amount: 1
+                          currency: INR
+                          narration: Testinitiatetransfer
+                          beneficiary_bank_name: HDFC Bank
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: '50900180000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-02-01T15:01:43.765934+05:30'
+                          udf1: Initiatetransfertest
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: trb97d880c66ac4821b5cd49b21c468a
+                          unique_request_number: 600FB99688E24FF
+                          failure_reason: null
+                          source_virtual_account: 100001000000xxxxxx
+                          beneficiary_id: benee05a31b44604b5fa09bddf659802
+                          created_at: '2022-01-31T15:51:12.267508+05:30'
+                          unique_transaction_reference: '203132593000'
+                          payment_mode: UPI
+                          amount: 1
+                          currency: INR
+                          narration: ''
+                          beneficiary_bank_name: NA
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: null
+                          beneficiary_account_ifsc: null
+                          beneficiary_upi_handle: demo@oksbi
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-01-31T15:51:12.281695+05:30'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: tr3b29de76aece4bcdb09426ece253ba
+                          unique_request_number: '123456'
+                          failure_reason: null
+                          source_virtual_account: 100001000000xxxxxx
+                          beneficiary_id: bene89e604fa46ada71221b76be79a72
+                          created_at: '2022-01-31T13:41:47.125341+05:30'
+                          unique_transaction_reference: '203113788987'
+                          payment_mode: IMPS
+                          amount: 1
+                          currency: INR
+                          narration: TEST
+                          beneficiary_bank_name: HDFC Bank
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-01-31T13:41:47.140034+05:30'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                      total_pages: 1
+                      page_size: 10
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            unique_request_number:
+                              type: string
+                            failure_reason:
+                              nullable: true
+                            source_virtual_account:
+                              type: string
+                            beneficiary_id:
+                              type: string
+                            created_at:
+                              type: string
+                            unique_transaction_reference:
+                              type: string
+                            payment_mode:
+                              type: string
+                            amount:
+                              type: number
+                              format: float
+                              example: '1.0'
+                            currency:
+                              type: string
+                            narration:
+                              type: string
+                            beneficiary_bank_name:
+                              type: string
+                            beneficiary_account_name:
+                              type: string
+                            beneficiary_account_number:
+                              type: string
+                              nullable: true
+                            beneficiary_account_ifsc:
+                              type: string
+                              nullable: true
+                            beneficiary_upi_handle:
+                              type: string
+                              nullable: true
+                            service_charge:
+                              type: number
+                              example: '1.0'
+                              format: float
+                            gst_amount:
+                              type: number
+                              example: '1.0'
+                              format: float
+                            service_charge_with_gst:
+                              type: number
+                              format: float
+                              example: '1.0'
+                            status:
+                              type: string
+                            queue_on_low_balance:
+                              type: boolean
+                            transfer_date:
+                              type: string
+                            udf1:
+                              type: string
+                              nullable: true
+                            udf2:
+                              nullable: true
+                            udf3:
+                              nullable: true
+                            udf4:
+                              nullable: true
+                            udf5:
+                              nullable: true
+                            created_by:
+                              nullable: true
+                      total_pages:
+                        type: integer
+                      page_size:
+                        type: integer
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      count: 3
+                      results:
+                        - id: tra5d1b1c83212427aab6a20f84facc6
+                          unique_request_number: '234567'
+                          failure_reason: null
+                          source_virtual_account: 10000100000xxxxxx
+                          beneficiary_id: bene89e604fa46ada71221b76be79a72
+                          created_at: '2022-02-01T15:01:43.751735+05:30'
+                          unique_transaction_reference: '203215753729'
+                          payment_mode: IMPS
+                          amount: 1
+                          currency: INR
+                          narration: Testinitiatetransfer
+                          beneficiary_bank_name: HDFC Bank
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-02-01T15:01:43.765934+05:30'
+                          udf1: Initiatetransfertest
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: trb97d880c66ac4821b5cd49b21c468a
+                          unique_request_number: 600FB99688E24FF
+                          failure_reason: null
+                          source_virtual_account: 10000100000xxxxxx
+                          beneficiary_id: benee05a31b44604b5fa09bddf659802
+                          created_at: '2022-01-31T15:51:12.267508+05:30'
+                          unique_transaction_reference: '203132593000'
+                          payment_mode: UPI
+                          amount: 1
+                          currency: INR
+                          narration: ''
+                          beneficiary_bank_name: NA
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: null
+                          beneficiary_account_ifsc: null
+                          beneficiary_upi_handle: demo@oksbi
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-01-31T15:51:12.281695+05:30'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: tr3b29de76aece4bcdb09426ece253ba
+                          unique_request_number: '123456'
+                          failure_reason: null
+                          source_virtual_account: 100001000000xxxxxx
+                          beneficiary_id: bene89e604fa46ada71221b76be79a72
+                          created_at: '2022-01-31T13:41:47.125341+05:30'
+                          unique_transaction_reference: '203113788987'
+                          payment_mode: IMPS
+                          amount: 1
+                          currency: INR
+                          narration: TEST
+                          beneficiary_bank_name: HDFC Bank
+                          beneficiary_account_name: Dev D
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          service_charge: 0
+                          gst_amount: 0
+                          service_charge_with_gst: 0
+                          status: success
+                          queue_on_low_balance: false
+                          transfer_date: '2022-01-31T13:41:47.140034+05:30'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                      total_pages: 1
+                      page_size: 10
+      description: Retrieve a paginated list of all the transfers initiated from the merchant's account.
+    parameters: []
+  '/api/v1/transfers/{unique_request_number}/':
+    get:
+      tags:
+        - Transfers
+      summary: Retrieve Transfer by URN
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 83d04c9a99257b30347a479ca8414cdd2638e0dbb81cee9c45b602d9d097c8956a8f24c432ebef763a87238e136e985673ef943b55a823d713b7953e4a290595
+          description: 'SHA-512 hash of string in the format "{key}|{unique_request_number}|{salt}"'
+          required: true
+        - name: unique_request_number
+          in: path
+          required: true
+          schema:
+            type: string
+          example: d9vx5b59343
+          description: The unique_request_number specified at the time of initiating the transfer request.
+        - schema:
+            type: string
+          in: query
+          name: key
+          description: WIRE-API-KEY provided by Easebuzz.
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: KEY provided by Easebuzz
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      transfer_request:
+                        id: tr3b29de76aece4bcdb09426ece253ba
+                        unique_request_number: '123456'
+                        created_at: '2022-01-31T13:41:47.125341+05:30'
+                        beneficiary_id: bene89e604fa46ada71221b76be79a72
+                        beneficiary_bank_name: HDFC Bank
+                        beneficiary_account_name: Dev D
+                        beneficiary_account_number: '50200189000000'
+                        beneficiary_account_ifsc: HDFC0000001
+                        beneficiary_upi_handle: null
+                        unique_transaction_reference: '203113788987'
+                        payment_mode: IMPS
+                        currency: INR
+                        amount: 1
+                        service_charge: 0
+                        gst_amount: 0
+                        service_charge_with_gst: 0
+                        narration: TEST
+                        status: success
+                        source_virtual_account: 100001000000xxxxxx
+                        failure_reason: ''
+                        queue_on_low_balance: false
+                        transfer_date: '2022-01-31T13:41:47.140034+05:30'
+                        created_by: null
+                        beneficiary_email: demo@test.in
+                        beneficary_phone_number: '6792040000'
+                        udf1: 'null'
+                        udf2: 'null'
+                        udf3: 'null'
+                        udf4: 'null'
+                        udf5: 'null'
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      transfer_request:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          unique_request_number:
+                            type: string
+                          created_at:
+                            type: string
+                          beneficiary_id:
+                            type: string
+                          beneficiary_bank_name:
+                            type: string
+                          beneficiary_account_name:
+                            type: string
+                          beneficiary_account_number:
+                            type: string
+                          beneficiary_account_ifsc:
+                            type: string
+                          beneficiary_upi_handle:
+                            nullable: true
+                          unique_transaction_reference:
+                            type: string
+                          payment_mode:
+                            type: string
+                          currency:
+                            type: string
+                          amount:
+                            type: number
+                            format: float
+                            example: '1.0'
+                          service_charge:
+                            type: number
+                            example: '1.0'
+                            format: float
+                          gst_amount:
+                            type: number
+                            format: float
+                            example: '1.0'
+                          service_charge_with_gst:
+                            type: number
+                            format: float
+                            example: '1.0'
+                          narration:
+                            type: string
+                          status:
+                            type: string
+                          source_virtual_account:
+                            type: string
+                          failure_reason:
+                            type: string
+                          queue_on_low_balance:
+                            type: boolean
+                          transfer_date:
+                            type: string
+                          created_by:
+                            nullable: true
+                          beneficiary_email:
+                            type: string
+                          beneficary_phone_number:
+                            type: string
+                          udf1:
+                            type: string
+                          udf2:
+                            type: string
+                          udf3:
+                            type: string
+                          udf4:
+                            type: string
+                          udf5:
+                            type: string
+              examples:
+                Successful Response:
+                  summary: Retrieve txn
+                  value:
+                    success: true
+                    data:
+                      transfer_request:
+                        id: tr3b29de76aece4bcdb09426ece253ba
+                        unique_request_number: '123456'
+                        created_at: '2022-01-31T13:41:47.125341+05:30'
+                        beneficiary_id: bene89e604fa46ada71221b76be79a72
+                        beneficiary_bank_name: HDFC Bank
+                        beneficiary_account_name: Dev D
+                        beneficiary_account_number: '50200189000000'
+                        beneficiary_account_ifsc: HDFC0000001
+                        beneficiary_upi_handle: null
+                        unique_transaction_reference: '203113788987'
+                        payment_mode: IMPS
+                        currency: INR
+                        amount: 1
+                        service_charge: 0
+                        gst_amount: 0
+                        service_charge_with_gst: 0
+                        narration: TEST
+                        status: success
+                        source_virtual_account: 100001000000xxxxxx
+                        failure_reason: ''
+                        queue_on_low_balance: false
+                        transfer_date: '2022-01-31T13:41:47.140034+05:30'
+                        created_by: null
+                        udf1: Initiatetransfertest
+                        udf2: Initiatetransfer1234
+                        udf3: '12345667'
+                        udf4: Initiatetransfer
+                        udf5: Transfer
+                Invalid URN:
+                  summary: Retrieve txn done
+                  value:
+                    success: false
+                    message: Unique Request Number is invalid.
+      description: |-
+        Retrieve the details of a transfer request using the unique_request_number.
+
+        > **NOTE:** “success”: false doesn’t mean that the transaction has failed. It means the request failed for some reason. Only data.transfer_request.status: “failure” means that the transaction has failed.
+
+        *   The WIRE-API-KEY must be provided either in the body or as a query parameter under the key "key".
+  /api/v1/quick_transfers/initiate/:
+    post:
+      tags:
+        - Transfers
+      summary: Initiate Quick Transfer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 1Z1234567X
+                  virtual_account_number: 10000100000xxxxxxx
+                  beneficiary_type: upi
+                  beneficiary_name: Dev D
+                  upi_handle: demo@oksbi
+                  unique_request_number: INSTATESTUPI2
+                  payment_mode: UPI
+                  amount: 1
+                  email: demo@gmail.com
+                  phone: '6792040000'
+                  narration: TestInsta
+                  udf1: InstaTest
+                  udf2: InstaTest
+                  udf3: InstaTest
+                  udf4: InstaTest
+                  udf5: InstaTest
+              properties:
+                key:
+                  type: string
+                virtual_account_number:
+                  type: string
+                beneficiary_type:
+                  type: string
+                  enum:
+                    - upi
+                    - bank_account
+                beneficiary_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 150
+                account_number:
+                  type: string
+                  description: Account Number of the beneficiary. Mandatory if the “beneficiary_type” is “bank_account”.
+                  minLength: 5
+                  maxLength: 26
+                ifsc:
+                  type: string
+                  description: IFSC code of the beneficiary. Mandatory if the “beneficiary_type” is “bank_account”.
+                upi_handle:
+                  type: string
+                  description: UPI handle of the beneficiary. Mandatory if the “beneficiary_type” is “upi”.
+                unique_request_number:
+                  type: string
+                  minLength: 5
+                  maxLength: 32
+                payment_mode:
+                  type: string
+                  enum:
+                    - UPI
+                    - NEFT
+                    - RTGS
+                    - IMPS
+                amount:
+                  type: number
+                  example: '1.0'
+                  format: float
+                email:
+                  type: string
+                phone:
+                  type: string
+                scheduled_for:
+                  type: string
+                  example: '2022-09-31'
+                  format: date
+                narration:
+                  type: string
+                udf1:
+                  type: string
+                  maxLength: 255
+                udf2:
+                  type: string
+                  maxLength: 255
+                udf3:
+                  type: string
+                  maxLength: 255
+                udf4:
+                  type: string
+                  maxLength: 255
+                udf5:
+                  type: string
+                  maxLength: 255
+              required:
+                - key
+                - beneficiary_type
+                - beneficiary_name
+                - account_number
+                - ifsc
+                - upi_handle
+                - unique_request_number
+                - payment_mode
+                - amount
+            examples:
+              Sample Request:
+                value:
+                  key: 1Z1234567X
+                  virtual_account_number: 100001000000xxxxxxx
+                  beneficiary_type: upi
+                  beneficiary_name: Dev D
+                  upi_handle: demo@okxxx
+                  unique_request_number: INSTATESTUPI2
+                  payment_mode: UPI
+                  amount: 1
+                  email: test@xxxxxx.com
+                  phone: '7692030000'
+                  narration: TestInsta
+                  scheduled_for: '2022-09-30'
+                  udf1: InstaTest
+                  udf2: Insta
+                  udf3: '222222414'
+                  udf4: InstaTest123
+                  udf5: 2Test22
+        description: ''
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+            pattern: 'UPI : KX3XY|||URX12XN|2500.00|SAX5XLT'
+          example: 2b2a4abcdcb81e5be503dcbec6c9a87a97a1713fbb96c39dbdf01ddca87718518f1a44409d691fd9093fd9afa3060f1b274df7cc68a6ab10751a11c88c01409c
+          description: 'SHA-512 hash of string in the format “{key}|{account_number}|{ifsc}|{upi_handle}|{unique_request_number}|{amount}|{salt}”'
+          required: true
+        - schema:
+            type: string
+          in: header
+          description: KEY provided by Easebuzz
+          name: WIRE-API-KEY
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      transfer_request:
+                        id: tr1b9fc5142eb24140a119d57afc32a5
+                        unique_request_number: INSTATESTUPI1
+                        failure_reason: null
+                        source_virtual_account: 100001000000xxxxxx
+                        beneficiary_id: beneb2b7e7c04e909b8bb931fe1bbf0e
+                        created_at: '2022-02-01T16:12:59.294755+05:30'
+                        unique_transaction_reference: '203234786960'
+                        payment_mode: UPI
+                        amount: 1
+                        currency: INR
+                        narration: TestInsta
+                        beneficiary_bank_name: NA
+                        beneficiary_account_name: Dev D
+                        beneficiary_account_number: null
+                        beneficiary_account_ifsc: null
+                        beneficiary_upi_handle: demo@okhdfcbank
+                        service_charge: 0
+                        gst_amount: 0
+                        service_charge_with_gst: 0
+                        status: success
+                        queue_on_low_balance: false
+                        transfer_date: '2022-02-01T16:12:59.309317+05:30'
+                        udf1: InstaTest
+                        udf2: 'null'
+                        udf3: 'null'
+                        udf4: 'null'
+                        udf5: 'null'
+                        created_by: null
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      transfer_request:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          unique_request_number:
+                            type: string
+                          failure_reason:
+                            nullable: true
+                          source_virtual_account:
+                            type: string
+                          beneficiary_id:
+                            type: string
+                          created_at:
+                            type: string
+                          unique_transaction_reference:
+                            type: string
+                          payment_mode:
+                            type: string
+                          amount:
+                            type: number
+                            format: float
+                            example: '1.0'
+                          currency:
+                            type: string
+                          narration:
+                            type: string
+                          beneficiary_bank_name:
+                            type: string
+                          beneficiary_account_name:
+                            type: string
+                          beneficiary_account_number:
+                            nullable: true
+                          beneficiary_account_ifsc:
+                            nullable: true
+                          beneficiary_upi_handle:
+                            type: string
+                          service_charge:
+                            type: number
+                            format: float
+                          gst_amount:
+                            type: number
+                            format: float
+                          service_charge_with_gst:
+                            type: number
+                            format: float
+                          status:
+                            type: string
+                          queue_on_low_balance:
+                            type: boolean
+                          transfer_date:
+                            type: string
+                          udf1:
+                            type: string
+                          udf2:
+                            type: string
+                          udf3:
+                            type: string
+                          udf4:
+                            type: string
+                          udf5:
+                            type: string
+                          created_by:
+                            nullable: true
+              example:
+                success: true
+                data:
+                  transfer_request:
+                    id: tr025dc95626eb48b8ba57726e751b78
+                    unique_request_number: INSTATESTBANK1
+                    failure_reason: null
+                    source_virtual_account: 100001000000xxxxxx
+                    beneficiary_id: bene89e604fa46ada71221b76be79a72
+                    created_at: '2022-02-01T16:21:27.118934+05:30'
+                    unique_transaction_reference: null
+                    payment_mode: IMPS
+                    amount: 1
+                    currency: INR
+                    narration: TestInstabank
+                    beneficiary_bank_name: HDFC Bank
+                    beneficiary_account_name: Dev D
+                    beneficiary_account_number: '50200189000000'
+                    beneficiary_account_ifsc: HDFC0000001
+                    beneficiary_upi_handle: null
+                    service_charge: 0
+                    gst_amount: 0
+                    service_charge_with_gst: 0
+                    status: accepted
+                    queue_on_low_balance: false
+                    transfer_date: '2022-02-01T16:21:27.133382+05:30'
+                    udf1: InstaTestbank
+                    udf2: null
+                    udf3: null
+                    udf4: null
+                    udf5: null
+                    created_by: null
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      transfer_request:
+                        id: string
+                        unique_request_number: string
+                        failure_reason: null
+                        source_virtual_account: string
+                        beneficiary_id: string
+                        created_at: string
+                        unique_transaction_reference: string
+                        payment_mode: string
+                        amount: '1.00'
+                        currency: string
+                        narration: string
+                        beneficiary_bank_name: string
+                        beneficiary_account_name: string
+                        beneficiary_account_number: null
+                        beneficiary_account_ifsc: null
+                        beneficiary_upi_handle: string
+                        service_charge: 0
+                        gst_amount: 0
+                        service_charge_with_gst: 0
+                        status: string
+                        queue_on_low_balance: true
+                        transfer_date: string
+                        udf1: string
+                        udf2: string
+                        udf3: string
+                        udf4: string
+                        udf5: string
+                        created_by: null
+      description: "Initiate a quick transfer request using beneficiary's details. This beneficiary may or may not have been already added under a contact.\r\n\r\nNOTE: Timed-out requests are not supposed to be considered as failure transactions. Please use the Retrieve Transfers APIs to check the status of timed-out transfer requests."
+  /api/v1/ledger/:
+    get:
+      tags:
+        - Account Statement
+      summary: Get Account Statement v1
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          description: 'SHA-512 hash of string in the format of "{key}|{salt}"'
+          required: true
+        - name: key
+          in: query
+          schema:
+            type: string
+            example: 1Z1234567X
+          example: 1Z1234567X
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: KEY provided by Easebuzz
+        - schema:
+            type: string
+            example: '2023-03-13'
+          in: query
+          name: created_at
+          description: Transactions can be retrieved for a particular date. created_at_start and created_at_end should not be passed if created_at is passed
+          required: true
+        - schema:
+            type: string
+            example: '2023-02-01'
+          in: query
+          name: created_at_start
+          description: Created At Start Date. This is the date from which the records will be fetched. Retrieve the transaction for a date range. created_at should not be passed if this parameter is being provided. Data can be retrieved for the last 3 months.
+          required: true
+        - schema:
+            type: string
+            example: '2023-03-10'
+          in: query
+          name: created_at_end
+          description: Created At End Date. This is the date to which the records will be fetched. Retrieve the transaction for a date range. created_at should not be passed if this parameter is being provided. Data can be retrieved for the last 3 months.
+          required: true
+        - schema:
+            type: string
+            example: va49bbf147ff4e1286b241f2c2152423
+          in: query
+          name: virtual_account
+          required: true
+          description: Retrieve transactions with respect to a particular Virtual Account. Virtual_Account_ID pertaining to a particular virtual account retrieved from the Virtual Account Fetch API should be passed as the value for this parameter.
+        - schema:
+            type: string
+          in: query
+          name: pageSize
+          description: Number of transactions in a page.
+        - schema:
+            type: string
+          in: query
+          name: current
+          description: Current Page
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      count: 2
+                      results:
+                        - id: txn7245bd9a24314b7ca36f35c0ea81a
+                          transaction_type: Debit
+                          created_at: '2022-01-31T13:43:15.278343+05:30'
+                          deleted_at: null
+                          payment_mode: IMPS
+                          transaction_date: '2022-01-31T13:41:47.140034+05:30'
+                          narration: TEST
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          beneficiary_full_name: Dev D
+                          transaction_amount: 1
+                          currency: INR
+                          unique_transaction_reference: '203113788987'
+                          purpose_code: DR_TR
+                          closing_balance: 49
+                          created_by: null
+                          api_request: null
+                          transfer_request: 51273670
+                        - id: txn5520827a54e8d8a9700f5393960fc
+                          transaction_type: Credit
+                          created_at: '2022-01-31T13:40:56.253982+05:30'
+                          deleted_at: null
+                          payment_mode: IMPS
+                          transaction_date: '2022-01-31T13:40:51+05:30'
+                          narration: NA
+                          beneficiary_account_number: 10000100000xxxxxxx
+                          beneficiary_account_ifsc: YESB0CMSNOC
+                          beneficiary_upi_handle: ''
+                          beneficiary_full_name: ECOLLECT ACCOUNT
+                          transaction_amount: 50
+                          currency: INR
+                          unique_transaction_reference: '203113323515'
+                          purpose_code: CR_VA
+                          closing_balance: 50
+                          created_by: null
+                          api_request: null
+                          transfer_request: null
+                      total_pages: 1
+                      page_size: 10
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            transaction_type:
+                              type: string
+                            created_at:
+                              type: string
+                            deleted_at:
+                              nullable: true
+                            payment_mode:
+                              type: string
+                            transaction_date:
+                              type: string
+                            narration:
+                              type: string
+                            beneficiary_account_number:
+                              type: string
+                            beneficiary_account_ifsc:
+                              type: string
+                            beneficiary_upi_handle:
+                              type: string
+                              nullable: true
+                            beneficiary_full_name:
+                              type: string
+                            transaction_amount:
+                              type: number
+                              example: '1.0'
+                              format: float
+                            currency:
+                              type: string
+                            unique_transaction_reference:
+                              type: string
+                            purpose_code:
+                              type: string
+                            closing_balance:
+                              type: number
+                              format: float
+                            created_by:
+                              nullable: true
+                            api_request:
+                              nullable: true
+                            transfer_request:
+                              type: integer
+                              nullable: true
+                      total_pages:
+                        type: integer
+                      page_size:
+                        type: integer
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      count: 2
+                      results:
+                        - id: txn7245bd9a24314b7ca36f35c0ea81a
+                          transaction_type: Debit
+                          created_at: '2022-01-31T13:43:15.278343+05:30'
+                          deleted_at: null
+                          payment_mode: IMPS
+                          transaction_date: '2022-01-31T13:41:47.140034+05:30'
+                          narration: TEST
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          beneficiary_full_name: Dev D
+                          transaction_amount: 1
+                          currency: INR
+                          unique_transaction_reference: '203113788987'
+                          purpose_code: DR_TR
+                          closing_balance: 49
+                          created_by: null
+                          api_request: null
+                          transfer_request: 51273670
+                        - id: txn5520827a54e8d8a9700f5393960fc
+                          transaction_type: Credit
+                          created_at: '2022-01-31T13:40:56.253982+05:30'
+                          deleted_at: null
+                          payment_mode: IMPS
+                          transaction_date: '2022-01-31T13:40:51+05:30'
+                          narration: NA
+                          beneficiary_account_number: 100001000000xxxxxx
+                          beneficiary_account_ifsc: YESB0CMSNOC
+                          beneficiary_upi_handle: ''
+                          beneficiary_full_name: ECOLLECT ACCOUNT
+                          transaction_amount: 50
+                          currency: INR
+                          unique_transaction_reference: '203113323515'
+                          purpose_code: CR_VA
+                          closing_balance: 50
+                          created_by: null
+                          api_request: null
+                          transfer_request: null
+                      total_pages: 1
+                      page_size: 10
+      description: |-
+        Get a paginated list of all the ledger entries. Ledger represents an account statement that contains information about the credit and debit entries of a virtual account.
+
+        > **NOTE:** Get Account Statement v1 API will be deprecated after sometime. 
+
+        *   Generate SHA-512 hash  sequence in the format specified and add it in the headers under the key "authorization".
+        *   Hash sequence - "{key}|{salt}".
+      x-internal: false
+  /api/v2/ledgers/:
+    get:
+      tags:
+        - Account Statement
+      summary: Get Account Statement v2
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          description: 'SHA-512 hash of string in the format of "{key}|{salt}"'
+          required: true
+        - name: key
+          in: query
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: KEY provided by Easebuzz
+        - schema:
+            type: string
+            example: va49bbf147ff4e1286b241f2c2152423
+          in: query
+          name: virtual_account
+          description: Retrieve transactions with respect to particular Virtual Account. Virtual_Account_ID retrieved from the Virtual Account Fetch API
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: created_at
+          description: Transactions can be retrieved for a particular date. created_at_start and created_at_end should not be passed if created_at is passed
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: created_at_start
+          description: Created At Start Date. This is the date from which the records will be fetched. Retrieve the transaction for a date range. created_at should not be passed. Data can be retrieved for the last 3 months.
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: created_at_end
+          description: Created At End Date. This is the date from which the records will be fetched. Retrieve the transaction for a date range. created_at should not be passed. Data can be retrieved for the last 3 months.
+          required: true
+        - schema:
+            type: string
+            enum:
+              - IMPS
+              - UPI
+              - NEFT
+              - RTGS
+          in: query
+          name: payment_mode
+          description: Transactions can be retrieved with respect to payment modes.
+        - schema:
+            type: string
+            example: '304714530286'
+          in: query
+          name: unique_transaction_reference
+          description: Transaction can be retrieved with respect to UTR
+        - schema:
+            type: string
+            enum:
+              - credit
+              - debit
+          in: query
+          name: transaction_type
+          description: Transactions can be retrieved with respect to credits/debits
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      count: 2
+                      results:
+                        - id: txn7245bd9a24314b7ca36f35c0ea81a
+                          transaction_type: Debit
+                          created_at: '2022-01-31T13:43:15.278343+05:30'
+                          deleted_at: null
+                          payment_mode: IMPS
+                          transaction_date: '2022-01-31T13:41:47.140034+05:30'
+                          narration: TEST
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          beneficiary_full_name: Dev D
+                          transaction_amount: 1
+                          currency: INR
+                          unique_transaction_reference: '203113788987'
+                          purpose_code: DR_TR
+                          closing_balance: 49
+                          created_by: null
+                          api_request: null
+                          transfer_request: 51273670
+                        - id: txn5520827a54e8d8a9700f5393960fc
+                          transaction_type: Credit
+                          created_at: '2022-01-31T13:40:56.253982+05:30'
+                          deleted_at: null
+                          payment_mode: IMPS
+                          transaction_date: '2022-01-31T13:40:51+05:30'
+                          narration: NA
+                          beneficiary_account_number: 10000100000xxxxxxx
+                          beneficiary_account_ifsc: YESB0CMSNOC
+                          beneficiary_upi_handle: ''
+                          beneficiary_full_name: ECOLLECT ACCOUNT
+                          transaction_amount: 50
+                          currency: INR
+                          unique_transaction_reference: '203113323515'
+                          purpose_code: CR_VA
+                          closing_balance: 50
+                          created_by: null
+                          api_request: null
+                          transfer_request: null
+                      total_pages: 1
+                      page_size: 10
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            transaction_type:
+                              type: string
+                            created_at:
+                              type: string
+                            deleted_at:
+                              nullable: true
+                            payment_mode:
+                              type: string
+                            transaction_date:
+                              type: string
+                            narration:
+                              type: string
+                            beneficiary_account_number:
+                              type: string
+                            beneficiary_account_ifsc:
+                              type: string
+                            beneficiary_upi_handle:
+                              type: string
+                              nullable: true
+                            beneficiary_full_name:
+                              type: string
+                            transaction_amount:
+                              type: number
+                              example: '1.0'
+                              format: float
+                            currency:
+                              type: string
+                            unique_transaction_reference:
+                              type: string
+                            purpose_code:
+                              type: string
+                            closing_balance:
+                              type: number
+                              format: float
+                            created_by:
+                              nullable: true
+                            api_request:
+                              nullable: true
+                            transfer_request:
+                              type: integer
+                              nullable: true
+                      total_pages:
+                        type: integer
+                      page_size:
+                        type: integer
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      count: 2
+                      results:
+                        - id: txn7245bd9a24314b7ca36f35c0ea81a
+                          transaction_type: Debit
+                          created_at: '2022-01-31T13:43:15.278343+05:30'
+                          deleted_at: null
+                          payment_mode: IMPS
+                          transaction_date: '2022-01-31T13:41:47.140034+05:30'
+                          narration: TEST
+                          beneficiary_account_number: '50200189000000'
+                          beneficiary_account_ifsc: HDFC0000001
+                          beneficiary_upi_handle: null
+                          beneficiary_full_name: Dev D
+                          transaction_amount: 1
+                          currency: INR
+                          unique_transaction_reference: '203113788987'
+                          purpose_code: DR_TR
+                          closing_balance: 49
+                          created_by: null
+                          api_request: null
+                          transfer_request: 51273670
+                        - id: txn5520827a54e8d8a9700f5393960fc
+                          transaction_type: Credit
+                          created_at: '2022-01-31T13:40:56.253982+05:30'
+                          deleted_at: null
+                          payment_mode: IMPS
+                          transaction_date: '2022-01-31T13:40:51+05:30'
+                          narration: NA
+                          beneficiary_account_number: 100001000000xxxxxx
+                          beneficiary_account_ifsc: YESB0CMSNOC
+                          beneficiary_upi_handle: ''
+                          beneficiary_full_name: ECOLLECT ACCOUNT
+                          transaction_amount: 50
+                          currency: INR
+                          unique_transaction_reference: '203113323515'
+                          purpose_code: CR_VA
+                          closing_balance: 50
+                          created_by: null
+                          api_request: null
+                          transfer_request: null
+                      total_pages: 1
+                      page_size: 10
+      description: |-
+        Get a paginated list of all the ledger entries. Ledger represents an account statement that contains information about the credit and debit entries of a virtual account.
+
+        *   Generate SHA-512 hash  sequence in the format specified and add it in the headers under the key "authorization".
+        *   Hash sequence - "{key}|{salt}".
+    parameters: []
+  /api/v1/ledger/verify/:
+    get:
+      tags:
+        - Account Statement
+      summary: Verify Ledger Entry by UTR & Amount
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: eb032955375ae5fe4daf674b3b07b3c3bd28f50ea7409b681f0daed5ec2bc4f9267259246c21c71d47bf1d34d1b0538e45b841549f390d7e2f3530fa2ab72793
+          description: 'SHA-512 hash string in the format of "{key}|{unique_transaction_reference}|{amount}|{salt}"'
+          required: true
+        - name: key
+          in: query
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-Key provided by Easebuzz
+          required: true
+        - name: unique_transaction_reference
+          in: query
+          schema:
+            type: integer
+            example: 203113788987
+          example: '203113788987'
+          required: true
+          description: UTR of a transaction
+        - name: amount
+          in: query
+          schema:
+            type: number
+            example: '1.0'
+          example: '1.0'
+          required: true
+          description: Amount of the transaction
+        - schema:
+            type: string
+          in: header
+          description: KEY provided by Easebuzz
+          name: WIRE-API-KEY
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      status: true
+                      ledger:
+                        id: txn7245bd9a24314b7ca36f35c0ea81a
+                        transaction_type: Debit
+                        created_at: '2022-01-31T13:43:15.278343+05:30'
+                        deleted_at: null
+                        payment_mode: IMPS
+                        transaction_date: '2022-01-31T13:41:47.140034+05:30'
+                        narration: TEST
+                        beneficiary_account_number: '50200189000000'
+                        beneficiary_account_ifsc: HDFC0000001
+                        beneficiary_upi_handle: null
+                        beneficiary_full_name: Dev D
+                        transaction_amount: 1
+                        currency: INR
+                        unique_transaction_reference: '203113788987'
+                        purpose_code: DR_TR
+                        closing_balance: 49
+                        created_by: null
+                        api_request: null
+                        transfer_request: 51273670
+                      message: Transaction details retrieved successfully.
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: boolean
+                      ledger:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          transaction_type:
+                            type: string
+                          created_at:
+                            type: string
+                          deleted_at:
+                            nullable: true
+                          payment_mode:
+                            type: string
+                          transaction_date:
+                            type: string
+                          narration:
+                            type: string
+                          beneficiary_account_number:
+                            type: string
+                          beneficiary_account_ifsc:
+                            type: string
+                          beneficiary_upi_handle:
+                            nullable: true
+                          beneficiary_full_name:
+                            type: string
+                          transaction_amount:
+                            type: number
+                            format: float
+                          currency:
+                            type: string
+                          unique_transaction_reference:
+                            type: string
+                          purpose_code:
+                            type: string
+                          closing_balance:
+                            type: integer
+                          created_by:
+                            nullable: true
+                          api_request:
+                            nullable: true
+                          transfer_request:
+                            type: integer
+                      message:
+                        type: string
+              example:
+                success: true
+                data:
+                  status: true
+                  ledger:
+                    id: txn7245bd9a24314b7ca36f35c0ea81a
+                    transaction_type: Debit
+                    created_at: '2022-01-31T13:43:15.278343+05:30'
+                    deleted_at: null
+                    payment_mode: IMPS
+                    transaction_date: '2022-01-31T13:41:47.140034+05:30'
+                    narration: TEST
+                    beneficiary_account_number: '50200189000000'
+                    beneficiary_account_ifsc: HDFC0000001
+                    beneficiary_upi_handle: null
+                    beneficiary_full_name: Dev D
+                    transaction_amount: 1
+                    currency: INR
+                    unique_transaction_reference: '203113788987'
+                    purpose_code: DR_TR
+                    closing_balance: 49
+                    created_by: null
+                    api_request: null
+                    transfer_request: 51273670
+                  message: Transaction details retrieved successfully.
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      status: true
+                      ledger:
+                        id: txn7245bd9a24314b7ca36f35c0ea81a
+                        transaction_type: Debit
+                        created_at: '2022-01-31T13:43:15.278343+05:30'
+                        deleted_at: null
+                        payment_mode: IMPS
+                        transaction_date: '2022-01-31T13:41:47.140034+05:30'
+                        narration: TEST
+                        beneficiary_account_number: '50200189000000'
+                        beneficiary_account_ifsc: HDFC0000001
+                        beneficiary_upi_handle: null
+                        beneficiary_full_name: Dev D
+                        transaction_amount: 1
+                        currency: INR
+                        unique_transaction_reference: '203113788987'
+                        purpose_code: DR_TR
+                        closing_balance: 49
+                        created_by: null
+                        api_request: null
+                        transfer_request: 51273670
+                      message: Transaction details retrieved successfully.
+      description: Use this API to check for a ledger entry using the UTR and amount.
+  /api/v1/payout_links/:
+    post:
+      tags:
+        - Payout Links
+      summary: Create Payout Link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 1Z1234567X
+                  payee_name: Dev D
+                  payee_email: demo@test.in
+                  payee_phone: '6792040000'
+                  unique_code: TestLink11
+                  allowed_beneficiary_types:
+                    - upi
+                  amount: 1
+                  expiry_date: '2022-02-02'
+                  description: TestPaymentLink
+              properties:
+                key:
+                  type: string
+                payee_name:
+                  type: string
+                payee_email:
+                  type: string
+                payee_phone:
+                  type: string
+                unique_code:
+                  type: string
+                allowed_beneficiary_types:
+                  type: array
+                  items:
+                    type: string
+                amount:
+                  type: number
+                  example: '1.0'
+                  format: float
+                expiry_date:
+                  type: string
+                  format: date
+                  example: '2022-09-30'
+                notify_payee:
+                  type: boolean
+                description:
+                  type: string
+              required:
+                - key
+                - payee_name
+                - payee_email
+                - payee_phone
+                - unique_code
+                - allowed_beneficiary_types
+                - amount
+            examples:
+              Sample Request:
+                value:
+                  key: 1Z1234567X
+                  payee_name: Dev D
+                  payee_email: test@demo.in
+                  payee_phone: '7692000000'
+                  unique_code: TestLink11
+                  allowed_beneficiary_types:
+                    - upi
+                    - bank_account
+                  amount: 1
+                  expiry_date: '2022-02-02'
+                  description: TestPaymentLink
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 85d8014b93f8087c2a251e9bc0c704afa36bc7627334086e05633ac45e1c29bf85a2d1efbff93a53436a619826cae468277162b0830342d7e889aed91dfb179c
+          description: 'SHA-512 hash of string in the format "{key}|{payee_name}|{payee_email}|{payee_phone}|{unique_code}|{amount}|{salt}"'
+        - schema:
+            type: string
+          in: header
+          description: KEY provided by Easebuzz
+          name: WIRE-API-KEY
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      payout_link:
+                        id: ple007a7a51540f5924c30f02fba4f50
+                        link: w.ease.buzz/l/1154128125/
+                        unique_code: TestLink1
+                        payout_attempts: []
+                        deactivation_reason: null
+                        created_at: '2022-02-01T18:15:45.549841+05:30'
+                        updated_at: '2022-02-01T18:15:45.549859+05:30'
+                        status: active
+                        amount: 1
+                        description: TestPaymentLink
+                        payee_name: Dev D
+                        payee_email: demo@test.in
+                        payee_phone: '6792040000'
+                        allowed_beneficiary_types:
+                          - upi
+                        expiry_date: '2022-02-02'
+                        udf1: 'null'
+                        udf2: 'null'
+                        udf3: 'null'
+                        udf4: 'null'
+                        udf5: 'null'
+                        created_by: null
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      payout_link:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          link:
+                            type: string
+                          unique_code:
+                            type: string
+                          payout_attempts:
+                            type: array
+                            items:
+                              type: object
+                          deactivation_reason:
+                            nullable: true
+                          created_at:
+                            type: string
+                          updated_at:
+                            type: string
+                          status:
+                            type: string
+                          amount:
+                            type: number
+                            format: float
+                          description:
+                            type: string
+                          payee_name:
+                            type: string
+                          payee_email:
+                            type: string
+                          payee_phone:
+                            type: string
+                          allowed_beneficiary_types:
+                            type: array
+                            items:
+                              type: string
+                          expiry_date:
+                            type: string
+                          udf1:
+                            type: string
+                          udf2:
+                            type: string
+                          udf3:
+                            type: string
+                          udf4:
+                            type: string
+                          udf5:
+                            type: string
+                          created_by:
+                            nullable: true
+              example:
+                success: true
+                data:
+                  payout_link:
+                    id: ple007a7a51540f5924c30f02fba4f50
+                    link: w.ease.buzz/l/1154128125/
+                    unique_code: TestLink1
+                    payout_attempts: []
+                    deactivation_reason: null
+                    created_at: '2022-02-01T18:15:45.549841+05:30'
+                    updated_at: '2022-02-01T18:15:45.549859+05:30'
+                    status: active
+                    amount: 1
+                    description: TestPaymentLink
+                    payee_name: Dev D
+                    payee_email: demo@test.in
+                    payee_phone: '6792040000'
+                    allowed_beneficiary_types:
+                      - upi
+                    expiry_date: '2022-02-02'
+                    udf1: null
+                    udf2: null
+                    udf3: null
+                    udf4: null
+                    udf5: null
+                    created_by: null
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      payout_link:
+                        id: ple007a7a51540f5924c30f02fba4f50
+                        link: w.ease.buzz/l/1154128125/
+                        unique_code: TestLink1
+                        payout_attempts: []
+                        deactivation_reason: null
+                        created_at: '2022-02-01T18:15:45.549841+05:30'
+                        updated_at: '2022-02-01T18:15:45.549859+05:30'
+                        status: active
+                        amount: 1
+                        description: TestPaymentLink
+                        payee_name: Dev D
+                        payee_email: test@demo.in
+                        payee_phone: '7692000000'
+                        allowed_beneficiary_types:
+                          - upi
+                          - bank_account
+                        expiry_date: '2022-02-02'
+                        udf1: Test
+                        udf2: Test123
+                        udf3: '1234'
+                        udf4: 12Test34
+                        udf5: null
+                        created_by: null
+      description: Create a payout link to transfer funds to a payee. A payout link collects account information from the payee and disburses the funds to them.
+    get:
+      tags:
+        - Payout Links
+      summary: Retrieve All Payout Links List
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          required: true
+          description: 'SHA-512 hash of string in the format "{key}|{salt}"'
+        - schema:
+            type: string
+          in: query
+          name: key
+          description: KEY provided by Easebuzz
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: pageSize
+          description: Number of Links per page
+        - schema:
+            type: string
+          in: query
+          name: current
+          description: Page no. of the set of links
+        - schema:
+            type: string
+          in: header
+          description: KEY provided by Easebuzz
+          name: WIRE-API-KEY
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      count: 13
+                      results:
+                        - id: plb926d58114435f8a78f3cb780c1238
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/d9ba5b59343/disburse'
+                          unique_code: d9ba5b59343
+                          payout_attempts: []
+                          deactivation_reason: null
+                          created_at: '2022-09-14T19:28:50.591894+05:30'
+                          updated_at: '2022-09-14T19:28:50.591920+05:30'
+                          status: active
+                          amount: 1
+                          description: this is description this is description this is description this is description this is description this is description this is description this is description this is description this is description this is description this is description
+                          payee_name: Test
+                          payee_email: test@gmail.in
+                          payee_phone: '9122232323'
+                          allowed_beneficiary_types:
+                            - bank_account
+                          expiry_date: '2022-12-31'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: tetstsv
+                          created_by: null
+                        - id: pl88a07e81a54b6cbed25a22fb9e8041
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/bc0c3c6e25/disburse'
+                          unique_code: bc0c3c6e25
+                          payout_attempts: []
+                          deactivation_reason: Manually deactivated.
+                          created_at: '2022-09-05T18:22:21.862291+05:30'
+                          updated_at: '2022-09-05T18:22:49.029141+05:30'
+                          status: deactivated
+                          amount: 1
+                          description: ''
+                          payee_name: Harshit
+                          payee_email: ''
+                          payee_phone: '8986683352'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: plf6b751f8e641a586f209e1256100a0
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/4b323ef214/disburse'
+                          unique_code: 4b323ef214
+                          payout_attempts: []
+                          deactivation_reason: null
+                          created_at: '2022-08-08T16:21:24.873723+05:30'
+                          updated_at: '2022-08-10T02:00:27.493623+05:30'
+                          status: expired
+                          amount: 1
+                          description: ''
+                          payee_name: Prathamesh
+                          payee_email: chavanprathamesh0512@gmail.com
+                          payee_phone: '8796339933'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: '2022-08-10'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: pl9c1f5e6e224d549ea92672ea82d524
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/a466175d12/disburse'
+                          unique_code: a466175d12
+                          payout_attempts: []
+                          deactivation_reason: Manually deactivated.
+                          created_at: '2022-08-01T11:57:34.084596+05:30'
+                          updated_at: '2022-08-01T11:58:21.713830+05:30'
+                          status: deactivated
+                          amount: 1
+                          description: ''
+                          payee_name: Prathamesh Chavan
+                          payee_email: ''
+                          payee_phone: '8796339933'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: '2022-08-02'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: pl94fda1ec354b6f845252db84c6a395
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/a468fa7818/disburse'
+                          unique_code: a468fa7818
+                          payout_attempts: []
+                          deactivation_reason: null
+                          created_at: '2022-07-28T16:14:18.901552+05:30'
+                          updated_at: '2022-07-29T02:00:26.011435+05:30'
+                          status: expired
+                          amount: 1
+                          description: ''
+                          payee_name: Prathamesh Chavan
+                          payee_email: ''
+                          payee_phone: '8796339933'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: '2022-07-29'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: plef20f08dcc4339921186ab5fe9fdb5
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/ef75ee945a/disburse'
+                          unique_code: ef75ee945a
+                          payout_attempts: []
+                          deactivation_reason: null
+                          created_at: '2022-06-17T16:32:22.560432+05:30'
+                          updated_at: '2022-06-17T16:32:22.560458+05:30'
+                          status: active
+                          amount: 1
+                          description: test refund
+                          payee_name: Khalid
+                          payee_email: demo@test.in
+                          payee_phone: '9304883337'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: plfa94235e6a4b839f7d451cef64c8f7
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/8629d02198/disburse'
+                          unique_code: 8629d02198
+                          payout_attempts:
+                            - id: pla89ca01d0c452e839c3b8116be59b7
+                              status: success
+                              failure_reason: ''
+                              utr: '216188467823'
+                              created_at: '2022-06-10T18:13:17.908668+05:30'
+                              updated_at: '2022-06-10T18:13:20.756973+05:30'
+                              beneficiary_type: upi
+                              beneficiary_name: Prathamesh
+                              beneficiary_account_number: ''
+                              beneficiary_account_ifsc: ''
+                              beneficiary_upi_handle: chavanpratu17@okhdfcbank
+                              created_by: null
+                          deactivation_reason: null
+                          created_at: '2022-06-10T18:11:57.093283+05:30'
+                          updated_at: '2022-06-10T18:13:20.761650+05:30'
+                          status: paid
+                          amount: 1
+                          description: prathamesh
+                          payee_name: Prathamesh
+                          payee_email: ''
+                          payee_phone: '8796339933'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: '2022-06-11'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: pl858239af3d4e738f803d1d2ca77b18
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/f24c700c93/disburse'
+                          unique_code: f24c700c93
+                          payout_attempts:
+                            - id: pla01ebdd1c749629e8e42a9b071b7ab
+                              status: success
+                              failure_reason: ''
+                              utr: '210969442885'
+                              created_at: '2022-04-19T15:43:57.384368+05:30'
+                              updated_at: '2022-04-19T15:43:58.727972+05:30'
+                              beneficiary_type: upi
+                              beneficiary_name: Dev D
+                              beneficiary_account_number: ''
+                              beneficiary_account_ifsc: ''
+                              beneficiary_upi_handle: demo@oksbi
+                              created_by: null
+                          deactivation_reason: null
+                          created_at: '2022-04-19T15:42:58.944303+05:30'
+                          updated_at: '2022-04-19T15:43:58.736672+05:30'
+                          status: paid
+                          amount: 1
+                          description: 'test transaction, exam refund'
+                          payee_name: Dev D
+                          payee_email: ''
+                          payee_phone: '6792040000'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: ple05408858041969ed67daa7b56ada1
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/ed9b64f7e7/disburse'
+                          unique_code: ed9b64f7e7
+                          payout_attempts: []
+                          deactivation_reason: Manually deactivated.
+                          created_at: '2022-04-19T15:40:37.537301+05:30'
+                          updated_at: '2022-04-19T15:45:16.755201+05:30'
+                          status: deactivated
+                          amount: 1
+                          description: ''
+                          payee_name: Akash
+                          payee_email: ''
+                          payee_phone: '8105232552'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: pl0a4332e3514e2fb79c3c178e99a266
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/c6a765de94/disburse'
+                          unique_code: c6a765de94
+                          payout_attempts: []
+                          deactivation_reason: Manually deactivated.
+                          created_at: '2022-04-19T12:29:06.783208+05:30'
+                          updated_at: '2022-04-19T12:29:56.018496+05:30'
+                          status: deactivated
+                          amount: 1
+                          description: ''
+                          payee_name: harshit
+                          payee_email: ''
+                          payee_phone: '8986683352'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                      total_pages: 2
+                      page_size: 10
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            link:
+                              type: string
+                            unique_code:
+                              type: string
+                            payout_attempts:
+                              type: array
+                              items:
+                                type: object
+                            deactivation_reason:
+                              type: string
+                              nullable: true
+                            created_at:
+                              type: string
+                            updated_at:
+                              type: string
+                            status:
+                              type: string
+                            amount:
+                              type: number
+                              example: '1.0'
+                              format: float
+                            description:
+                              type: string
+                            payee_name:
+                              type: string
+                            payee_email:
+                              type: string
+                            payee_phone:
+                              type: string
+                            allowed_beneficiary_types:
+                              type: array
+                              items:
+                                type: string
+                            expiry_date:
+                              type: string
+                              nullable: true
+                            udf1:
+                              type: string
+                              nullable: true
+                            udf2:
+                              type: string
+                              nullable: true
+                            udf3:
+                              type: string
+                              nullable: true
+                            udf4:
+                              type: string
+                              nullable: true
+                            udf5:
+                              type: string
+                              nullable: true
+                            created_by:
+                              nullable: true
+                      total_pages:
+                        type: integer
+                      page_size:
+                        type: integer
+              example:
+                success: true
+                data:
+                  count: 1
+                  results:
+                    - id: pl834d056551430490ba737e3d20a17c
+                      link: w.ease.buzz/l/81dee172a6/
+                      unique_code: MANUAL1
+                      payout_attempts:
+                        - id: pla8e6784034402e803c861da0f30e30
+                          status: success
+                          failure_reason: Transaction success
+                          utr: '203132593000'
+                          created_at: '2022-01-31T15:51:12.175611+05:30'
+                          updated_at: '2022-01-31T15:51:13.952585+05:30'
+                          beneficiary_type: upi
+                          beneficiary_name: Dev D
+                          beneficiary_account_number: ''
+                          beneficiary_account_ifsc: ''
+                          beneficiary_upi_handle: demo@oksbi
+                          created_by: null
+                      deactivation_reason: null
+                      created_at: '2022-01-31T15:50:09.367690+05:30'
+                      updated_at: '2022-01-31T15:51:13.957933+05:30'
+                      status: paid
+                      amount: 1
+                      description: Test Payment
+                      payee_name: Dev D
+                      payee_email: demo@gmail.com
+                      payee_phone: ''
+                      allowed_beneficiary_types:
+                        - bank_account
+                        - upi
+                      expiry_date: '2022-02-01'
+                      udf1: null
+                      udf2: null
+                      udf3: null
+                      udf4: null
+                      udf5: null
+                      created_by: null
+                  total_pages: 1
+                  page_size: 10
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      count: 13
+                      results:
+                        - id: plb926d58114435f8a78f3cb780c1238
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/d9ba5b59343/disburse'
+                          unique_code: d9ba5b59343
+                          payout_attempts: []
+                          deactivation_reason: null
+                          created_at: '2022-09-14T19:28:50.591894+05:30'
+                          updated_at: '2022-09-14T19:28:50.591920+05:30'
+                          status: active
+                          amount: 1
+                          description: this is description this is description this is description this is description this is description this is description this is description this is description this is description this is description this is description this is description
+                          payee_name: Test
+                          payee_email: test@gmail.in
+                          payee_phone: '9122232323'
+                          allowed_beneficiary_types:
+                            - bank_account
+                          expiry_date: '2022-12-31'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: tetstsv
+                          created_by: null
+                        - id: pl88a07e81a54b6cbed25a22fb9e8041
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/bc0c3c6e25/disburse'
+                          unique_code: bc0c3c6e25
+                          payout_attempts: []
+                          deactivation_reason: Manually deactivated.
+                          created_at: '2022-09-05T18:22:21.862291+05:30'
+                          updated_at: '2022-09-05T18:22:49.029141+05:30'
+                          status: deactivated
+                          amount: 1
+                          description: ''
+                          payee_name: Harshit
+                          payee_email: ''
+                          payee_phone: '8986683352'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: plf6b751f8e641a586f209e1256100a0
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/4b323ef214/disburse'
+                          unique_code: 4b323ef214
+                          payout_attempts: []
+                          deactivation_reason: null
+                          created_at: '2022-08-08T16:21:24.873723+05:30'
+                          updated_at: '2022-08-10T02:00:27.493623+05:30'
+                          status: expired
+                          amount: 1
+                          description: ''
+                          payee_name: Prathamesh
+                          payee_email: chavanprathamesh0512@gmail.com
+                          payee_phone: '8796339933'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: '2022-08-10'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: pl9c1f5e6e224d549ea92672ea82d524
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/a466175d12/disburse'
+                          unique_code: a466175d12
+                          payout_attempts: []
+                          deactivation_reason: Manually deactivated.
+                          created_at: '2022-08-01T11:57:34.084596+05:30'
+                          updated_at: '2022-08-01T11:58:21.713830+05:30'
+                          status: deactivated
+                          amount: 1
+                          description: ''
+                          payee_name: Prathamesh Chavan
+                          payee_email: ''
+                          payee_phone: '8796339933'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: '2022-08-02'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: pl94fda1ec354b6f845252db84c6a395
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/a468fa7818/disburse'
+                          unique_code: a468fa7818
+                          payout_attempts: []
+                          deactivation_reason: null
+                          created_at: '2022-07-28T16:14:18.901552+05:30'
+                          updated_at: '2022-07-29T02:00:26.011435+05:30'
+                          status: expired
+                          amount: 1
+                          description: ''
+                          payee_name: Prathamesh Chavan
+                          payee_email: ''
+                          payee_phone: '8796339933'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: '2022-07-29'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: plef20f08dcc4339921186ab5fe9fdb5
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/ef75ee945a/disburse'
+                          unique_code: ef75ee945a
+                          payout_attempts: []
+                          deactivation_reason: null
+                          created_at: '2022-06-17T16:32:22.560432+05:30'
+                          updated_at: '2022-06-17T16:32:22.560458+05:30'
+                          status: active
+                          amount: 1
+                          description: test refund
+                          payee_name: Khalid
+                          payee_email: demo@test.in
+                          payee_phone: '9304883337'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: plfa94235e6a4b839f7d451cef64c8f7
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/8629d02198/disburse'
+                          unique_code: 8629d02198
+                          payout_attempts:
+                            - id: pla89ca01d0c452e839c3b8116be59b7
+                              status: success
+                              failure_reason: ''
+                              utr: '216188467823'
+                              created_at: '2022-06-10T18:13:17.908668+05:30'
+                              updated_at: '2022-06-10T18:13:20.756973+05:30'
+                              beneficiary_type: upi
+                              beneficiary_name: Prathamesh
+                              beneficiary_account_number: ''
+                              beneficiary_account_ifsc: ''
+                              beneficiary_upi_handle: chavanpratu17@okhdfcbank
+                              created_by: null
+                          deactivation_reason: null
+                          created_at: '2022-06-10T18:11:57.093283+05:30'
+                          updated_at: '2022-06-10T18:13:20.761650+05:30'
+                          status: paid
+                          amount: 1
+                          description: prathamesh
+                          payee_name: Prathamesh
+                          payee_email: ''
+                          payee_phone: '8796339933'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: '2022-06-11'
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: pl858239af3d4e738f803d1d2ca77b18
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/f24c700c93/disburse'
+                          unique_code: f24c700c93
+                          payout_attempts:
+                            - id: pla01ebdd1c749629e8e42a9b071b7ab
+                              status: success
+                              failure_reason: ''
+                              utr: '210969442885'
+                              created_at: '2022-04-19T15:43:57.384368+05:30'
+                              updated_at: '2022-04-19T15:43:58.727972+05:30'
+                              beneficiary_type: upi
+                              beneficiary_name: Dev D
+                              beneficiary_account_number: ''
+                              beneficiary_account_ifsc: ''
+                              beneficiary_upi_handle: demo@oksbi
+                              created_by: null
+                          deactivation_reason: null
+                          created_at: '2022-04-19T15:42:58.944303+05:30'
+                          updated_at: '2022-04-19T15:43:58.736672+05:30'
+                          status: paid
+                          amount: 1
+                          description: 'test transaction, exam refund'
+                          payee_name: Dev D
+                          payee_email: ''
+                          payee_phone: '6792040000'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: ple05408858041969ed67daa7b56ada1
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/ed9b64f7e7/disburse'
+                          unique_code: ed9b64f7e7
+                          payout_attempts: []
+                          deactivation_reason: Manually deactivated.
+                          created_at: '2022-04-19T15:40:37.537301+05:30'
+                          updated_at: '2022-04-19T15:45:16.755201+05:30'
+                          status: deactivated
+                          amount: 1
+                          description: ''
+                          payee_name: Akash
+                          payee_email: ''
+                          payee_phone: '8105232552'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                        - id: pl0a4332e3514e2fb79c3c178e99a266
+                          link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/c6a765de94/disburse'
+                          unique_code: c6a765de94
+                          payout_attempts: []
+                          deactivation_reason: Manually deactivated.
+                          created_at: '2022-04-19T12:29:06.783208+05:30'
+                          updated_at: '2022-04-19T12:29:56.018496+05:30'
+                          status: deactivated
+                          amount: 1
+                          description: ''
+                          payee_name: harshit
+                          payee_email: ''
+                          payee_phone: '8986683352'
+                          allowed_beneficiary_types:
+                            - bank_account
+                            - upi
+                          expiry_date: null
+                          udf1: null
+                          udf2: null
+                          udf3: null
+                          udf4: null
+                          udf5: null
+                          created_by: null
+                      total_pages: 2
+                      page_size: 10
+      description: Retrieve a paginated list of all the available payout links.
+  '/api/v1/payout_links/{unique_code}/':
+    get:
+      tags:
+        - Payout Links
+      summary: Retrieve Link by Unique Code
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 455197ef8c975bd47e89a646e7ed8d6158c7176000596a3bb9ad8050bb5aa27d044f5c830b52d8612458c9d3ed796d40414feb7c81895a63983628734ce96454
+          description: 'SHA-512 hash of string in the format "{key}|{unique_code}|{salt}"'
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: unique_code
+          description: 'The unique code or identifier for the link, specified at the time of creation'
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: WIRE-API-KEY provided by Easebuzz
+        - schema:
+            type: string
+          in: query
+          name: key
+          required: true
+          description: WIRE-API-KEY provided by Easebuzz
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      payout_link:
+                        id: pl834d056551430490ba737e3d20a17c
+                        link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/MANUAL1/disburse'
+                        unique_code: MANUAL1
+                        payout_attempts:
+                          - id: pla8e6784034402e803c861da0f30e30
+                            status: success
+                            failure_reason: Transaction success
+                            utr: '203132593000'
+                            created_at: '2022-01-31T15:51:12.175611+05:30'
+                            updated_at: '2022-01-31T15:51:13.952585+05:30'
+                            beneficiary_type: upi
+                            beneficiary_name: Dev D
+                            beneficiary_account_number: ''
+                            beneficiary_account_ifsc: ''
+                            beneficiary_upi_handle: demo@oksbi
+                            created_by: null
+                        deactivation_reason: null
+                        created_at: '2022-01-31T15:50:09.367690+05:30'
+                        updated_at: '2022-01-31T15:51:13.957933+05:30'
+                        status: paid
+                        amount: 1
+                        description: Test Payment
+                        payee_name: Dev D
+                        payee_email: demo@gmail.com
+                        payee_phone: ''
+                        allowed_beneficiary_types:
+                          - bank_account
+                          - upi
+                        expiry_date: '2022-02-01'
+                        udf1: Test
+                        udf2: Test123
+                        udf3: '1234'
+                        udf4: 12Test34
+                        udf5: null
+                        created_by: null
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      payout_link:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          link:
+                            type: string
+                          unique_code:
+                            type: string
+                          payout_attempts:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                status:
+                                  type: string
+                                failure_reason:
+                                  type: string
+                                utr:
+                                  type: string
+                                created_at:
+                                  type: string
+                                updated_at:
+                                  type: string
+                                beneficiary_type:
+                                  type: string
+                                beneficiary_name:
+                                  type: string
+                                beneficiary_account_number:
+                                  type: string
+                                beneficiary_account_ifsc:
+                                  type: string
+                                beneficiary_upi_handle:
+                                  type: string
+                                created_by:
+                                  nullable: true
+                          deactivation_reason:
+                            nullable: true
+                          created_at:
+                            type: string
+                          updated_at:
+                            type: string
+                          status:
+                            type: string
+                          amount:
+                            type: number
+                            format: float
+                          description:
+                            type: string
+                          payee_name:
+                            type: string
+                          payee_email:
+                            type: string
+                          payee_phone:
+                            type: string
+                          allowed_beneficiary_types:
+                            type: array
+                            items:
+                              type: string
+                          expiry_date:
+                            type: string
+                          udf1:
+                            type: string
+                            nullable: true
+                          udf2:
+                            type: string
+                            nullable: true
+                          udf3:
+                            type: string
+                            nullable: true
+                          udf4:
+                            type: string
+                            nullable: true
+                          udf5:
+                            type: string
+                            nullable: true
+                          created_by:
+                            nullable: true
+              example:
+                success: true
+                data:
+                  payout_link:
+                    id: pl834d056551430490ba737e3d20a17c
+                    link: w.ease.buzz/l/81dee172a6/
+                    unique_code: MANUAL1
+                    payout_attempts:
+                      - id: pla8e6784034402e803c861da0f30e30
+                        status: success
+                        failure_reason: Transaction success
+                        utr: '203132593000'
+                        created_at: '2022-01-31T15:51:12.175611+05:30'
+                        updated_at: '2022-01-31T15:51:13.952585+05:30'
+                        beneficiary_type: upi
+                        beneficiary_name: Dev D
+                        beneficiary_account_number: ''
+                        beneficiary_account_ifsc: ''
+                        beneficiary_upi_handle: demo@oksbi
+                        created_by: null
+                    deactivation_reason: null
+                    created_at: '2022-01-31T15:50:09.367690+05:30'
+                    updated_at: '2022-01-31T15:51:13.957933+05:30'
+                    status: paid
+                    amount: 1
+                    description: Test Payment
+                    payee_name: Dev D
+                    payee_email: demo@gmail.com
+                    payee_phone: ''
+                    allowed_beneficiary_types:
+                      - bank_account
+                      - upi
+                    expiry_date: '2022-02-01'
+                    udf1: null
+                    udf2: null
+                    udf3: null
+                    udf4: null
+                    udf5: null
+                    created_by: null
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      payout_link:
+                        id: pl834d056551430490ba737e3d20a17c
+                        link: 'https://wire.easebuzz.in/payout-links/515d36b9f8/MANUAL1/disburse'
+                        unique_code: MANUAL1
+                        payout_attempts:
+                          - id: pla8e6784034402e803c861da0f30e30
+                            status: success
+                            failure_reason: Transaction success
+                            utr: '203132593000'
+                            created_at: '2022-01-31T15:51:12.175611+05:30'
+                            updated_at: '2022-01-31T15:51:13.952585+05:30'
+                            beneficiary_type: upi
+                            beneficiary_name: Dev D
+                            beneficiary_account_number: ''
+                            beneficiary_account_ifsc: ''
+                            beneficiary_upi_handle: demo@okybl
+                            created_by: null
+                        deactivation_reason: null
+                        created_at: '2022-01-31T15:50:09.367690+05:30'
+                        updated_at: '2022-01-31T15:51:13.957933+05:30'
+                        status: paid
+                        amount: 1
+                        description: Test Payment
+                        payee_name: Dev D
+                        payee_email: demo@test.com
+                        payee_phone: ''
+                        allowed_beneficiary_types:
+                          - bank_account
+                          - upi
+                        expiry_date: '2022-02-01'
+                        udf1: Test
+                        udf2: Test123
+                        udf3: '1234'
+                        udf4: 12Test34
+                        udf5: null
+                        created_by: null
+      description: Retrieve details of a payout Link using unique_code.
+    delete:
+      tags:
+        - Payout Links
+      summary: Deactivate a Payout Link by Unique Code
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+            example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          example: f81eb9039e66ddfaed8bdf407a568aa0ace5774265134d68a4217a235247daee90b017da8ebe91fe39e5c6787c553423e598c385fce72bef1aba918704defc79
+          description: 'SHA-512 hash of string in the format "{key}|{unique_code}|{salt}"'
+          required: true
+        - name: key
+          in: query
+          schema:
+            type: string
+            example: 1Z1234567X
+          example: 1Z1234567X
+          description: WIRE-API-KEY provided by Easebuzz. The key must be provided in the query.
+        - schema:
+            type: string
+            example: ee38585328
+          in: path
+          description: 'The unique code or identifier for the link, specified at the time of creation'
+          name: unique_code
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: KEY provided by Easebuzz.
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      payout_link:
+                        id: pl834d056551430490ba737e3d20a17c
+                        link: w.ease.buzz/l/81dee172a6/
+                        unique_code: MANUAL1
+                        payout_attempts:
+                          - id: pla8e6784034402e803c861da0f30e30
+                            status: success
+                            failure_reason: Transaction success
+                            utr: '203132593000'
+                            created_at: '2022-01-31T15:51:12.175611+05:30'
+                            updated_at: '2022-01-31T15:51:13.952585+05:30'
+                            beneficiary_type: upi
+                            beneficiary_name: Dev D
+                            beneficiary_account_number: ''
+                            beneficiary_account_ifsc: ''
+                            beneficiary_upi_handle: demo@oksbi
+                            created_by: null
+                        deactivation_reason: null
+                        created_at: '2022-01-31T15:50:09.367690+05:30'
+                        updated_at: '2022-01-31T15:51:13.957933+05:30'
+                        status: paid
+                        amount: 1
+                        description: Test Payment
+                        payee_name: Dev D
+                        payee_email: demo@gmail.com
+                        payee_phone: ''
+                        allowed_beneficiary_types:
+                          - bank_account
+                          - upi
+                        expiry_date: '2022-02-01'
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        created_by: null
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      payout_link:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          link:
+                            type: string
+                          unique_code:
+                            type: string
+                          payout_attempts:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                status:
+                                  type: string
+                                failure_reason:
+                                  type: string
+                                utr:
+                                  type: string
+                                created_at:
+                                  type: string
+                                updated_at:
+                                  type: string
+                                beneficiary_type:
+                                  type: string
+                                beneficiary_name:
+                                  type: string
+                                beneficiary_account_number:
+                                  type: string
+                                beneficiary_account_ifsc:
+                                  type: string
+                                beneficiary_upi_handle:
+                                  type: string
+                                created_by:
+                                  nullable: true
+                          deactivation_reason:
+                            nullable: true
+                          created_at:
+                            type: string
+                          updated_at:
+                            type: string
+                          status:
+                            type: string
+                          amount:
+                            type: number
+                            format: float
+                          description:
+                            type: string
+                          payee_name:
+                            type: string
+                          payee_email:
+                            type: string
+                          payee_phone:
+                            type: string
+                          allowed_beneficiary_types:
+                            type: array
+                            items:
+                              type: string
+                          expiry_date:
+                            type: string
+                          udf1:
+                            type: string
+                            nullable: true
+                          udf2:
+                            type: string
+                            nullable: true
+                          udf3:
+                            type: string
+                            nullable: true
+                          udf4:
+                            type: string
+                            nullable: true
+                          udf5:
+                            type: string
+                            nullable: true
+                          created_by:
+                            nullable: true
+              examples:
+                Successful Response:
+                  summary: deactivate link wrt unique code
+                  value:
+                    success: true
+                    data:
+                      payout_link:
+                        id: pl834d056551430490ba737e3d20a17c
+                        link: w.ease.buzz/l/81dee172a6/
+                        unique_code: MANUAL1
+                        payout_attempts:
+                          - id: pla8e6784034402e803c861da0f30e30
+                            status: success
+                            failure_reason: Transaction success
+                            utr: '203132593000'
+                            created_at: '2022-01-31T15:51:12.175611+05:30'
+                            updated_at: '2022-01-31T15:51:13.952585+05:30'
+                            beneficiary_type: upi
+                            beneficiary_name: Dev D
+                            beneficiary_account_number: ''
+                            beneficiary_account_ifsc: ''
+                            beneficiary_upi_handle: test@okybl
+                            created_by: null
+                        deactivation_reason: null
+                        created_at: '2022-01-31T15:50:09.367690+05:30'
+                        updated_at: '2022-01-31T15:51:13.957933+05:30'
+                        status: paid
+                        amount: 1
+                        description: Test Payment
+                        payee_name: Dev D
+                        payee_email: demo@test.com
+                        payee_phone: ''
+                        allowed_beneficiary_types:
+                          - bank_account
+                          - upi
+                        expiry_date: '2022-02-01'
+                        udf1: Test
+                        udf2: Test123
+                        udf3: '1234'
+                        udf4: 12Test34
+                        udf5: null
+                        created_by: null
+      description: Deactivate a particular payout link using unique_code.
+  /api/v1/merchants/funding_accounts/:
+    post:
+      summary: Add Funding Account
+      operationId: post-api-v1-merchants-funding_accounts
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                x-examples:
+                  Example 1:
+                    success: true
+                    data:
+                      message: Account Added Successfully.
+              examples:
+                Sample Response:
+                  value:
+                    success: true
+                    data:
+                      message: Account Added Successfully.
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          required: true
+          description: 'The checksum which needs to be generated. SHA-512 hash of string in the format "{key}|{account_Number}|{ifsc}|{salt}"'
+        - schema:
+            type: string
+          in: header
+          name: Content-Type
+          description: multipart/form-data
+          required: true
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                key:
+                  type: string
+                name_on_bank:
+                  type: string
+                bank_name:
+                  type: string
+                account_number:
+                  type: string
+                account_ifsc:
+                  type: string
+                bank_branch:
+                  type: string
+                cancelled_cheque:
+                  type: string
+                  description: 'Attach file (extention should be .jpg, .jpeg, .png, .pdf) below 2 MB'
+                other_document:
+                  type: string
+                  description: 'Attach file (extention should be .jpg, .jpeg, .png, .pdf) below 2 MB'
+              required:
+                - key
+                - name_on_bank
+                - bank_name
+                - account_number
+                - account_ifsc
+                - bank_branch
+                - cancelled_cheque
+      tags:
+        - Accounts
+      description: Use this API to add a source/funding account for adding funds to your virtual account for payouts. The accounts added using this API wil be verified and white-listed by Easebuzz.
+  /api/v1/virtual_accounts/:
+    get:
+      tags:
+        - Accounts
+      summary: Fetch Virtual Accounts
+      description: Get a paginated list of all available Virtual Accounts. A Virtual Account is an account created in Wire through which transfers are done.
+      parameters:
+        - name: Authorization
+          description: 'SHA-512 hash of string in the format "{key}|{salt}"'
+          required: true
+          in: header
+          schema:
+            type: string
+            example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          example: f81eb9039e66ddfaed8bdf407a568aa0ace5774265134d68a4217a235247daee90b017da8ebe91fe39e5c6787c553423e598c385fce72bef1aba918704defc79
+        - schema:
+            type: string
+          in: query
+          name: key
+          description: WIRE-API-KEY provided by Easebuzz. The key must be provided in the query.
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: 'KEY provided by Easebuzz. '
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  Example 1:
+                    success: true
+                    data:
+                      virtual_accounts:
+                        - id: va143d4d15e8467699ba101fc973b14c
+                          account_number: '000119100000060417'
+                          balance: 15
+                          is_active: true
+                          bank_name: RBL Bank
+                          status: active
+                          ifsc: RATN0000088
+                        - id: va49bbf147ff4e1286b241f2c2152423
+                          account_number: '101000000000060417'
+                          balance: 6.41
+                          is_active: false
+                          bank_name: ICICI Bank
+                          status: active
+                          ifsc: ICIC0000104
+                        - id: vabbf5b4b03042d6b4aa956ca2a4d081
+                          account_number: '100001000000060417'
+                          balance: 0
+                          is_active: false
+                          bank_name: Yes Bank
+                          status: deactivated
+                          ifsc: YESB0CMSNOC
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      virtual_accounts:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            account_number:
+                              type: string
+                            balance:
+                              type:
+                                - number
+                              format: float
+                            is_active:
+                              type: boolean
+                            bank_name:
+                              type: string
+                            status:
+                              type: string
+                            ifsc:
+                              type: string
+              examples:
+                Sample Response:
+                  value:
+                    success: true
+                    data:
+                      virtual_accounts:
+                        - id: va143d4d15e8467699ba101fc973b14c
+                          account_number: '000119100000060417'
+                          balance: 15
+                          is_active: true
+                          bank_name: RBL Bank
+                          status: active
+                          ifsc: RATN0000088
+                        - id: va49bbf147ff4e1286b241f2c2152423
+                          account_number: '101000000000060417'
+                          balance: 6.41
+                          is_active: false
+                          bank_name: ICICI Bank
+                          status: active
+                          ifsc: ICIC0000104
+                        - id: vabbf5b4b03042d6b4aa956ca2a4d081
+                          account_number: '100001000000060417'
+                          balance: 0
+                          is_active: false
+                          bank_name: Yes Bank
+                          status: deactivated
+                          ifsc: YESB0CMSNOC
+    parameters: []
+components:
+  schemas: {}
+  securitySchemes: {}

@@ -1,0 +1,962 @@
+openapi: 3.0.0
+x-stoplight:
+  id: 559e897b47b9f
+info:
+  title: Beneficiary Accounts
+  version: 1.0.9
+  contact:
+    name: Easebuzz Support
+    url: 'https://easebuzz.in/contact/'
+    email: support@easebuzz.in
+  description: A beneficiary holds account-related information such as bank account details or UPI handle of the payee to whom the funds should be disbursed. A contact can have multiple beneficiaries.
+  termsOfService: 'https://easebuzz.in/terms/'
+servers:
+  - url: 'https://wire.easebuzz.in'
+    description: Prod
+paths:
+  /api/v1/beneficiaries/:
+    post:
+      summary: Add Beneficiary Account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 1Z1234567X
+                  contact_id: cont941f20a64b70b4137b7161ae97a2
+                  beneficiary_type: bank_account
+                  beneficiary_name: DEMO TEST
+                  account_number: '0123456999'
+                  ifsc: HDFC0000001
+                  upi_handle: demo@okhdfcbank
+              properties:
+                key:
+                  type: string
+                contact_id:
+                  type: string
+                beneficiary_type:
+                  type: string
+                  enum:
+                    - bank_account
+                    - upi
+                beneficiary_name:
+                  type: string
+                  maxLength: 150
+                  minLength: 1
+                account_number:
+                  type: string
+                  description: The bank account number of the beneficiary. Mandatory if the "beneficiary_type" is "bank_account".
+                  minLength: 5
+                ifsc:
+                  type: string
+                  description: The IFSC code of the bank account of the beneficiary. Mandatory if the "beneficiary_type" is "bank_account".
+                upi_handle:
+                  type: string
+                  description: The upi handle of the beneficiary. Mandatory if the "beneficiary_type" is "upi".
+              required:
+                - key
+                - contact_id
+                - beneficiary_type
+                - beneficiary_name
+            examples:
+              Create beneficiary with bank details:
+                value:
+                  key: 1Z1234567X
+                  contact_id: cont941f20a64b70b4137b7161ae97a2
+                  beneficiary_type: bank_account
+                  beneficiary_name: DEMO TEST
+                  account_number: '0123456999'
+                  ifsc: HDFC0000001
+              Create beneficiary with VPA address:
+                value:
+                  key: 1Z1234567X
+                  contact_id: cont9da436ef46cea89bc913767c539b
+                  beneficiary_type: upi
+                  beneficiary_name: Dev D
+                  upi_handle: demo@okhdfcbank
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 463646fd86d94ca318251481281ce05ced7314825a73cba01de6900b5e84b83c25339a4f60c460bdd7299a011e897fecf347bced10978649ab7517682b3cc56e
+          description: 'SHA-512 hash of string in the format "{key}|{contact_id}|{beneficiary_name}|{account_number}|{ifsc}|{upi_handle}|{salt}"'
+        - name: WIRE-API-KEY
+          in: header
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-Key provided by Easebuzz.
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      beneficiary:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          contact:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              status:
+                                type: string
+                              created_at:
+                                type: string
+                              deleted_at:
+                                type: 'null'
+                              name:
+                                type: string
+                              email:
+                                type: string
+                              phone:
+                                type: string
+                              created_by:
+                                type: 'null'
+                          created_at:
+                            type: string
+                          deleted_at:
+                            type: 'null'
+                          beneficiary_type:
+                            type: string
+                          bank_name:
+                            type: string
+                          account_name:
+                            type: string
+                          account_number:
+                            type: string
+                          account_ifsc:
+                            type: string
+                          upi_handle:
+                            type: 'null'
+                          is_active:
+                            type: boolean
+                          is_primary:
+                            type: boolean
+                          created_by:
+                            type: 'null'
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: bene8d4c8d3a43509eaab7af5006ce3f
+                        contact:
+                          id: cont941f20a64b70b4137b7161ae97a2
+                          status: Active
+                          created_at: '2022-01-31T11:59:47.744122+05:30'
+                          deleted_at: null
+                          name: Test EaseBuzz
+                          email: demo.test@easebuzz.in
+                          phone: '9999999999'
+                          created_by: null
+                        created_at: '2022-02-01T16:02:53.339286+05:30'
+                        deleted_at: null
+                        beneficiary_type: bank_account
+                        bank_name: HDFC Bank
+                        account_name: Demo Test
+                        account_number: '0123456789'
+                        account_ifsc: HDFC0000001
+                        upi_handle: null
+                        is_active: true
+                        is_primary: false
+                        created_by: null
+              example:
+                success: true
+                data:
+                  beneficiary:
+                    id: beneb2b7e7c04e909b8bb931fe1bbf0e
+                    contact:
+                      id: cont9da436ef46cea89bc913767c539b
+                      status: Active
+                      created_at: '2022-01-31T10:55:56.391971+05:30'
+                      deleted_at: null
+                      name: Dev D
+                      email: demo@test.in
+                      phone: '6792040000'
+                      created_by: null
+                    created_at: '2022-02-01T15:50:06.304942+05:30'
+                    deleted_at: null
+                    beneficiary_type: upi
+                    bank_name: NA
+                    account_name: Dev D
+                    account_number: null
+                    account_ifsc: null
+                    upi_handle: demo@okhdfcbank
+                    is_active: true
+                    is_primary: false
+                    created_by: null
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: string
+                        contact:
+                          id: string
+                          status: string
+                          created_at: string
+                          deleted_at: null
+                          name: string
+                          email: string
+                          phone: string
+                          created_by: null
+                        created_at: string
+                        deleted_at: null
+                        beneficiary_type: string
+                        bank_name: string
+                        account_name: string
+                        account_number: string
+                        account_ifsc: string
+                        upi_handle: null
+                        is_active: true
+                        is_primary: true
+                        created_by: null
+      description: Create a new beneficiary account under a contact.
+      operationId: ''
+    get:
+      summary: Retrieve Beneficiaries List
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+            example: 758fca58662f70d233ea399d437bced318a16b638df03199399fbc402436f4c405aa4b7a8d6ee2f9cabb2dde7505d7b904a0003b750dc702722a778cd68b44e0
+          example: 1047586b1527c034231f934dcba00a73747edfa6b72eb9ec184b59eef5edd54a557f72e70274461220ce58324f65dd7c509be0d1ab04fbbc8b7b5c52b3880347
+          required: true
+          description: 'SHA-512 hash of string in the format “{key}|{contact_id}|{salt}”'
+        - name: WIRE-API-KEY
+          in: header
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-Key provided by Easebuzz
+        - name: key
+          in: query
+          schema:
+            type: string
+            example: 1Z1234567X
+          example: 1Z1234567X
+          required: true
+          description: Same as WIRE-API-KEY provided by Easebuzz
+        - name: contact_id
+          in: query
+          schema:
+            type: string
+            example: cont9da436ef46cea89bc913767c539b
+          example: cont9da436ef46cea89bc913767c539b
+          required: true
+          description: The unique ID of the contact generated at the time of creating the contact
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+          example: 5
+          description: Number of beneficiaries per page
+        - name: current
+          in: query
+          schema:
+            type: integer
+          example: 1
+          description: Page no. of the set of beneficiaries
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            contact:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                status:
+                                  type: string
+                                created_at:
+                                  type: string
+                                deleted_at:
+                                  type: 'null'
+                                name:
+                                  type: string
+                                email:
+                                  type: string
+                                phone:
+                                  type: string
+                                created_by:
+                                  type: 'null'
+                            created_at:
+                              type: string
+                            deleted_at:
+                              type: 'null'
+                            beneficiary_type:
+                              type: string
+                            bank_name:
+                              type: string
+                            account_name:
+                              type: string
+                            account_number:
+                              type:
+                                - 'null'
+                                - string
+                            account_ifsc:
+                              type:
+                                - 'null'
+                                - string
+                            upi_handle:
+                              type:
+                                - 'null'
+                                - string
+                            is_active:
+                              type: boolean
+                            is_primary:
+                              type: boolean
+                            created_by:
+                              type: 'null'
+                      total_pages:
+                        type: integer
+                      page_size:
+                        type: integer
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      count: 2
+                      results:
+                        - id: bene89e604fa46ada71221b76be79a72
+                          contact:
+                            id: cont9da436ef46cea89bc913767c539b
+                            status: Active
+                            created_at: '2022-01-31T10:55:56.391971+05:30'
+                            deleted_at: null
+                            name: Dev D
+                            email: demo@test.in
+                            phone: '6792040000'
+                            created_by: null
+                          created_at: '2022-01-31T11:09:49.072864+05:30'
+                          deleted_at: null
+                          beneficiary_type: bank_account
+                          bank_name: HDFC Bank
+                          account_name: Dev D
+                          account_number: '50100179102170'
+                          account_ifsc: HDFC0000001
+                          upi_handle: null
+                          is_active: true
+                          is_primary: true
+                          created_by: null
+                        - id: beneb2b7e7c04e909b8bb931fe1bbf0e
+                          contact:
+                            id: cont9da436ef46cea89bc913767c539b
+                            status: Active
+                            created_at: '2022-01-31T10:55:56.391971+05:30'
+                            deleted_at: null
+                            name: Dev D
+                            email: demo@test.in
+                            phone: '6792040000'
+                            created_by: null
+                          created_at: '2022-02-01T15:50:06.304942+05:30'
+                          deleted_at: null
+                          beneficiary_type: upi
+                          bank_name: NA
+                          account_name: Dev D
+                          account_number: null
+                          account_ifsc: null
+                          upi_handle: demo@okhdfcbank
+                          is_active: true
+                          is_primary: false
+                          created_by: null
+                      total_pages: 1
+                      page_size: 10
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      count: 0
+                      results:
+                        - id: string
+                          contact:
+                            id: string
+                            status: string
+                            created_at: string
+                            deleted_at: null
+                            name: string
+                            email: string
+                            phone: string
+                            created_by: null
+                          created_at: string
+                          deleted_at: null
+                          beneficiary_type: string
+                          bank_name: string
+                          account_name: string
+                          account_number: null
+                          account_ifsc: null
+                          upi_handle: null
+                          is_active: true
+                          is_primary: true
+                          created_by: null
+                      total_pages: 1
+                      page_size: 10
+      description: Get a paginated list of all the beneficiaries under a contact
+  /api/v1/beneficiaries/retrieve/:
+    get:
+      summary: Retrieve Beneficiary by Account Details
+      description: Retrieve details of a beneficiary using the beneficiary's account details or VPA handle.
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 85405c6ad2aee92992938669a3730ab8cd67b4a6bc3fa506f1dc5e2277901eefcc88497110efd9ce8a8f24eaef89014e7a85fb4fe61e82ed4687aded5a032c16
+          description: 'SHA-512 hash of string in the format ""{key}|{account_number|{ifsc}|{upi_handle}|{salt}""'
+          required: true
+        - name: WIRE-API-KEY
+          in: header
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-Key provided by Easebuzz
+        - name: key
+          in: query
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-KEY provided by Easebuzz.
+          required: true
+        - name: beneficiary_type
+          in: query
+          schema:
+            type: string
+            enum:
+              - bank_account
+              - upi
+          example: upi
+          description: Type of the beneficiary's account
+          required: true
+        - name: upi_handle
+          in: query
+          schema:
+            type: string
+          example: demo@oksbi
+          description: UPI Handle of the beneficiary is mandatory if beneficiary_type is upi
+        - schema:
+            type: string
+          in: query
+          name: account_number
+          example: 1234567890
+          description: Account Number of the beneficiary is mandatory if beneficiary_type is bank_account
+        - schema:
+            type: string
+          in: query
+          name: ifsc
+          example: HDFC0000001
+          description: IFSC Code of the beneficiary is mandatory if beneficiary_type is bank_account
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      beneficiary:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          contact:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              status:
+                                type: string
+                              created_at:
+                                type: string
+                              deleted_at:
+                                type: 'null'
+                              name:
+                                type: string
+                              email:
+                                type: string
+                              phone:
+                                type: string
+                              created_by:
+                                type: 'null'
+                          created_at:
+                            type: string
+                          deleted_at:
+                            type: 'null'
+                          beneficiary_type:
+                            type: string
+                          bank_name:
+                            type: string
+                          account_name:
+                            type: string
+                          account_number:
+                            type: string
+                          account_ifsc:
+                            type: string
+                          upi_handle:
+                            type: 'null'
+                          is_active:
+                            type: boolean
+                          is_primary:
+                            type: boolean
+                          created_by:
+                            type: 'null'
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: benedf1a72eb449e872a39d22a36a91f
+                        contact:
+                          id: cont941f20a64b70b4137b7161ae97a2
+                          status: Active
+                          created_at: '2022-01-31T11:59:47.744122+05:30'
+                          deleted_at: null
+                          name: Test EaseBuzz
+                          email: demo.test@easebuzz.in
+                          phone: '9999999999'
+                          created_by: null
+                        created_at: '2022-01-31T12:15:29.218894+05:30'
+                        deleted_at: null
+                        beneficiary_type: bank_account
+                        bank_name: HDFC Bank
+                        account_name: Demo Test
+                        account_number: '1234567890'
+                        account_ifsc: HDFC0000001
+                        upi_handle: null
+                        is_active: true
+                        is_primary: true
+                        created_by: null
+              example:
+                success: true
+                data:
+                  beneficiary:
+                    id: benee05a31b44604b5fa09bddf659802
+                    contact:
+                      id: cont265b442846788ef71794d19a5241
+                      status: Active
+                      created_at: '2022-01-31T15:51:12.204948+05:30'
+                      deleted_at: null
+                      name: Deep Sen
+                      email: 123@test.com
+                      phone: '6792030050'
+                      created_by: null
+                    created_at: '2022-01-31T15:51:12.212629+05:30'
+                    deleted_at: null
+                    beneficiary_type: upi
+                    bank_name: NA
+                    account_name: Dev D
+                    account_number: null
+                    account_ifsc: null
+                    upi_handle: demo@okxxxx
+                    is_active: true
+                    is_primary: true
+                    created_by: null
+              examples:
+                Successful Example:
+                  value:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: benedf1a72eb449e872a39d22a36a91f
+                        contact:
+                          id: cont941f20a64b70b4137b7161ae97a2
+                          status: Active
+                          created_at: '2022-01-31T11:59:47.744122+05:30'
+                          deleted_at: null
+                          name: Test EaseBuzz
+                          email: demo.test@easebuzz.in
+                          phone: '9999999999'
+                          created_by: null
+                        created_at: '2022-01-31T12:15:29.218894+05:30'
+                        deleted_at: null
+                        beneficiary_type: bank_account
+                        bank_name: HDFC Bank
+                        account_name: Demo Test
+                        account_number: '1234567890'
+                        account_ifsc: HDFC0000001
+                        upi_handle: null
+                        is_active: true
+                        is_primary: true
+                        created_by: null
+  '/api/v1/beneficiaries/{beneficiary_id}/':
+    patch:
+      summary: Activate/Deactivate Beneficiary by ID
+      operationId: update-api-v1-beneficiaries-beneficiary_id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 1Z1234567X
+                  active: false
+              properties:
+                key:
+                  type: string
+                  description: Same as WIRE-API-KEY provided by Easebuzz
+                active:
+                  type: boolean
+              required:
+                - key
+                - active
+            examples:
+              Deactivate Beneficiary:
+                value:
+                  key: 1Z1234567X
+                  active: false
+              Activate Beneficiary:
+                value:
+                  key: string
+                  active: true
+        description: ''
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          required: true
+          description: 'SHA-512 hash of string in the format “{key}|{salt}”'
+        - name: WIRE-API-KEY
+          in: header
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-Key provided by Easebuzz
+        - schema:
+            type: string
+            example: benedf1a72eb449e872a39d22a36a91f
+          in: path
+          name: beneficiary_id
+          description: The unique beneficiary ID generated at the time of creating a beneficiary
+          required: true
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      beneficiary:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          contact:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              status:
+                                type: string
+                              created_at:
+                                type: string
+                              deleted_at:
+                                type: 'null'
+                              name:
+                                type: string
+                              email:
+                                type: string
+                              phone:
+                                type: string
+                              created_by:
+                                type: 'null'
+                          created_at:
+                            type: string
+                          deleted_at:
+                            type: 'null'
+                          beneficiary_type:
+                            type: string
+                          bank_name:
+                            type: string
+                          account_name:
+                            type: string
+                          account_number:
+                            type: string
+                          account_ifsc:
+                            type: string
+                          upi_handle:
+                            type: 'null'
+                          is_active:
+                            type: boolean
+                          is_primary:
+                            type: boolean
+                          created_by:
+                            type: 'null'
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: benedf1a72eb449e872a39d22a36a91f
+                        contact:
+                          id: cont941f20a64b70b4137b7161ae97a2
+                          status: Active
+                          created_at: '2022-01-31T11:59:47.744122+05:30'
+                          deleted_at: null
+                          name: Test EaseBuzz
+                          email: demo.test@easebuzz.in
+                          phone: '9999999999'
+                          created_by: null
+                        created_at: '2022-01-31T12:15:29.218894+05:30'
+                        deleted_at: null
+                        beneficiary_type: bank_account
+                        bank_name: HDFC Bank
+                        account_name: Demo Test
+                        account_number: '1234567890'
+                        account_ifsc: HDFC0000001
+                        upi_handle: null
+                        is_active: true
+                        is_primary: true
+                        created_by: null
+              examples:
+                Successful Response:
+                  summary: activate/disable beneficiary
+                  value:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: benedf1a72eb449e872a39d22a36a91f
+                        contact:
+                          id: cont941f20a64b70b4137b7161ae97a2
+                          status: Active
+                          created_at: '2022-01-31T11:59:47.744122+05:30'
+                          deleted_at: null
+                          name: Test EaseBuzz
+                          email: demo.test@easebuzz.in
+                          phone: '9999999999'
+                          created_by: null
+                        created_at: '2022-01-31T12:15:29.218894+05:30'
+                        deleted_at: null
+                        beneficiary_type: bank_account
+                        bank_name: HDFC Bank
+                        account_name: Demo Test
+                        account_number: '1234567890'
+                        account_ifsc: HDFC0000001
+                        upi_handle: null
+                        is_active: true
+                        is_primary: true
+                        created_by: null
+                example-1:
+                  summary: activate/disable beneficiary
+                  value:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: benedf1a72eb449e872a39d22a36a91f
+                        contact:
+                          id: cont941f20a64b70b4137b7161ae97a2
+                          status: Active
+                          created_at: '2022-01-31T11:59:47.744122+05:30'
+                          deleted_at: null
+                          name: Test EaseBuzz
+                          email: demo.test@easebuzz.in
+                          phone: '9999999999'
+                          created_by: null
+                        created_at: '2022-01-31T12:15:29.218894+05:30'
+                        deleted_at: null
+                        beneficiary_type: bank_account
+                        bank_name: HDFC Bank
+                        account_name: Demo Test
+                        account_number: '1234567890'
+                        account_ifsc: HDFC0000001
+                        upi_handle: null
+                        is_active: true
+                        is_primary: true
+                        created_by: null
+      description: Use this API to activate/deactivate a beneficiary using their beneficiary ID.
+    get:
+      summary: Retrieve Beneficiary by ID
+      operationId: get-api-v1-beneficiaries-beneficiary_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: benedf1a72eb449e872a39d22a36a91f
+                        contact:
+                          id: cont941f20a64b70b4137b7161ae97a2
+                          status: Active
+                          created_at: '2022-01-31T11:59:47.744122+05:30'
+                          deleted_at: null
+                          name: Test EaseBuzz
+                          email: demo.test@easebuzz.in
+                          phone: '9999999999'
+                          created_by: null
+                        created_at: '2022-01-31T12:15:29.218894+05:30'
+                        deleted_at: null
+                        beneficiary_type: bank_account
+                        bank_name: HDFC Bank
+                        account_name: Demo Test
+                        account_number: '1234567890'
+                        account_ifsc: HDFC0000001
+                        upi_handle: null
+                        is_active: true
+                        is_primary: true
+                        created_by: null
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      beneficiary:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          contact:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              status:
+                                type: string
+                              created_at:
+                                type: string
+                              deleted_at:
+                                nullable: true
+                              name:
+                                type: string
+                              email:
+                                type: string
+                              phone:
+                                type: string
+                              created_by:
+                                nullable: true
+                          created_at:
+                            type: string
+                          deleted_at:
+                            nullable: true
+                          beneficiary_type:
+                            type: string
+                          bank_name:
+                            type: string
+                          account_name:
+                            type: string
+                          account_number:
+                            type: string
+                            nullable: true
+                          account_ifsc:
+                            type: string
+                            nullable: true
+                          upi_handle:
+                            type: string
+                            nullable: true
+                          is_active:
+                            type: boolean
+                          is_primary:
+                            type: boolean
+                          created_by:
+                            nullable: true
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      beneficiary:
+                        id: benedf1a72eb449e872a39d22a36a91f
+                        contact:
+                          id: cont941f20a64b70b4137b7161ae97a2
+                          status: Active
+                          created_at: '2022-01-31T11:59:47.744122+05:30'
+                          deleted_at: null
+                          name: Test EaseBuzz
+                          email: demo.test@easebuzz.in
+                          phone: '9999999999'
+                          created_by: null
+                        created_at: '2022-01-31T12:15:29.218894+05:30'
+                        deleted_at: null
+                        beneficiary_type: bank_account
+                        bank_name: HDFC Bank
+                        account_name: Demo Test
+                        account_number: '1234567890'
+                        account_ifsc: HDFC0000001
+                        upi_handle: null
+                        is_active: true
+                        is_primary: true
+                        created_by: null
+      parameters:
+        - schema:
+            type: string
+            example: 3a3c8ee714ff1f9260bdfa332030b4518ab019b6f4500322dbfe8cfe8dad6618b2e846b94bc9539b77c424999e97c3c709659224a714f6559bdbd053423b778a
+          in: header
+          description: 'SHA-512 hash of string in the format “{key}|{id}|{salt}”'
+          required: true
+          name: Authorization
+        - schema:
+            type: string
+            example: 1Z1234567X
+          in: header
+          description: WIRE-API-KEY provided by Easebuzz
+          name: WIRE-API-KEY
+        - schema:
+            type: string
+            example: benedf1a72eb449e872a39d22a36a91f
+          in: path
+          name: beneficiary_id
+          required: true
+          description: The unique beneficiary ID generated at the time of creating a beneficiary
+        - schema:
+            type: string
+          in: query
+          name: key
+          description: WIRE-API-KEY provided by Easebuzz. The key must be provided in the query.
+          required: true
+      description: Retrieve details of a beneficiary using beneficiary ID.

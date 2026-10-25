@@ -1,0 +1,3455 @@
+openapi: 3.0.0
+x-stoplight:
+  id: j7zy0xpyl26ts
+info:
+  title: EasyCollect APIs
+  version: 1.0.0
+servers:
+  - url: 'https://testdashboard.easebuzz.in'
+    description: Sandbox URL
+  - url: 'https://dashboard.easebuzz.in'
+    description: Production URL
+paths:
+  /easycollect/v1/create:
+    post:
+      summary: Create/Update Link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: D1K8SLB2XW
+                  name: Sagar Sawant
+                  phone: '8805596828'
+                  amount: '1.0'
+                  hash: 33804076e20ae5bc806cd82e7af9925cb80e96608bf279b7b8e0360c0c51b7804cd3188913bd5279e8f85a373d2788ca4981a0425b2b239b94114384fac143ec
+                  merchant_txn: EBZTestTxn0003
+                  email: sagar.sawant@easebuzz.in
+                  message: Test Create Link
+              required:
+                - key
+                - name
+                - phone
+                - amount
+                - hash
+                - token
+              properties:
+                key:
+                  type: string
+                  description: "Unique Merchant Key provided by Easebuzz for your merchant account. \r\n> This parameter is ***mandatory*** if you are not using token authentication to create EasyCollect links."
+                name:
+                  type: string
+                  description: Customer name for easycollect link
+                phone:
+                  type: string
+                  description: Phone number associated with easycollect link
+                amount:
+                  type: string
+                  description: Amount for link payment
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+
+                    > If you are utilizing Token Authentication API for EasyCollect Links, there's no need for a hash generation.
+                email:
+                  type: string
+                  description: Email Id associated with easycollect link
+                merchant_txn:
+                  type: string
+                  description: 'Unique Id for easycollect link. If not passed, this will be generated automatically'
+                message:
+                  type: string
+                  description: Message associated with payment link
+                udf1:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf2:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf3:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf4:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf5:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                expiry_date:
+                  type: string
+                  description: 'Date must be in (DD-MM-YYYY HH:MM:SS AM/PM) or ( DD-MM-YYYY ) format.'
+                operation:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: sms/email/whatsapp
+                      template:
+                        type: string
+                        description: Default sms/email/whatsapp template
+                update:
+                  type: boolean
+                  description: 'If you want to update the Easycollect link, send  "true" as value of this parameter'
+                active:
+                  type: boolean
+                  description: |-
+                    Pass **"active"** as **"true"** if you want to activate the link and **"false"** if you want to deactivate the link
+                    > **Note:** You must set **"update"** value as **"true"** if you want to update link details
+                token:
+                  type: string
+                  x-stoplight:
+                    id: kev4qswrhjsln
+                  description: "Token received from Easy Collect Authenticate API. \r\n> This parameter is ***mandatory*** if you are not using key and salt to create EasyCollect links."
+            examples:
+              Create Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+              Update Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+                  update: true
+              Activate/Deactivate links:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  update: true
+                  active: false
+              Send email/sms/whatsapp while creating link:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  operation:
+                    - type: sms
+                      template: sms template
+                    - type: email
+                      template: Default Mail
+                    - type: whatsapp
+                      template: Default whatsapp template
+              'Create link with Token ':
+                value:
+                  token: KD-dGkjw7iPBrXXXX6WQz8js46w5OZCUvIjoSvasYoo=
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      amount:
+                        type: string
+                      merchant_txn:
+                        type: string
+                      phone:
+                        type: string
+                      payment_made:
+                        type: integer
+                      state:
+                        type: string
+                      sms_count:
+                        type: integer
+                      email_count:
+                        type: integer
+                      message:
+                        type: string
+                      udf1:
+                        type: string
+                      udf2:
+                        type: string
+                      udf3:
+                        type: string
+                      udf4:
+                        type: string
+                      udf5:
+                        type: string
+                      expiry_date:
+                        type: string
+                      quick_pay_transaction_date:
+                        type: 'null'
+                      offline_payment_id:
+                        type: 'null'
+                      offline_payment_desc:
+                        type: 'null'
+                      offline_payment_mode:
+                        type: 'null'
+                      created_date:
+                        type: string
+                      updated_date:
+                        type: string
+                      min_amount:
+                        type: string
+                      max_amount:
+                        type: string
+                      payment_url:
+                        type: string
+                  message:
+                    type: string
+                x-examples:
+                  Example 1:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '1.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+              examples:
+                success:
+                  value:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '1.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+                failed:
+                  value:
+                    status: false
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+                    message: EasyCollect Link for merchant transaction EBZTestTxn0003 already exists
+      description: |-
+        EasyCollect APIs can be used to create one-time payment links for your business
+        With EasyCollect, payment links can be sent to customers via SMS and email channels.
+
+        **Hash sequence:** 
+        ```
+        key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+        ```
+
+        > **Note**: If you are utilizing Token Authentication API for creating EasyCollect Links, there's no need for a hash generation.
+  '/easycollect/v1/create               ':
+    post:
+      summary: Create/Update Partial Payment Link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: D1K8SLB2XW
+                  name: Sagar Sawant
+                  phone: '8805596828'
+                  amount: '1.0'
+                  hash: 33804076e20ae5bc806cd82e7af9925cb80e96608bf279b7b8e0360c0c51b7804cd3188913bd5279e8f85a373d2788ca4981a0425b2b239b94114384fac143ec
+                  merchant_txn: EBZTestTxn0003
+                  email: sagar.sawant@easebuzz.in
+                  message: Test Create Link
+              required:
+                - key
+                - name
+                - phone
+                - amount
+                - hash
+                - token
+                - accept_partial_payment
+              properties:
+                key:
+                  type: string
+                  description: "Unique Merchant Key provided by Easebuzz for your merchant account. \r\n> This parameter is ***mandatory*** if you are not using token authentication to create EasyCollect links."
+                name:
+                  type: string
+                  description: Customer name for easycollect link
+                phone:
+                  type: string
+                  description: Phone number associated with easycollect link
+                amount:
+                  type: string
+                  description: Amount for link payment
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+
+                    > If you are utilizing Token Authentication API for EasyCollect Links, there's no need for a hash generation.
+                email:
+                  type: string
+                  description: Email Id associated with easycollect link
+                merchant_txn:
+                  type: string
+                  description: 'Unique Id for easycollect link. If not passed, this will be generated automatically'
+                message:
+                  type: string
+                  description: Message associated with payment link
+                udf1:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf2:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf3:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf4:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf5:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                expiry_date:
+                  type: string
+                  description: 'Date must be in (DD-MM-YYYY HH:MM:SS AM/PM) or ( DD-MM-YYYY ) format.'
+                operation:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: sms/email/whatsapp
+                      template:
+                        type: string
+                        description: Default sms/email/whatsapp template
+                update:
+                  type: boolean
+                  description: 'If you want to update the Easycollect link, send  "true" as value of this parameter'
+                active:
+                  type: boolean
+                  description: |-
+                    Pass **"active"** as **"true"** if you want to activate the link and **"false"** if you want to deactivate the link
+                    > **Note:** You must set **"update"** value as **"true"** if you want to update link details
+                token:
+                  type: string
+                  description: "Token received from Easy Collect Authenticate API. \r\n> This parameter is ***mandatory*** if you are not using key and salt to create EasyCollect links."
+                accept_partial_payment:
+                  type: boolean
+                  x-stoplight:
+                    id: g0du95izhokk8
+                  description: User needs to send accept_partial_payment key  with value True in case he wants to create a partial payment link.
+                sub_merchant_id:
+                  type: string
+                  x-stoplight:
+                    id: orr8y9sc1fuh2
+                  description: Please send "sub_merchant_id" here. This feature is only applicable for sub-aggregator merchants.
+                split_percentage:
+                  type: string
+                  x-stoplight:
+                    id: bawequwl0zt39
+                  description: 'If the users wants to accept the amount in multiple accounts , we have provided a split_percentage feature where split percentage  needs to be passed in the split_percentage key.'
+                  pattern: '''^\s*(\{.*\}|\[.*\])\s*$'''
+            examples:
+              Create Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  split_percentage: '{"HDFCBANK":60,"axisaccount":40}'
+                  accept_partial_payment: true
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+              Update Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+                  update: true
+                  split_percentage: '{"HDFCBANK":60,"axisaccount":40}'
+                  accept_partial_payment: true
+              Activate/Deactivate links:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  update: true
+                  active: false
+                  split_percentage: '{"HDFCBANK":60,"axisaccount":40}'
+                  accept_partial_payment: true
+              Send email/sms/whatsapp while creating link:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  split_percentage: '{"HDFCBANK":60,"axisaccount":40}'
+                  accept_partial_payment: true
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  operation:
+                    - type: sms
+                      template: sms template
+                    - type: email
+                      template: Default Mail
+                    - type: whatsapp
+                      template: Default whatsapp template
+              'Create link with Token ':
+                value:
+                  token: KD-dGkjw7iPBrXXXX6WQz8js46w5OZCUvIjoSvasYoo=
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  split_percentage: '{"HDFCBANK":60,"axisaccount":40}'
+                  accept_partial_payment: true
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      amount:
+                        type: string
+                      merchant_txn:
+                        type: string
+                      phone:
+                        type: string
+                      payment_made:
+                        type: integer
+                      state:
+                        type: string
+                      sms_count:
+                        type: integer
+                      email_count:
+                        type: integer
+                      message:
+                        type: string
+                      udf1:
+                        type: string
+                      udf2:
+                        type: string
+                      udf3:
+                        type: string
+                      udf4:
+                        type: string
+                      udf5:
+                        type: string
+                      expiry_date:
+                        type: string
+                      quick_pay_transaction_date:
+                        type: 'null'
+                      offline_payment_id:
+                        type: 'null'
+                      offline_payment_desc:
+                        type: 'null'
+                      offline_payment_mode:
+                        type: 'null'
+                      created_date:
+                        type: string
+                      updated_date:
+                        type: string
+                      min_amount:
+                        type: string
+                      max_amount:
+                        type: string
+                      payment_url:
+                        type: string
+                  message:
+                    type: string
+                x-examples:
+                  Example 1:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '1.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+              examples:
+                success:
+                  value:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '1.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+                failed:
+                  value:
+                    status: false
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+                    message: EasyCollect Link for merchant transaction EBZTestTxn0003 already exists
+      description: |-
+        EasyCollect Partial payments API can be used to collect payments in parts on the same payment links for your business.
+        Easycollect partial payment links can be sent to customers via SMS and email channels.
+
+        Easycollect Partial payment link also enables the merchant to collect the partially paid amount in different Settlement Bank accounts
+
+        > **Note:** Once the partial payment is done on the link then the link cannot be updated. 
+
+        **Hash sequence:** 
+        ```
+        key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+        ```
+
+        > **Note**: If you are utilizing Token Authentication API for creating EasyCollect Links, there's no need for a hash generation.
+      x-stoplight:
+        id: 4pqtopz3qd669
+    parameters: []
+  '/easycollect/v1/create     ':
+    post:
+      summary: Create/Update Link with Min & Max amount
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: D1K8SLB2XW
+                  name: Sagar Sawant
+                  phone: '8805596828'
+                  amount: '1.0'
+                  hash: 33804076e20ae5bc806cd82e7af9925cb80e96608bf279b7b8e0360c0c51b7804cd3188913bd5279e8f85a373d2788ca4981a0425b2b239b94114384fac143ec
+                  merchant_txn: EBZTestTxn0003
+                  email: sagar.sawant@easebuzz.in
+                  message: Test Create Link
+              required:
+                - key
+                - name
+                - phone
+                - min_amount
+                - max_amount
+                - hash
+                - accept_partial_payment
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account
+                name:
+                  type: string
+                  description: Customer name for easycollect link
+                phone:
+                  type: string
+                  description: Phone number associated with easycollect link
+                min_amount:
+                  type: string
+                  description: Minimum amount for link payment
+                max_amount:
+                  type: string
+                  description: Maximum amount for link payment. Max amount should always be greater than the minimum amount.
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|merchant_txn|name|email|phone|min_amount|max_amount|udf1|udf2|udf3|udf4|udf5|message|salt
+                email:
+                  type: string
+                  description: Email Id associated with easycollect link
+                merchant_txn:
+                  type: string
+                  description: 'Unique Id for easycollect link. If not passed, this will be generated automatically'
+                message:
+                  type: string
+                  description: Message associated with payment link
+                udf1:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf2:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf3:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf4:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf5:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                expiry_date:
+                  type: string
+                  description: 'Date must be in (DD-MM-YYYY HH:MM:SS AM/PM) or ( DD-MM-YYYY ) format.'
+                operation:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: sms/email/whatsapp
+                      template:
+                        type: string
+                        description: Default sms/email/whatsapp template
+                update:
+                  type: boolean
+                  description: 'If you want to update the Easycollect link, send  "true" as value of this parameter'
+                active:
+                  type: boolean
+                  description: |-
+                    Pass **"active"** as **"true"** if you want to activate the link and **"false"** if you want to deactivate the link
+                    > **Note:** You must set **"update"** value as **"true"** if you want to update link details
+                accept_partial_payment:
+                  type: boolean
+                  x-stoplight:
+                    id: zm7y9t6hp4oi4
+                  description: User needs to send accept_partial_payment key  with value True in case he wants to create a partial payment link.
+                split_percentage:
+                  type: string
+                  x-stoplight:
+                    id: yk28cmnyrvzxf
+                  description: 'If the users wants to accept the amount in multiple accounts , we have provided a split_percentage feature where split percentage  needs to be passed in the split_percentage key.'
+            examples:
+              Create Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  min_amount: '10.00'
+                  max_amount: '100.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+              Update Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  min_amount: '10.00'
+                  max_amount: '100.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+                  update: true
+              Activate/Deactivate links:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  min_amount: '10.00'
+                  max_amount: '100.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+                  update: true
+                  active: false
+              Send email/sms/whatsapp while creating link:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  min_amount: '10.00'
+                  max_amount: '100.00'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  operation:
+                    - type: sms
+                      template: sms template
+                    - type: email
+                      template: Default Mail
+                    - type: whatsapp
+                      template: Default whatsapp template
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      amount:
+                        type: string
+                      merchant_txn:
+                        type: string
+                      phone:
+                        type: string
+                      payment_made:
+                        type: integer
+                      state:
+                        type: string
+                      sms_count:
+                        type: integer
+                      email_count:
+                        type: integer
+                      message:
+                        type: string
+                      udf1:
+                        type: string
+                      udf2:
+                        type: string
+                      udf3:
+                        type: string
+                      udf4:
+                        type: string
+                      udf5:
+                        type: string
+                      expiry_date:
+                        type: string
+                      quick_pay_transaction_date:
+                        type: 'null'
+                      offline_payment_id:
+                        type: 'null'
+                      offline_payment_desc:
+                        type: 'null'
+                      offline_payment_mode:
+                        type: 'null'
+                      created_date:
+                        type: string
+                      updated_date:
+                        type: string
+                      min_amount:
+                        type: string
+                      max_amount:
+                        type: string
+                      payment_url:
+                        type: string
+                  message:
+                    type: string
+                x-examples:
+                  Example 1:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '0.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '10.00'
+                      max_amount: '100.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+              examples:
+                success:
+                  value:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '0.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '10.00'
+                      max_amount: '100.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+                failed:
+                  value:
+                    status: false
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+                    message: EasyCollect Link for merchant transaction EBZTestTxn0003 already exists
+      description: |-
+        EasyCollect APIs can be used to create one-time payment links for your business
+        With EasyCollect, payment links can be sent to customers via SMS and email channels
+
+        **Hash sequence:** 
+        ```
+        key|merchant_txn|name|email|phone|min_amount|max_amount|udf1|udf2|udf3|udf4|udf5|message|salt
+        ```
+    parameters: []
+  '/easycollect/v1/create  ':
+    post:
+      summary: Split Payments Create/Update Link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: D1K8SLB2XW
+                  name: Sagar Sawant
+                  phone: '8805596828'
+                  amount: '1.0'
+                  hash: 33804076e20ae5bc806cd82e7af9925cb80e96608bf279b7b8e0360c0c51b7804cd3188913bd5279e8f85a373d2788ca4981a0425b2b239b94114384fac143ec
+                  merchant_txn: EBZTestTxn0003
+                  email: sagar.sawant@easebuzz.in
+                  message: Test Create Link
+              required:
+                - key
+                - name
+                - phone
+                - amount
+                - hash
+                - split_payments
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account
+                name:
+                  type: string
+                  description: Customer name for easycollect link
+                phone:
+                  type: string
+                  description: Phone number associated with easycollect link
+                amount:
+                  type: string
+                  description: Amount for link payment
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+                email:
+                  type: string
+                  description: Email Id associated with easycollect link
+                merchant_txn:
+                  type: string
+                  description: 'Unique Id for easycollect link. If not passed, this will be generated automatically'
+                message:
+                  type: string
+                  description: Message associated with payment link
+                udf1:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf2:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf3:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf4:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf5:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                expiry_date:
+                  type: string
+                  description: 'Date must be in (DD-MM-YYYY HH:MM:SS AM/PM) or ( DD-MM-YYYY ) format.'
+                split_payments:
+                  type: string
+                  description: |-
+                    If split payment feature is enabled for merchant account, then it is mandatory to pass this parameter. You can split the transaction amount across multiple split bank accounts mapped to your account.
+
+                    Expected Value: {"label_of_bank1" : split_amount_in_rs, "label_of_bank2": split_amount_in_rs}
+
+                    Split payment example: { "Easebuzztest 1": 11.0, "Easebuzztest 2": 1.0 }
+                operation:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: sms/email/whatsapp
+                      template:
+                        type: string
+                        description: Default sms/email/whatsapp template
+                update:
+                  type: boolean
+                  description: 'If you want to update the Easycollect link, send  "true" as value of this parameter'
+                active:
+                  type: boolean
+                  description: |-
+                    Pass **"active"** as **"true"** if you want to activate the link and **"false"** if you want to deactivate the link
+                    > **Note:** You must set **"update"** value as **"true"** if you want to update link details
+            examples:
+              Update Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+                  update: true
+                  split_payments: '{"account_bob":"5","account_axis":"5"}'
+              Activate/Deactivate links:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  split_payments: '{"account_bob":"5","account_axis":"5"}'
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  update: true
+                  active: false
+              Send email/sms/whatsapp while creating link:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  split_payments: '{"account_bob":"5","account_axis":"5"}'
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  operation:
+                    - type: sms
+                      template: sms template
+                    - type: email
+                      template: Default Mail
+                    - type: whatsapp
+                      template: Default whatsapp template
+              Create link for Split Payments:
+                value:
+                  merchant_txn: ''
+                  key: DEMOXXXXX
+                  email: demo@gmail.com
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  hash: dc7ded1e5d9a70aa87d41b5559085ec143c83426f89af8e2bebc005d1d524f228d75d0435cebccbf627a1df4f5a84d6464ff0da79b279f16f47e8bbed95282b6
+                  split_payments: '{"account_bob":"5","account_axis":"5"}'
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      payment_url:
+                        type: string
+                      expiry_date:
+                        type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+              examples:
+                success:
+                  value:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '1.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+                failed:
+                  value:
+                    status: false
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+                    message: EasyCollect Link for merchant transaction EBZTestTxn0003 already exists
+      description: |-
+        EasyCollect APIs can be used to create one-time payment links for your business
+        With EasyCollect, payment links can be sent to customers via SMS and email channels
+           
+        **Hash sequence:** 
+        ```
+        key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+        ```
+    parameters: []
+  '/easycollect/v1/create ':
+    post:
+      summary: Sub-merchant Create/Update Link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: D1K8SLB2XW
+                  name: Sagar Sawant
+                  phone: '8805596828'
+                  amount: '1.0'
+                  hash: 33804076e20ae5bc806cd82e7af9925cb80e96608bf279b7b8e0360c0c51b7804cd3188913bd5279e8f85a373d2788ca4981a0425b2b239b94114384fac143ec
+                  merchant_txn: EBZTestTxn0003
+                  email: sagar.sawant@easebuzz.in
+                  message: Test Create Link
+              required:
+                - key
+                - name
+                - phone
+                - amount
+                - hash
+                - sub_merchant_id
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account
+                name:
+                  type: string
+                  description: Customer name for easycollect link
+                phone:
+                  type: string
+                  description: Phone number associated with easycollect link
+                amount:
+                  type: string
+                  description: Amount for link payment
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+                email:
+                  type: string
+                  description: Email Id associated with easycollect link
+                merchant_txn:
+                  type: string
+                  description: 'Unique Id for easycollect link. If not passed, this will be generated automatically'
+                message:
+                  type: string
+                  description: Message associated with payment link
+                udf1:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf2:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf3:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf4:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf5:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                expiry_date:
+                  type: string
+                  description: 'Date must be in (DD-MM-YYYY HH:MM:SS AM/PM) or ( DD-MM-YYYY ) format.'
+                sub_merchant_id:
+                  type: string
+                  description: Please send "sub_merchant_id" here. This feature is only applicable for sub-aggregator merchants.
+                operation:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: sms/email/whatsapp
+                      template:
+                        type: string
+                        description: Default sms/email/whatsapp template
+                update:
+                  type: boolean
+                  description: 'If you want to update the Easycollect link, send  "true" as value of this parameter'
+                active:
+                  type: boolean
+                  description: |-
+                    Pass **"active"** as **"true"** if you want to activate the link and **"false"** if you want to deactivate the link
+                    > **Note:** You must set **"update"** value as **"true"** if you want to update link details
+            examples:
+              Create Link for sub-merchants:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  sub_merchant_id: SXXXXDEMO
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+              Update Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  sub_merchant_id: SXXXXDEMO
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+                  update: true
+              Activate/Deactivate links:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  sub_merchant_id: SXXXXDEMO
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  update: true
+                  active: false
+              Send email/sms/whatsapp while creating link:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  sub_merchant_id: SXXXXDEMO
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  operation:
+                    - type: sms
+                      template: sms template
+                    - type: email
+                      template: Default Mail
+                    - type: whatsapp
+                      template: Default whatsapp template
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      payment_url:
+                        type: string
+                      expiry_date:
+                        type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+              examples:
+                success:
+                  value:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '1.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+                failed:
+                  value:
+                    status: false
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+                    message: EasyCollect Link for merchant transaction EBZTestTxn0003 already exists
+      description: |-
+        EasyCollect APIs can be used to create one-time payment links for sub-merchants.
+        Payment links can be sent to customers via SMS and email channels.
+
+        **Hash sequence:** 
+        ```
+        key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+        ```
+    parameters: []
+  '/easycollect/v1/create    ':
+    post:
+      summary: Create/Update Link (Non-Seamless Authorization)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: D1K8SLB2XW
+                  name: Sagar Sawant
+                  phone: '8805596828'
+                  amount: '1.0'
+                  hash: 33804076e20ae5bc806cd82e7af9925cb80e96608bf279b7b8e0360c0c51b7804cd3188913bd5279e8f85a373d2788ca4981a0425b2b239b94114384fac143ec
+                  merchant_txn: EBZTestTxn0003
+                  email: sagar.sawant@easebuzz.in
+                  message: Test Create Link
+              required:
+                - key
+                - name
+                - phone
+                - amount
+                - hash
+                - is_auto_debit_link
+                - auth_details
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account
+                name:
+                  type: string
+                  description: Customer name for easycollect link
+                phone:
+                  type: string
+                  description: Phone number associated with easycollect link
+                amount:
+                  type: string
+                  description: Amount for link payment
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+                email:
+                  type: string
+                  description: Email Id associated with easycollect link
+                merchant_txn:
+                  type: string
+                  description: 'Unique Id for easycollect link. If not passed, this will be generated automatically'
+                message:
+                  type: string
+                  description: Message associated with payment link
+                udf1:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf2:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf3:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf4:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf5:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                expiry_date:
+                  type: string
+                  description: 'Date must be in (DD-MM-YYYY HH:MM:SS AM/PM) or ( DD-MM-YYYY ) format.'
+                sub_merchant_id:
+                  type: string
+                  description: Please send "sub_merchant_id" here. This feature is only applicable for sub-aggregator merchants.
+                operation:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: sms/email/whatsapp
+                      template:
+                        type: string
+                        description: Default sms/email/whatsapp template
+                update:
+                  type: boolean
+                  description: 'If you want to update the Easycollect link, send  "true" as value of this parameter'
+                active:
+                  type: boolean
+                  description: |-
+                    Pass **"active"** as **"true"** if you want to activate the link and **"false"** if you want to deactivate the link
+                    > **Note:** You must set **"update"** value as **"true"** if you want to update link details
+                is_auto_debit_link:
+                  type: boolean
+                  description: The flag set for creating authorization link via easycollect. Possible values - True or False
+                auth_details:
+                  type: object
+                  description: Details related to the authorization
+                  required:
+                    - max_debit_amount
+                    - final_collection_date
+                    - auto_debit_type
+                  properties:
+                    max_debit_amount:
+                      type: number
+                      description: The maximum amount which needs to be debited from the customer’s bank account.
+                    final_collection_date:
+                      type: string
+                      description: The date upto which the mandate will be valid.
+                    auto_debit_type:
+                      type: string
+                      description: The type of auto_debit. Possible values – ENACH or UPI
+            examples:
+              EasyCollect for sub-merchants:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  sub_merchant_id: SXXXXDEMO
+                  is_auto_debit_link: true
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: UPI
+                    final_collection_date: 12-12-2022
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+              Update Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  sub_merchant_id: SXXXXDEMO
+                  is_auto_debit_link: true
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: UPI
+                    final_collection_date: 12-12-2022
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+                  update: true
+              Activate/Deactivate links:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  is_auto_debit_link: true
+                  sub_merchant_id: SXXXXDEMO
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: UPI
+                    final_collection_date: 12-12-2022
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  update: true
+                  active: false
+              Send email/sms/whatsapp while creating link:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  is_auto_debit_link: true
+                  sub_merchant_id: SXXXXDEMO
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: UPI
+                    final_collection_date: 12-12-2022
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  operation:
+                    - type: sms
+                      template: sms template
+                    - type: email
+                      template: Default Mail
+                    - type: whatsapp
+                      template: Default whatsapp template
+              Create Authorization Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  sub_merchant_id: SXXXXDEMO
+                  expiry_date: 11-02-2020
+                  is_auto_debit_link: true
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: UPI
+                    final_collection_date: 12-12-2022
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      payment_url:
+                        type: string
+                      expiry_date:
+                        type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+              examples:
+                success:
+                  value:
+                    status: true
+                    data:
+                      id: 253
+                      name: Ankit Patel
+                      email: ''
+                      amount: '1.00'
+                      merchant_txn: EC121212122
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 0
+                      email_count: 0
+                      message: Demo
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: ''
+                      udf4: ''
+                      udf5: ''
+                      expiry_date: '29-11-2019 23:59:59'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T18:17:31+05:30'
+                      updated_date: '2019-11-26T18:17:31+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      payment_url: 'https://pay.easebuzz.in/quick_pay/5836afd5a3f842f6894b3c9e02595a04'
+                    message: Link created successfully
+                failed:
+                  value:
+                    status: false
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+                    message: EasyCollect Link for merchant transaction EBZTestTxn0003 already exists
+      description: |-
+        EasyCollect non-seamless authorization API is used to create the mandates for recurring payments via E-NACH or UPI. Links for registration can be sent to customers via SMS and email channels.
+
+        **Hash sequence:** 
+        ```
+        key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+        ```
+    parameters: []
+  '/easycollect/v1/create   ':
+    post:
+      summary: Create/Update Link (Seamless Authorization Link for Enach)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: D1K8SLB2XW
+                  name: Sagar Sawant
+                  phone: '8805596828'
+                  amount: '1.0'
+                  hash: 33804076e20ae5bc806cd82e7af9925cb80e96608bf279b7b8e0360c0c51b7804cd3188913bd5279e8f85a373d2788ca4981a0425b2b239b94114384fac143ec
+                  merchant_txn: EBZTestTxn0003
+                  email: sagar.sawant@easebuzz.in
+                  message: Test Create Link
+              required:
+                - key
+                - name
+                - phone
+                - amount
+                - hash
+                - is_auto_debit_link
+                - is_auto_debit_seamless
+                - auth_details
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account
+                name:
+                  type: string
+                  description: Customer name for easycollect link
+                phone:
+                  type: string
+                  description: Phone number associated with easycollect link
+                amount:
+                  type: string
+                  description: Amount for link payment will be 1 Rs
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+                email:
+                  type: string
+                  description: Email Id associated with easycollect link
+                merchant_txn:
+                  type: string
+                  description: 'Unique Id for easycollect link. If not passed, this will be generated automatically'
+                message:
+                  type: string
+                  description: Message associated with payment link
+                udf1:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf2:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf3:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf4:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                udf5:
+                  type: string
+                  description: 'User defined field 1 – Allowed characters : Letters, numbers, space'
+                expiry_date:
+                  type: string
+                  description: 'Date must be in (DD-MM-YYYY HH:MM:SS AM/PM) or ( DD-MM-YYYY ) format.'
+                sub_merchant_id:
+                  type: string
+                  description: Please send "sub_merchant_id" here. This feature is only applicable for sub-aggregator merchants.
+                operation:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: sms/email/whatsapp
+                      template:
+                        type: string
+                        description: Default sms/email/whatsapp template
+                update:
+                  type: boolean
+                  description: 'If you want to update the Easycollect link, send  "true" as value of this parameter'
+                active:
+                  type: boolean
+                  description: |-
+                    Pass **"active"** as **"true"** if you want to activate the link and **"false"** if you want to deactivate the link
+                    > Note: You must set **"update"** value as **"true"** if you want to update link details
+                is_auto_debit_link:
+                  type: boolean
+                  description: The flag set for creating authorization link via easycollect. Possible values - True or False
+                is_auto_debit_seamless:
+                  type: boolean
+                  description: The flag set for creating seamless authorization link via easycollect. Possible values - True or False
+                auth_details:
+                  type: object
+                  description: Details related to the authorization
+                  required:
+                    - max_debit_amount
+                    - final_collection_date
+                    - auto_debit_type
+                    - holder_account_number
+                    - holder_account_type
+                    - holder_bank_ifsc
+                    - auth_mode
+                    - amount_rule
+                    - bank_code
+                    - frequency
+                  properties:
+                    max_debit_amount:
+                      type: number
+                      description: ' The maximum amount which needs to be debited from the customer’s bank account.'
+                    final_collection_date:
+                      type: string
+                      description: The date upto which the mandate will be valid.
+                    auto_debit_type:
+                      type: string
+                      description: The type of auto_debit. Possible values – ENACH
+                    holder_account_number:
+                      type: string
+                      description: The account number of the customer’s bank account
+                    holder_account_type:
+                      type: string
+                      description: The type of bank account. Possible Values – SAVINGS or CURRENT
+                    holder_bank_ifsc:
+                      type: string
+                      description: The IFSC code associated with the bank account
+                    auth_mode:
+                      type: string
+                      description: The type of authorization. Possible Values – NetBanking or DebitCard
+                    amount_rule:
+                      type: string
+                      x-stoplight:
+                        id: qvb4zro0ps713
+                      description: "Must be either `EXACT` or `MAX`. \r\n\r\n> **Note:** Exact will process the exact amount as received in the `amount` field for all the future debit. `Max` will process any amount less than or equal to the max amount for any future debit."
+                    bank_code:
+                      type: string
+                      x-stoplight:
+                        id: wmil3puze1v24
+                      description: 'Bank code. Must be exactly 4 characters, and only allow uppercase alphabetical letters. Use "[bank_list](https://docs.easebuzz.in/docs/8-auto-collect-recurring-payment/jpruk748pjpoi-bankcode-list-e-nach)" API to get back code. This field is required for eNACH.'
+                    frequency:
+                      type: string
+                      x-stoplight:
+                        id: mmcs1bch4dv4v
+                      description: "Mandate frequency.\r\n\r\neNACH: DAILY / WEEKLY / MONTHLY / QUARTERLY / YEARLY / BIMONTHLY / HALFYEARLY / AS_PRESENTED.\r\n\r\nUPI: ONE_TIME/AS_PRESENTED"
+            examples:
+              Easycollect for sub-merchants:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2020
+                  sub_merchant_id: SXXXXDEMO
+                  is_auto_debit_link: true
+                  is_auto_debit_seamless: true
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: ENACH
+                    final_collection_date: 12-12-2022
+                    holder_account_number: '192501502108'
+                    holder_account_type: SAVINGS
+                    holder_bank_ifsc: ICIC0001925
+                    auth_mode: NetBanking
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+              Update Link:
+                value:
+                  merchant_txn: DECTEST144
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Ankit
+                  amount: '10.00'
+                  phone: '1234567890'
+                  udf1: test
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  sub_merchant_id: SXXXXDEMO
+                  expiry_date: 11-02-2020
+                  is_auto_debit_link: true
+                  is_auto_debit_seamless: true
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: ENACH
+                    final_collection_date: 12-12-2022
+                    holder_account_number: '192501502108'
+                    holder_account_type: SAVINGS
+                    holder_bank_ifsc: ICIC0001925
+                    auth_mode: NetBanking
+                  hash: 257ff98a17d8f9807cab3e4ad9670da87f93b35e0e4ba47c1f417df22161698f57d1fc1286a8ff3ee05c1cb72ea8058f9ce9d442fb3cc5d733a5448f859bdf69
+                  update: true
+              Activate/Deactivate links:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  is_auto_debit_link: true
+                  sub_merchant_id: SXXXXDEMO
+                  is_auto_debit_seamless: true
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: ENACH
+                    final_collection_date: 12-12-2022
+                    holder_account_number: '192501502108'
+                    holder_account_type: SAVINGS
+                    holder_bank_ifsc: ICIC0001925
+                    auth_mode: NetBanking
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  update: true
+                  active: false
+              Send email/sms/whatsapp while creating link:
+                value:
+                  merchant_txn: ''
+                  key: XXXXXXXXXX
+                  email: xyz@easebuzz.in
+                  name: Aisha
+                  amount: '1.0'
+                  phone: '9999999999'
+                  udf1: test
+                  udf2: ''
+                  udf3: ''
+                  udf4: ''
+                  udf5: ''
+                  message: Demo
+                  sub_merchant_id: SXXXXDEMO
+                  is_auto_debit_link: true
+                  is_auto_debit_seamless: true
+                  auth_details:
+                    max_debit_amount: 11
+                    auto_debit_type: ENACH
+                    final_collection_date: 12-12-2022
+                    holder_account_number: '192501502108'
+                    holder_account_type: SAVINGS
+                    holder_bank_ifsc: ICIC0001925
+                    auth_mode: NetBanking
+                  hash: cef1da9242b4474b066edf7295e1a68aa225a466fe16ce0f6eca631d3800aab3a09a41fc6e44332d2386727ba05b48976221bf1b0736598d4febf49d25a2e1d5
+                  operation:
+                    - type: sms
+                      template: sms template
+                    - type: email
+                      template: Default Mail
+                    - type: whatsapp
+                      template: Default whatsapp template
+              Create Authorization Link:
+                value:
+                  merchant_txn: '123400056'
+                  key: 1GTEHYHX77
+                  email: John@easebuzz.in
+                  name: AKSHAY
+                  amount: '1.0'
+                  phone: '7789471900'
+                  udf1: testseamless
+                  udf2: udf2
+                  udf3: udf3
+                  udf4: udf4
+                  udf5: '1'
+                  message: Demo
+                  expiry_date: 11-02-2026
+                  is_auto_debit_link: true
+                  is_auto_debit_seamless: true
+                  auth_details:
+                    max_debit_amount: '11'
+                    auto_debit_type: ENACH
+                    final_collection_date: 12-12-2026
+                    holder_account_number: 6XXXXX259
+                    holder_account_type: CURRENT
+                    holder_bank_ifsc: KKBK0001946
+                    auth_mode: NetBanking
+                    amount_rule: MAX
+                    holder_bank_code: KKBK
+                    frequency: AS_PRESENTED
+                  operation:
+                    - type: sms
+                      template: Default sms template
+                    - type: email
+                      template: Default email template
+                    - type: whatsapp
+                      template: Default whatsapp template
+                  hash: 052473a75454dfddddddddddd
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      sms_operation:
+                        type: object
+                        properties:
+                          status:
+                            type: boolean
+                      email_operation:
+                        type: object
+                        properties:
+                          status:
+                            type: boolean
+                      whatsapp_operation:
+                        type: object
+                        properties:
+                          status:
+                            type: boolean
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      amount:
+                        type: string
+                      merchant_txn:
+                        type: string
+                      phone:
+                        type: string
+                      payment_made:
+                        type: integer
+                      state:
+                        type: string
+                      sms_count:
+                        type: integer
+                      email_count:
+                        type: integer
+                      message:
+                        type: string
+                      udf1:
+                        type: string
+                      udf2:
+                        type: string
+                      udf3:
+                        type: string
+                      udf4:
+                        type: string
+                      udf5:
+                        type: string
+                      expiry_date:
+                        type: string
+                      quick_pay_transaction_date:
+                        type: 'null'
+                      offline_payment_id:
+                        type: 'null'
+                      offline_payment_desc:
+                        type: 'null'
+                      offline_payment_mode:
+                        type: 'null'
+                      created_date:
+                        type: string
+                      updated_date:
+                        type: string
+                      min_amount:
+                        type: string
+                      max_amount:
+                        type: string
+                      sms_channel_count:
+                        type: integer
+                      email_channel_count:
+                        type: integer
+                      sms_credit:
+                        type: integer
+                      email_credit:
+                        type: integer
+                      transaction_id:
+                        type: string
+                      submerchant_id:
+                        type: 'null'
+                      whatsapp_count:
+                        type: integer
+                      whatsapp_channel_count:
+                        type: integer
+                      whatsapp_credit:
+                        type: integer
+                      split_payments:
+                        type: 'null'
+                      split_percentage:
+                        type: 'null'
+                      obd_count:
+                        type: integer
+                      obd_credit:
+                        type: integer
+                      payment_type:
+                        type: string
+                      is_auto_debit_link:
+                        type: boolean
+                      auth_details:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          final_collection_date:
+                            type: string
+                          max_debit_amount:
+                            type: string
+                          auto_debit_type:
+                            type: string
+                          frequency:
+                            type: string
+                          holder_account_number:
+                            type: string
+                          holder_account_type:
+                            type: string
+                          holder_bank_code:
+                            type: string
+                          amount_rule:
+                            type: string
+                          holder_bank_ifsc:
+                            type: string
+                          auth_mode:
+                            type: string
+                          holder_upi_va:
+                            type: 'null'
+                          created_date:
+                            type: string
+                          updated_date:
+                            type: string
+                      is_auto_debit_seamless:
+                        type: boolean
+                      entity_type:
+                        type: string
+                      partial_payment_due_amount:
+                        type: integer
+                      amount_collected_so_far:
+                        type: integer
+                      payment_url:
+                        type: string
+                      accept_partial_payment:
+                        type: boolean
+                      short_url:
+                        type: string
+                  message:
+                    type: string
+                x-examples:
+                  Example 1:
+                    status: true
+                    data:
+                      sms_operation:
+                        status: true
+                      email_operation:
+                        status: true
+                      whatsapp_operation:
+                        status: true
+                      id: 70506656
+                      name: AKSHAY
+                      email: akshay.bhalsingh@easebuzz.in
+                      amount: '1.00'
+                      merchant_txn: '123400056'
+                      phone: '7774910900'
+                      payment_made: 0
+                      state: active
+                      sms_count: 1
+                      email_count: 1
+                      message: Demo
+                      udf1: testseamless
+                      udf2: udf2
+                      udf3: udf3
+                      udf4: udf4
+                      udf5: '1'
+                      expiry_date: 11-02-2026
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2025-11-14T16:22:17.807135+05:30'
+                      updated_date: '2025-11-14T16:22:17.807159+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      sms_channel_count: 0
+                      email_channel_count: 0
+                      sms_credit: 1
+                      email_credit: 1
+                      transaction_id: NA
+                      submerchant_id: null
+                      whatsapp_count: 1
+                      whatsapp_channel_count: 0
+                      whatsapp_credit: 0
+                      split_payments: null
+                      split_percentage: null
+                      obd_count: 0
+                      obd_credit: 0
+                      payment_type: SP
+                      is_auto_debit_link: true
+                      auth_details:
+                        id: 896885
+                        final_collection_date: 12-12-2026
+                        max_debit_amount: '11.00'
+                        auto_debit_type: ENACH
+                        frequency: AS_PRESENTED
+                        holder_account_number: '6712370259'
+                        holder_account_type: CURRENT
+                        holder_bank_code: KKBK
+                        amount_rule: MAX
+                        holder_bank_ifsc: KKBK0001946
+                        auth_mode: NetBanking
+                        holder_upi_va: null
+                        created_date: '2025-11-14T16:22:17.795436+05:30'
+                        updated_date: '2025-11-14T16:22:17.795473+05:30'
+                      is_auto_debit_seamless: true
+                      entity_type: Root
+                      partial_payment_due_amount: 1
+                      amount_collected_so_far: 0
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/5ede79af8da94e13a6f128fba0557e11'
+                      accept_partial_payment: false
+                      short_url: 'https://ec.ease.buzz/a/ec015Z7A8'
+                    message: Link Created Successfully
+              examples:
+                success:
+                  value:
+                    status: true
+                    data:
+                      sms_operation:
+                        status: true
+                      email_operation:
+                        status: true
+                      whatsapp_operation:
+                        status: true
+                      id: 70506656
+                      name: AKSHAY
+                      email: akshay.bhalsingh@easebuzz.in
+                      amount: '1.00'
+                      merchant_txn: '123400056'
+                      phone: '7774910900'
+                      payment_made: 0
+                      state: active
+                      sms_count: 1
+                      email_count: 1
+                      message: Demo
+                      udf1: testseamless
+                      udf2: udf2
+                      udf3: udf3
+                      udf4: udf4
+                      udf5: '1'
+                      expiry_date: 11-02-2026
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2025-11-14T16:22:17.807135+05:30'
+                      updated_date: '2025-11-14T16:22:17.807159+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                      sms_channel_count: 0
+                      email_channel_count: 0
+                      sms_credit: 1
+                      email_credit: 1
+                      transaction_id: NA
+                      submerchant_id: null
+                      whatsapp_count: 1
+                      whatsapp_channel_count: 0
+                      whatsapp_credit: 0
+                      split_payments: null
+                      split_percentage: null
+                      obd_count: 0
+                      obd_credit: 0
+                      payment_type: SP
+                      is_auto_debit_link: true
+                      auth_details:
+                        id: 896885
+                        final_collection_date: 12-12-2026
+                        max_debit_amount: '11.00'
+                        auto_debit_type: ENACH
+                        frequency: AS_PRESENTED
+                        holder_account_number: '6712370259'
+                        holder_account_type: CURRENT
+                        holder_bank_code: KKBK
+                        amount_rule: MAX
+                        holder_bank_ifsc: KKBK0001946
+                        auth_mode: NetBanking
+                        holder_upi_va: null
+                        created_date: '2025-11-14T16:22:17.795436+05:30'
+                        updated_date: '2025-11-14T16:22:17.795473+05:30'
+                      is_auto_debit_seamless: true
+                      entity_type: Root
+                      partial_payment_due_amount: 1
+                      amount_collected_so_far: 0
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/5ede79af8da94e13a6f128fba0557e11'
+                      accept_partial_payment: false
+                      short_url: 'https://ec.ease.buzz/a/ec015Z7A8'
+                    message: Link Created Successfully
+                failed:
+                  value:
+                    status: false
+                    data:
+                      payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                      expiry_date: 28-08-2022
+                    message: EasyCollect Link for merchant transaction EBZTestTxn0003 already exists
+      description: |-
+        EasyCollect seamless authorization API is used to create the mandates for recurring payments via E-NACH. Links for registering the mandates can be sent to customers via SMS and email channels which gives the customer a seamless experience of authorizing recurring payments.
+
+        **Hash sequence:** 
+        ```
+        key|merchant_txn|name|email|phone|amount|udf1|udf2|udf3|udf4|udf5|message|salt
+        ```
+    parameters: []
+  /easycollect/v1/get:
+    get:
+      summary: Get Easycollect Link
+      parameters:
+        - name: key
+          in: query
+          schema:
+            type: string
+          example: XXXXXXXX
+          description: Unique Merchant Key provided by Easebuzz for your merchant account.
+          required: true
+        - name: merchant_txn
+          in: query
+          schema:
+            type: string
+          example: EBZTestTxn0003
+          required: true
+          description: Unique Id for easycollect link
+        - name: hash
+          in: query
+          schema:
+            type: string
+          example: 6408cde54bexxxxxx2f1713a7a9fbbd41c797384af3f0faaf9814b8643d8f9e46e04d860c3a024af65dc18847307ed13
+          required: true
+          description: 'This is sha512 encrypted string. And hash sequence is mentioned above. Hash sequence: key|merchant_txn|salt'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      amount:
+                        type: string
+                      merchant_txn:
+                        type: string
+                      phone:
+                        type: string
+                      payment_made:
+                        type: integer
+                      state:
+                        type: string
+                      sms_count:
+                        type: integer
+                      email_count:
+                        type: integer
+                      message:
+                        type: string
+                      udf1:
+                        type: string
+                      udf2:
+                        type: string
+                      udf3:
+                        type: string
+                      udf4:
+                        type: string
+                      udf5:
+                        type: string
+                      expiry_date:
+                        type: string
+                      pay_hash_url:
+                        type: string
+                      quick_pay_transaction_date:
+                        type: string
+                      offline_payment_id:
+                        type: string
+                      offline_payment_desc:
+                        type: string
+                      offline_payment_mode:
+                        type: string
+                      created_date:
+                        type: string
+                      updated_date:
+                        type: string
+                      min_amount:
+                        type: string
+                      max_amount:
+                        type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    data:
+                      id: 252
+                      name: Ank
+                      email: demo@demo.com
+                      amount: '1.00'
+                      merchant_txn: ECRSXVLHKV
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 4
+                      email_count: 7
+                      message: null
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: '3'
+                      udf4: '3'
+                      udf5: '4'
+                      expiry_date: '01-12-2019 23:59:59'
+                      pay_hash_url: 'https://pay.easebuzz.in/quick_pay/910757b06127401cb893fd7f0579ac7f'
+                      quick_pay_transaction_date: null
+                      offline_payment_id: null
+                      offline_payment_desc: null
+                      offline_payment_mode: null
+                      created_date: '2019-11-26T11:57:49+05:30'
+                      updated_date: '2019-11-26T11:57:49+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+              examples:
+                success:
+                  value:
+                    status: true
+                    data:
+                      id: 252
+                      name: Ank
+                      email: demo@demo.com
+                      amount: '1.00'
+                      merchant_txn: ECRSXVLHKV
+                      phone: '9191919191'
+                      payment_made: 0
+                      state: active
+                      sms_count: 4
+                      email_count: 7
+                      message: XXXXX
+                      udf1: '1'
+                      udf2: '2'
+                      udf3: '3'
+                      udf4: '3'
+                      udf5: '4'
+                      expiry_date: '01-12-2019 23:59:59'
+                      pay_hash_url: 'https://pay.easebuzz.in/quick_pay/910757b06127401cb893fd7f0579ac7f'
+                      quick_pay_transaction_date: '01-12-2019 23:59:59'
+                      offline_payment_id: 'null'
+                      offline_payment_desc: 'null'
+                      offline_payment_mode: 'null'
+                      created_date: '2019-11-26T11:57:49+05:30'
+                      updated_date: '2019-11-26T11:57:49+05:30'
+                      min_amount: '0.00'
+                      max_amount: '0.00'
+                failed:
+                  value:
+                    status: false
+                    error: Hash mismatch. Please check the hash.
+      description: |-
+        **Hash sequence:** 
+        ```
+        key|merchant_txn|salt
+        ```
+  /easycollect/v1/send_sms:
+    post:
+      summary: Send SMS for Link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  sms_template_name: Default sms template
+                  key: D1K8SLB2XW
+                  payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                  msg_type: sms
+                  hash: 9d514a4bc0db8df5de0fbe318379d23ed4f5bab76deeb4f685af44ebe13c44c4ae7a4928a1ea30e721651a97d47be1f03aba82cd531c4ef9f3db85c616cca81e
+              properties:
+                sms_template_name:
+                  type: string
+                  description: Provide the configured sms_template_name as per your requirement or use 'Default sms template"
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account
+                payment_url:
+                  type: string
+                  description: EasyCollect payment link
+                msg_type:
+                  type: string
+                  description: Message type for link. - SMS
+                hash:
+                  type: string
+                  description: |
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|sms_template_name|payment_link|msg_type|salt
+              required:
+                - sms_template_name
+                - key
+                - payment_url
+                - msg_type
+                - hash
+            examples:
+              example-1:
+                value:
+                  sms_template_name: Default sms template
+                  key: XXXXXXX
+                  payment_url: 'https://pay.easebuzz.in/easy_collect/bfec39fd097e4exxxxx1c77a8c4'
+                  msg_type: sms
+                  hash: fa6a82961511bc6f5acd2366025b8fde9351eb09d8f4bdb3b9e7a30b74f9bcb1cffc4d0f7dfcdf03810ebeb3fc8fd74231360301c74cbcd2dce5b1223844a34e
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    message: SMS sent successfully
+              examples:
+                success:
+                  value:
+                    status: true
+                    message: SMS sent successfully
+                failed:
+                  value:
+                    status: false
+                    error: Cannot send sms for paid/expired links
+      description: |-
+        This API allows merchants to send text messages(SMS) to customers for making payments.
+
+        **Hash sequence:** 
+        ```
+        key|sms_template_name|payment_link|msg_type|salt
+        ```
+      operationId: ''
+  /easycollect/v1/send_whatsapp_msg:
+    post:
+      summary: Send Whatsapp message for link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: D1K8SLB2XW
+                  payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                  msg_type: whatsapp
+                  whatsapp_template_name: Default whatsapp template
+                  hash: 398e953a895dd97c655e6a23a5760dc7f4c27e6e2b8739ff60be606ecddc8d6176fdaddaaf52cc1c7f3a851b6485a66c63e732232aa7c293548daee796c2da83
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                payment_url:
+                  type: string
+                  description: EasyCollect payment link
+                msg_type:
+                  type: string
+                  description: Message type for link. - Whatsapp
+                whatsapp_template_name:
+                  type: string
+                  description: Provide the configured whatsapp_template_name as per your requirement or use 'Default whatsapp template'
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|whatsapp_template_name|payment_link|msg_type|salt
+              required:
+                - key
+                - payment_url
+                - msg_type
+                - whatsapp_template_name
+                - hash
+            examples:
+              example-1:
+                value:
+                  whatsapp_template_name: Whatsapp Template
+                  key: XXXXX
+                  payment_url: 'https://pay.easebuzz.in/easy_collect/bfec39xxxxx4a6cc01c77a8c4'
+                  msg_type: whatsapp
+                  hash: 0ea09bed0f905d82d34f5f23a7c71f8513cacf4a7fcd16c7d356a5ca2a8b30c032009c7840b6162e5cb90bf0f94a6d7ab8cac4875022a24a487f9154f430b707
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    message: Whatsapp message sent successfully
+              examples:
+                success:
+                  value:
+                    status: true
+                    message: Whatsapp message sent successfully
+                failed:
+                  value:
+                    status: false
+                    error: Cannot send whatsapp message for paid/expired links
+      description: |-
+        This API allows merchants to send WhatsApp messages to customers for making payments.
+
+        **Hash sequence:** 
+        ```
+        key|whatsapp_template_name|payment_link|msg_type|salt
+        ```
+  /easycollect/v1/send_email:
+    post:
+      summary: Send Email for Link
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  email_template_name: Reminder mail
+                  key: D1K8SLB2XW
+                  payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                  msg_type: email
+                  hash: c79cd289be2baf1cf6df31f87f80909f0fec8eb2351619cbc8ee2be96dd736f889405bcf10690b7d6c89d28e9ab69010fc41fe458799be933129723afa561973
+              properties:
+                email_template_name:
+                  type: string
+                  description: Provide the configured email_template_name as per your requirement or use 'Default email template'
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                payment_url:
+                  type: string
+                  description: EasyCollect payment link
+                msg_type:
+                  type: string
+                  description: Message type for link. - email
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|sms_template_name|payment_link|msg_type|salt
+              required:
+                - email_template_name
+                - key
+                - payment_url
+                - msg_type
+                - hash
+            examples:
+              example-1:
+                value:
+                  email_template_name: Default Mail
+                  key: XXXXX
+                  payment_url: 'https://pay.easebuzz.in/easy_collect/bfecxxxxxx6cc01c77a8c4'
+                  msg_type: email
+                  hash: 269c03195a8481f9578fcae9887e951ba81b9671414839124aa38d53ba3ffafa374ced5a166fa4888b798e69d849d6362eecaed81f468a2b6ad36b6eee6ddf4c
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    message: Mail sent successfully
+              examples:
+                success:
+                  value:
+                    status: true
+                    message: Mail sent successfully
+                failed:
+                  value:
+                    status: true
+                    message: Mail sent successfully
+      description: |-
+        This API allows merchants to send emails to customers for making payments.
+
+        **Hash sequence:**
+        ```
+         key|sms_template_name|payment_link|msg_type|salt
+         
+         ```
+  /easycollect/v1/send_obd_call:
+    post:
+      summary: Send OBD Call API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  obd_template_name: OBD Demo
+                  key: D1K8SLB2XW
+                  payment_url: 'https://pay.easebuzz.in/easy_collect/309507ff3c7845e3979d36eefa5ec9df'
+                  msg_type: obd
+                  hash: b2ff923ffa94cdbf70ccf3df399f6a037e53352802b33bd15cbd972b27950dd6362ce76a9b047067bf0a4679a614512e00f30e9df1d31d018e684b0217c2bca7
+              properties:
+                obd_template_name:
+                  type: string
+                  description: OBD Template name
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                payment_url:
+                  type: string
+                  description: EasyCollect payment link
+                msg_type:
+                  type: string
+                  description: Message type for link. - obd
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: key|obd_template_name|payment_link|msg_type|salt
+              required:
+                - obd_template_name
+                - key
+                - payment_url
+                - msg_type
+                - hash
+            examples:
+              example-1:
+                value:
+                  obd_template_name: OBD Demo
+                  key: XXXXXX
+                  payment_url: 'https://pay.easebuzz.in/easy_collect/bfecxxxxxxxx6cc01c77a8c4'
+                  msg_type: obd
+                  hash: 512911614f45868815e3988507e6edb64622b4057977380602f13e45cd9e571801b6fbd43e2074ce49e28ceee16de6128f972f0cd9f87d2561556e926f25cfa7
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+                x-examples:
+                  example-1:
+                    status: true
+                    message: OBD Call scheduled successfully
+              examples:
+                success:
+                  value:
+                    status: true
+                    message: OBD Call scheduled successfully
+                failed:
+                  value:
+                    status: false
+                    error: Cannot schedule call for paid/expired links
+      description: |-
+        This API allows merchants to send reminders to customers for making payments using OBD calls.
+
+        **Hash Sequence:** 
+        ```
+        key|obd_template_name|payment_link|msg_type|salt
+        ```
+  /easycollect/v1/list:
+    post:
+      summary: EasyCollect List API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                Example 1:
+                  date_range:
+                    start_date: '2023-04-17'
+                    end_date: '2023-04-20'
+                  payment_range:
+                    start_date: '2023-04-17'
+                    end_date: '2023-04-20'
+                  status: Unpaid
+                  key: XXXXXXXXX
+                  hash: j839dyi3xxxxxxxxxxxxxxxxxx
+                  page: null
+                  search_for: amount
+                  search_value: '10.04'
+                  additional_data: 'sms_count,quick_pay_transaction_date'
+                  token: ReOxyk4bHCTuQ9oqD98qJO3Nm3lGQiMzDn0Zh5EGdFs=
+              required:
+                - key
+                - date_range
+                - hash
+                - token
+              properties:
+                key:
+                  type: string
+                  description: |-
+                    Unique Merchant Key provided by Easebuzz for your merchant account. 
+                    > This parameter is ***mandatory*** if you are not using ```token``` to authenticate the API Call.
+                date_range:
+                  type: object
+                  description: Filter payment links that are created within a particular date-range
+                  required:
+                    - start_date
+                    - end_date
+                  properties:
+                    start_date:
+                      type: string
+                      description: |-
+                        Define the beginning time for the desired data period.
+
+                        > **Note:** This is a required parameter in-case of using hash validation for API Authentication
+                    end_date:
+                      type: string
+                      description: |-
+                        Define the ending time for the desired data period.
+
+                        > **Note:** This is a required parameter in-case of using hash validation for API Authentication
+                payment_range:
+                  type: object
+                  description: Filter payment links based on the date range within which the payment was initiated or captured.
+                  properties:
+                    end_date:
+                      type: string
+                      description: Define the ending time for the desired data period.
+                    start_date:
+                      type: string
+                      description: Define the beginning time for the desired data period.
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above
+                    Hash sequence: ```key|start_date|end_date|salt```
+
+                    > If you are utilizing Token API for authenticating this API, there's no need for a hash generation.
+                token:
+                  type: string
+                  description: |-
+                    Token received from [**EasyCollect Token Authentication API**](https://docs.easebuzz.in/docs/payment-gateway/fatyf4r58zdj0-token-authentication-api). 
+                    > This parameter is ***mandatory*** if you are not using key and salt for API Authentication.
+                status:
+                  type: string
+                  description: |-
+                    Defines the payment status of the EasyCollect Links that will be displayed. Accepts following options:
+                    - Paid
+                    - Unpaid
+                    - Expired
+                page:
+                  description: 'By default set to ```null```, accepts a string value used to facilitate the retrieval of additional paginated records within the specified date range. This parameter enables seamless navigation through the dataset, allowing you to display and access further pages of records beyond the initial set.'
+                  nullable: true
+                search_for:
+                  type: string
+                  description: |-
+                    Accepts following options as follows:
+                    - merchant_txn
+                    - amount
+                    - submerchant_id
+                    - udf1
+                    - udf2
+                    - udf3
+                    - udf4
+                    - udf5
+                search_value:
+                  type: string
+                  description: Related value for **search_for** field
+                additional_data:
+                  type: string
+                  description: |-
+                    A comma-separated string which accepts additional options that would be displayed in the response. Eg: "transaction_id,quick_pay_transaction_date".
+
+                    All the options are listed in the table below:
+
+                    Parameter string | Description
+                    ---------|----------
+                     quick_pay_transaction_date | Displays the datetime of transaction
+                     transaction_id | Displays the Easebuzz Transaction ID 
+            examples:
+              Payload 1 (with key-salt):
+                value:
+                  key: 4DXXXXXXXX
+                  hash: bd728xxxxxxxxxxxxxxxxxxxxxxxxxxx
+                  date_range:
+                    start_date: '2023-04-17'
+                    end_date: '2023-04-20'
+                  payment_range:
+                    start_date: '2023-04-17'
+                    end_date: '2023-04-20'
+                  status: Unpaid
+                  search_for: amount
+                  search_value: ''
+                  additional_data: 'sms_count,quick_pay_transaction_date'
+              Payload 2 (with token):
+                value:
+                  date_range:
+                    start_date: '2023-04-17'
+                    end_date: '2023-04-20'
+                  payment_range:
+                    start_date: '2023-04-17'
+                    end_date: '2023-04-20'
+                  status: Unpaid
+                  page: null
+                  token: dwuqh8xxxxxxxxxxxxxxxx
+      responses:
+        '200':
+          description: "\r\n\r\n\r\n"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next:
+                    type: 'null'
+                  previous:
+                    type: 'null'
+                  pages:
+                    type: 'null'
+                  count:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        email:
+                          type: string
+                        amount:
+                          type: integer
+                        merchant_txn:
+                          type: string
+                        phone:
+                          type: string
+                        payment_made:
+                          type: integer
+                        status:
+                          type: string
+                        submerchant_id:
+                          type: 'null'
+                        message:
+                          type: string
+                        udf1:
+                          type: 'null'
+                        udf2:
+                          type: 'null'
+                        udf3:
+                          type: 'null'
+                        udf4:
+                          type: 'null'
+                        udf5:
+                          type: 'null'
+                        expiry_date:
+                          type: string
+                        state:
+                          type: string
+                        offline_payment_id:
+                          type: 'null'
+                        offline_payment_desc:
+                          type: 'null'
+                        offline_payment_mode:
+                          type: 'null'
+                        created_date:
+                          type: string
+                        min_amount:
+                          type: integer
+                        max_amount:
+                          type: integer
+                        payment_type:
+                          type: string
+                        is_auto_debit_link:
+                          type: boolean
+                        is_auto_debit_seamless:
+                          type: boolean
+                        auth_details:
+                          type: 'null'
+                        split_payments:
+                          type: 'null'
+                        entity_type:
+                          type: string
+                        submerchant_name:
+                          type: 'null'
+                  status:
+                    type: string
+                x-examples:
+                  Example 1:
+                    next: null
+                    previous: null
+                    pages: null
+                    count: 3
+                    data:
+                      - id: 80543
+                        name: Monika
+                        email: suratkaryogita@gmail.com
+                        amount: 10
+                        merchant_txn: shshshshshshaaaameme
+                        phone: '8871187769'
+                        payment_made: 0
+                        status: Unpaid
+                        submerchant_id: null
+                        message: Test Create Link
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        expiry_date: '25-04-2023 11:59:59 PM'
+                        state: active
+                        offline_payment_id: null
+                        offline_payment_desc: null
+                        offline_payment_mode: null
+                        created_date: 'Apr-20-2023 03:28:48 PM'
+                        min_amount: 0
+                        max_amount: 0
+                        payment_type: Single Payment
+                        is_auto_debit_link: false
+                        is_auto_debit_seamless: false
+                        auth_details: null
+                        split_payments: null
+                        entity_type: Root
+                        submerchant_name: null
+                      - id: 80522
+                        name: Monika
+                        email: yash.bandodker@easebuzz.in
+                        amount: 10
+                        merchant_txn: shshshshshsh
+                        phone: +91-7972987571
+                        payment_made: 0
+                        status: Unpaid
+                        submerchant_id: null
+                        message: Test Create Link
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        expiry_date: '24-04-2023 11:59:59 PM'
+                        state: active
+                        offline_payment_id: null
+                        offline_payment_desc: null
+                        offline_payment_mode: null
+                        created_date: 'Apr-19-2023 06:52:38 PM'
+                        min_amount: 0
+                        max_amount: 0
+                        payment_type: Single Payment
+                        is_auto_debit_link: false
+                        is_auto_debit_seamless: false
+                        auth_details: null
+                        split_payments: null
+                        entity_type: Root
+                        submerchant_name: null
+                      - id: 80492
+                        name: Monika
+                        email: monika.garud@easebuzz.in
+                        amount: 10
+                        merchant_txn: EC6YGE275H
+                        phone: +91-8871187769
+                        payment_made: 0
+                        status: Unpaid
+                        submerchant_id: null
+                        message: Paymentlinktest
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        expiry_date: '24-04-2023 11:59:59 PM'
+                        state: active
+                        offline_payment_id: null
+                        offline_payment_desc: null
+                        offline_payment_mode: null
+                        created_date: 'Apr-19-2023 12:35:45 PM'
+                        min_amount: 0
+                        max_amount: 0
+                        payment_type: Single Payment
+                        is_auto_debit_link: false
+                        is_auto_debit_seamless: false
+                        auth_details: null
+                        split_payments: null
+                        entity_type: Root
+                        submerchant_name: null
+                    status: '200'
+              examples:
+                Success:
+                  value:
+                    next: null
+                    previous: null
+                    pages: null
+                    count: 3
+                    data:
+                      - id: 80543
+                        name: Sam
+                        email: samxxxxx@gmail.com
+                        amount: 10
+                        merchant_txn: XXXXXXXXXXXXX
+                        phone: '8888888888'
+                        payment_made: 0
+                        status: Unpaid
+                        submerchant_id: null
+                        message: Test Create Link
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        expiry_date: '25-04-2023 11:59:59 PM'
+                        state: active
+                        offline_payment_id: null
+                        offline_payment_desc: null
+                        offline_payment_mode: null
+                        created_date: 'Apr-20-2023 03:28:48 PM'
+                        min_amount: 0
+                        max_amount: 0
+                        payment_type: Single Payment
+                        is_auto_debit_link: false
+                        is_auto_debit_seamless: false
+                        auth_details: null
+                        split_payments: null
+                        entity_type: Root
+                        submerchant_name: null
+                      - id: 80522
+                        name: Yash
+                        email: yashxxxxxxxxx@gmail.com
+                        amount: 10
+                        merchant_txn: XXXXXXXXXXXXX
+                        phone: +91-9999999999
+                        payment_made: 0
+                        status: Unpaid
+                        submerchant_id: null
+                        message: Test Create Link
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        expiry_date: '24-04-2023 11:59:59 PM'
+                        state: active
+                        offline_payment_id: null
+                        offline_payment_desc: null
+                        offline_payment_mode: null
+                        created_date: 'Apr-19-2023 06:52:38 PM'
+                        min_amount: 0
+                        max_amount: 0
+                        payment_type: Single Payment
+                        is_auto_debit_link: false
+                        is_auto_debit_seamless: false
+                        auth_details: null
+                        split_payments: null
+                        entity_type: Root
+                        submerchant_name: null
+                      - id: 80492
+                        name: Monika
+                        email: monikaxxxxxxx@gmail.com
+                        amount: 10
+                        merchant_txn: XXXXXXXXXXX
+                        phone: +91-7777777777
+                        payment_made: 0
+                        status: Unpaid
+                        submerchant_id: null
+                        message: Paymentlinktest
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        expiry_date: '24-04-2023 11:59:59 PM'
+                        state: active
+                        offline_payment_id: null
+                        offline_payment_desc: null
+                        offline_payment_mode: null
+                        created_date: 'Apr-19-2023 12:35:45 PM'
+                        min_amount: 0
+                        max_amount: 0
+                        payment_type: Single Payment
+                        is_auto_debit_link: false
+                        is_auto_debit_seamless: false
+                        auth_details: null
+                        split_payments: null
+                        entity_type: Root
+                        submerchant_name: null
+                    status: '200'
+                Generic:
+                  value:
+                    next: null
+                    previous: null
+                    pages: null
+                    count: 1
+                    data:
+                      - id: 80543
+                        name: Sam
+                        email: samxxxxxx@gmail.com
+                        amount: 10
+                        merchant_txn: XXXXXXXXXXXXX
+                        phone: '8888888888'
+                        payment_made: 0
+                        status: Unpaid
+                        submerchant_id: null
+                        message: asasas
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        expiry_date: '25-04-2023 11:59:59 PM'
+                        state: active
+                        offline_payment_id: null
+                        offline_payment_desc: null
+                        offline_payment_mode: null
+                        created_date: 'Apr-20-2023 03:28:48 PM'
+                        min_amount: 0
+                        max_amount: 0
+                        payment_type: Single Payment
+                        is_auto_debit_link: false
+                        is_auto_debit_seamless: false
+                        auth_details: null
+                        split_payments: null
+                        entity_type: Root
+                        submerchant_name: null
+                    status: ''
+      description: |-
+        Access comprehensive data on all the EasyCollect links through this API, providing paginated responses for seamless navigation. Retrieve detailed information about each link's attributes, empowering you to efficiently manage and analyze the entire spectrum of created links within your system.
+
+        **Hash sequence:** 
+        ```
+        key|start_date|end_date|salt
+        ```
+        The ```start_date``` and ```end_date``` parameters here are being referred from ```date_range``` object, and not from ```payment_range``` object.
+
+        > **Note**: If you are utilizing Token API for the Authentication of the API call, there's no need for a hash generation.
+      parameters: []
+      x-stoplight:
+        id: zxhpbfxyfxpfz
+    parameters: []

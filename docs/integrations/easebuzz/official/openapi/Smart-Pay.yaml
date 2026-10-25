@@ -1,0 +1,118 @@
+openapi: 3.0.0
+x-stoplight:
+  id: 3c0hhp2sehid2
+info:
+  title: Smart Pay
+  version: 1.0.0
+servers:
+  - url: 'https://dashboard.easebuzz.in'
+    description: Production URL
+  - url: 'https://testdashboard.easebuzz.in'
+    description: Sandbox URL
+paths:
+  /smartpay/v1/get:
+    post:
+      summary: Fetch SmartPay Details
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 4Z9D9HGPNL
+                  payment_url_suffix: 2753adb0f93248fda505f5f470af906e
+                  hash: a489b5f21a6cfa3a07825663737b81315f6fb05fca1e55e4173272aa9c4578ffd87488ffa2b881d7d6956127a96789ee4b0ccbef411948ab7067caadddf6e08e
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                payment_url_suffix:
+                  type: string
+                  description: Unique payment url suffix associated with each smart pay link
+                hash:
+                  type: string
+                  description: |-
+                    This is a sha512 encrypted string. And the hash sequence is mentioned above.
+                    Hash sequence: key|payment_url_suffix|salt
+              required:
+                - key
+                - payment_url_suffix
+                - hash
+            examples:
+              example-1:
+                value:
+                  key: XXXX
+                  payment_url_suffix: 2753adb0f9xxxxxx505f5f470af906e
+                  hash: a489b5f21a6cfa3a07825663737b813156fb05fca1e55e4173272aa9c4578ffd87488ffa2b881d7d6956127a96789ee4b0ccbef411948ab7067caadddf6e
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        payment_url:
+                          type: string
+                        link_name:
+                          type: string
+                        payment_url_suffix:
+                          type: string
+                        submerchant_id:
+                          type: 'null'
+                        split_payments:
+                          type: 'null'
+                        is_active:
+                          type: boolean
+                        created_date:
+                          type: string
+                        updated_date:
+                          type: string
+                        is_pinned:
+                          type: boolean
+                x-examples:
+                  example-1:
+                    status: true
+                    data:
+                      - payment_url: 'https://smartpay.easebuzz.in/4486/2753adb0f93248fda505f5f470af906e'
+                        link_name: test2345
+                        payment_url_suffix: 2753adb0f93248fda505f5f470af906e
+                        submerchant_id: null
+                        split_payments: null
+                        is_active: true
+                        created_date: '2022-03-07T13:10:13.669681+05:30'
+                        updated_date: '2022-03-13T12:36:01.146918+05:30'
+                        is_pinned: true
+              examples:
+                Success:
+                  value:
+                    status: true
+                    data:
+                      - payment_url: 'https://smartpay.easebuzz.in/4486/2753adb0f93248fda505f5f470af906e'
+                        link_name: test2345
+                        payment_url_suffix: 2753adb0f93248fda505f5f470af906e
+                        submerchant_id: null
+                        split_payments: null
+                        is_active: true
+                        created_date: '2022-03-07T13:10:13.669681+05:30'
+                        updated_date: '2022-03-13T12:36:01.146918+05:30'
+                        is_pinned: true
+                Error:
+                  value:
+                    status: false
+                    error_desc: 'Invalid value for hash,'
+      description: |-
+        Allow merchants to fetch the information associated with smartpay links that are created from Easebuzz Payment Gateway Dashboard by providing the payment URL suffix.
+
+        **Hash sequence:**
+        ```
+        key|payment_url_suffix|salt
+        ```

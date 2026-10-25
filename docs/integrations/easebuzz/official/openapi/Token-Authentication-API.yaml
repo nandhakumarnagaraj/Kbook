@@ -1,0 +1,100 @@
+openapi: 3.0.0
+x-stoplight:
+  id: fatyf4r58zdj0
+info:
+  title: Token Authentication API
+  version: 1.0.0
+  description: ''
+servers:
+  - url: 'https://dashboard.easebuzz.in'
+    description: Production Environment
+paths:
+  /auth/v1/token:
+    post:
+      summary: Token Authentication API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                Example 1:
+                  email: sam@email.com
+                  password: XXXXXXXXXX
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  description: The merchant email which is registered in easebuzz.
+                password:
+                  type: string
+                  description: Merchant login password for Easebuzz account.
+            examples:
+              example-1:
+                value:
+                  email: sam@email.com
+                  password: XXXXXXXXXX
+      responses:
+        '200':
+          description: "\r\n\r\n\r\n"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mid:
+                    type: integer
+                  merchant_active_on_pg:
+                    type: boolean
+                  created_at:
+                    type: string
+                  expiry_at:
+                    type: string
+                  token:
+                    type: string
+                x-examples:
+                  Example 1:
+                    mid: 100
+                    merchant_active_on_pg: true
+                    created_at: '2023-04-06 08:20 PM'
+                    expiry_at: '2023-04-06 09:20 PM'
+                    token: CaWIEXVennxxxxxxxxxxxxxxxxxHT68rOG6Izk=
+              examples:
+                success:
+                  value:
+                    mid: 100
+                    merchant_active_on_pg: true
+                    created_at: '2023-04-06 08:20 PM'
+                    expiry_at: '2023-04-06 09:20 PM'
+                    token: CaWIEXVennxxxxxxxxxxxxxxxxxHT68rOG6Izk=
+                failed:
+                  value:
+                    status: false
+                    error: Cannot schedule call for paid/expired links
+      description: |-
+        The authentication API requires login credentials which gives the token and subsequent related info of it.
+
+        If you are using an OpenAPI that supports Token Authentication, you are not required to generate or pass the ***hash*** parameter in subsequent API requests. While including a hash is still valid, you can alternatively use the ***token*** parameter returned by this API to authenticate your requests.
+
+        This simplifies the integration by eliminating the need for hash generation when token-based authentication is used.
+
+        ****Note:**** This API will work in the production/live mode only.
+      x-stoplight:
+        id: vo49yfgkbvqfc
+      parameters:
+        - schema:
+            type: string
+            default: application/json
+          in: header
+          name: Content-Type
+          required: true
+        - schema:
+            type: string
+            default: d13d4c1b99204b66af9cf102e7c354c9
+            maxLength: 32
+          in: header
+          name: Authorization
+          required: true
+    parameters: []

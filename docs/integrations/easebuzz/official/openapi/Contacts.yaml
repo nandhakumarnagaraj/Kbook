@@ -1,0 +1,680 @@
+openapi: 3.0.0
+x-stoplight:
+  id: 6a2346d5c896f
+info:
+  title: Contacts
+  version: 1.0.9
+  description: 'APIs to perform create, update and retrieve actions on Contacts'
+  contact:
+    name: Easebuzz Support
+    email: support@easebuzz.in
+    url: 'https://easebuzz.in/contact/'
+  termsOfService: 'https://easebuzz.in/terms/'
+servers:
+  - url: 'https://wire.easebuzz.in'
+    description: Prod
+paths:
+  /api/v1/contacts/:
+    post:
+      description: 'Use this API to create a new contact. A contact can be someone with contact information like email or phone number. **Eg:** customers, payees, receivers, etc.'
+      summary: Create Contact
+      operationId: create-api-v1-contact
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 1Z1234567X
+                  name: Akash
+                  email: demo.test@easebuzz.in
+                  phone: '9999999999'
+              properties:
+                key:
+                  type: string
+                  example: 1Z1234567X
+                name:
+                  type: string
+                  example: Test Easebuzz
+                email:
+                  type: string
+                  example: test@easebuzz.in
+                phone:
+                  type: string
+                  example: '9999999999'
+              required:
+                - key
+                - name
+            examples:
+              Sample Request:
+                value:
+                  key: 1Z1234567X
+                  name: Akash
+                  email: demo.test@easebuzz.in
+                  phone: '9999999999'
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: fde43e6bb8c43b00d6e8a61377e642b2cbf97d0e6659f424a816838c63b76ef9f351576a07cfdc921468bad488976950dcf6d8ba521363323c7b0817b284c260
+          required: true
+          description: 'SHA-512 hash of string in the format “{key}|{name}|{email}|{phone}|{salt}"'
+        - name: WIRE-API-KEY
+          in: header
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-KEY provided by Easebuzz
+          required: false
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      contact:
+                        id: cont977ad8af40d595d1afb051402604
+                        status: Active
+                        created_at: '2022-09-17T12:30:58.246827+05:30'
+                        deleted_at: null
+                        name: Test contact
+                        email: demo.wEandM@easebuzz.in
+                        phone: '9999999321'
+                        created_by: null
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      contact:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: cont977ad8af40d595d1afb051402604
+                          status:
+                            type: string
+                            example: Active
+                          created_at:
+                            type: string
+                            example: '2022-09-17T12:30:58.246827+05:30'
+                          deleted_at:
+                            example: null
+                            nullable: true
+                          name:
+                            type: string
+                            example: Test contact
+                          email:
+                            type: string
+                            example: test@easebuzz.in
+                          phone:
+                            type: string
+                            example: '9999999999'
+                          created_by:
+                            example: null
+                            nullable: true
+                      '':
+                        type: string
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      contact:
+                        id: cont941f20a64b70b4137b7161ae97a2
+                        status: Active
+                        created_at: '2022-01-31T11:59:47.744122+05:30'
+                        deleted_at: null
+                        name: Test EaseBuzz
+                        email: demo.test@easebuzz.in
+                        phone: '9999999999'
+                        created_by: null
+                Hash Mismatch:
+                  value:
+                    success: false
+                    status: false
+                    message: Hash mismatch.
+                    insta_enabled: false
+                    wire_allowed: true
+                    wire_activated: true
+                    easebuzz_allowed: true
+                Type (Value) Mismatch:
+                  value:
+                    success: false
+                    message: Invalid value for parameter 'phone'
+                Empty or Invalid Key:
+                  value:
+                    success: false
+                    status: false
+                    message: Invalid key.
+                    insta_enabled: false
+                    wire_allowed: true
+                    wire_activated: true
+                    easebuzz_allowed: true
+                No Authorization Key:
+                  value:
+                    success: false
+                    status: false
+                    message: Authentication Failed.
+                    insta_enabled: false
+                    wire_allowed: true
+                    wire_activated: true
+                    easebuzz_allowed: true
+    get:
+      summary: Retrieve All Contacts
+      description: Retrieve a paginated list of all the available contacts.
+      operationId: get-api-v1-contacts-all
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 135628583a58b0675d236cc711c226109519402c35e2bedb67b5c31f651df0ee93769c3e7724ade598e6128b4c8b463ba3b78c284fd9c859ae089553e668a41d
+          required: true
+          description: 'SHA-512 hash of string in the format “{key}|{salt}"'
+        - name: WIRE-API-KEY
+          in: header
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: API key provided by Easebuzz
+          required: false
+        - name: key
+          in: query
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: Same as the WIRE-API-Key provided by Easebuzz
+          required: true
+        - name: current
+          in: query
+          schema:
+            type: integer
+          example: 5
+          description: Page no. of the set of contacts
+          required: false
+        - schema:
+            type: integer
+            example: 10
+          in: query
+          name: pageSize
+          description: 'The number of contacts per page. If not sent, by default 10 contacts are returned.'
+          required: false
+        - schema:
+            type: string
+          in: query
+          name: phone
+          description: Phone no. of the contact to search
+        - schema:
+            type: string
+          in: query
+          name: email
+          description: Email of the contact to search
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      results:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            status:
+                              type: string
+                            created_at:
+                              type: string
+                            deleted_at:
+                              type: 'null'
+                            name:
+                              type: string
+                            email:
+                              type:
+                                - 'null'
+                                - string
+                            phone:
+                              type:
+                                - 'null'
+                                - string
+                            created_by:
+                              type: 'null'
+                      total_pages:
+                        type: integer
+                      page_size:
+                        type: integer
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      count: 41
+                      results:
+                        - id: contfa17681648b59ddfd5df7033b5a0
+                          status: Active
+                          created_at: '2022-08-25T17:34:18.623977+05:30'
+                          deleted_at: null
+                          name: 108 TH INDIAN SCIENCE CONGRESS RTM
+                          email: null
+                          phone: null
+                          created_by: null
+                        - id: cont265b442846788ef71794d19a5241
+                          status: Active
+                          created_at: '2022-01-31T15:51:12.204948+05:30'
+                          deleted_at: null
+                          name: ABC DEF
+                          email: 123@test.com
+                          phone: '6792033350'
+                          created_by: null
+                        - id: cont30f671864f06b8ff9897c91cb6b1
+                          status: Active
+                          created_at: '2022-08-05T12:53:12.860838+05:30'
+                          deleted_at: null
+                          name: abcdefg
+                          email: null
+                          phone: null
+                          created_by: null
+                        - id: contccb724a94841b1307382535e76a3
+                          status: Active
+                          created_at: '2022-09-06T11:57:41.840615+05:30'
+                          deleted_at: null
+                          name: City Diagnostics Center
+                          email: null
+                          phone: null
+                          created_by: null
+                        - id: cont58a7dae84ef3a5a168966a660f7c
+                          status: Active
+                          created_at: '2022-03-25T14:03:32.458933+05:30'
+                          deleted_at: null
+                          name: Dev D
+                          email: null
+                          phone: null
+                          created_by: null
+                        - id: conte177111347088c3d2056fa2d73be
+                          status: Active
+                          created_at: '2022-08-01T19:18:35.587503+05:30'
+                          deleted_at: null
+                          name: Dev D
+                          email: null
+                          phone: null
+                          created_by: null
+                        - id: cont6c472405463ab2306f1b3ed1a09c
+                          status: Active
+                          created_at: '2022-03-25T18:19:08.120689+05:30'
+                          deleted_at: null
+                          name: Dev D
+                          email: null
+                          phone: null
+                          created_by: null
+                        - id: cont471bb52545f5863d24db28a5cdc1
+                          status: Active
+                          created_at: '2022-07-26T15:51:11.703293+05:30'
+                          deleted_at: null
+                          name: Dev D
+                          email: null
+                          phone: null
+                          created_by: null
+                        - id: cont9da436ef46cea89bc913767c539b
+                          status: Active
+                          created_at: '2022-01-31T10:55:56.391971+05:30'
+                          deleted_at: null
+                          name: Dev D
+                          email: demo@test.in
+                          phone: '6792040000'
+                          created_by: null
+                        - id: contdb8149334f0ab2cdfd1199e7ae3c
+                          status: Active
+                          created_at: '2022-02-08T15:05:51.111619+05:30'
+                          deleted_at: null
+                          name: Dev D
+                          email: Demo@GMAIL.COM
+                          phone: '6792040000'
+                          created_by: null
+                      total_pages: 5
+                      page_size: 10
+              example:
+                success: true
+                data:
+                  count: 142
+                  results:
+                    - id: cont7d82dee24a99be9b03288a302add
+                      status: Active
+                      created_at: '2021-11-11T16:39:55.053605+05:30'
+                      deleted_at: null
+                      name: Demo
+                      email: null
+                      phone: null
+                      created_by: null
+                    - id: conta7f9c049487f8f970e5c1e318130
+                      status: Active
+                      created_at: '2020-04-25T11:55:25.790509+05:30'
+                      deleted_at: null
+                      name: deendayal
+                      email: null
+                      phone: null
+                      created_by: null
+                    - id: cont28ffa5644ff3a4ba2da29fb6b831
+                      status: Active
+                      created_at: '2020-05-03T20:02:33.759735+05:30'
+                      deleted_at: null
+                      name: Deepika Jhun
+                      email: dmbhdemo@gmail.com
+                      phone: 9265200xx
+                      created_by: null
+                    - id: cont0838b6794a5092daf33701da6494
+                      status: Active
+                      created_at: '2021-12-16T15:23:28.534915+05:30'
+                      deleted_at: null
+                      name: demo cva
+                      email: null
+                      phone: null
+                      created_by: null
+                    - id: contb4049f1548739dbae2ad5751c560
+                      status: Active
+                      created_at: '2021-03-30T15:54:05.480566+05:30'
+                      deleted_at: null
+                      name: Dinesh
+                      email: null
+                      phone: null
+                      created_by: null
+                    - id: cont24d201e34328a662ded0b8829998
+                      status: Active
+                      created_at: '2021-08-30T15:41:20.635758+05:30'
+                      deleted_at: null
+                      name: Dinesh
+                      email: null
+                      phone: null
+                      created_by: null
+                    - id: cont30a105a94614834dfa8e1474cf58
+                      status: Active
+                      created_at: '2021-11-24T17:41:28.892023+05:30'
+                      deleted_at: null
+                      name: Dudhat Sarika Bhanubhai
+                      email: null
+                      phone: null
+                      created_by: null
+                    - id: contd6a4ec9246469a2e5c4855f5dfb6
+                      status: Active
+                      created_at: '2021-11-21T12:43:27.406100+05:30'
+                      deleted_at: null
+                      name: Demo Wholesale
+                      email: null
+                      phone: null
+                      created_by: null
+                    - id: contb6af812b4d1e8b6f53210ee213e1
+                      status: Active
+                      created_at: '2021-11-21T12:37:22.040452+05:30'
+                      deleted_at: null
+                      name: FKP Wholesale
+                      email: null
+                      phone: null
+                      created_by: null
+                    - id: cont5b5839734edd929da7cc88f68a44
+                      status: Active
+                      created_at: '2021-11-25T16:22:08.738529+05:30'
+                      deleted_at: null
+                      name: Gaurav Dwivedi
+                      email: null
+                      phone: null
+                      created_by: null
+                  total_pages: 15
+                  page_size: 10
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      count: 0
+                      results:
+                        - id: string
+                          status: string
+                          created_at: string
+                          deleted_at: null
+                          name: string
+                          email: null
+                          phone: null
+                          created_by: null
+                      total_pages: 0
+                      page_size: 0
+    servers:
+      - url: 'https://wire.easebuzz.in'
+        description: Prod
+  '/api/v1/contacts/{contact_id}/':
+    get:
+      summary: Retrieve Contact by ID
+      description: Retrieve details of a contact by contact_id.
+      operationId: get-api-v1-contacts-contact_id
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          example: 86b9923ef53c49fbd2589eade1c4797a98fbb1f1975f8aa2107b901dd793ecec8bf56daf08b7431a92062d9b51ba6afbb1b886fd6f2b7fce28929a4a49a35f4e
+          description: 'SHA-512 hash of the string in the format “{key}|{id}|{salt}”'
+          required: true
+        - name: WIRE-API-KEY
+          in: header
+          schema:
+            type: string
+          example: 1Z1234567X
+          description: WIRE-API-KEY provided by Easebuzz
+          required: false
+        - schema:
+            type: string
+          in: path
+          name: contact_id
+          description: Contact ID generated at the time of creating the contact
+          required: true
+        - schema:
+            type: string
+          in: query
+          name: key
+          description: WIRE-API-KEY provided by Easebuzz
+          required: true
+      responses:
+        '200':
+          description: OK
+          headers: {}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      contact:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          status:
+                            type: string
+                          created_at:
+                            type: string
+                          deleted_at:
+                            type: 'null'
+                          name:
+                            type: string
+                          email:
+                            type: string
+                          phone:
+                            type: string
+                          created_by:
+                            type: 'null'
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      contact:
+                        id: cont941f20a64b70b4137b7161ae97a2
+                        status: Active
+                        created_at: '2022-01-31T11:59:47.744122+05:30'
+                        deleted_at: null
+                        name: Test EaseBuzz
+                        email: demo.test@easebuzz.in
+                        phone: '9999999999'
+                        created_by: null
+              example:
+                success: true
+                data:
+                  contact:
+                    id: cont941f20a64b70b4137b7161ae97a2
+                    status: Active
+                    created_at: '2022-01-31T11:59:47.744122+05:30'
+                    deleted_at: null
+                    name: Test EaseBuzz
+                    email: demo.test@easebuzz.in
+                    phone: '9999999999'
+                    created_by: null
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      contact:
+                        id: cont941f20a64b70b4137b7161ae97a2
+                        status: Active
+                        created_at: '2022-01-31T11:59:47.744122+05:30'
+                        deleted_at: null
+                        name: Test EaseBuzz
+                        email: demo.test@easebuzz.in
+                        phone: '9999999999'
+                        created_by: null
+    put:
+      summary: Update Contact by ID
+      description: Update an existing contact using the contact_id.
+      operationId: put-api-v1-contacts-contact_id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      contact:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          status:
+                            type: string
+                          created_at:
+                            type: string
+                          deleted_at:
+                            type: 'null'
+                          name:
+                            type: string
+                          email:
+                            type: string
+                          phone:
+                            type: string
+                          created_by:
+                            type: 'null'
+                x-examples:
+                  example-1:
+                    success: true
+                    data:
+                      contact:
+                        id: cont9da436ef46cea89bc913767c539b
+                        status: Active
+                        created_at: '2022-01-31T10:55:56.391971+05:30'
+                        deleted_at: null
+                        name: Dev D
+                        email: demo@test.in
+                        phone: '6792040000'
+                        created_by: null
+              examples:
+                Successful Response:
+                  value:
+                    success: true
+                    data:
+                      contact:
+                        id: cont9da436ef46cea89bc913767c539b
+                        status: Active
+                        created_at: '2022-01-31T10:55:56.391971+05:30'
+                        deleted_at: null
+                        name: Dev D
+                        email: demo@test.com
+                        phone: '7994166622'
+                        created_by: null
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: Authorization
+          description: |-
+            - SHA-512 hash of the string in the format “{key}|{name}|{email}|{phone}|{salt}”
+            - If email or phone are null, the hash must be generated with the value "null".
+          required: true
+        - schema:
+            type: string
+          in: path
+          name: contact_id
+          description: Contact ID generated at the time of creating the contact
+          required: true
+        - schema:
+            type: string
+          in: header
+          name: WIRE-API-KEY
+          description: WIRE-API-KEY provided by Easebuzz
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 3F9529125V
+                  name: Dev D
+                  email: demo@test.in
+                  phone: '7692099950'
+              properties:
+                key:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+              required:
+                - key
+                - name
+    parameters:
+      - schema:
+          type: string
+        name: contact_id
+        in: path
+        required: true
+    servers:
+      - url: 'https://wire.easebuzz.in'
+        description: Prod

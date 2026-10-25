@@ -1,0 +1,520 @@
+openapi: 3.0.0
+x-stoplight:
+  id: oudxtp83258l9
+info:
+  title: Refund APIs
+  version: 1.0.0
+  description: |
+    ### Refund Statuses
+    ---
+
+    Please find the below refund statuses and their respective description received from the Easebuzz side in response:
+
+
+    Event | Description
+    ------- | -------
+    **queued** | The refund has not been initiated yet. Easebuzz is holding the refund request due to insufficient future settlement/payout amounts available with the merchant.
+    **approved** | The Acquiring Bank has approved the refund request and will process it accordingly.
+    **refunded** | The refund has been successfully processed, and the funds have been transferred to the customer’s bank account.
+    **Cancelled Refund** | The refund request has been cancelled by the merchant, and no refund will be processed.
+    **Cancelled Chargeback** | The dispute (chargeback) has been resolved in the merchant's favour, and the chargeback has been closed.
+    **Hold Refund** |The refund has been successfully processed to the customer's bank, but it hasn't been adjusted from the merchant's settlement due to no future payout available.
+servers:
+  - url: 'https://testdashboard.easebuzz.in'
+    description: Sandbox URL
+  - url: 'https://dashboard.easebuzz.in'
+    description: Production URL
+  - url: ''
+    description: ''
+paths:
+  /transaction/v1/refund:
+    post:
+      summary: Refund API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 4Z9D9HGPNL
+                  txnid: E220926A96XSXX
+                  refund_amount: 1
+                  phone: '9987971694'
+                  email: suratkaryogita@gmail.com
+                  amount: 2.5
+                  hash: bd0bd96e81b20a8e922c90d0e4fe7f6ea4f3caf3d262e2d2c20c83d93a693c85faa9845216675d67d892b2147c8f27675aeef471f10e88a813f68d83113d1503
+              required:
+                - key
+                - txnid
+                - refund_amount
+                - phone
+                - email
+                - amount
+                - hash
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                  pattern: '^[a-zA-Z0-9_]{1,15}$'
+                txnid:
+                  type: string
+                  description: Unique **Easebuzz Id** that you will receive in the response of the transaction.
+                  pattern: '^[a-zA-Z0-9]*$'
+                refund_amount:
+                  type: integer
+                  description: 'The amount to be refunded for the particular transaction. **Note**: Please type-cast the amount to float type.'
+                phone:
+                  type: string
+                  description: Phone number of the customer.
+                  pattern: '^(\+\d{1,4}[-]?)?\d{5,20}$'
+                email:
+                  type: string
+                  description: Email of the customer.
+                  pattern: '^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$'
+                amount:
+                  type: number
+                  description: 'The payment amount of the particular transaction. Note: Please type-cast the amount to float type.'
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above.
+                    **Hash sequence:** key|txnid|amount|refund_amount|email|phone|salt
+                  pattern: '^[a-zA-Z0-9_]{64,128}$'
+                udf1:
+                  type: string
+                  x-stoplight:
+                    id: 4m62ipirndru0
+                  description: User Defined field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf2:
+                  type: string
+                  x-stoplight:
+                    id: znj1suz1tgi4u
+                  description: User Defined field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf3:
+                  type: string
+                  x-stoplight:
+                    id: 849049ogof737
+                  description: User Defined field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf4:
+                  type: string
+                  x-stoplight:
+                    id: zunv8h6tu5o1l
+                  description: User Defined field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf5:
+                  type: string
+                  x-stoplight:
+                    id: xogwc88zb1rec
+                  description: User Defined field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf6:
+                  type: string
+                  x-stoplight:
+                    id: 579m25agn9mwr
+                  description: User Defined field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf7:
+                  type: string
+                  x-stoplight:
+                    id: ro66u39uw32qv
+                  description: User Defined field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+            examples:
+              example-1:
+                value:
+                  key: XXXXXXXX
+                  txnid: E22XXA96XSXX
+                  refund_amount: 1
+                  phone: 99XXXXX694
+                  email: XXXXXXXX@gmail.com
+                  amount: 2.5
+                  hash: bd0bd96e81b20a8e922c90d0e4fe7f6ea4f3caf3d262e2d2c20c83d93a693c85faa9845216675d67d892b2147c8f27675aeef471f10e88a813f68d83113d1503
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    status: true
+                    refund_amount: 1
+                    reason: 'Refund initiated, Your Request Id:RU0EBGAKA9'
+                    easebuzz_id: T3W4E9GPRZ
+                    refund_id: RU0EBGAKA9
+                properties:
+                  status:
+                    type: boolean
+                  refund_amount:
+                    type: integer
+                    description: The amount to be refunded.
+                  reason:
+                    type: string
+                  easebuzz_id:
+                    type: string
+                    description: The unique ID assigned to the transaction by Easebuzz while the transaction was iniated in the easebuzz system.
+                  refund_id:
+                    type: string
+                    description: The unique identifier for the refund request.
+              examples:
+                success:
+                  value:
+                    status: true
+                    refund_amount: 1
+                    reason: 'Refund initiated, Your Request Id:RU0EBGAKA9'
+                    easebuzz_id: T3W4E9GPRZ
+                    refund_id: RU0EBGAKA9
+      description: |-
+        Easebuzz supports the ability to refund charges made to your account, either in whole or in part. We submit refund requests to your customer’s bank or card issuer immediately. Your customer sees the refund as a credit approximately 5-10 business days later, depending upon the bank. Once issued, a refund cannot be canceled. To refund a charge via the API, perform a create refund call, providing the transaction ID of the charge to be refunded. Request a refund for the transaction.
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+        **Hash sequence:** 
+        ```
+        key|txnid|amount|refund_amount|email|phone|salt
+        ```
+      deprecated: true
+  /refund/v1/retrieve:
+    post:
+      summary: Refund Status API
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: XXXXXX
+                  easebuzz_id: E2209XXXX
+                  hash: 25641b87287adf9fafd3198f1a9203fd29c4a385af555662a105e94e68bea63e8231c30ea077d7aabfa9d5513fad5ef4a8d5cbc93487e1545e3f64823b2dffc1
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                  pattern: '^[a-zA-Z0-9_]{1,15}$'
+                easebuzz_id:
+                  type: string
+                  description: Unique Easebuzz Id generated by Easebuzz.
+                  pattern: '^[a-zA-Z0-9]*$'
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above.
+                    Hash Sequence: key|easebuzz_id|salt
+                  pattern: '^[a-zA-Z0-9_]{64,128}$'
+                merchant_refund_id:
+                  type: string
+                  description: Refunds can be filtered by the unique merchant_refund_id used while raising the refund .
+                  pattern: '^[a-zA-Z0-9_-]*$'
+              required:
+                - key
+                - easebuzz_id
+                - hash
+            examples:
+              example-1:
+                value:
+                  key: 4Z9XXXX
+                  easebuzz_id: E22092XXXX
+                  hash: 25641b87287adf9fafd3198f1a9203fd29c4a385af555662a105e94e68bea63e8231c30ea077d7aabfa9d5513fad5ef4a8d5cbc93487e1545e3f64823b2dffc1
+        description: ''
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  example-1:
+                    status: true
+                    easebuzz_id: T3W4E9GPRZ
+                    amount: '5.0'
+                    txnid: '10003'
+                    net_amount_debit: '5.0'
+                    refunds:
+                      - refund_status: refunded
+                        merchant_refund_date: '2020-01-18'
+                        refund_settled_date: '2020-01-19'
+                        auto_refund: false
+                        refund_amount: 1
+                        Arn_number: '12345678'
+                        refund_id: RU0ASGKAA2
+                        note: ''
+                properties:
+                  status:
+                    type: boolean
+                  easebuzz_id:
+                    type: string
+                    description: The unique ID assigned to the transaction by Easebuzz while the transaction was iniated in the easebuzz system.
+                  amount:
+                    type: string
+                    description: The Total amount of the transaction.
+                  txnid:
+                    type: string
+                    description: A unique transaction ID assigned by you while you have intiate the transaction.
+                  net_amount_debit:
+                    type: string
+                    description: The value of the total amount which was deducted from the customer account.
+                  refunds:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        refund_status:
+                          type: string
+                          description: 'The current status of the refund process.", // possible refund status are: queued, approved, and refunded.'
+                        merchant_refund_date:
+                          type: string
+                          description: The date and time when the refund was initiated.
+                        refund_settled_date:
+                          type: string
+                          description: The date when the refund was settled in the easebuzz system.
+                        auto_refund:
+                          type: string
+                          description: A field typically used for auto-refund information.
+                        refund_amount:
+                          type: integer
+                          description: The amount to be refunded.
+                        arn_number:
+                          type: string
+                          x-stoplight:
+                            id: b8bskx1atgn3l
+                          description: The ARN (Acquirer Reference Number) that can be used to track the payment or refund.
+                        refund_id:
+                          type: string
+                          description: The unique identifier for the refund request.
+                        udf1:
+                          type: string
+                          x-stoplight:
+                            id: 5r16068v282rk
+                          description: User-defined field 1. Can be used for additional information.
+                        udf2:
+                          type: string
+                          x-stoplight:
+                            id: xcbecer6cbh8f
+                          description: User-defined field 2. Can be used for additional information
+                        udf3:
+                          type: string
+                          x-stoplight:
+                            id: 1oqhvs34gaqj4
+                          description: User-defined field 3. Can be used for additional information.
+                        udf4:
+                          type: string
+                          x-stoplight:
+                            id: za9mbdrc1oq9v
+                          description: User-defined field 4. Can be used for additional information
+                        udf5:
+                          type: string
+                          x-stoplight:
+                            id: h90544f9hdldm
+                          description: User-defined field 5. Can be used for additional information
+                        udf6:
+                          type: string
+                          x-stoplight:
+                            id: imqn5ca5o4h9n
+                          description: User-defined field 6. Can be used for additional information
+                        udf7:
+                          type: string
+                          x-stoplight:
+                            id: doj9h3hb3su8n
+                          description: User-defined field 7. Can be used for additional information
+                        chargeback_description:
+                          type: string
+                          x-stoplight:
+                            id: 445rnlfirxy3j
+                          description: A field typically used for chargeback information.
+              examples:
+                success:
+                  value:
+                    status: true
+                    txnid: '6401'
+                    easebuzz_id: S250215073Z9RB
+                    net_amount_debit: '300.68'
+                    amount: '300.68'
+                    refunds:
+                      - refund_id: R1QIXH456C
+                        refund_status: queued
+                        merchant_refund_id: Refund-1502
+                        merchant_refund_date: '15-02-2025 15:29:00'
+                        refund_settled_date: null
+                        auto_refund: 'NO'
+                        refund_amount: '20.0'
+                        arn_number: null
+                        udf1: null
+                        udf2: null
+                        udf3: null
+                        udf4: null
+                        udf5: null
+                        udf6: null
+                        udf7: null
+                        chargeback_description: ''
+                        instant_refund_attempt: 0
+                        failure_description: null
+      description: |-
+        Allow merchants to track and display information associated with refunds for transactions that are made from Easebuzz Payment Gateway.
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+        **Hash Sequence:** 
+        ```
+        key|easebuzz_id|salt
+        ```
+  /transaction/v2/refund:
+    post:
+      summary: Refund API - V2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              x-examples:
+                example-1:
+                  key: 4Z9D9HGPNL
+                  merchant_refund_id: newdocs1
+                  easebuzz_id: E2209268EZH51K
+                  refund_amount: 1
+                  hash: 19a28b1aaa36067a087398a313ceee586ae09f42e08eec4bbb4ce09ddb74bcac9b0a8b2c69fcd14cfbba46d254e58154376003d141e5eaa48d7b10fb2651798d
+              required:
+                - key
+                - merchant_refund_id
+                - easebuzz_id
+                - refund_amount
+                - hash
+              properties:
+                key:
+                  type: string
+                  description: Unique Merchant Key provided by Easebuzz for your merchant account.
+                  pattern: '^[a-zA-Z0-9]*$'
+                merchant_refund_id:
+                  type: string
+                  description: Merchant refund Id must be unique for every refund request.
+                  pattern: '^[a-zA-Z0-9_-]*$'
+                easebuzz_id:
+                  type: string
+                  description: Unique Easebuzz Id generated by Easebuzz
+                  pattern: '^[a-zA-Z0-9]*$'
+                refund_amount:
+                  type: integer
+                  description: 'The amount to be refunded for the particular transaction. Note: Please type-cast the amount to float type.'
+                hash:
+                  type: string
+                  description: |-
+                    This is sha512 encrypted string. And hash sequence is mentioned above.
+                    Hash sequence: key|merchant_refund_id|easebuzz_id|refund_amount|salt
+                  pattern: '^[a-zA-Z0-9_]{64,128}$'
+                udf1:
+                  type: string
+                  x-stoplight:
+                    id: aaio9a0x1txzn
+                  description: User Defined Field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf2:
+                  type: string
+                  x-stoplight:
+                    id: noxo6urbfigmy
+                  description: User Defined Field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf3:
+                  type: string
+                  x-stoplight:
+                    id: i7prnk8f03wt2
+                  description: User Defined Field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf4:
+                  type: string
+                  x-stoplight:
+                    id: qdln13yetg9vb
+                  description: User Defined Field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf5:
+                  type: string
+                  x-stoplight:
+                    id: dzhi5joi51f5z
+                  description: User Defined Field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf6:
+                  type: string
+                  x-stoplight:
+                    id: nqnrrphn7bpxf
+                  description: User Defined Field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                udf7:
+                  type: string
+                  x-stoplight:
+                    id: h1xk83dqd4htv
+                  description: User Defined Field
+                  pattern: '''^[a-zA-Z\.0-9/\\,\s_#@\-=+&]*$'''
+                split_labels:
+                  type: object
+                  x-stoplight:
+                    id: glly2z26r2c81
+                  description: "If the split payment feature is enabled for the merchant account, then it is mandatory to pass this parameter while raising the refund.\r\n\r\n**Expected Value**: {\"label_of_bank1\" : split_refund_amount_in_rs, \"label_of_bank2\": split_refund_amount_in_rs}\r\n\r\n**Split Refund example**: { \"test account 1\": 60.0,\" test account 2\": 40.0}"
+                  pattern: '^[a-zA-Z0-9_]{1,15}$'
+            examples:
+              example-1:
+                value:
+                  key: XXXXXX
+                  merchant_refund_id: newdXX1
+                  easebuzz_id: E22092XXXXXK
+                  refund_amount: 1
+                  hash: 19a28b1aaa36067a087398a313ceee586ae09f42e08eec4bbb4ce09ddb74bcac9b0a8b2c69fcd14cfbba46d254e58154376003d141e5eaa48d7b10fb2651798d
+        description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                x-examples:
+                  Example 1:
+                    status: true
+                    message: 'Refund initiated, Your Request Id:RC5B9EHFNU'
+                    easebuzz_id: S2402051VT8IGG
+                    refund_id: RC5B9EHFNU
+                    refund_amount: 25
+                    merchant_refund_id: refund_12
+                properties:
+                  status:
+                    type: boolean
+                  message:
+                    type: string
+                  easebuzz_id:
+                    type: string
+                    description: The unique ID assigned to the transaction by Easebuzz while the transaction was iniated in the easebuzz system.
+                  refund_id:
+                    type: string
+                    description: "The unique identifier for the refund request.\r\n"
+                  refund_amount:
+                    type: integer
+                    description: The amount to be refunded.
+                  merchant_refund_id:
+                    type: string
+                    description: A reference ID assigned by the merchant for the refund request.
+              examples:
+                Success:
+                  value:
+                    status: true
+                    message: 'Refund initiated, Your Request Id:RC5B9EHFNU'
+                    easebuzz_id: S2402051VT8IGG
+                    refund_id: RC5B9EHFNU
+                    refund_amount: 25
+                    merchant_refund_id: refund_12
+      description: |-
+        Easebuzz supports the ability to refund charges made to your account, either in whole or in part. We submit refund requests to your customer’s bank or card issuer immediately. Your customer sees the refund as a credit approximately 5-10 business days later, depending upon the bank. Once issued, a refund cannot be cancelled. To refund a charge via the API, perform a create refund call, providing the easebuzz_id and merchant refund ID (used for uniquely identifying the refund for that particular merchant) of the charge to be refunded. Request a refund for the transaction.
+
+        > **Note:** If the split payment feature is enabled for the merchant account, then it is mandatory to pass `split_labels` parameter while raising the refund.
+
+        > **Note:** It is critical to configure [**webhooks**](https://docs.easebuzz.in/docs/payment-gateway/587zy3v064so6-what-are-webhooks) as this will allow the Easebuzz system to 'push' data to your system whenever any event occurs, ensuring that both systems are always in sync.
+
+
+        **Hash sequence:** 
+        ```
+        key|merchant_refund_id|easebuzz_id|refund_amount|salt
+        ```
+    parameters: []

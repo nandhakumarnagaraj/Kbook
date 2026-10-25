@@ -62,6 +62,10 @@ apps/android/*.aab
 # AI agent & tooling local data (never commit)
 .claude/
 .agents/
+# Agent tooling trees at repo root (skills, hooks, local settings, bundled
+# binaries). Kept local like the dot-directories above, never committed.
+/agent/
+/agents/
 .agnes/
 .codex/
 .opencode/
