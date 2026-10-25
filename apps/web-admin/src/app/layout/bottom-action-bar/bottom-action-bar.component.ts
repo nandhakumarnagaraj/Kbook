@@ -23,6 +23,7 @@ export interface BottomActionBarItem {
       class="action-item"
       [routerLink]="item.route"
       routerLinkActive="action-item--active"
+      ariaCurrentWhenActive="page"
       [attr.aria-label]="item.label"
     >
       <span class="icon">
@@ -39,15 +40,15 @@ export interface BottomActionBarItem {
       bottom: 0;
       left: 0;
       right: 0;
-      z-index: var(--kb-z-topbar, 30);
+      z-index: var(--kb-z-dock);
       display: flex;
       justify-content: space-around;
       align-items: stretch;
       background: var(--kb-color-surface);
       border-top: 1px solid var(--kb-color-border);
-      padding: var(--kb-space-2, 8px) var(--kb-space-2, 8px) max(var(--kb-space-2, 8px), env(safe-area-inset-bottom));
+      padding: var(--kb-space-2) var(--kb-space-2) max(var(--kb-space-2), env(safe-area-inset-bottom));
       box-shadow: 0 -4px 16px rgba(42, 31, 23, 0.08);
-      gap: var(--kb-space-1, 4px);
+      gap: var(--kb-space-1);
     }
     .action-item {
       position: relative;
@@ -59,15 +60,15 @@ export interface BottomActionBarItem {
       justify-content: center;
       gap: 3px;
       padding: 6px 2px;
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       color: var(--kb-color-muted-foreground);
       text-decoration: none;
-      font-size: 0.68rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
       line-height: 1.2;
       min-height: 48px;
       cursor: pointer;
-      transition: color 150ms var(--ease-out, ease-out), background-color 150ms var(--ease-out, ease-out);
+      transition: color 150ms var(--ease-out), background-color 150ms var(--ease-out);
     }
     .action-item .icon {
       display: inline-flex;
@@ -97,7 +98,7 @@ export interface BottomActionBarItem {
       font-weight: 700;
       line-height: 1;
       padding: 3px 5px;
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       min-width: 16px;
       text-align: center;
     }

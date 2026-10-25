@@ -199,7 +199,7 @@ interface VerificationState {
     .field-hint {
       display: block;
       margin-top: 4px;
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
     }
     .verify-badge {
@@ -207,9 +207,9 @@ interface VerificationState {
       align-items: center;
       gap: 6px;
       margin-top: 6px;
-      padding: 4px 10px;
+      padding: var(--kb-space-1) 10px;
       border-radius: var(--kb-radius-md);
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
       flex-wrap: wrap;
     }
     .verify-badge--success {
@@ -227,7 +227,7 @@ interface VerificationState {
     }
     .badge-sub {
       color: var(--kb-color-muted-foreground);
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
     }
   `]
 })

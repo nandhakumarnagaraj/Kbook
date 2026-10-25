@@ -17,63 +17,92 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, RefreshButtonComponent, HeaderSearchComponent, FocusTrapDirective],
   styles: [`
-    .card { background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+    .card { background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: 10px; padding: var(--kb-space-4) var(--kb-space-5); margin-bottom: 1rem; }
     .materials-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--kb-space-3);
     }
     .material-card {
-      background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: 8px;
-      padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.45rem;
+      background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg);
+      padding: 0.85rem var(--kb-space-4); display: flex; flex-direction: column; gap: 0.45rem;
       transition: border-color 0.15s, background 0.15s;
     }
     .material-card:hover { border-color: var(--kb-color-primary); background: var(--kb-color-surface); }
     .material-card.low-stock { border-color: var(--kb-color-warning); }
-    .material-name { font-weight: 600; font-size: 0.95rem; }
-    .material-stock { font-size: 0.85rem; color: var(--kb-color-muted-foreground); }
+    .material-name { font-weight: 600; font-size: var(--kb-text-lg); }
+    .material-stock { font-size: var(--kb-text-md); color: var(--kb-color-muted-foreground); }
     .material-stock strong { color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
-    .low-label { color: var(--kb-color-error); font-weight: 600; font-size: 0.75rem; }
-    .chip { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
+    .low-label { color: var(--kb-color-error); font-weight: 600; font-size: var(--kb-text-xs); }
+    .chip { display: inline-block; padding: 0.15rem var(--kb-space-2); border-radius: var(--kb-radius-full); font-size: var(--kb-text-xs); font-weight: 500; }
     .chip-green { background: rgba(47,133,90,0.12); color: var(--kb-color-success); }
     .chip-amber { background: rgba(183,121,31,0.12); color: var(--kb-color-warning); }
     .chip-red { background: rgba(192,57,43,0.12); color: var(--kb-color-danger); }
     .modal-content { width: 100%; max-width: 480px; }
-    .modal-content h3 { margin: 0 0 1.25rem; }
+    .modal-content h3 { margin: 0 0 var(--kb-space-5); }
     .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; font-weight: 500; }
+    .form-group label { display: block; margin-bottom: 0.25rem; font-size: var(--kb-text-md); font-weight: 500; }
     .form-group .field-control { width: 100%; box-sizing: border-box; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .tabs { display: flex; gap: 0.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--kb-color-border); max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .tab { flex: 0 0 auto; white-space: nowrap; padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--kb-color-muted-foreground); border-bottom: 2px solid transparent; transition: color 150ms var(--ease-out, ease-out), border-color 150ms var(--ease-out, ease-out); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--kb-space-3); }
+    .tabs { display: flex; gap: var(--kb-space-1); margin-bottom: 1.25rem; border-bottom: 1px solid var(--kb-color-border); max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tab { flex: 0 0 auto; white-space: nowrap; padding: var(--kb-space-2) var(--kb-space-4); font-size: var(--kb-text-md); font-weight: 500; cursor: pointer; border: none; background: none; color: var(--kb-color-muted-foreground); border-bottom: 2px solid transparent; transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out); }
     .tab:hover { color: var(--kb-color-foreground); }
     .tab.active { color: var(--kb-color-link); border-bottom-color: var(--kb-color-primary); }
-    .movement-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--kb-color-border); font-size: 0.85rem; }
+    .movement-row { display: flex; justify-content: space-between; align-items: center; padding: var(--kb-space-2) 0; border-bottom: 1px solid var(--kb-color-border); font-size: var(--kb-text-md); }
     .movement-type { font-weight: 500; }
     .movement-qty { font-family: var(--kb-font-mono); }
     .movement-qty.positive { color: var(--kb-color-success); }
     .movement-qty.negative { color: var(--kb-color-danger); }
-    .action-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--kb-color-border); }
+    .action-bar { display: flex; gap: var(--kb-space-2); flex-wrap: wrap; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--kb-color-border); }
     /* The table design — padding, type, colours, header band, row feedback —
        is defined once in the global stylesheet (see the "Tables" section of
        styles.css). A page may lay its columns out, but must not restate it. */
-    .inventory-summary, .materials-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-    .inventory-summary { margin: 0.25rem 0 1rem; color: var(--kb-color-muted-foreground); font-size: 0.84rem; }
+    .inventory-summary, .materials-toolbar { display: flex; align-items: center; gap: var(--kb-space-3); flex-wrap: wrap; }
+    .inventory-summary { margin: var(--kb-space-1) 0 var(--kb-space-4); color: var(--kb-color-muted-foreground); font-size: var(--kb-text-sm); }
     .inventory-summary strong { color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
     .materials-toolbar { justify-content: space-between; margin-bottom: 0.85rem; }
     .low-stock-filter[aria-pressed="true"] { color: var(--kb-color-warning); border-color: var(--kb-color-warning); background: rgba(183,121,31,0.08); }
     .material-card__actions { display: flex; gap: 0.45rem; margin-top: 0.35rem; }
     .material-card__actions button { min-height: 34px; padding: 0.35rem 0.65rem; }
-    .vendor-form { padding: 0.8rem; margin: 0 0 1rem; background: var(--kb-color-surface-2); border-radius: 8px; }
-    .vendor-form__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-    .inventory-note { margin: 0 0 1rem; font-size: 0.8rem; color: var(--kb-color-muted-foreground); }
+    .vendor-form { padding: 0.8rem; margin: 0 0 var(--kb-space-4); background: var(--kb-color-surface-2); border-radius: var(--kb-radius-lg); }
+    .vendor-form__actions { display: flex; justify-content: flex-end; gap: var(--kb-space-2); }
+    .inventory-note { margin: 0 0 var(--kb-space-4); font-size: var(--kb-text-sm); color: var(--kb-color-muted-foreground); }
     .workflow-form { display: flex; gap: 0.6rem; align-items: end; flex-wrap: wrap; margin-bottom: 1rem; }
     .workflow-form .form-group { margin: 0; min-width: 150px; }
     .workflow-list { display: grid; gap: 0.6rem; }
-    .workflow-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--kb-color-border); }
+    .workflow-row { display: flex; align-items: center; justify-content: space-between; gap: var(--kb-space-4); padding: var(--kb-space-3) 0; border-bottom: 1px solid var(--kb-color-border); }
     .workflow-row:last-child { border-bottom: 0; }
-    @media (max-width: 560px) {
+    @media (max-width: 640px) {
       .form-row { grid-template-columns: 1fr; gap: 0; }
       .material-card__actions button { flex: 1; }
     }
+
+    /* ── Inventory layout carriers ──
+       These declarations used to be inline style attributes. Values are
+       unchanged; the carrier moved into the component so the stylesheet
+       checks can see them. Modifiers follow their base rule. */
+    .inventory-empty-note { margin: 0; color: var(--kb-color-muted-foreground); }
+    .material-card__top { display: flex; justify-content: space-between; align-items: start; }
+    .movements-picker { margin-bottom: var(--kb-space-4); }
+    .movements-select { max-width: 300px; }
+    .movement-time {
+      margin-left: var(--kb-space-2);
+      color: var(--kb-color-muted-foreground);
+      font-size: var(--kb-text-sm);
+    }
+    .variance-controls {
+      display: flex;
+      gap: var(--kb-space-4);
+      align-items: end;
+      margin-bottom: var(--kb-space-4);
+      flex-wrap: wrap;
+    }
+    .variance-field { margin: 0; }
+    .material-detail-modal { max-width: 640px; }
+    .material-detail-summary { margin: 0 0 var(--kb-space-4); color: var(--kb-color-muted-foreground); }
+    .material-detail-number { font-variant-numeric: tabular-nums; }
+    .detail-tabs { margin-bottom: var(--kb-space-4); }
+    .vendor-toggle { margin-top: 0.45rem; }
+    .material-delete-btn { color: var(--kb-color-error); }
+    .workflow-row--po-line { width: 100%; justify-content: flex-start; }
   `],
   template: `
     <div class="page-shell">
@@ -118,7 +147,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
         <p class="inventory-note">Draft or send a supplier order. Receiving it records stock-in movements for every line.</p>
         <div class="workflow-form">
           <div class="form-group"><label for="po-vendor">Supplier</label><select id="po-vendor" class="field-select" [(ngModel)]="poForm.vendorId"><option [ngValue]="null">No supplier</option><option *ngFor="let vendor of vendors" [ngValue]="vendor.id">{{ vendor.name }}</option></select></div>
-          <div class="workflow-row" style="width:100%;justify-content:flex-start" *ngFor="let line of poForm.items; let i = index; trackBy: trackByIndex">
+          <div class="workflow-row workflow-row--po-line" *ngFor="let line of poForm.items; let i = index; trackBy: trackByIndex">
             <div class="form-group"><label [for]="'po-material-' + i">Material</label><select [id]="'po-material-' + i" class="field-select" required #poLineMaterialRef="ngModel" [(ngModel)]="line.rawMaterialId" [attr.aria-invalid]="poLineMaterialRef.invalid && poLineMaterialRef.touched" [attr.aria-describedby]="poLineMaterialRef.invalid && poLineMaterialRef.touched ? 'po-material-' + i + '-error' : null"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select><div class="field-error" [id]="'po-material-' + i + '-error'" *ngIf="poLineMaterialRef.invalid && poLineMaterialRef.touched">Choose a material for this line.</div></div>
             <div class="form-group"><label [for]="'po-quantity-' + i">Quantity</label><input [id]="'po-quantity-' + i" class="field-control" type="number" min="0.01" step="0.01" #poLineQtyRef="ngModel" [(ngModel)]="line.quantity" [attr.aria-invalid]="poLineQtyRef.touched && !isPositive(line.quantity)" [attr.aria-describedby]="poLineQtyRef.touched && !isPositive(line.quantity) ? 'po-quantity-' + i + '-error' : null" /><div class="field-error" [id]="'po-quantity-' + i + '-error'" *ngIf="poLineQtyRef.touched && !isPositive(line.quantity)">Enter a quantity greater than zero.</div></div>
             <button *ngIf="poForm.items.length > 1" type="button" class="ghost-btn" (click)="removePoLine(i)" aria-label="Remove purchase order line">Remove</button>
@@ -168,7 +197,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
         </div>
 
         <div *ngIf="materials.length > 0 && filteredMaterials.length === 0" class="card" role="status">
-          <p style="margin:0;color:var(--kb-color-muted-foreground)">No materials match these filters.</p>
+          <p class="inventory-empty-note">No materials match these filters.</p>
         </div>
 
         <div *ngIf="filteredMaterials.length > 0" class="materials-grid">
@@ -176,7 +205,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
                class="material-card"
                [class.low-stock]="isLowStock(m)"
                [attr.aria-label]="m.name + ', ' + m.stockQuantity + ' ' + m.unit">
-            <div style="display:flex;justify-content:space-between;align-items:start">
+            <div class="material-card__top">
               <span class="material-name">{{ m.name }}</span>
               <span *ngIf="isLowStock(m)" class="low-label">LOW</span>
             </div>
@@ -199,25 +228,25 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
       <!-- Movements Tab -->
       <div role="tabpanel" aria-label="Stock movements" *ngIf="activeTab === 'movements' && !loading && !error">
-        <div style="margin-bottom:1rem">
-          <select class="field-select" aria-label="Select material for stock movements" [(ngModel)]="selectedMaterialId" (change)="loadMovements()" style="max-width:300px">
+        <div class="movements-picker">
+          <select class="field-select movements-select" aria-label="Select material for stock movements" [(ngModel)]="selectedMaterialId" (change)="loadMovements()">
             <option [ngValue]="null">Select a material...</option>
             <option *ngFor="let m of materials; trackBy: trackByMaterialId" [ngValue]="m.id">{{ m.name }}</option>
           </select>
         </div>
 
         <div *ngIf="selectedMaterialId && movements.length === 0" class="card">
-          <p style="margin:0;color:var(--kb-color-muted-foreground)">No movements recorded yet.</p>
+          <p class="inventory-empty-note">No movements recorded yet.</p>
         </div>
 
         <div *ngIf="movements.length > 0" class="card">
           <div *ngFor="let mv of movements; trackBy: trackByIndex" class="movement-row">
             <div>
               <span class="movement-type">{{ formatMovementType(mv.kind) }}</span>
-              <span style="margin-left:0.5rem;color:var(--kb-color-muted-foreground);font-size:0.8rem">
+              <span class="movement-time">
                 {{ mv.createdAt | date:'short' }}
               </span>
-              <span *ngIf="mv.reason" style="margin-left:0.5rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
+              <span class="movement-time" *ngIf="mv.reason">
                 — {{ mv.reason }}
               </span>
             </div>
@@ -228,19 +257,19 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
         </div>
 
         <div *ngIf="!selectedMaterialId" class="card">
-          <p style="margin:0;color:var(--kb-color-muted-foreground)">Select a material to view its stock movement history.</p>
+          <p class="inventory-empty-note">Select a material to view its stock movement history.</p>
         </div>
       </div>
 
       <!-- Variance Tab -->
       <div role="tabpanel" aria-label="Variance report" *ngIf="activeTab === 'variance' && !loading && !error">
         <div class="card">
-          <div style="display:flex;gap:1rem;align-items:end;margin-bottom:1rem;flex-wrap:wrap">
-            <div class="form-group" style="margin:0">
+          <div class="variance-controls">
+            <div class="form-group variance-field">
               <label for="varianceFrom">From</label>
               <input id="varianceFrom" class="field-control" type="date" [(ngModel)]="varianceFrom" />
             </div>
-            <div class="form-group" style="margin:0">
+            <div class="form-group variance-field">
               <label for="varianceTo">To</label>
               <input id="varianceTo" class="field-control" type="date" [(ngModel)]="varianceTo" />
             </div>
@@ -327,15 +356,15 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
       <!-- Material Detail Modal (stock actions) -->
       <div class="modal-backdrop" *ngIf="showDetailModal" appFocusTrap (escape)="closeDetailModal()" (click)="closeDetailModal()">
-        <div class="modal-box modal-content" style="max-width:520px" role="dialog" aria-modal="true" aria-labelledby="material-detail-title" (click)="$event.stopPropagation()">
+        <div class="modal-box modal-content material-detail-modal" role="dialog" aria-modal="true" aria-labelledby="material-detail-title" (click)="$event.stopPropagation()">
           <h3 id="material-detail-title">{{ selectedMaterial?.name }}</h3>
-          <p style="margin:0 0 1rem;color:var(--kb-color-muted-foreground)">
-            Current stock: <strong style="font-variant-numeric:tabular-nums">{{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}</strong>
-            <span *ngIf="selectedMaterial?.costPerUnit" style="font-variant-numeric:tabular-nums"> · Cost: ₹{{ selectedMaterial?.costPerUnit | number:'1.2-2' }}/{{ selectedMaterial?.unit }}</span>
+          <p class="material-detail-summary">
+            Current stock: <strong class="material-detail-number">{{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}</strong>
+            <span class="material-detail-number" *ngIf="selectedMaterial?.costPerUnit"> · Cost: ₹{{ selectedMaterial?.costPerUnit | number:'1.2-2' }}/{{ selectedMaterial?.unit }}</span>
           </p>
 
           <!-- Action sub-tabs -->
-          <div class="tabs" style="margin-bottom:1rem" role="tablist" aria-label="Stock actions">
+          <div class="tabs detail-tabs" role="tablist" aria-label="Stock actions">
             <button class="tab" role="tab" [attr.aria-selected]="detailTab === 'purchase'" [class.active]="detailTab === 'purchase'" (click)="detailTab='purchase'">Stock In</button>
             <button class="tab" role="tab" [attr.aria-selected]="detailTab === 'wastage'" [class.active]="detailTab === 'wastage'" (click)="detailTab='wastage'">Wastage</button>
             <button class="tab" role="tab" [attr.aria-selected]="detailTab === 'count'" [class.active]="detailTab === 'count'" (click)="detailTab='count'">Physical Count</button>
@@ -349,7 +378,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
                 <option [ngValue]="null">No supplier selected</option>
                 <option *ngFor="let vendor of vendors; trackBy: trackByVendorId" [ngValue]="vendor.id">{{ vendor.name }}</option>
               </select>
-              <button type="button" class="ghost-btn" style="margin-top:0.45rem" (click)="showVendorForm = !showVendorForm">
+              <button type="button" class="ghost-btn vendor-toggle" (click)="showVendorForm = !showVendorForm">
                 {{ showVendorForm ? 'Cancel new supplier' : '+ Add supplier' }}
               </button>
             </div>
@@ -419,7 +448,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
                      [attr.aria-describedby]="countQtyRef.touched && !isNonNegative(countForm.countedQty) ? 'count-quantity-error' : null" min="0" step="0.01" />
               <div class="field-error" id="count-quantity-error" *ngIf="countQtyRef.touched && !isNonNegative(countForm.countedQty)">A counted quantity cannot be negative.</div>
             </div>
-            <p style="margin:0 0 1rem;font-size:0.8rem;color:var(--kb-color-muted-foreground)">
+            <p class="inventory-note">
               System shows {{ selectedMaterial?.stockQuantity }} {{ selectedMaterial?.unit }}. Any variance will create an adjustment entry.
             </p>
             <button class="primary-btn" (click)="submitPhysicalCount()" [disabled]="!isNonNegative(countForm.countedQty) || savingStock">
@@ -430,7 +459,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
           <div class="modal-actions">
             <button class="ghost-btn" (click)="closeDetailModal()">Close</button>
             <button class="ghost-btn" (click)="openEditMaterial(selectedMaterial)">Edit details</button>
-            <button class="ghost-btn" style="color:var(--kb-color-error)" (click)="deleteMaterial()">Delete</button>
+            <button class="ghost-btn material-delete-btn" (click)="deleteMaterial()">Delete</button>
           </div>
         </div>
       </div>

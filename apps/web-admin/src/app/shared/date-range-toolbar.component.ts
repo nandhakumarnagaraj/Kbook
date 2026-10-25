@@ -60,7 +60,7 @@ import { RefreshButtonComponent } from './refresh-button.component';
       display: flex;
       align-items: center;
       justify-content: flex-start;
-      gap: 8px;
+      gap: var(--kb-space-2);
       flex-wrap: nowrap;
     }
     app-date-range-selector { flex: 0 0 auto; width: auto; }
@@ -72,7 +72,7 @@ import { RefreshButtonComponent } from './refresh-button.component';
       height: 44px;
       padding: 0;
       border: 1px solid var(--kb-color-border-strong);
-      border-radius: var(--kb-radius-md, 6px);
+      border-radius: var(--kb-radius-md);
       cursor: pointer;
       transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
     }
@@ -104,7 +104,7 @@ import { RefreshButtonComponent } from './refresh-button.component';
        line the button kept a pointer cursor while disabled. */
     .date-toolbar__button:disabled { opacity: 0.55; cursor: not-allowed; }
     .date-toolbar__button:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
-    @media (max-width: 680px) {
+    @media (max-width: 768px) {
       .date-toolbar { justify-content: flex-start; flex-wrap: wrap; }
     }
   `]

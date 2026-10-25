@@ -132,7 +132,7 @@ interface RestaurantProfile {
               <p class="muted">Upload your brand mark. Displayed on bills, printed thermal receipts, and digital menus (PNG, JPG, max 2MB).</p>
               <div class="logo-actions">
                 <label class="ghost-btn file-picker-label">
-                  <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoFileSelected($event)" style="display:none;" aria-label="Choose restaurant logo file" />
+                  <input class="logo-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" (change)="onLogoFileSelected($event)" aria-label="Choose restaurant logo file" />
                   <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="17 8 12 3 7 8"/>
@@ -166,7 +166,7 @@ interface RestaurantProfile {
             </div>
             <div class="field field--span-2">
               <label>Shop Address</label>
-              <textarea class="field-control" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" rows="3" style="resize: vertical; min-height: 72px; font-family: inherit;"></textarea>
+              <textarea class="field-control textarea-address" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" rows="3"></textarea>
             </div>
             <div class="field">
               <label>Thermal Receipt Footer Note</label>
@@ -246,11 +246,11 @@ interface RestaurantProfile {
     .sticky-save-dock {
       position: sticky;
       bottom: var(--kb-space-4);
-      z-index: var(--kb-z-topbar, 30);
+      z-index: var(--kb-z-dock);
       margin: var(--kb-space-5) 0;
       padding: var(--kb-space-3) var(--kb-space-5);
       background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-primary, #0066cc);
+      border: 1px solid var(--kb-color-primary);
       border-radius: var(--kb-radius-lg);
       box-shadow: 0 4px 20px rgba(0, 102, 204, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
       animation: slideUpDock 200ms ease;
@@ -275,9 +275,9 @@ interface RestaurantProfile {
     .dock-unsaved-badge {
       display: inline-flex;
       align-items: center;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.72rem;
+      padding: 2px var(--kb-space-2);
+      border-radius: var(--kb-radius-full);
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -291,7 +291,7 @@ interface RestaurantProfile {
       gap: var(--kb-space-2);
     }
     .dock-hint {
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
     }
     @media (max-width: 640px) {
@@ -335,8 +335,8 @@ interface RestaurantProfile {
       align-items: center;
       justify-content: center;
       color: var(--kb-color-muted-foreground);
-      font-size: 0.72rem;
-      gap: 4px;
+      font-size: var(--kb-text-2xs);
+      gap: var(--kb-space-1);
     }
     .logo-meta {
       flex: 1;
@@ -344,12 +344,12 @@ interface RestaurantProfile {
     }
     .logo-meta h4 {
       margin: 0 0 2px;
-      font-size: 0.95rem;
+      font-size: var(--kb-text-lg);
       font-weight: 600;
     }
     .logo-meta p {
       margin: 0 0 var(--kb-space-2);
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
     }
     .logo-actions {
       display: flex;
@@ -360,6 +360,7 @@ interface RestaurantProfile {
     .file-picker-label {
       cursor: pointer;
     }
+    .logo-file-input { display: none; }
     .danger-btn {
       color: var(--kb-color-error);
       border-color: rgba(192, 57, 43, 0.3);

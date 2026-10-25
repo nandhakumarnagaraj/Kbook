@@ -51,10 +51,10 @@ import { AuthService } from '../../core/auth/auth.service';
       color: var(--kb-color-link);
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       font-weight: 800;
     }
-    h1 { margin: 0.55rem 0 0.75rem; font-size: clamp(1.5rem, 4vw, 2rem); }
+    h1 { margin: 0.55rem 0 var(--kb-space-3); font-size: clamp(1.5rem, 4vw, 2rem); }
     .access-note {
       margin: var(--kb-space-4) 0;
       padding: var(--kb-space-3);

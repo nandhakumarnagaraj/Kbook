@@ -162,15 +162,15 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
           <div class="modal-header">
             <div>
               <span class="chip danger">Void / Cancel Order</span>
-              <h3 id="cancel-modal-title" style="margin: 0.35rem 0 0;">Cancel Order #{{ orderToCancel()?.orderCode }}</h3>
-              <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.85rem;">
+              <h3 class="cancel-modal-title" id="cancel-modal-title">Cancel Order #{{ orderToCancel()?.orderCode }}</h3>
+              <p class="muted cancel-modal-note">
                 Amount: {{ fmt(orderToCancel()?.totalAmount || 0) }} · {{ orderToCancel()?.customerName || 'Walk-in customer' }}
               </p>
             </div>
             <button type="button" class="icon-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting()" aria-label="Close dialog">✕</button>
           </div>
 
-          <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
+          <div class="modal-body cancel-modal-body">
             <div class="field">
               <label for="cancel-preset">Cancellation Reason</label>
               <select id="cancel-preset" class="field-select" [(ngModel)]="cancelReasonPreset" [disabled]="cancelSubmitting()">
@@ -215,7 +215,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     /* Tab body — the routed shell owns the page header and outer geometry. */
     .tab-panel {
       display: grid;
-      gap: 1.5rem;
+      gap: var(--kb-space-6);
     }
     .tab-toolbar {
       display: flex;
@@ -270,12 +270,12 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     .card-top-row {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: var(--kb-space-3);
     }
     .channel-avatar {
       width: 40px;
       height: 40px;
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -296,12 +296,12 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       flex-direction: column;
     }
     .order-code {
-      font-size: 1.05rem;
+      font-size: var(--kb-text-lg);
       font-weight: 800;
       color: var(--kb-color-foreground);
     }
     .channel-tag {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
@@ -309,10 +309,10 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     }
 
     .status-pill {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       padding: 0.2rem 0.6rem;
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface-2);
       color: var(--kb-color-muted-foreground);
     }
@@ -329,20 +329,20 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
     }
     .customer-name {
-      font-size: 0.88rem;
+      font-size: var(--kb-text-md);
       font-weight: 600;
       color: var(--kb-color-foreground);
     }
     .table-identifier {
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       font-weight: 700;
       color: var(--kb-color-link);
       background: var(--kb-color-surface);
       padding: 0.15rem 0.55rem;
-      border-radius: 6px;
+      border-radius: var(--kb-radius-md);
     }
 
     .card-bottom-row {
@@ -357,7 +357,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       flex-direction: column;
     }
     .amount-label {
-      font-size: 0.7rem;
+      font-size: var(--kb-text-2xs);
       color: var(--kb-color-muted-foreground);
       font-weight: 600;
       text-transform: uppercase;
@@ -370,7 +370,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     }
 
     .elapsed-pill {
-      font-size: 0.74rem;
+      font-size: var(--kb-text-xs);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
@@ -387,7 +387,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     /* ── Card Actions Row ── */
     .card-actions-row {
       display: flex;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       border-top: 1px solid var(--kb-color-border);
       padding-top: 0.75rem;
       margin-top: 0.25rem;
@@ -398,12 +398,12 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       align-items: center;
       justify-content: center;
       gap: 0.35rem;
-      padding: 0.45rem 0.5rem;
-      border-radius: 8px;
-      font-size: 0.76rem;
+      padding: 0.45rem var(--kb-space-2);
+      border-radius: var(--kb-radius-lg);
+      font-size: var(--kb-text-xs);
       font-weight: 600;
       border: 1px solid var(--kb-color-border);
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       color: var(--kb-color-foreground);
       cursor: pointer;
       min-height: 36px;
@@ -445,7 +445,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 1rem;
+      gap: var(--kb-space-4);
       margin-bottom: 0.75rem;
     }
     /* The close cross is the shared global icon-btn — see the
@@ -454,9 +454,9 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     .chip {
       display: inline-block;
       padding: 0.2rem 0.55rem;
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface-2);
       color: var(--kb-color-muted-foreground);
     }
@@ -470,17 +470,17 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       gap: 0.35rem;
     }
     .field label {
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-foreground);
     }
     .field-select, .field-control {
-      padding: 0.5rem 0.75rem;
+      padding: var(--kb-space-2) var(--kb-space-3);
       border: 1px solid var(--kb-color-border-strong);
-      border-radius: 8px;
-      font-size: 0.88rem;
+      border-radius: var(--kb-radius-lg);
+      font-size: var(--kb-text-md);
       min-height: 40px;
-      background: #FFFFFF;
+      background: var(--kb-color-input);
       color: var(--kb-color-foreground);
       outline: none;
     }
@@ -490,15 +490,15 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     .modal-actions {
       display: flex;
       justify-content: flex-end;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       margin-top: 1.25rem;
     }
     .ghost-btn {
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
+      padding: var(--kb-space-2) var(--kb-space-4);
+      border-radius: var(--kb-radius-lg);
       border: 1px solid var(--kb-color-border-strong);
-      background: #FFFFFF;
-      font-size: 0.85rem;
+      background: var(--kb-color-surface);
+      font-size: var(--kb-text-md);
       font-weight: 600;
       cursor: pointer;
       color: var(--kb-color-foreground);
@@ -511,12 +511,17 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     
     .danger-btn {
       background: var(--kb-color-danger-solid) !important;
-      color: #FFFFFF !important;
+      color: var(--kb-color-foreground-contrast) !important;
       border: none !important;
     }
     .danger-btn:hover:not(:disabled) {
       background: var(--kb-color-danger) !important;
     }
+
+    /* Cancel dialog: the same three carriers exist in the history tab. */
+    .cancel-modal-title { margin: 0.35rem 0 0; }
+    .cancel-modal-note { margin: var(--kb-space-1) 0 0; font-size: var(--kb-text-md); }
+    .cancel-modal-body { display: grid; gap: var(--kb-space-4); padding: var(--kb-space-4) 0; }
   `]
 })
 export class LiveOrdersTabComponent implements OnDestroy {

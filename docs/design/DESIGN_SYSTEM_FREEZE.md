@@ -39,9 +39,16 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 
 ## Current Locked Palette (Web Admin)
 
-> **Palette revision (2026-10-25, second pass):** the ship palette is a **light
-> workspace** — `#F7F9FC` canvas, white cards, near-black ink — with the same blue
-> `#2563EB` action fill. The dark command-centre pass was reversed on the same day
+> **Palette revision (2026-10-25, third pass):** the action fill moves from blue
+> `#2563EB` to indigo `#4F46E5` (hover `#4338CA`, soft tint `rgba(79, 70, 229, 0.08)`),
+> for a more modern look. The workspace stays a **light canvas** — `#F7F9FC`, white
+> cards, near-black ink. The sidebar's active link and rail accents follow the
+> indigo primary through the same token. The contrast rules still apply: white on
+> `#4F46E5` must clear 4.5:1, which is re-measured by `design-tokens.spec.ts`.
+>
+> **Palette revision (2026-10-25, second pass):** the ship palette was a **light
+> workspace** — `#F7F9FC` canvas, white cards, near-black ink — with the blue
+> `#2563EB` action fill (now superseded by the indigo above). The dark command-centre pass was reversed on the same day
 > at the product owner's request; orange `#E87A1E` and purple `#5926B8` exist only
 > as accents (`--brand-orange`, `--brand-purple`), never as a second primary.
 >
@@ -77,8 +84,8 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 | `--kb-color-foreground-2` | #334155 | Values and table cells |
 | `--kb-color-muted-foreground` | #556377 | Secondary text (6.1:1 on white, 5.6:1 on a table header) |
 | `--kb-color-border` / `-strong` | #E2E8F0 / #8A94A6 | Dividers / control borders (3.1:1) |
-| `--kb-color-primary` | **#2563EB** | Primary action fill (white on it 5.17:1) |
-| `--kb-color-primary-hover` | #1D4ED8 | Fill hover |
+| `--kb-color-primary` | **#4F46E5** | Primary action fill (indigo, third-pass revision) |
+| `--kb-color-primary-hover` | #4338CA | Fill hover |
 | `--kb-color-link` / `-hover` | #1D4ED8 / #1E40AF | Brand colour used as **text** (6.7:1) |
 | `--kb-color-success` / `-soft` | #166534 / 10% | Success / available / completed |
 | `--kb-color-warning` / `-soft` | #9A3F08 / 10% | Warning / pending / low stock |
@@ -142,8 +149,10 @@ set of inks on a light canvas.
 These are locked alongside the palette so pages cannot drift apart again:
 
 1. **One page shell.** Every routed page wraps its content in `.page-shell`
-   (defined once in `apps/web-admin/src/styles.css`: max-width 1440px, padding
+   (defined once in `apps/web-admin/src/styles.css`: max-width 1680px, padding
    `1.75rem 2rem 3.5rem`, grid gap `1.5rem`). Pages must **not** override it.
+   *Revised 2026-10-25: max-width 1680px (was 1440px), aligning this rule with
+   the shipped shell; padding and gap are unchanged.*
 2. **One page header.** Use the shared `PageHeaderComponent`
    (`app-page-header`). Do not hand-roll `.header-left` / `.header-title-row` /
    `.header-sub` / `.header-right` markup or the `.dash-header*` variant.

@@ -63,6 +63,35 @@ function tokenColor(name: string): string {
   return value;
 }
 
+/**
+ * Resolves a type-scale token the same way: the assertion says "this class paints
+ * itself at the shared step", not "this class is 11.84px". Pinning the literal is
+ * how the tag kept a page-local size through a refactor that was supposed to remove
+ * it — the spec would have gone red for the right change.
+ */
+function tokenSize(name: string): string {
+  const probe = document.createElement('div');
+  probe.style.fontSize = `var(${name})`;
+  document.body.appendChild(probe);
+  const value = getComputedStyle(probe).fontSize;
+  probe.remove();
+  return value;
+}
+
+/**
+ * Resolves a length token - radii today. Same reasoning as tokenSize: the assertion says
+ * "this class paints from the shared pill", not "this class is 9999px". The old `999px`
+ * literal had already drifted from --kb-radius-full, which is 9999px.
+ */
+function tokenLength(name: string): string {
+  const probe = document.createElement('div');
+  probe.style.borderRadius = `var(${name})`;
+  document.body.appendChild(probe);
+  const value = getComputedStyle(probe).borderRadius;
+  probe.remove();
+  return value;
+}
+
 describe('shared vocabulary (bento.css)', () => {
   let host: HTMLElement;
 
@@ -81,8 +110,8 @@ describe('shared vocabulary (bento.css)', () => {
     const tag = styleOf(host, '.kpi-tag');
 
     expect(tag.paddingTop).toBe(rem(0.2));
-    expect(tag.borderRadius).toBe('999px');
-    expect(tag.fontSize).toBe(rem(0.74));
+    expect(tag.borderRadius).toBe(tokenLength('--kb-radius-full'));
+    expect(tag.fontSize).toBe(tokenSize('--kb-text-xs'));
     expect(tag.fontWeight).toBe('700');
     expect(tag.fontVariantNumeric).toBe('tabular-nums');
     expect(tag.backgroundColor).toBe(tokenColor('--kb-color-surface-2'));
@@ -102,7 +131,7 @@ describe('shared vocabulary (bento.css)', () => {
     expect(chip.display).toBe('inline-block');
     expect(chip.paddingTop).toBe(rem(0.2));
     expect(chip.paddingLeft).toBe(rem(0.6));
-    expect(chip.borderRadius).toBe('999px');
+    expect(chip.borderRadius).toBe(tokenLength('--kb-radius-full'));
   });
 
   it('renders .btn-micro (on an anchor) without losing the link reset', () => {

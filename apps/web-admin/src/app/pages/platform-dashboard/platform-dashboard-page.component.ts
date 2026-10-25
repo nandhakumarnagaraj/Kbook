@@ -107,7 +107,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
           <section class="kpi-secondary">
             <div class="kpi-mini">
               <span class="kpi-mini-label">Live storefronts</span>
-              <span class="kpi-mini-value" style="color: var(--success);">{{ data.liveBusinesses }}</span>
+              <span class="kpi-mini-value kpi-mini-value--success">{{ data.liveBusinesses }}</span>
             </div>
             <div class="kpi-mini">
               <span class="kpi-mini-label">Total staff</span>
@@ -338,7 +338,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       </ng-container>
 
       <ng-template #tabLoadingState>
-        <div class="kpi-row" style="margin-top: var(--kb-space-4);">
+        <div class="kpi-row kpi-row--spaced">
           <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
         </div>
       </ng-template>
@@ -350,7 +350,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     /* ── Tab Navigation ── */
     .operator-tabs-nav {
       display: flex;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       border-bottom: 1px solid var(--kb-color-border);
       padding-bottom: 0.75rem;
       overflow-x: auto;
@@ -359,8 +359,8 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       display: inline-flex;
       align-items: center;
       padding: 0.55rem 1.1rem;
-      border-radius: 999px;
-      font-size: 0.84rem;
+      border-radius: var(--kb-radius-full);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       background: var(--kb-color-surface);
@@ -386,7 +386,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     /* ── KPI Grid ── */
     .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--kb-space-4); }
     @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 560px)  { .kpi-row { grid-template-columns: 1fr; } }
+    @media (max-width: 640px)  { .kpi-row { grid-template-columns: 1fr; } }
 
     .kpi-card {
       background: var(--kb-color-surface); border: 1px solid var(--kb-color-border);
@@ -415,7 +415,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     .kpi-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
 
     .kpi-label {
-      font-size: 0.78rem; color: var(--kb-color-muted-foreground);
+      font-size: var(--kb-text-sm); color: var(--kb-color-muted-foreground);
       text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
     }
     .kpi-value {
@@ -423,8 +423,8 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
     }
     .kpi-card--hero .kpi-value { font-size: calc(1.8rem + 0.3vw); color: var(--kb-color-primary-foreground); }
-    .kpi-foot { font-size: 0.82rem; color: var(--muted); }
-    .kpi-delta { display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: var(--muted); }
+    .kpi-foot { font-size: var(--kb-text-sm); color: var(--muted); }
+    .kpi-delta { display: flex; align-items: center; gap: 0.4rem; font-size: var(--kb-text-sm); color: var(--muted); }
     .kpi-compare { color: var(--muted); }
 
     .kpi-secondary {
@@ -432,17 +432,17 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       background: var(--kb-color-surface); border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg); overflow: hidden;
     }
-    @media (max-width: 720px) { .kpi-secondary { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .kpi-secondary { grid-template-columns: repeat(2, 1fr); } }
     .kpi-mini {
       padding: var(--kb-space-3) var(--kb-space-4); display: grid; gap: var(--kb-space-2);
       border-right: 1px solid var(--kb-color-border);
     }
     .kpi-mini:last-child { border-right: none; }
-    @media (max-width: 720px) {
+    @media (max-width: 768px) {
       .kpi-mini:nth-child(2n) { border-right: none; }
       .kpi-mini:nth-child(-n+2) { border-bottom: 1px solid var(--kb-color-border); }
     }
-    .kpi-mini-label { font-size: 0.76rem; color: var(--kb-color-muted-foreground); font-weight: 600; }
+    .kpi-mini-label { font-size: var(--kb-text-xs); color: var(--kb-color-muted-foreground); font-weight: 600; }
     .kpi-mini-value { font-size: 1.05rem; font-weight: 700; color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
 
     .focus-panel {
@@ -450,19 +450,19 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       border-radius: var(--kb-radius-xl); padding: var(--kb-space-4) var(--kb-space-5);
     }
     .focus-panel header { margin-bottom: var(--kb-space-3); }
-    .focus-panel h3 { margin: 0 0 0.25rem; font-size: 1.1rem; }
+    .focus-panel h3 { margin: 0 0 var(--kb-space-1); font-size: var(--kb-text-lg); }
     .focus-panel p { margin: 0; }
     .focus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--kb-space-3); }
-    @media (max-width: 900px) { .focus-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1024px) { .focus-grid { grid-template-columns: 1fr; } }
     .focus-card {
       padding: var(--kb-space-3) var(--kb-space-4);
       background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg); display: grid; gap: var(--kb-space-2);
     }
-    .focus-card h4 { margin: 0.1rem 0 0; font-size: 0.98rem; }
-    .focus-card p { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.88rem; line-height: 1.5; }
+    .focus-card h4 { margin: 0.1rem 0 0; font-size: var(--kb-text-lg); }
+    .focus-card p { margin: 0; color: var(--kb-color-muted-foreground); font-size: var(--kb-text-md); line-height: 1.5; }
     .focus-tag {
-      justify-self: start; font-size: 0.7rem; font-weight: 700;
+      justify-self: start; font-size: var(--kb-text-2xs); font-weight: 700;
       letter-spacing: 0.06em; text-transform: uppercase;
       padding: var(--kb-space-1) var(--kb-space-2); border-radius: var(--kb-radius-md);
     }
@@ -482,13 +482,13 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 1rem;
+      gap: var(--kb-space-4);
       margin-bottom: var(--kb-space-3);
       flex-wrap: wrap;
     }
     .table-card__header h3 {
       margin: 0 0 2px;
-      font-size: 1.15rem;
+      font-size: var(--kb-text-lg);
       font-weight: 700;
     }
     .records-pill {
@@ -497,7 +497,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface-2);
       color: var(--kb-color-muted-foreground);
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       font-weight: 700;
       border: 1px solid var(--kb-color-border);
     }
@@ -508,7 +508,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     .text-brand { color: var(--kb-color-link); }
     .code-badge {
       font-family: var(--kb-font-mono);
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
       padding: 2px 6px;
       border-radius: var(--kb-radius-sm);
       background: var(--kb-color-surface-2);
@@ -517,9 +517,9 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     .status-pill {
       display: inline-flex;
       align-items: center;
-      padding: 2px 8px;
+      padding: 2px var(--kb-space-2);
       border-radius: var(--kb-radius-full);
-      font-size: 0.74rem;
+      font-size: var(--kb-text-xs);
       font-weight: 700;
       text-transform: uppercase;
       background: var(--kb-color-surface-2);
@@ -542,7 +542,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
       border-color: rgba(192, 57, 43, 0.3);
     }
     .empty-state-box {
-      padding: 3rem 1rem;
+      padding: var(--kb-space-12) var(--kb-space-4);
       text-align: center;
     }
     .split-label-form {
@@ -552,7 +552,7 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     }
     .split-label-input {
       width: 9.5rem;
-      padding: 0.3rem 0.5rem;
+      padding: 0.3rem var(--kb-space-2);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-sm);
       background: var(--kb-color-surface);
@@ -575,17 +575,19 @@ import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../co
     .split-label-hint {
       display: block;
       margin-top: 0.25rem;
-      font-size: 0.68rem;
+      font-size: var(--kb-text-2xs);
       color: var(--kb-color-muted-foreground);
     }
 
-    .skeleton { background: var(--line); border-radius: var(--r-md); animation: pulse 1.5s ease-in-out infinite; }
+    .skeleton { background: var(--line); border-radius: var(--kb-radius-md); animation: pulse 1.5s ease-in-out infinite; }
     .skeleton-stat { height: 130px; }
     @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
     @media (prefers-reduced-motion: reduce) {
       .skeleton, .kpi-card { animation: none; transition: none; }
     }
     .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--kb-space-4); padding: var(--kb-space-8); text-align: center; }
+    .kpi-mini-value--success { color: var(--success); }
+    .kpi-row--spaced { margin-top: var(--kb-space-4); }
   `]
 })
 export class PlatformDashboardPageComponent {

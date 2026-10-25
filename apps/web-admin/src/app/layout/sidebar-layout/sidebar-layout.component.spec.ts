@@ -49,6 +49,34 @@ function configureSidebarTestingModule(): void {
   });
 }
 
+const PHONE = 390;
+let restoreViewport: (() => void) | null = null;
+
+/** CSS media queries read the viewport, so a phone-width assertion has to drive
+    the Karma iframe, the same way responsive-layout.spec.ts does. */
+function setViewport(width: number, height = 900): void {
+  const frame = window.frameElement as HTMLIFrameElement | null;
+  if (!frame) {
+    throw new Error('this spec needs the Karma iframe to drive a real viewport');
+  }
+  if (!restoreViewport) {
+    const style = frame.style;
+    const width0 = style.width;
+    const height0 = style.height;
+    restoreViewport = () => {
+      style.width = width0;
+      style.height = height0;
+    };
+  }
+  frame.style.width = `${width}px`;
+  frame.style.height = `${height}px`;
+}
+
+afterEach(() => {
+  restoreViewport?.();
+  restoreViewport = null;
+});
+
 describe('SidebarLayoutComponent — collapsible sidebar', () => {
   beforeEach(() => {
     localStorage.removeItem(COLLAPSE_KEY);
@@ -278,6 +306,31 @@ describe('SidebarLayoutComponent — collapsible sidebar', () => {
     const { comp } = create(false);
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'B', ctrlKey: true, shiftKey: true, bubbles: true }));
     expect(comp.collapsed()).toBeFalse();
+  });
+
+  it('paints the open drawer above the topbar and its scrim on a phone', () => {
+    // Regression: the drawer was z-index 100 and the sticky topbar 101, so the
+    // topbar's opaque surface covered the drawer's brand row and close button
+    // while the topbar was inert. Both now read rungs of the ladder in styles.css.
+    setViewport(PHONE);
+    const { fixture, comp } = create(false);
+    comp.menuOpen.set(true);
+    fixture.detectChanges();
+
+    const root = fixture.nativeElement as HTMLElement;
+    const layer = (selector: string): number => {
+      const el = root.querySelector(selector) as HTMLElement | null;
+      expect(el).withContext(`${selector} renders`).toBeTruthy();
+      return Number(getComputedStyle(el!).zIndex);
+    };
+
+    const topbar = layer('.topbar');
+    const scrim = layer('.sidebar-backdrop');
+    const drawer = layer('.sidebar');
+
+    expect(drawer).withContext('the drawer header must not disappear under the topbar').toBeGreaterThan(topbar);
+    expect(scrim).withContext('the scrim dims the shell, topbar included').toBeGreaterThan(topbar);
+    expect(drawer).withContext('the drawer sits above its own scrim').toBeGreaterThan(scrim);
   });
 
   it('signs out through the auth service', () => {

@@ -112,11 +112,11 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
         padding: 0 5px;
         min-width: 16px;
         height: 16px;
-        border-radius: 999px;
+        border-radius: var(--kb-radius-full);
         /* The soft-tuned danger ink is 2.7:1 behind white; the solid fill is the
            token that exists for text ON it. */
         background: var(--kb-color-danger-solid);
-        color: #FFFFFF;
+        color: var(--kb-color-foreground-contrast);
         font-size: 0.65rem;
         font-weight: 700;
         display: flex;
@@ -148,9 +148,9 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
         max-height: 400px;
         background: var(--kb-color-surface-3);
         border: 1px solid var(--kb-color-border-strong);
-        border-radius: 16px;
+        border-radius: var(--kb-radius-2xl);
         box-shadow: var(--shadow-lg);
-        z-index: 60;
+        z-index: var(--kb-z-dropdown);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -166,14 +166,14 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 0.85rem 1rem;
+        padding: 0.85rem var(--kb-space-4);
         border-bottom: 1px solid var(--kb-color-border);
         background: var(--kb-color-bg-app);
       }
 
       .notif-flyout__head h4 {
         margin: 0;
-        font-size: 0.88rem;
+        font-size: var(--kb-text-md);
         font-weight: 700;
         color: var(--kb-color-foreground);
       }
@@ -187,7 +187,7 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
 
       .notif-item {
         position: relative;
-        padding: 0.75rem 1rem;
+        padding: var(--kb-space-3) var(--kb-space-4);
         border-bottom: 1px solid var(--kb-color-bg-app);
         display: flex;
         align-items: flex-start;
@@ -211,26 +211,26 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
       .notif-copy { flex: 1; }
 
       .notif-title {
-        font-size: 0.8rem;
+        font-size: var(--kb-text-sm);
         color: var(--kb-color-foreground);
         display: block;
         margin-bottom: 0.15rem;
       }
 
       .notif-msg {
-        margin: 0 0 0.25rem;
-        font-size: 0.74rem;
+        margin: 0 0 var(--kb-space-1);
+        font-size: var(--kb-text-xs);
         color: var(--kb-color-muted-foreground);
         line-height: 1.4;
       }
 
-      .notif-time { font-size: 0.68rem; color: var(--kb-color-muted-foreground); }
+      .notif-time { font-size: var(--kb-text-2xs); color: var(--kb-color-muted-foreground); }
 
       .notif-empty {
-        padding: 2rem 1rem;
+        padding: var(--kb-space-8) var(--kb-space-4);
         text-align: center;
         color: var(--kb-color-muted-foreground);
-        font-size: 0.82rem;
+        font-size: var(--kb-text-sm);
       }
     `,
   ],

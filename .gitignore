@@ -220,3 +220,6 @@ apps/android/app/khanabook-release-key.jks
 # Temporary commit message file
 .commit_temp
 .aider*
+
+# Serena MCP local state (symbol cache, per-project config, agent memories)
+.serena/

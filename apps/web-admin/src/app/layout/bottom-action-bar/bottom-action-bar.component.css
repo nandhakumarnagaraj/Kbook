@@ -1,4 +1,4 @@
-/* Bottom Action Bar - Mobile */
+﻿/* Bottom Action Bar - Mobile */
 .kb-bottom-action-bar {
   position: fixed;
   bottom: 0;
@@ -10,14 +10,14 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: var(--kb-z-topbar);
+  z-index: var(--kb-z-dock);
   box-shadow: var(--kb-shadow-sm);
 }
 
 .kb-bottom-action-bar .action-item {
   color: var(--kb-color-primary);
   text-decoration: none;
-  font-size: var(--kb-font-caption);
+  font-size: var(--kb-text-xs);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -44,7 +44,7 @@
 }
 
 .kb-bottom-action-bar .action-item .label {
-  font-size: var(--kb-font-caption);
+  font-size: var(--kb-text-xs);
   text-align: center;
   width: 100%;
 }
@@ -55,7 +55,7 @@
   right: var(--kb-space-2);
   background: var(--kb-color-primary);
   color: var(--kb-color-on-primary);
-  font-size: var(--kb-font-caption);
+  font-size: var(--kb-text-xs);
   padding: var(--kb-space-1) var(--kb-space-2);
   border-radius: var(--kb-radius-full);
   min-width: 18px;

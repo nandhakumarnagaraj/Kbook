@@ -14,28 +14,28 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
   imports: [CommonModule, FormsModule, ReactiveFormsModule, FocusTrapDirective],
   styles: [`
     .modal-content { width: 100%; max-width: 460px; }
-    .modal-content h3 { margin: 0 0 1.5rem; color: var(--kb-color-foreground); }
+    .modal-content h3 { margin: 0 0 var(--kb-space-6); color: var(--kb-color-foreground); }
     .form-group { margin-bottom: 1rem; }
     .form-group label {
-      display: block; margin-bottom: 0.25rem; font-size: 0.875rem;
+      display: block; margin-bottom: 0.25rem; font-size: var(--kb-text-md);
       color: var(--kb-color-foreground); font-weight: 500;
     }
     .form-group .field-control, .form-group .field-select { width: 100%; box-sizing: border-box; }
-    .field-error { color: var(--kb-color-error); font-size: 0.75rem; margin-top: 0.25rem; }
+    .field-error { color: var(--kb-color-error); font-size: var(--kb-text-xs); margin-top: 0.25rem; }
     .form-error {
       background: rgba(239, 68, 68, 0.08); border: 1px solid var(--kb-color-error);
-      border-radius: 8px; padding: 0.75rem 1rem; color: var(--kb-color-error);
-      font-size: 0.875rem; margin-bottom: 1rem;
+      border-radius: var(--kb-radius-lg); padding: var(--kb-space-3) var(--kb-space-4); color: var(--kb-color-error);
+      font-size: var(--kb-text-md); margin-bottom: 1rem;
     }
     .success-section { text-align: center; padding: var(--kb-space-4) 0; }
     .success-section h4 { color: var(--kb-color-link); margin: 0 0 var(--kb-space-2); }
     .otp-note {
       background: var(--kb-color-surface); border: 1px solid var(--kb-color-primary);
       border-radius: var(--kb-radius-lg); padding: var(--kb-space-3); margin: var(--kb-space-3) 0;
-      font-size: 0.85rem; color: var(--kb-color-foreground); line-height: 1.4;
+      font-size: var(--kb-text-md); color: var(--kb-color-foreground); line-height: 1.4;
     }
     .otp-note.warn { border-color: var(--kb-color-error); color: var(--kb-color-error); }
-    .success-section p.muted { font-size: 0.76rem; color: var(--kb-color-muted-foreground); }
+    .success-section p.muted { font-size: var(--kb-text-xs); color: var(--kb-color-muted-foreground); }
   `],
   template: `
     <div class="modal-backdrop" *ngIf="open()" appFocusTrap (escape)="close.emit()" (click)="close.emit()">

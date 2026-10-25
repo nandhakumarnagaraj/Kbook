@@ -57,15 +57,15 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 0.75rem 1rem;
+      gap: var(--kb-space-3) var(--kb-space-4);
       padding: 0.85rem 1.15rem;
       border-top: 1px solid var(--line);
       background: var(--panel);
-      border-radius: 0 0 var(--r-xl) var(--r-xl);
+      border-radius: 0 0 var(--kb-radius-xl) var(--kb-radius-xl);
     }
     .pagination-range {
       margin: 0;
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
       color: var(--muted);
     }
     .pagination-controls {
@@ -81,20 +81,20 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
       justify-content: center;
       min-width: 2rem;
       height: 2rem;
-      padding: 0 0.5rem;
-      border: 1px solid var(--line-strong, var(--line));
-      border-radius: 0.375rem;
-      background: #FFFFFF;
-      color: var(--kb-color-foreground, #111827);
+      padding: 0 var(--kb-space-2);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--kb-radius-md);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
       font: inherit;
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s ease, border-color 0.15s ease;
     }
     .pagination-nav:hover:not(:disabled),
     .pagination-page:hover:not(.pagination-page--active) {
-      background: var(--kb-color-surface-2, #F1F5F9);
+      background: var(--kb-color-surface-2);
     }
     .pagination-nav:disabled {
       opacity: 0.4;
@@ -103,20 +103,20 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
     .pagination-page--active {
       background: #FF851B;
       border-color: #FF851B;
-      color: #FFFFFF;
+      color: var(--kb-color-on-primary);
     }
     .pagination-nav:focus-visible,
     .pagination-page:focus-visible {
-      outline: 2px solid var(--brand-focus-ring, #4F46E5);
+      outline: 2px solid var(--brand-focus-ring);
       outline-offset: 2px;
     }
     .pagination-ellipsis {
       min-width: 1.5rem;
       text-align: center;
       color: var(--muted);
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
     }
-    @media (max-width: 520px) {
+    @media (max-width: 640px) {
       .pagination-bar { justify-content: center; text-align: center; }
     }
   `],

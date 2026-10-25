@@ -196,7 +196,7 @@ export interface KpiItem {
         padding: 0.95rem 1.1rem;
         background: var(--kb-color-surface);
         border: 1px solid var(--kb-color-border);
-        border-radius: var(--kb-radius-xl, 12px);
+        border-radius: var(--kb-radius-xl);
         min-width: 0;
       }
 
@@ -224,7 +224,7 @@ export interface KpiItem {
         width: 30px;
         height: 30px;
         margin-bottom: 0.15rem;
-        border-radius: var(--kb-radius-lg, 8px);
+        border-radius: var(--kb-radius-lg);
         background: var(--kb-color-surface-2);
         color: var(--kb-color-muted-foreground);
       }
@@ -252,14 +252,14 @@ export interface KpiItem {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 0.25rem 0.5rem;
+        gap: var(--kb-space-1) var(--kb-space-2);
         min-width: 0;
       }
 
       .kb-kpi__label {
         /* 13px, not the 11.5px this was: the strip is read at a glance, and it was
            the densest small type in the app. */
-        font-size: 0.8125rem;
+        font-size: var(--kb-text-sm);
         font-weight: 700;
         line-height: 1.2;
         letter-spacing: 0.06em;
@@ -273,8 +273,8 @@ export interface KpiItem {
         margin-left: auto;
         padding: 0.12rem 0.45rem;
         border: 1px solid transparent;
-        border-radius: 999px;
-        font-size: 0.8125rem;
+        border-radius: var(--kb-radius-full);
+        font-size: var(--kb-text-sm);
         font-weight: 600;
         line-height: 1.35;
         letter-spacing: 0.01em;
@@ -324,7 +324,7 @@ export interface KpiItem {
 
       .kb-kpi__value small {
         margin-left: 0.3rem;
-        font-size: 0.8125rem;
+        font-size: var(--kb-text-sm);
         font-weight: 500;
         letter-spacing: 0;
         color: var(--kb-color-muted-foreground);
@@ -339,7 +339,7 @@ export interface KpiItem {
       .kb-kpi__segment-bar {
         display: flex;
         height: 6px;
-        border-radius: 999px;
+        border-radius: var(--kb-radius-full);
         overflow: hidden;
         background: var(--kb-color-surface-2);
       }
@@ -380,8 +380,8 @@ export interface KpiItem {
         display: flex;
         align-items: baseline;
         justify-content: space-between;
-        gap: 0.5rem;
-        font-size: 0.8125rem;
+        gap: var(--kb-space-2);
+        font-size: var(--kb-text-sm);
       }
 
       .kb-kpi__segment-label {
@@ -407,12 +407,12 @@ export interface KpiItem {
         margin-left: 0.25rem;
         /* The small element defaults to 0.833em, which put this share at 10.8px
            under a 13px legend. It is read, so it gets the size of its own line. */
-        font-size: 0.8125rem;
+        font-size: var(--kb-text-sm);
         color: var(--kb-color-muted-foreground);
       }
 
       .kb-kpi__caption {
-        font-size: 0.8125rem;
+        font-size: var(--kb-text-sm);
         line-height: 1.35;
         color: var(--kb-color-muted-foreground);
       }
@@ -425,7 +425,7 @@ export interface KpiItem {
         background: none;
         color: var(--kb-color-link);
         font: inherit;
-        font-size: 0.8125rem;
+        font-size: var(--kb-text-sm);
         font-weight: 600;
         cursor: pointer;
       }
@@ -437,7 +437,7 @@ export interface KpiItem {
       .kb-kpi__action:focus-visible {
         outline: 2px solid var(--kb-color-primary);
         outline-offset: 2px;
-        border-radius: var(--kb-radius-sm, 4px);
+        border-radius: var(--kb-radius-sm);
       }
 
       .kb-kpi__action-arrow {

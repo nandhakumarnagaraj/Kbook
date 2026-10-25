@@ -138,7 +138,7 @@ export interface PaymentMethodsSettings {
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <div>
           <strong>Couldn't load payment config</strong>
-          <p class="muted" style="margin:2px 0 0">You can still retry or configure this later from the Android app.</p>
+          <p class="muted config-error-note">You can still retry or configure this later from the Android app.</p>
         </div>
         <button type="button" class="ghost-btn" (click)="loadEasebuzzConfig()">Retry</button>
       </div>
@@ -151,32 +151,32 @@ export interface PaymentMethodsSettings {
             </label>
           </div>
         </div>
-        <div *ngIf="easebuzzConfig.subMerchantId" style="margin-top:1rem;padding:0.85rem 1rem;background:var(--kb-color-surface-2);border:1px solid var(--kb-color-border);border-radius:10px;font-size:0.85rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
-            <span style="color:var(--kb-color-muted-foreground);font-weight:500;">Sub-Merchant ID</span>
-            <strong style="font-family:monospace;font-size:0.9rem;">{{ easebuzzConfig.subMerchantId }}</strong>
+        <div class="submerchant-card" *ngIf="easebuzzConfig.subMerchantId">
+          <div class="row row--between submerchant-row">
+            <span class="submerchant-label">Sub-Merchant ID</span>
+            <strong class="submerchant-value">{{ easebuzzConfig.subMerchantId }}</strong>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem">
-            <span style="color:var(--kb-color-muted-foreground);font-weight:500;">Status</span>
+          <div class="row row--between submerchant-row">
+            <span class="submerchant-label">Status</span>
             <span class="chip" [class.chip-green]="easebuzzConfig.subMerchantStatus === 'ACTIVE'" [class.chip-amber]="easebuzzConfig.subMerchantStatus !== 'ACTIVE'">
               {{ subMerchantStatusLabel(easebuzzConfig.subMerchantStatus) }}
             </span>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="color:var(--kb-color-muted-foreground);font-weight:500;">KYC Status</span>
+          <div class="row row--between">
+            <span class="submerchant-label">KYC Status</span>
             <span class="chip" [class.chip-green]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone === 'ok'" [class.chip-amber]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone !== 'ok'">
               {{ kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).label }}
             </span>
           </div>
         </div>
-        <div *ngIf="!easebuzzConfig.subMerchantId && easebuzzEnabled" style="margin-top:1rem;padding:0.75rem;background:rgba(183,121,31,0.08);border:1px solid var(--kb-color-warning);border-radius:8px;font-size:0.85rem">
+        <div class="submerchant-onboarding" *ngIf="!easebuzzConfig.subMerchantId && easebuzzEnabled">
           Sub-merchant onboarding required. Use the Android app to complete Easebuzz onboarding.
         </div>
       </div>
     </section>
   `,
   styles: [`
-    .loading { font-size: 0.85rem; color: var(--kb-color-muted-foreground); padding: var(--kb-space-2) 0; }
+    .loading { font-size: var(--kb-text-md); color: var(--kb-color-muted-foreground); padding: var(--kb-space-2) 0; }
     .config-error {
       display: flex;
       align-items: center;
@@ -186,16 +186,16 @@ export interface PaymentMethodsSettings {
       background: rgba(192, 57, 43, 0.05);
       border-radius: var(--kb-radius-md);
       color: var(--kb-color-error);
-      font-size: 0.85rem;
+      font-size: var(--kb-text-md);
     }
     .config-error > div { flex: 1; }
     .config-error button {
       background: none;
       border: 1px solid currentColor;
       color: inherit;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 0.8rem;
+      border-radius: var(--kb-radius-md);
+      padding: 6px var(--kb-space-3);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       cursor: pointer;
       min-height: 36px;
@@ -203,34 +203,34 @@ export interface PaymentMethodsSettings {
     .config-error button:hover { background: rgba(192, 57, 43, 0.08); }
     .toggle-label {
       display: flex; align-items: center; gap: var(--kb-space-2); cursor: pointer;
-      font-size: 0.88rem; color: var(--kb-color-foreground); font-weight: 500;
+      font-size: var(--kb-text-md); color: var(--kb-color-foreground); font-weight: 500;
     }
     .toggle-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--kb-color-primary); }
-    .upi-feedback { margin-top: 6px; font-size: 0.8rem; }
-    .feedback-success { color: var(--kb-color-success); display: flex; align-items: center; gap: 4px; font-weight: 500; }
+    .upi-feedback { margin-top: 6px; font-size: var(--kb-text-sm); }
+    .feedback-success { color: var(--kb-color-success); display: flex; align-items: center; gap: var(--kb-space-1); font-weight: 500; }
     .feedback-warning { color: var(--kb-color-warning); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .feedback-error { color: var(--kb-color-error); font-weight: 500; }
     .suggestion-btn {
       background: none; border: 1px solid var(--kb-color-primary);
-      color: var(--kb-color-link); border-radius: 4px;
-      padding: 2px 6px; font-size: 0.75rem; cursor: pointer; font-weight: 600;
+      color: var(--kb-color-link); border-radius: var(--kb-radius-sm);
+      padding: 2px 6px; font-size: var(--kb-text-xs); cursor: pointer; font-weight: 600;
     }
-    .suggestion-btn:hover { background: rgba(37, 99, 235, 0.15); }
+    .suggestion-btn:hover { background: rgba(79, 70, 229, 0.15); }
     .flow-mode-cards {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: var(--kb-space-3); margin-top: var(--kb-space-3);
     }
     .flow-mode-card {
-      border: 1px solid var(--kb-color-border); border-radius: 8px;
+      border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg);
       padding: 0.85rem; background: var(--kb-color-surface-2);
       cursor: pointer; transition: border-color 0.15s, background 0.15s;
     }
     .flow-mode-card:hover { border-color: var(--kb-color-primary); }
     .flow-mode-card.active {
       border-color: var(--kb-color-primary);
-      background: rgba(37, 99, 235, 0.12);
+      background: rgba(79, 70, 229, 0.12);
     }
-    .mode-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .mode-header { display: flex; align-items: center; gap: var(--kb-space-2); margin-bottom: 4px; }
     .mode-radio {
       width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--kb-color-border);
       display: inline-block; box-sizing: border-box;
@@ -240,39 +240,39 @@ export interface PaymentMethodsSettings {
       background: var(--kb-color-primary);
       box-shadow: inset 0 0 0 2px var(--kb-color-primary-foreground);
     }
-    .flow-mode-card p { margin: 0; font-size: 0.8rem; line-height: 1.4; }
+    .flow-mode-card p { margin: 0; font-size: var(--kb-text-sm); line-height: 1.4; }
     .upi-test-panel { margin-top: var(--kb-space-3); }
     .test-qr-card {
       display: flex; gap: var(--kb-space-3); align-items: center;
       background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border);
-      border-radius: 10px; padding: 1rem; flex-wrap: wrap;
+      border-radius: 10px; padding: var(--kb-space-4); flex-wrap: wrap;
     }
     .test-qr-media {
-      width: 140px; height: 140px; background: #FFFFFF; border-radius: 8px;
+      width: 140px; height: 140px; background: var(--kb-color-surface); border-radius: var(--kb-radius-lg);
       padding: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.3); display: flex;
       align-items: center; justify-content: center; flex-shrink: 0;
     }
     .test-qr-img { width: 100%; height: 100%; object-fit: contain; }
-    .test-qr-loading { font-size: 0.75rem; color: var(--kb-color-muted); }
+    .test-qr-loading { font-size: var(--kb-text-xs); color: var(--kb-color-muted); }
     .test-qr-content { flex: 1; min-width: 240px; }
     .test-qr-badge {
-      display: inline-block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+      display: inline-block; font-size: var(--kb-text-2xs); font-weight: 600; text-transform: uppercase;
       letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.15); color: #34D399;
-      padding: 2px 8px; border-radius: 4px; margin-bottom: 6px;
+      padding: 2px var(--kb-space-2); border-radius: var(--kb-radius-sm); margin-bottom: 6px;
     }
-    .test-qr-content h4 { margin: 0 0 4px; font-size: 1rem; color: var(--kb-color-foreground); }
-    .test-qr-content p { margin: 0 0 8px; font-size: 0.82rem; }
-    .test-qr-meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: 0.78rem; }
+    .test-qr-content h4 { margin: 0 0 var(--kb-space-1); font-size: var(--kb-text-lg); color: var(--kb-color-foreground); }
+    .test-qr-content p { margin: 0 0 var(--kb-space-2); font-size: var(--kb-text-sm); }
+    .test-qr-meta { display: flex; gap: var(--kb-space-2); flex-wrap: wrap; font-size: var(--kb-text-sm); }
     .meta-tag {
       background: var(--kb-color-surface-1); border: 1px solid var(--kb-color-border);
-      padding: 3px 8px; border-radius: 4px;
+      padding: 3px var(--kb-space-2); border-radius: var(--kb-radius-sm);
     }
     .chip {
       display: inline-flex;
       align-items: center;
       padding: 3px 10px;
-      border-radius: 999px;
-      font-size: 0.72rem;
+      border-radius: var(--kb-radius-full);
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -287,6 +287,31 @@ export interface PaymentMethodsSettings {
       background: rgba(245, 158, 11, 0.15);
       color: #FBBF24;
       border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* ── Payment-methods carriers ──
+       These declarations used to be inline style attributes. Values are
+       unchanged; the carrier moved into the component so the stylesheet
+       checks can see them. */
+    .config-error-note { margin: 2px 0 0; }
+    .submerchant-card {
+      margin-top: var(--kb-space-4);
+      padding: 0.85rem var(--kb-space-4);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      border-radius: 10px;
+      font-size: var(--kb-text-md);
+    }
+    .submerchant-row { margin-bottom: 0.4rem; }
+    .submerchant-label { color: var(--kb-color-muted-foreground); font-weight: 500; }
+    .submerchant-value { font-family: monospace; font-size: var(--kb-text-md); }
+    .submerchant-onboarding {
+      margin-top: var(--kb-space-4);
+      padding: var(--kb-space-3);
+      background: rgba(183,121,31,0.08);
+      border: 1px solid var(--kb-color-warning);
+      border-radius: var(--kb-radius-lg);
+      font-size: var(--kb-text-md);
     }
   `]
 })

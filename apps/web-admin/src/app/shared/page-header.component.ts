@@ -69,7 +69,7 @@ import { CommonModule } from '@angular/common';
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1.5rem;
+        gap: var(--kb-space-6);
         flex-wrap: wrap;
         margin-bottom: 0.25rem;
       }
@@ -82,8 +82,8 @@ import { CommonModule } from '@angular/common';
       .kb-page-header__eyebrow {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        font-size: 0.76rem;
+        gap: var(--kb-space-2);
+        font-size: var(--kb-text-xs);
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.06em;
@@ -94,7 +94,7 @@ import { CommonModule } from '@angular/common';
       .kb-page-header__title-row {
         display: flex;
         align-items: center;
-        gap: 0.75rem; /* 12px clean separation between heading and status badge */
+        gap: var(--kb-space-3); /* 12px clean separation between heading and status badge */
         flex-wrap: wrap;
       }
 
@@ -108,8 +108,8 @@ import { CommonModule } from '@angular/common';
       }
 
       .kb-page-header__sub {
-        margin: 0.25rem 0 0;
-        font-size: 0.88rem;
+        margin: var(--kb-space-1) 0 0;
+        font-size: var(--kb-text-md);
         line-height: 1.45;
         color: var(--kb-color-muted-foreground);
         max-width: 75ch; /* Fits introduction cleanly on single line on desktop/tablet viewports */
@@ -141,7 +141,7 @@ import { CommonModule } from '@angular/common';
 
         .kb-page-header__right {
           justify-content: flex-start;
-          gap: 0.5rem;
+          gap: var(--kb-space-2);
         }
       }
     `,

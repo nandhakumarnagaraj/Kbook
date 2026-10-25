@@ -39,7 +39,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       background: var(--kb-color-surface-2);
       color: var(--kb-color-link);
       font-weight: 700;
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -55,7 +55,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       display: inline-block;
       padding: 1px 6px;
       border-radius: var(--kb-radius-full);
-      font-size: 0.68rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       background: rgba(var(--kb-color-primary-rgb), 0.12);
       color: var(--kb-color-link);
@@ -64,9 +64,9 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
     }
     .role-pill {
       display: inline-block;
-      padding: 2px 8px;
+      padding: 2px var(--kb-space-2);
       border-radius: var(--kb-radius-sm);
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
       letter-spacing: 0.04em;
     }
@@ -84,9 +84,9 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 2px 8px;
+      padding: 2px var(--kb-space-2);
       border-radius: var(--kb-radius-full);
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
     }
     .indicator-dot {
@@ -113,9 +113,9 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       white-space: nowrap;
     }
     .small-action-btn {
-      padding: 4px 10px;
+      padding: var(--kb-space-1) 10px;
       border-radius: var(--kb-radius-md);
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       font-weight: 500;
       cursor: pointer;
       border: 1px solid var(--kb-color-border);
@@ -135,8 +135,8 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
     .tooltip-wrapper .tooltip-text {
       visibility: hidden; position: absolute; bottom: 100%; left: 50%;
       transform: translateX(-50%); background: var(--kb-color-foreground); color: var(--kb-color-on-primary);
-      font-size: 0.7rem; padding: var(--kb-space-1) var(--kb-space-2);
-      border-radius: var(--kb-radius-md); white-space: nowrap; z-index: 10;
+      font-size: var(--kb-text-2xs); padding: var(--kb-space-1) var(--kb-space-2);
+      border-radius: var(--kb-radius-md); white-space: nowrap; z-index: var(--kb-z-tooltip);
       margin-bottom: var(--kb-space-1);
     }
     .tooltip-wrapper:hover .tooltip-text { visibility: visible; }

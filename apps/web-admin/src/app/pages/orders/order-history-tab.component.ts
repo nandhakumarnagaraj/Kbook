@@ -166,15 +166,15 @@ export function orderStatusLabel(status: string | null | undefined): string {
           <div class="modal-header">
             <div>
               <span class="chip danger">Void / Cancel Order</span>
-              <h3 id="cancel-modal-title" style="margin: 0.35rem 0 0;">Cancel Order #{{ orderToCancel.orderCode }}</h3>
-              <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.85rem;">
+              <h3 class="cancel-modal-title" id="cancel-modal-title">Cancel Order #{{ orderToCancel.orderCode }}</h3>
+              <p class="muted cancel-modal-note">
                 Amount: {{ formatCurrencyValue(orderToCancel.totalAmount) }} · {{ orderToCancel.customerName || 'Walk-in customer' }}
               </p>
             </div>
             <button type="button" class="icon-btn" (click)="closeCancelModal()" [disabled]="cancelSubmitting" aria-label="Close dialog">✕</button>
           </div>
 
-          <div class="modal-body" style="display: grid; gap: 1rem; padding: 1rem 0;">
+          <div class="modal-body cancel-modal-body">
             <div class="field">
               <label for="cancel-preset">Cancellation Reason</label>
               <select id="cancel-preset" class="field-select" [(ngModel)]="cancelReasonPreset" [disabled]="cancelSubmitting">
@@ -342,7 +342,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
   `,
   styles: [`
     .refunded-label { color: var(--kb-color-error); font-weight: 500; }
-    .refund-meta { font-size: 0.75rem; color: var(--kb-color-link); }
+    .refund-meta { font-size: var(--kb-text-xs); color: var(--kb-color-link); }
 
     .filter-group--full { grid-column: 1 / -1; }
 
@@ -352,11 +352,11 @@ export function orderStatusLabel(status: string | null | undefined): string {
       padding: var(--kb-space-1) var(--kb-space-2);
       background: var(--kb-color-surface);
       border-radius: var(--kb-radius-md);
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
     }
 
     .field { margin: var(--kb-space-3) 0; display: flex; flex-direction: column; gap: var(--kb-space-1); }
-    .field label { font-size: 0.85rem; font-weight: 600; color: var(--kb-color-foreground); }
+    .field label { font-size: var(--kb-text-md); font-weight: 600; color: var(--kb-color-foreground); }
     .field input {
       padding: var(--kb-space-2) var(--kb-space-3);
       border: 1px solid var(--kb-color-border);
@@ -369,16 +369,22 @@ export function orderStatusLabel(status: string | null | undefined): string {
       transition: border-color 0.15s;
     }
     .field input:focus { border-color: var(--kb-color-primary); }
-    .error-text { color: var(--kb-color-error); font-size: 0.85rem; margin: 0.5rem 0 0; }
-    .hint-text { color: var(--kb-color-muted-foreground); font-size: 0.85rem; margin: 0.35rem 0 0; }
+    .error-text { color: var(--kb-color-error); font-size: var(--kb-text-md); margin: var(--kb-space-2) 0 0; }
+    .hint-text { color: var(--kb-color-muted-foreground); font-size: var(--kb-text-md); margin: 0.35rem 0 0; }
     .toolbar-actions { display: flex; gap: var(--kb-space-3); align-items: center; }
     .refund-review { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--kb-space-3) var(--kb-space-2); margin: var(--kb-space-3) 0; padding: var(--kb-space-3); background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-lg); }
     .refund-review span { color: var(--kb-color-muted-foreground); }
     .refund-review strong { text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
     .mobile-order-list { display: none; }
-    @media (max-width: 767px) {
-      .table-wrap > .data-table { display: none; }
-      .mobile-order-list { display: grid; gap: var(--kb-space-3); padding: var(--kb-space-3); }
+    /* The card list these styles describe was never written into the template — only the
+       CSS was. So this block must not hide the table: at phone width it left Order History
+       blank, and the phone layout spec still passed because a hidden table cannot overflow.
+       Until the markup lands, the shared rule in styles.css
+       (.table-wrap:not(:has(.mobile-data-list))) scrolls the table instead, exactly as it
+       does for the other tables that have no card fallback. Add the markup first, then add
+       .mobile-order-list { display: grid } and .table-wrap > .data-table { display: none }
+       back here. */
+    @media (max-width: 768px) {
       .mobile-order-card { overflow: hidden; background: var(--kb-color-surface); border: 1px solid var(--kb-color-border); border-radius: var(--kb-radius-card); box-shadow: var(--kb-shadow-xs); }
       .mobile-order-card--refunded { border-left: 4px solid var(--kb-color-error); }
       .mobile-order-card__main { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--kb-space-2) var(--kb-space-3); padding: var(--kb-space-3); text-align: left; color: var(--kb-color-foreground); background: transparent; border: 0; cursor: pointer; }
@@ -386,7 +392,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
       .mobile-order-card__title { font-weight: 700; }
       .mobile-order-card__customer { color: var(--kb-color-muted-foreground); }
       .mobile-order-card__amount { font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-      .mobile-order-card__meta { grid-column: 1 / -1; color: var(--kb-color-muted-foreground); font-size: 0.75rem; }
+      .mobile-order-card__meta { grid-column: 1 / -1; color: var(--kb-color-muted-foreground); font-size: var(--kb-text-xs); }
       .mobile-order-card__footer { display: flex; justify-content: space-between; align-items: center; gap: var(--kb-space-2); padding: var(--kb-space-2) var(--kb-space-3); border-top: 1px solid var(--kb-color-border); background: var(--kb-color-surface-2); }
     }
 
@@ -394,7 +400,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
     /* Tab body — the routed shell owns the page header and outer geometry. */
     .tab-panel {
       display: grid;
-      gap: 1.5rem;
+      gap: var(--kb-space-6);
     }
     .tab-toolbar {
       display: flex;
@@ -413,7 +419,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
       display: inline-flex;
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       padding: 3px;
       gap: 3px;
       box-shadow: 0 1px 3px rgba(28, 26, 23, 0.03);
@@ -423,7 +429,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
       border: none;
       background: transparent;
       border-radius: 9px;
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       cursor: pointer;
@@ -440,7 +446,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
     }
     .custom-date-picker-drawer {
       margin-bottom: 1.25rem;
-      padding: 1rem 1.15rem;
+      padding: var(--kb-space-4) 1.15rem;
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-card);
@@ -491,20 +497,20 @@ export function orderStatusLabel(status: string | null | undefined): string {
       color: var(--kb-color-foreground);
       background: var(--kb-color-surface-2);
       padding: 0.2rem 0.45rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      border-radius: var(--kb-radius-md);
+      font-size: var(--kb-text-sm);
       display: inline-block;
     }
     .invoice-sub-badge {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       color: var(--kb-color-muted-foreground);
       margin-top: 0.15rem;
     }
     .channel-chip {
       display: inline-block;
       padding: 0.18rem 0.55rem;
-      border-radius: 6px;
-      font-size: 0.72rem;
+      border-radius: var(--kb-radius-md);
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       letter-spacing: 0.02em;
     }
@@ -518,10 +524,10 @@ export function orderStatusLabel(status: string | null | undefined): string {
     .guest-title {
       font-weight: 600;
       color: var(--kb-color-foreground);
-      font-size: 0.84rem;
+      font-size: var(--kb-text-sm);
     }
     .guest-meta {
-      font-size: 0.74rem;
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
     }
     .order-table-amount {
@@ -530,7 +536,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
       font-variant-numeric: tabular-nums;
     }
     .refund-sub-badge {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       color: var(--kb-color-danger);
       font-weight: 600;
       margin-top: 0.1rem;
@@ -541,7 +547,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
     .badge-completed { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
     .badge-cancelled { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
     .time-stamp-label {
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
@@ -553,7 +559,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
     }
     /* .empty-orders-view / .empty-icon-circle come from bento.css; only the
        spacing this tab needs inside its card is local. */
-    .tab-panel .empty-orders-view { margin: 1rem 0; }
+    .tab-panel .empty-orders-view { margin: var(--kb-space-4) 0; }
     .empty-actions-row {
       display: flex;
       align-items: center;
@@ -562,11 +568,16 @@ export function orderStatusLabel(status: string | null | undefined): string {
     }
     .btn-micro--refund,
     .btn-micro--refund:hover {
-      color: #fff;
-      border-color: var(--kb-color-danger, #c0392b);
-      background: var(--kb-color-danger, #c0392b);
+      color: var(--kb-color-foreground-contrast);
+      border-color: var(--kb-color-danger);
+      background: var(--kb-color-danger);
     }
     .btn-micro--refund:hover { filter: brightness(0.92); }
+
+    /* Cancel dialog: the same three carriers exist in the live-orders tab. */
+    .cancel-modal-title { margin: 0.35rem 0 0; }
+    .cancel-modal-note { margin: var(--kb-space-1) 0 0; font-size: var(--kb-text-md); }
+    .cancel-modal-body { display: grid; gap: var(--kb-space-4); padding: var(--kb-space-4) 0; }
   `]
 })
 export class OrderHistoryTabComponent implements OnDestroy {

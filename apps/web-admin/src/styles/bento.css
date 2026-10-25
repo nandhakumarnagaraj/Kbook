@@ -6,7 +6,8 @@
    styles.css and the wave-*.css sheets so these tokens win everywhere.
 
    Use these classes on every page instead of hand-rolling per-page styles:
-     Layout     .page-shell (in styles.css)
+     Layout     .page-shell (in styles.css)  .row  .row--between  .row--wrap
+                .stack  .flex-1
      Cards      .bento-tile  .intel-card  .bento-kpi-grid  .bento-intel-grid
      Buttons    .header-action-btn  .header-pill-btn  .icon-action-btn
                 .btn-micro  .link-btn-text
@@ -15,6 +16,17 @@
      Modals     .tactile-modal-*  .icon-btn  .modal-lead-note
      Helpers    .visually-hidden  .skeleton-shimmer  .spinning
    ============================================================================ */
+
+/* ── Layout utilities ──
+   The five shapes that kept being retyped as `style="…"` attributes. A utility
+   carries arrangement only: no gap, margin, ink or box, so adding one cannot
+   silently reshape a page. The component still owns the rhythm around and
+   inside it. */
+.row { display: flex; align-items: center; }
+.row--between { justify-content: space-between; }
+.row--wrap { flex-wrap: wrap; }
+.stack { display: flex; flex-direction: column; }
+.flex-1 { flex: 1; }
 
 .pulse-indicator {
       /* Layout-only: the dot is used both in a flex row (the page-header eyebrow) and
@@ -34,8 +46,8 @@
 .live-date-pill {
       color: var(--kb-color-link);
       background: var(--kb-color-primary-soft);
-      padding: 0.1rem 0.5rem;
-      border-radius: 999px;
+      padding: 0.1rem var(--kb-space-2);
+      border-radius: var(--kb-radius-full);
       font-weight: 600;
     }
 
@@ -45,24 +57,18 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  background: var(--kb-color-surface, #ffffff);
-  border: 1px solid var(--kb-color-border, #E2E8F0);
-  border-radius: var(--kb-radius-card, 12px);
-  padding: 1.25rem 1.35rem; /* the shared card inset */
+  background: var(--kb-color-surface);
+  border: 1px solid var(--kb-color-border);
+  border-radius: var(--kb-radius-card);
+  padding: var(--kb-space-5) 1.35rem; /* the shared card inset */
   box-shadow: var(--shadow-xs);
   overflow: hidden;
-  margin-bottom: var(--kb-space-5, 1.25rem);
+  margin-bottom: var(--kb-space-5);
 }
 @media (max-width: 640px) {
   .settings-section {
-    padding: 1rem 1.15rem; /* Compact 16px padding on mobile viewports */
+    padding: var(--kb-space-4) 1.15rem; /* Compact 16px padding on mobile viewports */
   }
-}
-.settings-section > h3 {
-  margin: 0 0 var(--kb-space-2);
-  color: var(--kb-color-foreground);
-  font-size: 1.05rem;
-  font-weight: 700;
 }
 .settings-section .form-grid {
   display: grid;
@@ -85,15 +91,23 @@
   display: block;
   margin-bottom: var(--kb-space-1);
   color: var(--kb-color-foreground);
-  font-size: 0.85rem;
+  font-size: var(--kb-text-md);
   font-weight: 500;
+}
+
+/* Address fields in the create-business and shop-settings forms: a taller
+   textarea that keeps the page font and only grows vertically. */
+.textarea-address {
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
 }
 .section-title-wrap {
   display: flex;
   align-items: center; /* Vertically center icon with title and description text */
-  gap: 0.75rem; /* Consistent 12px icon-to-text gap */
-  margin-bottom: var(--kb-space-5, 1.25rem);
-  padding-bottom: var(--kb-space-4, 1rem);
+  gap: var(--kb-space-3); /* Consistent 12px icon-to-text gap */
+  margin-bottom: var(--kb-space-5);
+  padding-bottom: var(--kb-space-4);
   border-bottom: 1px solid var(--kb-color-border);
 }
 .section-title-wrap > div:last-child {
@@ -104,7 +118,7 @@
 }
 .section-title-wrap h3 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--kb-text-xl);
   font-weight: 700;
   color: var(--kb-color-foreground);
   line-height: 1.3;
@@ -112,7 +126,7 @@
 }
 .section-title-wrap p {
   margin: 0.2rem 0 0;
-  font-size: 0.84rem;
+  font-size: var(--kb-text-sm);
   color: var(--kb-color-muted-foreground);
   line-height: 1.4;
 }
@@ -123,9 +137,9 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: var(--kb-radius-md, 8px);
-  background: var(--kb-color-primary-soft, rgba(0, 102, 204, 0.08));
-  color: var(--kb-color-primary, #0066cc);
+  border-radius: var(--kb-radius-md);
+  background: var(--kb-color-primary-soft);
+  color: var(--kb-color-primary);
   flex-shrink: 0;
 }
 
@@ -133,12 +147,12 @@
     .header-pill-btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       padding: 0.55rem 0.85rem;
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
-      border-radius: 12px;
-      font-size: 0.82rem;
+      border-radius: var(--kb-radius-xl);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-foreground);
       cursor: pointer;
@@ -183,7 +197,7 @@
       justify-content: center;
       width: 38px;
       height: 38px;
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
       color: var(--kb-color-muted-foreground);
@@ -203,8 +217,8 @@
       padding: 0.55rem 0.95rem;
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
-      border-radius: 12px;
-      font-size: 0.82rem;
+      border-radius: var(--kb-radius-xl);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-foreground);
       cursor: pointer;
@@ -222,7 +236,7 @@
 .header-action-btn--primary {
       background: var(--kb-color-primary);
       border-color: var(--kb-color-primary);
-      color: #FFFFFF;
+      color: var(--kb-color-on-primary);
       box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.22);
     }
 
@@ -245,13 +259,13 @@
 .bento-tile {
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-card, 12px);
-      padding: 1.25rem 1.35rem;
+      border-radius: var(--kb-radius-card);
+      padding: var(--kb-space-5) 1.35rem;
       box-shadow: var(--shadow-card);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
     }
 
@@ -262,21 +276,21 @@
     }
 
 .bento-tile:active {
-      transform: scale(0.98);
+      /* 0.97, the same press as every other control in the app (see the global
+         press rule in styles.css). 0.98 made one card feel different to touch. */
+      transform: scale(0.97);
     }
 
-.kpi-tag {
-  background: rgba(255, 255, 255, 0.18);
-  color: #FFFFFF;
-}
-
+/* A badge is the neutral pill below, not a translucent white one: the 3-line
+   white-on-alpha copy that used to sit here was instantly overridden by the
+   definition underneath it and never painted a pixel. */
 .kpi-tag {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  font-size: 0.74rem;
+  border-radius: var(--kb-radius-full);
+  font-size: var(--kb-text-xs);
   font-weight: 700;
   line-height: 1;
   background: var(--kb-color-surface-2);
@@ -317,7 +331,7 @@
       gap: 1.15rem;
     }
 
-@media (max-width: 960px) {
+@media (max-width: 1024px) {
   .bento-intel-grid { grid-template-columns: 1fr; }
 }
 
@@ -334,7 +348,7 @@
     }
 
 .freshness-stamp {
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
       white-space: nowrap;
     }
@@ -342,8 +356,8 @@
 .intel-card {
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-card, 12px);
-      padding: 1.25rem 1.35rem;
+      border-radius: var(--kb-radius-card);
+      padding: var(--kb-space-5) 1.35rem;
       box-shadow: var(--shadow-card);
       display: flex;
       flex-direction: column;
@@ -353,12 +367,12 @@
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 1rem;
+      gap: var(--kb-space-4);
       margin-bottom: 1.25rem;
     }
 
 .intel-card__eyebrow {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -369,7 +383,7 @@
 
 .intel-card__title {
       margin: 0;
-      font-size: 1.12rem;
+      font-size: var(--kb-text-lg);
       font-weight: 800;
       color: var(--kb-color-foreground);
       letter-spacing: -0.02em;
@@ -377,8 +391,8 @@
 
 .rush-badge {
       padding: 0.2rem 0.65rem;
-      border-radius: 999px;
-      font-size: 0.74rem;
+      border-radius: var(--kb-radius-full);
+      font-size: var(--kb-text-xs);
       font-weight: 700;
       background: var(--kb-color-primary-soft);
       color: var(--kb-color-primary);
@@ -392,7 +406,7 @@
       color: var(--kb-color-primary);
       /* 13px, not 12.8: this is the shared "view as table / view menu" link, and
          the dashboard holds every text run on the page to a 13px floor. */
-      font-size: 0.8125rem;
+      font-size: var(--kb-text-sm);
       font-weight: 700;
       cursor: pointer;
       padding: 0;
@@ -406,16 +420,16 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 2.25rem 1.5rem;
+      padding: 2.25rem var(--kb-space-6);
       text-align: center;
       gap: 0.45rem;
     }
 
 .empty-icon-glyph { color: var(--kb-color-border-strong); margin-bottom: 0.25rem; }
 
-.intel-empty-box h4 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--kb-color-foreground); }
+.intel-empty-box h4 { margin: 0; font-size: var(--kb-text-lg); font-weight: 700; color: var(--kb-color-foreground); }
 
-.intel-empty-box p { margin: 0; font-size: 0.82rem; color: var(--kb-color-muted-foreground); max-width: 360px; line-height: 1.45; }
+.intel-empty-box p { margin: 0; font-size: var(--kb-text-sm); color: var(--kb-color-muted-foreground); max-width: 360px; line-height: 1.45; }
 
 /* ── Bottom Bento Card: Live Stream & Orders ── */
 /* NOTE: the per-page rules that used to live here (.bento-orders-container,
@@ -433,15 +447,15 @@
       color: var(--kb-color-foreground);
       background: var(--kb-color-surface-2);
       padding: 0.2rem 0.45rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      border-radius: var(--kb-radius-md);
+      font-size: var(--kb-text-sm);
     }
 
 .channel-chip {
       display: inline-block;
       padding: 0.18rem 0.55rem;
-      border-radius: 6px;
-      font-size: 0.72rem;
+      border-radius: var(--kb-radius-md);
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       letter-spacing: 0.02em;
     }
@@ -461,11 +475,11 @@
 .guest-title {
       font-weight: 600;
       color: var(--kb-color-foreground);
-      font-size: 0.84rem;
+      font-size: var(--kb-text-sm);
     }
 
 .guest-meta {
-      font-size: 0.74rem;
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
     }
 
@@ -478,8 +492,8 @@
 .status-chip {
       display: inline-block;
       padding: 0.2rem 0.6rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
+      border-radius: var(--kb-radius-full);
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
     }
 
@@ -498,7 +512,7 @@
 .badge-revoked { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
 
 .time-stamp-label {
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
@@ -515,11 +529,11 @@
       align-items: center;
       gap: 0.3rem;
       padding: 0.35rem 0.65rem;
-      border-radius: 8px;
+      border-radius: var(--kb-radius-lg);
       border: 1px solid var(--kb-color-border);
       background: var(--kb-color-surface-2);
       color: var(--kb-color-foreground);
-      font-size: 0.75rem;
+      font-size: var(--kb-text-xs);
       font-weight: 600;
       cursor: pointer;
       transition: all 150ms ease;
@@ -530,7 +544,7 @@
 .btn-micro--primary {
       background: var(--kb-color-primary);
       border-color: var(--kb-color-primary);
-      color: #FFFFFF;
+      color: var(--kb-color-on-primary);
     }
 
 .btn-micro--primary:hover { background: var(--kb-color-primary-hover); }
@@ -547,18 +561,18 @@
     }
 
 .empty-orders-view {
-      padding: 3rem 1.5rem;
+      padding: var(--kb-space-12) var(--kb-space-6);
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
     }
 
 .empty-icon-circle {
       width: 56px;
       height: 56px;
-      border-radius: 16px;
+      border-radius: var(--kb-radius-2xl);
       background: var(--kb-color-bg-app);
       border: 1px solid var(--kb-color-border);
       display: flex;
@@ -568,9 +582,9 @@
       margin-bottom: 0.25rem;
     }
 
-.empty-orders-view h4 { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--kb-color-foreground); }
+.empty-orders-view h4 { margin: 0; font-size: var(--kb-text-lg); font-weight: 700; color: var(--kb-color-foreground); }
 
-.empty-orders-view p { margin: 0; font-size: 0.85rem; color: var(--kb-color-muted-foreground); max-width: 440px; }
+.empty-orders-view p { margin: 0; font-size: var(--kb-text-md); color: var(--kb-color-muted-foreground); max-width: 440px; }
 
 .empty-actions-row {
       display: flex;
@@ -585,11 +599,11 @@
       inset: 0;
       background: rgba(15, 23, 42, 0.45);
       backdrop-filter: blur(4px);
-      z-index: 100;
+      z-index: var(--kb-z-modal);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1rem;
+      padding: var(--kb-space-4);
     }
 
 .tactile-modal-box {
@@ -597,7 +611,7 @@
       border: 1px solid var(--kb-color-border);
       border-radius: 20px;
       width: 100%;
-      max-width: 520px;
+      max-width: 640px;
       max-height: 85vh;
       display: flex;
       flex-direction: column;
@@ -614,14 +628,14 @@
       background: var(--kb-color-bg-app);
     }
 
-.tactile-modal-head h3 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--kb-color-foreground); }
+.tactile-modal-head h3 { margin: 0; font-size: var(--kb-text-xl); font-weight: 800; color: var(--kb-color-foreground); }
 
 .tactile-head-with-icon { display: flex; align-items: center; gap: 0.65rem; }
 
 .warning-icon-badge {
       width: 28px;
       height: 28px;
-      border-radius: 8px;
+      border-radius: var(--kb-radius-lg);
       background: var(--kb-color-warning-soft);
       color: var(--kb-color-warning);
       display: flex;
@@ -635,21 +649,21 @@
 .tactile-modal-head .icon-btn { font-size: 1.1rem; }
 
 .tactile-modal-body {
-      padding: 1.25rem 1.4rem;
+      padding: var(--kb-space-5) 1.4rem;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 0.85rem;
     }
 
-.modal-lead-note { margin: 0; font-size: 0.85rem; color: var(--kb-color-muted-foreground); }
+.modal-lead-note { margin: 0; font-size: var(--kb-text-md); color: var(--kb-color-muted-foreground); }
 
-.time-sub { display: block; font-size: 0.7rem; color: var(--kb-color-muted-foreground); margin-top: 0.15rem; }
+.time-sub { display: block; font-size: var(--kb-text-2xs); color: var(--kb-color-muted-foreground); margin-top: 0.15rem; }
 
-.tactile-empty-sub { text-align: center; color: var(--kb-color-muted-foreground); font-size: 0.85rem; padding: 1.5rem 0; }
+.tactile-empty-sub { text-align: center; color: var(--kb-color-muted-foreground); font-size: var(--kb-text-md); padding: var(--kb-space-6) 0; }
 
 .tactile-modal-foot {
-      padding: 1rem 1.4rem;
+      padding: var(--kb-space-4) 1.4rem;
       border-top: 1px solid var(--kb-color-border);
       display: flex;
       justify-content: flex-end;
@@ -672,23 +686,23 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
+  gap: var(--kb-space-4);
   padding: 18px;
-  border-radius: var(--kb-radius-2xl, 16px);
+  border-radius: var(--kb-radius-2xl);
   border: 1px solid rgba(var(--kb-color-danger-rgb), 0.28);
-  background: var(--danger-soft, #F9E7E3);
-  color: var(--danger, #C0392B);
+  background: var(--danger-soft);
+  color: var(--danger);
   box-shadow: 0 1px 2px 0 rgba(42, 31, 23, 0.04), 0 4px 12px -2px rgba(42, 31, 23, 0.06);
 }
 
 .state-panel__icon {
   width: 40px;
   height: 40px;
-  border-radius: 999px;
+  border-radius: var(--kb-radius-full);
   display: grid;
   place-items: center;
-  background: var(--danger, #C0392B);
-  color: #FFFFFF;
+  background: var(--danger);
+  color: var(--kb-color-foreground-contrast);
   font-weight: 800;
   font-size: 19px;
   flex: none;
@@ -696,42 +710,42 @@
 
 .state-panel h3 {
   margin: 0 0 3px;
-  color: var(--ink, #1C1A17);
-  font-size: 15px;
+  color: var(--ink);
+  font-size: var(--kb-text-lg);
   font-weight: 700;
 }
 
 .state-panel p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--kb-text-sm);
   line-height: 1.5;
 }
 
 .state-panel__meta {
   display: block;
   margin-top: 6px;
-  font-size: 12px;
-  color: var(--muted, #6B655C);
+  font-size: var(--kb-text-xs);
+  color: var(--muted);
 }
 
 .state-panel--offline {
-  background: var(--warning-soft, #FBF3DF);
+  background: var(--warning-soft);
   border-color: rgba(var(--kb-color-warning-rgb), 0.3);
-  color: var(--warning, #B7791F);
+  color: var(--warning);
 }
 
 .state-panel--offline .state-panel__icon {
-  background: var(--warning, #B7791F);
+  background: var(--warning);
 }
 
 .state-panel--denied {
-  background: var(--info-soft, #E5EEF7);
+  background: var(--info-soft);
   border-color: rgba(var(--kb-color-info-rgb), 0.3);
-  color: var(--info, #2B6CB0);
+  color: var(--info);
 }
 
 .state-panel--denied .state-panel__icon {
-  background: var(--info, #2B6CB0);
+  background: var(--info);
 }
 
 .btn-retry {
@@ -739,21 +753,21 @@
   padding: 9px 18px;
   border: 0;
   border-radius: 10px;
-  background: var(--danger, #C0392B);
-  color: #FFFFFF;
+  background: var(--danger);
+  color: var(--kb-color-foreground-contrast);
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: var(--kb-text-md);
   white-space: nowrap;
   cursor: pointer;
   transition: filter 150ms ease;
 }
 
 .state-panel--offline .btn-retry {
-  background: var(--warning, #B7791F);
+  background: var(--warning);
 }
 
 .state-panel--denied .btn-retry {
-  background: var(--info, #2B6CB0);
+  background: var(--info);
 }
 
 .btn-retry:hover {
@@ -778,77 +792,98 @@
 .stale-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--kb-space-3);
   margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: var(--kb-radius-xl, 12px);
-  background: var(--warning-soft, #FBF3DF);
+  padding: var(--kb-space-3) 14px;
+  border-radius: var(--kb-radius-xl);
+  background: var(--warning-soft);
   border: 1px solid rgba(var(--kb-color-warning-rgb), 0.32);
-  color: var(--warning, #B7791F);
-  font-size: 13px;
+  color: var(--warning);
+  font-size: var(--kb-text-sm);
   line-height: 1.45;
 }
 
 .stale-banner__icon {
   width: 26px;
   height: 26px;
-  border-radius: 999px;
-  background: var(--warning, #B7791F);
-  color: #FFFFFF;
+  border-radius: var(--kb-radius-full);
+  background: var(--warning);
+  color: var(--kb-color-foreground-contrast);
   display: grid;
   place-items: center;
   font-weight: 800;
   flex: none;
-  font-size: 14px;
+  font-size: var(--kb-text-md);
 }
 
 .stale-banner__text {
-  color: var(--ink-2, #2A2A28);
+  color: var(--ink-2);
 }
 
 .stale-banner__text strong {
-  color: var(--warning, #B7791F);
+  color: var(--warning);
 }
 
 .stale-banner__meta {
-  color: var(--muted, #6B655C);
-  font-size: 12px;
+  color: var(--muted);
+  font-size: var(--kb-text-xs);
 }
 
 .stale-banner__spacer {
   margin-left: auto;
 }
 
+/* The one definition of a secondary button — see the note in styles.css where a
+   contradicting copy used to live. It stays here because this sheet loads last and
+   owns the shared button vocabulary (freeze-doc rule 3). The structural props
+   (display / align / gap) are not optional: .ghost-btn is also used on <label> and
+   <a>, which the global `button` rules never reach. */
 .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   min-height: 34px;
   padding: 6px 13px;
   border-radius: 9px;
-  border: 1px solid var(--line-strong, #E1D9CA);
-  background: var(--panel, #FFFFFF);
-  font-size: 12.5px;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+  font-size: var(--kb-text-sm);
   font-weight: 700;
-  color: var(--ink-2, #2A2A28);
+  color: var(--ink-2);
   cursor: pointer;
-  transition: all 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease,
+              color 150ms ease, transform 150ms ease;
 }
 
 .ghost-btn:hover:not(:disabled) {
-  border-color: var(--brand, #0066CC);
-  color: var(--brand, #0066CC);
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
-.ghost-btn:disabled {
+.ghost-btn:active:not(:disabled) { transform: scale(0.97); }
+
+.ghost-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Both spellings: templates put [disabled] on the <button>, and the photo-picker
+   <label> carries the page-local .ghost-btn--disabled modifier (menu-page). */
+.ghost-btn:disabled,
+.ghost-btn[disabled] {
   opacity: 0.55;
   cursor: not-allowed;
+  transform: none;
 }
 
 .ghost-btn--danger {
-  color: var(--danger, #C0392B);
+  color: var(--danger);
   border-color: rgba(var(--kb-color-danger-rgb), 0.3);
 }
 
 .ghost-btn--success {
-  color: var(--success, #2F855A);
+  color: var(--success);
   border-color: rgba(var(--kb-color-success-rgb), 0.3);
 }
 
@@ -857,28 +892,28 @@
   justify-items: center;
   text-align: center;
   gap: 7px;
-  padding: 30px 20px;
-  border: 1px dashed var(--line-strong, #E1D9CA);
-  border-radius: var(--kb-radius-xl, 12px);
-  background: var(--panel-2, #F8F5EF);
-  color: var(--muted, #6B655C);
+  padding: 30px var(--kb-space-5);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--kb-radius-xl);
+  background: var(--panel-2);
+  color: var(--muted);
 }
 
 .empty-box h4 {
-  font-size: 14px;
-  color: var(--ink-2, #2A2A28);
+  font-size: var(--kb-text-md);
+  color: var(--ink-2);
   margin: 0;
 }
 
 .empty-box p {
   margin: 0;
-  font-size: 12.5px;
+  font-size: var(--kb-text-sm);
   max-width: 420px;
   line-height: 1.5;
 }
 
 .empty-glyph {
-  color: var(--muted-2, #9E9689);
+  color: var(--muted-2);
 }
 
 /* ── Revenue Split Bar (Hero Card) ── */
@@ -887,7 +922,7 @@
   flex-direction: column;
   gap: 0.45rem;
   padding-top: 0.4rem;
-  font-size: 0.78rem;
+  font-size: var(--kb-text-sm);
   color: var(--kb-color-muted-foreground);
   font-variant-numeric: tabular-nums;
 }
@@ -899,7 +934,7 @@
      The hero tile overrides this back to a white wash, where the meter sits on
      the brand gradient instead. */
   background: var(--kb-color-surface-2);
-  border-radius: 999px;
+  border-radius: var(--kb-radius-full);
   overflow: hidden;
   display: flex;
 }
@@ -939,7 +974,7 @@
 .split-legend--upi { background: var(--kb-color-info); }
 
 .split-val { color: var(--kb-color-foreground); font-weight: 600; }
-.split-pct { color: var(--kb-color-muted-foreground); font-size: 0.72rem; }
+.split-pct { color: var(--kb-color-muted-foreground); font-size: var(--kb-text-2xs); }
 
 .split-divider { color: var(--kb-color-border-strong); }
 
@@ -958,7 +993,7 @@
   height: 120px;
   display: flex;
   align-items: flex-end;
-  gap: 8px;
+  gap: var(--kb-space-2);
 }
 
 .hourly-bar-node {
@@ -977,7 +1012,7 @@
   height: 90px;
   background: var(--kb-color-bg-app);
   border: 1px solid var(--kb-color-border);
-  border-radius: 8px;
+  border-radius: var(--kb-radius-lg);
   display: flex;
   align-items: flex-end;
   overflow: hidden;
@@ -997,7 +1032,7 @@
 .hourly-bar-node:hover .bar-pill-fill { filter: brightness(0.92); }
 
 .bar-tick-label {
-  font-size: 0.68rem;
+  font-size: var(--kb-text-2xs);
   font-weight: 600;
   color: var(--kb-color-muted-foreground);
   font-variant-numeric: tabular-nums;
@@ -1009,7 +1044,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--kb-color-burnt, #d97706);
+  background: var(--kb-color-burnt);
   margin-left: 2px;
   vertical-align: middle;
   box-shadow: 0 0 4px rgba(217, 119, 6, 0.6);
@@ -1034,7 +1069,7 @@
   border-radius: 50%;
   background: var(--kb-color-primary-soft);
   color: var(--kb-color-primary);
-  font-size: 0.74rem;
+  font-size: var(--kb-text-xs);
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -1051,12 +1086,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--kb-space-2);
   margin-bottom: 0.25rem;
 }
 
 .dish-name-label {
-  font-size: 0.86rem;
+  font-size: var(--kb-text-md);
   color: var(--kb-color-foreground);
   white-space: nowrap;
   overflow: hidden;
@@ -1064,7 +1099,7 @@
 }
 
 .dish-qty-label {
-  font-size: 0.75rem;
+  font-size: var(--kb-text-xs);
   color: var(--kb-color-muted-foreground);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -1074,18 +1109,18 @@
   width: 100%;
   height: 5px;
   background: var(--kb-color-surface-2);
-  border-radius: 999px;
+  border-radius: var(--kb-radius-full);
   overflow: hidden;
 }
 
 .dish-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--kb-color-primary) 0%, var(--kb-color-primary) 100%);
-  border-radius: 999px;
+  border-radius: var(--kb-radius-full);
 }
 
 .dish-rev-label {
-  font-size: 0.86rem;
+  font-size: var(--kb-text-md);
   font-weight: 800;
   color: var(--kb-color-foreground);
   font-variant-numeric: tabular-nums;
@@ -1097,15 +1132,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 0.85rem;
+  padding: var(--kb-space-3) 0.85rem;
   border: 1px solid var(--kb-color-border);
-  border-radius: 12px;
+  border-radius: var(--kb-radius-xl);
   background: var(--kb-color-bg-app);
 }
 
-.terminal-core-info { display: flex; align-items: center; gap: 0.75rem; }
+.terminal-core-info { display: flex; align-items: center; gap: var(--kb-space-3); }
 
-.terminal-tag { display: block; font-size: 0.72rem; color: var(--kb-color-muted-foreground); }
+.terminal-tag { display: block; font-size: var(--kb-text-2xs); color: var(--kb-color-muted-foreground); }
 
 .terminal-meta-info { text-align: right; }
 

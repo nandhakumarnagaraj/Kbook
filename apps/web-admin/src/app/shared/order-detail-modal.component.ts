@@ -56,7 +56,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
           </div>
           <div class="order-modal__row" *ngIf="order.order.invoiceNumber">
             <span class="order-modal__label">Invoice #</span>
-            <span class="order-modal__value font-mono" style="font-weight: 700;">{{ order.order.invoiceNumber }}</span>
+            <span class="order-modal__value font-mono order-modal__value--strong">{{ order.order.invoiceNumber }}</span>
           </div>
           <div class="order-modal__row">
             <span class="order-modal__label">Customer</span>
@@ -233,15 +233,15 @@ import { BusinessApiService } from '../core/services/business-api.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
-      padding: 1rem;
+      z-index: var(--kb-z-modal);
+      padding: var(--kb-space-4);
       overflow-y: auto;
     }
 
     .order-modal__card {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 16px;
+      border-radius: var(--kb-radius-2xl);
       width: 100%;
       max-width: 460px;
       max-height: 90vh;
@@ -253,13 +253,13 @@ import { BusinessApiService } from '../core/services/business-api.service';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 1.25rem 1.5rem;
+      padding: var(--kb-space-5) var(--kb-space-6);
       border-bottom: 1px solid var(--line);
     }
 
     .order-modal__title {
       margin: 0;
-      font-size: 1.1rem;
+      font-size: var(--kb-text-xl);
       font-weight: 600;
       color: var(--ink);
     }
@@ -270,8 +270,8 @@ import { BusinessApiService } from '../core/services/business-api.service';
       font-size: 1.2rem;
       color: var(--muted);
       cursor: pointer;
-      padding: 0.25rem 0.5rem;
-      border-radius: 6px;
+      padding: var(--kb-space-1) var(--kb-space-2);
+      border-radius: var(--kb-radius-md);
       transition: background 0.2s;
     }
 
@@ -280,7 +280,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
     }
 
     .order-modal__details {
-      padding: 1rem 1.5rem;
+      padding: var(--kb-space-4) var(--kb-space-6);
       display: flex;
       flex-direction: column;
       gap: 0.6rem;
@@ -299,12 +299,12 @@ import { BusinessApiService } from '../core/services/business-api.service';
     }
 
     .order-modal__label {
-      font-size: 0.85rem;
+      font-size: var(--kb-text-md);
       color: var(--muted);
     }
 
     .order-modal__value {
-      font-size: 0.9rem;
+      font-size: var(--kb-text-md);
       color: var(--ink);
       font-weight: 500;
     }
@@ -318,8 +318,8 @@ import { BusinessApiService } from '../core/services/business-api.service';
     .chip {
       display: inline-block;
       padding: 0.15rem 0.55rem;
-      border-radius: 6px;
-      font-size: 0.75rem;
+      border-radius: var(--kb-radius-md);
+      font-size: var(--kb-text-xs);
       font-weight: 600;
       text-transform: uppercase;
       background: var(--bg);
@@ -342,7 +342,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
     }
 
     .order-modal__correction {
-      padding: 1rem 1.5rem;
+      padding: var(--kb-space-4) var(--kb-space-6);
       border-top: 1px solid var(--line);
       background: var(--kb-color-surface-2);
     }
@@ -354,9 +354,9 @@ import { BusinessApiService } from '../core/services/business-api.service';
       border: 1px solid var(--line);
       background: var(--panel);
       color: var(--kb-color-foreground);
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       padding: 0.4rem 0.85rem;
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
       font-weight: 700;
       cursor: pointer;
     }
@@ -371,40 +371,40 @@ import { BusinessApiService } from '../core/services/business-api.service';
       gap: 0.6rem;
     }
 
-    .correction__field { display: grid; gap: 0.25rem; }
-    .correction__field > span { font-size: 0.74rem; font-weight: 700; color: var(--kb-color-muted-foreground); }
+    .correction__field { display: grid; gap: var(--kb-space-1); }
+    .correction__field > span { font-size: var(--kb-text-xs); font-weight: 700; color: var(--kb-color-muted-foreground); }
 
     .correction__field select,
     .correction__field input {
       min-height: 36px;
       padding: 0.35rem 0.55rem;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: var(--kb-radius-lg);
       background: var(--panel);
       color: var(--kb-color-foreground);
       font-family: inherit;
-      font-size: 0.84rem;
+      font-size: var(--kb-text-sm);
     }
 
-    .correction__note { margin: 0; font-size: 0.74rem; color: var(--kb-color-muted-foreground); line-height: 1.4; }
+    .correction__note { margin: 0; font-size: var(--kb-text-xs); color: var(--kb-color-muted-foreground); line-height: 1.4; }
 
     .correction__error {
       margin: 0;
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-danger);
     }
 
-    .correction__actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+    .correction__actions { display: flex; justify-content: flex-end; gap: var(--kb-space-2); }
 
     .order-modal__items {
-      padding: 1rem 1.5rem 1.5rem;
+      padding: var(--kb-space-4) var(--kb-space-6) var(--kb-space-6);
       border-top: 1px solid var(--line);
     }
 
     .order-modal__subtitle {
-      margin: 0 0 0.75rem;
-      font-size: 0.95rem;
+      margin: 0 0 var(--kb-space-3);
+      font-size: var(--kb-text-lg);
       font-weight: 600;
       color: var(--ink);
     }
@@ -418,23 +418,23 @@ import { BusinessApiService } from '../core/services/business-api.service';
        variant line stay here. */
 
     .order-modal__variant {
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
       color: var(--muted);
     }
 
     .order-modal__empty {
       text-align: center;
-      padding: 1rem;
+      padding: var(--kb-space-4);
       color: var(--muted);
-      font-size: 0.9rem;
+      font-size: var(--kb-text-md);
     }
 
     .order-modal__footer {
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem 1.25rem;
+      gap: var(--kb-space-2);
+      padding: var(--kb-space-3) var(--kb-space-6) var(--kb-space-5);
       border-top: 1px solid var(--line);
       flex-wrap: wrap;
     }
@@ -444,8 +444,8 @@ import { BusinessApiService } from '../core/services/business-api.service';
       align-items: center;
       gap: 0.35rem;
       padding: 0.45rem 0.85rem;
-      border-radius: 8px;
-      font-size: 0.82rem;
+      border-radius: var(--kb-radius-lg);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       text-decoration: none;
       transition: background 0.15s, transform 0.15s;
@@ -465,8 +465,8 @@ import { BusinessApiService } from '../core/services/business-api.service';
       align-items: center;
       gap: 0.35rem;
       padding: 0.45rem 0.85rem;
-      border-radius: 8px;
-      font-size: 0.82rem;
+      border-radius: var(--kb-radius-lg);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       background: rgba(37, 211, 102, 0.12);
       color: var(--kb-color-success);
@@ -492,7 +492,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
     @media (max-width: 480px) {
       .order-modal__card {
         max-height: 95vh;
-        border-radius: 12px;
+        border-radius: var(--kb-radius-xl);
       }
 
       .order-modal__header,
@@ -502,6 +502,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
         padding-right: 1rem;
       }
     }
+    .order-modal__value--strong { font-weight: 700; }
   `]
 })
 export class OrderDetailModalComponent implements OnChanges, OnDestroy {

@@ -369,24 +369,23 @@ import { environment } from '../../../environments/environment';
           </div>
           <div class="field">
             <label>Category</label>
-            <div style="display:flex;gap:0.5rem;align-items:center;">
-              <select class="field-select" [(ngModel)]="formCategoryId" style="flex:1;">
+            <div class="row menu-category-picker">
+              <select class="field-select flex-1" [(ngModel)]="formCategoryId">
                 <option [ngValue]="null" disabled>Select a category</option>
                 <option *ngFor="let category of categories; trackBy: trackByCategoryId" [ngValue]="category.categoryId">
                   {{ category.name }}
                 </option>
               </select>
-              <button type="button" class="ghost-btn" style="white-space:nowrap;" (click)="showNewCategoryInput = !showNewCategoryInput">
+              <button type="button" class="ghost-btn new-category-toggle" (click)="showNewCategoryInput = !showNewCategoryInput">
                 {{ showNewCategoryInput ? 'Cancel' : '+ New' }}
               </button>
             </div>
-            <div *ngIf="showNewCategoryInput" style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+            <div class="new-category-row" *ngIf="showNewCategoryInput">
               <input
                 type="text"
-                class="field-control"
+                class="field-control flex-1"
                 [(ngModel)]="newCategoryName"
                 placeholder="New category name"
-                style="flex:1;"
               />
               <button
                 type="button"
@@ -429,7 +428,7 @@ import { environment } from '../../../environments/environment';
           </div>
           <div class="field">
             <label>Availability</label>
-            <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div class="row availability-row">
               <button
                 type="button"
                 class="availability-toggle"
@@ -447,27 +446,26 @@ import { environment } from '../../../environments/environment';
           </div>
 
           <!-- Portion / Size Variants -->
-          <div class="field" style="margin-top: 1rem; border-top: 1px solid var(--kb-color-border); padding-top: 1rem;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
-              <label style="margin:0; font-weight:700;">Portion / Size Variants</label>
-              <span class="muted" style="font-size:0.75rem;">(e.g., Half, Full, 250ml, 500ml)</span>
+          <div class="field variants-section">
+            <div class="row row--between variants-head">
+              <label class="variants-label">Portion / Size Variants</label>
+              <span class="muted variants-hint">(e.g., Half, Full, 250ml, 500ml)</span>
             </div>
 
             <!-- Existing Variants List -->
-            <div *ngIf="editingItem && loadingVariants" class="panel loading" style="padding:0.75rem; font-size:0.82rem;">Loading variants...</div>
+            <div *ngIf="editingItem && loadingVariants" class="panel loading variants-loading">Loading variants...</div>
             <p *ngIf="editingItem && variantsLoadError" class="error-text" role="alert">
               Couldn't load variant prices. <button type="button" class="ghost-btn" (click)="loadVariants(editingItem.menuItemId)">Retry</button>
             </p>
-            <div *ngIf="editingItem && !loadingVariants && itemVariants.length" style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom: 0.75rem;">
-              <div *ngFor="let variant of itemVariants; trackBy: trackByVariantId" style="display:flex; align-items:center; justify-content:space-between; padding: 0.45rem 0.75rem; background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: 8px;">
+            <div class="stack variant-list" *ngIf="editingItem && !loadingVariants && itemVariants.length">
+              <div class="row row--between variant-row" *ngFor="let variant of itemVariants; trackBy: trackByVariantId">
                 <div>
-                  <strong style="font-size:0.88rem;">{{ variant.variantName }}</strong>
-                  <span class="muted" style="margin-left:0.5rem; font-variant-numeric:tabular-nums;">₹{{ variant.price }}</span>
+                  <strong class="variant-name">{{ variant.variantName }}</strong>
+                  <span class="muted variant-price">₹{{ variant.price }}</span>
                 </div>
                 <button
                   type="button"
-                  class="ghost-btn danger-btn"
-                  style="padding: 0.2rem 0.5rem; font-size: 0.75rem; min-height: 28px;"
+                  class="ghost-btn danger-btn variant-remove"
                   [disabled]="deletingVariantId === variant.variantId"
                   (click)="deleteVariant(variant)"
                 >
@@ -475,39 +473,36 @@ import { environment } from '../../../environments/environment';
                 </button>
               </div>
             </div>
-            <p class="muted" *ngIf="editingItem && !loadingVariants && !itemVariants.length" style="font-size:0.82rem; margin:0 0 0.5rem;">No portion variants defined for this item yet. Base price applies.</p>
-            <div *ngIf="!editingItem && newMenuVariantDrafts.length" style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.75rem;">
-              <div *ngFor="let variant of newMenuVariantDrafts; let i = index" style="display:flex; align-items:center; justify-content:space-between; padding:0.45rem 0.75rem; background:var(--kb-color-surface-2); border:1px solid var(--kb-color-border); border-radius:8px;">
-                <span><strong>{{ variant.variantName }}</strong><span class="muted" style="margin-left:0.5rem;">{{ formatCurrencyValue(variant.price) }}</span></span>
-                <button type="button" class="ghost-btn danger-btn" style="padding:0.2rem 0.5rem; font-size:0.75rem; min-height:28px;" (click)="removeNewMenuVariant(i)">Remove</button>
+            <p class="muted variants-empty" *ngIf="editingItem && !loadingVariants && !itemVariants.length">No portion variants defined for this item yet. Base price applies.</p>
+            <div class="stack variant-list" *ngIf="!editingItem && newMenuVariantDrafts.length">
+              <div class="row row--between variant-row" *ngFor="let variant of newMenuVariantDrafts; let i = index">
+                <span><strong>{{ variant.variantName }}</strong><span class="muted draft-price">{{ formatCurrencyValue(variant.price) }}</span></span>
+                <button type="button" class="ghost-btn danger-btn variant-remove" (click)="removeNewMenuVariant(i)">Remove</button>
               </div>
             </div>
 
             <!-- Add Variant Form -->
-            <div style="display:flex; gap:0.4rem; align-items:center;">
+            <div class="row variant-add-form">
               <input
                 type="text"
-                class="field-control"
+                class="field-control variant-input variant-input--name"
                 [(ngModel)]="newVariantName"
                 placeholder="Variant name (e.g. Full)"
-                style="flex: 2; min-height:36px; font-size:0.85rem;"
               />
               <input
                 type="number"
-                class="field-control"
+                class="field-control variant-input variant-input--price"
                 [(ngModel)]="newVariantPrice"
                 placeholder="Price (₹)"
                 min="1"
                 max="100000"
                 step="0.01"
-                style="flex: 1; min-height:36px; font-size:0.85rem;"
               />
               <button
                 type="button"
-                class="ghost-btn"
+                class="ghost-btn variant-add-btn"
                 [disabled]="!newVariantName.trim() || !newVariantPrice || newVariantPrice < 1 || newVariantPrice > 100000 || addingVariant"
                 (click)="addVariant()"
-                style="min-height:36px; padding: 0 0.85rem; font-size:0.82rem;"
               >
                 {{ addingVariant ? 'Adding...' : '+ Add Variant' }}
               </button>
@@ -531,21 +526,20 @@ import { environment } from '../../../environments/environment';
 
       <!-- Manage Categories Modal -->
       <div class="modal-backdrop" *ngIf="showCategoriesModal" appFocusTrap (escape)="closeCategoriesModal()" (click)="closeCategoriesModal()">
-        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title" (click)="$event.stopPropagation()" style="max-width: 540px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
-            <h3 id="cat-modal-title" style="margin:0;">Manage Categories</h3>
+        <div class="modal-box categories-modal" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title" (click)="$event.stopPropagation()">
+          <div class="row row--between menu-modal-head">
+            <h3 class="menu-modal-heading" id="cat-modal-title">Manage Categories</h3>
             <button type="button" class="icon-btn" (click)="closeCategoriesModal()" aria-label="Close">✕</button>
           </div>
-          <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">Organize dishes by section. Categories with active items cannot be deleted. Star a category to pin it to the top of the list on the POS terminals.</p>
+          <p class="muted modal-intro">Organize dishes by section. Categories with active items cannot be deleted. Star a category to pin it to the top of the list on the POS terminals.</p>
 
           <!-- Add new category inline -->
-          <div style="display:flex; gap:0.5rem; margin-bottom: 1.25rem;">
+          <div class="category-create-row">
             <input
               type="text"
-              class="field-control"
+              class="field-control flex-1"
               [(ngModel)]="newCategoryModalName"
               placeholder="New category name (e.g. Starters, Beverages)"
-              style="flex:1;"
               (keydown.enter)="createCategoryFromModal()"
             />
             <button
@@ -559,9 +553,9 @@ import { environment } from '../../../environments/environment';
           </div>
 
           <!-- Category List -->
-          <div class="cat-list-wrap" style="max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
-            <div *ngFor="let cat of categories; trackBy: trackByCategoryId" class="cat-list-row" style="display:flex; align-items:center; justify-content:space-between; padding: 0.6rem 0.85rem; background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border); border-radius: 10px;">
-              <div *ngIf="renamingCategoryId !== cat.categoryId" style="display:flex; align-items:center; gap:0.6rem; flex:1; min-width:0;">
+          <div class="cat-list-wrap stack">
+            <div *ngFor="let cat of categories; trackBy: trackByCategoryId" class="cat-list-row row row--between">
+              <div class="row cat-name-row flex-1" *ngIf="renamingCategoryId !== cat.categoryId">
                 <button
                   type="button"
                   class="icon-btn cat-fav-btn"
@@ -572,35 +566,33 @@ import { environment } from '../../../environments/environment';
                   [disabled]="togglingFavouriteId === cat.categoryId"
                   (click)="toggleCategoryFavourite(cat)"
                 >{{ cat.isFavourite ? '★' : '☆' }}</button>
-                <strong
-                  style="font-size:0.92rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                <strong class="cat-name"
                   [title]="cat.name">{{ cat.name }}</strong>
-                <span class="chip" style="font-size:0.7rem;">{{ categoryItemCountLabel(cat.categoryId) }}</span>
+                <span class="chip cat-count">{{ categoryItemCountLabel(cat.categoryId) }}</span>
               </div>
-              <div *ngIf="renamingCategoryId === cat.categoryId" style="display:flex; gap:0.4rem; flex:1; margin-right: 0.5rem;">
+              <div class="cat-edit-row flex-1" *ngIf="renamingCategoryId === cat.categoryId">
                 <input
                   type="text"
-                  class="field-control"
+                  class="field-control flex-1 cat-rename-input"
                   [(ngModel)]="renamingCategoryName"
-                  style="flex:1; min-height:34px; padding: 0.3rem 0.5rem; font-size: 0.85rem;"
                   (keydown.enter)="saveRenameCategory(cat)"
                 />
-                <button type="button" class="primary-btn" style="min-height:34px; padding: 0.3rem 0.65rem; font-size: 0.78rem;" (click)="saveRenameCategory(cat)">Save</button>
-                <button type="button" class="ghost-btn" style="min-height:34px; padding: 0.3rem 0.5rem; font-size: 0.78rem;" (click)="cancelRenameCategory()">Cancel</button>
+                <button type="button" class="primary-btn cat-btn cat-btn--save" (click)="saveRenameCategory(cat)">Save</button>
+                <button type="button" class="ghost-btn cat-btn cat-btn--cancel" (click)="cancelRenameCategory()">Cancel</button>
               </div>
 
-              <div *ngIf="renamingCategoryId !== cat.categoryId" style="display:flex; gap:0.35rem;">
-                <button type="button" class="ghost-btn" *ngIf="getItemsCountInCategory(cat.categoryId) > 0" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; min-height:32px;" (click)="startBulkMove(cat)" [title]="'Move every dish out of ' + cat.name + ' into another category'">Move dishes</button>
-                <button type="button" class="ghost-btn" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; min-height:32px;" (click)="startRenameCategory(cat)">Rename</button>
-                <button type="button" class="ghost-btn danger-btn" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; min-height:32px;" (click)="deleteCategoryPrompt(cat)" [disabled]="getItemsCountInCategory(cat.categoryId) > 0" [title]="getItemsCountInCategory(cat.categoryId) > 0 ? 'Cannot delete category containing dishes' : 'Delete category'">Delete</button>
+              <div class="cat-actions" *ngIf="renamingCategoryId !== cat.categoryId">
+                <button type="button" class="ghost-btn cat-action-btn" *ngIf="getItemsCountInCategory(cat.categoryId) > 0" (click)="startBulkMove(cat)" [title]="'Move every dish out of ' + cat.name + ' into another category'">Move dishes</button>
+                <button type="button" class="ghost-btn cat-action-btn" (click)="startRenameCategory(cat)">Rename</button>
+                <button type="button" class="ghost-btn danger-btn cat-action-btn" (click)="deleteCategoryPrompt(cat)" [disabled]="getItemsCountInCategory(cat.categoryId) > 0" [title]="getItemsCountInCategory(cat.categoryId) > 0 ? 'Cannot delete category containing dishes' : 'Delete category'">Delete</button>
               </div>
             </div>
-            <div *ngIf="!categories.length" style="text-align:center; padding:1.5rem; color: var(--kb-color-muted-foreground); font-size: 0.88rem;">
+            <div class="cat-empty" *ngIf="!categories.length">
               No categories configured yet.
             </div>
           </div>
 
-          <div class="modal-actions" style="margin-top: 1.25rem;">
+          <div class="modal-actions modal-actions--spaced">
             <button type="button" class="ghost-btn" (click)="closeCategoriesModal()">Done</button>
           </div>
         </div>
@@ -608,12 +600,12 @@ import { environment } from '../../../environments/environment';
 
       <!-- Bulk move: the way out of "cannot delete a category containing dishes" -->
       <div class="modal-backdrop" *ngIf="bulkMoveSource" appFocusTrap (escape)="cancelBulkMove()" (click)="cancelBulkMove()">
-        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="bulk-move-title" (click)="$event.stopPropagation()" style="max-width: 520px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
-            <h3 id="bulk-move-title" style="margin:0;">Move dishes out of '{{ bulkMoveSource.name }}'</h3>
+        <div class="modal-box bulk-modal" role="dialog" aria-modal="true" aria-labelledby="bulk-move-title" (click)="$event.stopPropagation()">
+          <div class="row row--between menu-modal-head">
+            <h3 class="menu-modal-heading" id="bulk-move-title">Move dishes out of '{{ bulkMoveSource.name }}'</h3>
             <button type="button" class="icon-btn" (click)="cancelBulkMove()" aria-label="Close">✕</button>
           </div>
-          <p class="muted" style="margin: -0.25rem 0 1rem; font-size: 0.85rem;">
+          <p class="muted modal-intro">
             {{ bulkMoveItems.length }} dish(es) move to the category you pick. A category has to be empty before it can be deleted, so this is how one is retired.
           </p>
 
@@ -627,16 +619,16 @@ import { environment } from '../../../environments/environment';
           <p class="error-text" *ngIf="!bulkMoveTargetCategories.length">No other category exists yet. Create one, then move the dishes into it.</p>
 
           <!-- Per-dish result. An owner emptying a category has to see which dishes did not move and why. -->
-          <div *ngIf="bulkMoveSummary" style="margin-top: 0.9rem; font-size: 0.85rem;">
-            <p *ngIf="bulkMoveSummary.movedCount" class="muted" style="margin: 0 0 0.35rem;">
+          <div class="bulk-summary" *ngIf="bulkMoveSummary">
+            <p *ngIf="bulkMoveSummary.movedCount" class="muted bulk-summary-line">
               Moved {{ bulkMoveSummary.movedCount }} dish(es).
             </p>
-            <ul *ngIf="bulkMoveSummary.failed.length" style="margin: 0; padding-left: 1.1rem;">
+            <ul class="bulk-failures" *ngIf="bulkMoveSummary.failed.length">
               <li class="error-text" *ngFor="let failure of bulkMoveSummary.failed">{{ failure.name }} — {{ failure.reason }}</li>
             </ul>
           </div>
 
-          <div class="modal-actions" style="margin-top: 1.25rem;">
+          <div class="modal-actions modal-actions--spaced">
             <button class="ghost-btn" (click)="cancelBulkMove()" [disabled]="bulkMoving">Close</button>
             <button class="ghost-btn danger-btn" *ngIf="bulkMoveCanDelete" (click)="deleteAfterBulkMove()">Delete empty category</button>
             <button class="primary-btn" (click)="confirmBulkMove()" [disabled]="bulkMoving || bulkMoveTargetCategoryId == null || !bulkMoveItems.length">
@@ -706,16 +698,16 @@ import { environment } from '../../../environments/environment';
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 0.75rem 1rem;
+      gap: var(--kb-space-3) var(--kb-space-4);
       margin-bottom: 1rem;
-      padding: 0.6rem 0.75rem;
+      padding: 0.6rem var(--kb-space-3);
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-card, 12px);
+      border-radius: var(--kb-radius-card);
     }
     .menu-filters__group { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
     .menu-filters__label {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -727,13 +719,13 @@ import { environment } from '../../../environments/environment';
       align-items: center;
       gap: 0.4rem;
       min-height: 34px;
-      padding: 0.3rem 0.75rem;
+      padding: 0.3rem var(--kb-space-3);
       border: 1px solid var(--kb-color-border);
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface);
       color: var(--kb-color-foreground-2);
       font: inherit;
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       cursor: pointer;
       transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
@@ -750,10 +742,10 @@ import { environment } from '../../../environments/environment';
     }
     .filter-chip__count {
       padding: 0 0.35rem;
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface-2);
       color: var(--kb-color-muted-foreground);
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
     }
@@ -766,11 +758,11 @@ import { environment } from '../../../environments/environment';
       min-height: 34px;
       padding: 0 0.6rem;
       border: 1px solid var(--kb-color-border-strong);
-      border-radius: var(--kb-radius-md, 6px);
+      border-radius: var(--kb-radius-md);
       background: var(--kb-color-surface);
       color: var(--kb-color-foreground);
       font: inherit;
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
     }
     .menu-filter-select:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
 
@@ -781,12 +773,12 @@ import { environment } from '../../../environments/environment';
       background: none;
       color: var(--kb-color-link);
       font: inherit;
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       cursor: pointer;
     }
     .menu-filters__reset:hover { text-decoration: underline; }
-    .menu-filters__reset:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: var(--kb-radius-sm, 4px); }
+    .menu-filters__reset:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; border-radius: var(--kb-radius-sm); }
 
     /* Dietary type is text first; the border gives it a badge shape without
        turning a dietary fact into a colour code. */
@@ -794,10 +786,10 @@ import { environment } from '../../../environments/environment';
       display: inline-block;
       padding: 0.1rem 0.45rem;
       border: 1px solid var(--kb-color-border);
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface-2);
       color: var(--kb-color-foreground-2);
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
       white-space: nowrap;
     }
@@ -839,18 +831,18 @@ import { environment } from '../../../environments/environment';
     .photo-picker .thumb {
       width: 64px;
       height: 64px;
-      border-radius: var(--r-lg, 12px);
+      border-radius: var(--kb-radius-lg);
     }
     .photo-picker__placeholder {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       color: var(--muted);
       text-align: center;
-      padding: 0 0.25rem;
+      padding: 0 var(--kb-space-1);
       line-height: 1.3;
     }
     .photo-picker__actions {
       display: flex;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       align-items: center;
     }
     .ghost-btn--disabled { opacity: 0.5; cursor: not-allowed; }
@@ -870,7 +862,7 @@ import { environment } from '../../../environments/environment';
     }
     .menu-price-label {
       color: var(--kb-color-muted-foreground);
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -895,7 +887,7 @@ import { environment } from '../../../environments/environment';
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
     }
 
     /* Status chip doubles as the availability control in its own column: same
@@ -903,12 +895,12 @@ import { environment } from '../../../environments/environment';
     .chip--status {
       cursor: pointer;
       font: inherit;
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       letter-spacing: 0.02em;
       text-transform: uppercase;
       min-height: 30px;
-      padding: 0.25rem 0.7rem;
+      padding: var(--kb-space-1) 0.7rem;
     }
     .chip--status:disabled { opacity: 0.55; cursor: progress; }
     .chip--status:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
@@ -920,38 +912,38 @@ import { environment } from '../../../environments/environment';
       background: var(--kb-color-surface-2); color: var(--kb-color-foreground);
     }
     .ocr-state strong, .ocr-state p { margin: 0; }
-    .ocr-state p { margin-top: var(--kb-space-1); color: var(--kb-color-muted-foreground); font-size: 0.82rem; }
+    .ocr-state p { margin-top: var(--kb-space-1); color: var(--kb-color-muted-foreground); font-size: var(--kb-text-sm); }
     .ocr-state .spanner { flex: 0 0 auto; margin: var(--kb-space-1) 0 0; }
     .ocr-state--error { border-color: rgba(239,68,68,0.15); background: var(--kb-color-surface-2); color: var(--kb-color-error); }
     .ocr-state--warning { border-color: rgba(245,158,11,0.15); background: var(--kb-color-surface-2); color: var(--kb-color-warning); }
     .result-header { display: flex; align-items: center; gap: var(--kb-space-2); }
     .extracted-table { margin-top: var(--kb-space-2); }
-    .hint-text { color: var(--kb-color-muted-foreground); font-size: 0.85rem; margin: var(--kb-space-2) 0 0.75rem; }
-    .error-text { color: var(--kb-color-error); font-size: 0.85rem; margin: 0.5rem 0 0; }
-    .toolbar-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .hint-text { color: var(--kb-color-muted-foreground); font-size: var(--kb-text-md); margin: var(--kb-space-2) 0 var(--kb-space-3); }
+    .error-text { color: var(--kb-color-error); font-size: var(--kb-text-md); margin: var(--kb-space-2) 0 0; }
+    .toolbar-actions { display: flex; gap: var(--kb-space-2); align-items: center; }
     .action-stack { display: flex; gap: 0.4rem; align-items: center; flex-wrap: nowrap; white-space: nowrap; }
     .toggle-btn {
       border: 1px solid var(--kb-color-border);
       background: var(--kb-color-surface);
       border-radius: var(--kb-radius-md);
       padding: var(--kb-space-1) var(--kb-space-2);
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       font-weight: 500;
       cursor: pointer;
-      transition: transform 150ms var(--ease-out, ease-out), background-color 150ms ease;
+      transition: transform 150ms var(--ease-out), background-color 150ms ease;
     }
     .toggle-btn:active { transform: scale(0.97); }
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }
     .toggle-btn--on {
-      border-color: var(--kb-color-primary, #4F46E5);
-      background: var(--kb-color-primary, #4F46E5);
-      color: var(--kb-color-on-primary, #ffffff);
+      border-color: var(--kb-color-primary);
+      background: var(--kb-color-primary);
+      color: var(--kb-color-on-primary);
       font-weight: 600;
     }
     .toggle-btn--off {
-      border-color: var(--kb-color-error, #c0392b);
-      background: var(--kb-color-surface, #ffffff);
-      color: var(--kb-color-error, #c0392b);
+      border-color: var(--kb-color-error);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-error);
       font-weight: 600;
     }
     /* Star affordances: the wishlist toggle in the header, the per-dish star, and the panel
@@ -960,10 +952,10 @@ import { environment } from '../../../environments/environment';
     .fav-toggle { gap: 0.35rem; }
     .fav-toggle--on { border-color: var(--kb-color-primary); color: var(--kb-color-link); }
     .fav-toggle__count {
-      font-size: 0.7rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
       padding: 0 0.35rem;
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
     }
@@ -986,19 +978,101 @@ import { environment } from '../../../environments/environment';
       margin-bottom: var(--kb-space-3);
     }
     .fav-panel__head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
-    .fav-panel__hint { margin: 0; color: var(--kb-color-muted-foreground); font-size: 0.85rem; }
+    .fav-panel__hint { margin: 0; color: var(--kb-color-muted-foreground); font-size: var(--kb-text-md); }
     .fav-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .fav-chip {
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
       padding: 0.2rem 0.6rem;
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       border: 1px solid var(--kb-color-primary);
       color: var(--kb-color-link);
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
       font-weight: 500;
     }
+
+    /* ── Add/Edit and category dialogs ──
+       These declarations used to sit in inline style attributes. Values are
+       unchanged; the carrier moved into the component so the page keeps one
+       vocabulary and the stylesheet checks can see the values. */
+    .menu-category-picker { gap: var(--kb-space-2); }
+    .new-category-toggle { white-space: nowrap; }
+    .new-category-row { display: flex; align-items: stretch; margin-top: var(--kb-space-2); gap: var(--kb-space-2); }
+    .availability-row { gap: 0.6rem; }
+    .variants-section {
+      margin-top: var(--kb-space-4);
+      border-top: 1px solid var(--kb-color-border);
+      padding-top: var(--kb-space-4);
+    }
+    .variants-head { margin-bottom: var(--kb-space-2); }
+    .variants-label { margin: 0; font-weight: 700; }
+    .variants-hint { font-size: var(--kb-text-xs); }
+    .variants-loading { padding: var(--kb-space-3); font-size: var(--kb-text-sm); }
+    .variant-list { gap: 0.4rem; margin-bottom: 0.75rem; }
+    .variant-row {
+      padding: 0.45rem var(--kb-space-3);
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+    }
+    .variant-name { font-size: var(--kb-text-md); }
+    .variant-price { margin-left: var(--kb-space-2); font-variant-numeric: tabular-nums; }
+    .draft-price { margin-left: var(--kb-space-2); }
+    .variant-remove {
+      padding: 0.2rem var(--kb-space-2);
+      font-size: var(--kb-text-xs);
+      min-height: 28px;
+    }
+    .variants-empty { margin: 0 0 var(--kb-space-2); font-size: var(--kb-text-sm); }
+    .variant-add-form { gap: 0.4rem; }
+    .variant-input { min-height: 36px; font-size: var(--kb-text-md); }
+    .variant-input--name { flex: 2; }
+    .variant-input--price { flex: 1; }
+    .variant-add-btn { min-height: 36px; padding: 0 0.85rem; font-size: var(--kb-text-sm); }
+    .categories-modal { max-width: 540px; }
+    .bulk-modal { max-width: 640px; }
+    .menu-modal-head { margin-bottom: 0.75rem; }
+    .menu-modal-heading { margin: 0; }
+    .modal-intro { margin: -0.25rem 0 var(--kb-space-4); font-size: var(--kb-text-md); }
+    .category-create-row { display: flex; align-items: stretch; gap: var(--kb-space-2); margin-bottom: 1.25rem; }
+    .cat-list-wrap { max-height: 360px; overflow-y: auto; gap: var(--kb-space-2); }
+    .cat-list-row {
+      padding: 0.6rem 0.85rem;
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      border-radius: 10px;
+    }
+    .cat-name-row { gap: 0.6rem; min-width: 0; }
+    .cat-name {
+      font-size: var(--kb-text-lg);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cat-count { font-size: var(--kb-text-2xs); }
+    .cat-edit-row { display: flex; align-items: stretch; gap: 0.4rem; margin-right: var(--kb-space-2); }
+    .cat-rename-input {
+      min-height: 34px;
+      padding: 0.3rem var(--kb-space-2);
+      font-size: var(--kb-text-md);
+    }
+    .cat-btn { min-height: 34px; font-size: var(--kb-text-sm); }
+    .cat-btn--save { padding: 0.3rem 0.65rem; }
+    .cat-btn--cancel { padding: 0.3rem var(--kb-space-2); }
+    .cat-actions { display: flex; align-items: stretch; gap: 0.35rem; }
+    .cat-action-btn { padding: 0.3rem 0.6rem; font-size: var(--kb-text-sm); min-height: 32px; }
+    .cat-empty {
+      text-align: center;
+      padding: var(--kb-space-6);
+      color: var(--kb-color-muted-foreground);
+      font-size: var(--kb-text-md);
+    }
+    .modal-actions--spaced { margin-top: 1.25rem; }
+    .bulk-summary { margin-top: 0.9rem; font-size: var(--kb-text-md); }
+    .bulk-summary-line { margin: 0 0 0.35rem; }
+    .bulk-failures { margin: 0; padding-left: 1.1rem; }
+
     @media (max-width: 480px) {
       .action-stack { flex-direction: column; align-items: stretch; }
     }

@@ -49,7 +49,7 @@ import { CommonModule } from '@angular/common';
       display: grid;
       justify-items: center;
       gap: 0.8rem;
-      padding: 3rem 1rem;
+      padding: var(--kb-space-12) var(--kb-space-4);
     }
     .spinner {
       width: 36px;
@@ -65,9 +65,9 @@ import { CommonModule } from '@angular/common';
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
-      gap: 1rem;
-      margin: 1rem;
-      padding: 1rem 1.1rem;
+      gap: var(--kb-space-4);
+      margin: var(--kb-space-4);
+      padding: var(--kb-space-4) 1.1rem;
       color: var(--danger);
       background: var(--danger-soft);
       border: 1px solid rgba(192, 57, 43, 0.22);
@@ -80,14 +80,15 @@ import { CommonModule } from '@angular/common';
       height: 2.25rem;
       color: var(--kb-color-on-primary);
       background: var(--danger);
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       font-weight: 800;
     }
-    h3 { margin: 0 0 0.2rem; color: var(--ink); font-size: 0.95rem; }
+    /* Size comes from the shared .state-panel h3 rule in bento.css. */
+    h3 { margin: 0 0 0.2rem; color: var(--ink); }
     .error-message { margin: 0; color: var(--danger); line-height: 1.4; }
     .retry-btn {
       min-height: 42px;
-      padding: 0.55rem 1rem;
+      padding: 0.55rem var(--kb-space-4);
       color: var(--kb-color-on-primary);
       background: var(--danger);
       border: 0;

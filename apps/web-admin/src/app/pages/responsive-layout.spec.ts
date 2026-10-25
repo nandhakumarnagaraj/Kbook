@@ -14,7 +14,7 @@ import { BusinessOrder, PaginatedOrdersResponse } from '../core/models/api.model
  *
  * These drive a real viewport by sizing the Karma iframe: CSS media queries read
  * the viewport, never the container, and Chrome's default ~749px run never
- * reaches the 767px breakpoint — which is exactly why mobile-only overflow and
+ * reaches the 768px breakpoint — which is exactly why mobile-only overflow and
  * alignment bugs can sit in a green suite indefinitely.
  */
 const PHONE = 390;
@@ -239,6 +239,50 @@ describe('Responsive layout — order history', () => {
     const host = mountOrderHistory([order()]).nativeElement as HTMLElement;
 
     expect(overflowOf(host)).toBeLessThanOrEqual(1);
+  });
+
+  it('does not hide the order table when there is no card list to replace it', () => {
+    setViewport(PHONE);
+    const host = mountOrderHistory([order()]).nativeElement as HTMLElement;
+
+    const table = host.querySelector('.data-table') as HTMLElement | null;
+    const cards = host.querySelector('.mobile-order-list');
+    expect(table).withContext('the orders table renders').toBeTruthy();
+    if (!cards) {
+      // A hidden table overflows nothing, so the phone-layout spec above stays green
+      // while a phone shows an empty Order History. That is how this bug survived.
+      expect(getComputedStyle(table!).display)
+        .withContext('a table with no card fallback must scroll, not disappear')
+        .not.toBe('none');
+    }
+  });
+
+  it('hides a table at phone width only when a card list sits beside it', () => {
+    setViewport(PHONE);
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    wrap.innerHTML =
+      '<table class="data-table"><tbody><tr><td>order 7</td></tr></tbody></table>' +
+      '<div class="mobile-data-list">cards</div>';
+    document.body.appendChild(wrap);
+    probes.push(wrap);
+
+    expect(getComputedStyle(wrap.querySelector('.data-table') as HTMLElement).display)
+      .withContext('the table stands down for the cards')
+      .toBe('none');
+    expect(getComputedStyle(wrap.querySelector('.mobile-data-list') as HTMLElement).display)
+      .withContext('the cards take its place')
+      .toBe('grid');
+  });
+
+  it('enters the shared narrow layout at 768px, not a pixel either side', () => {
+    const list = probe('mobile-data-list');
+
+    setViewport(768);
+    expect(getComputedStyle(list).display).withContext('768 is the narrow boundary').toBe('grid');
+
+    setViewport(769);
+    expect(getComputedStyle(list).display).withContext('769 is no longer narrow').not.toBe('grid');
   });
 
   it('right-aligns the Action column with its own header on desktop', () => {

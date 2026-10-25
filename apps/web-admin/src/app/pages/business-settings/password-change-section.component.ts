@@ -26,12 +26,12 @@ const API = environment.apiBaseUrl;
           <p class="muted">Update your web admin access credentials via verified one-time password (OTP).</p>
         </div>
       </div>
-      <div class="form-grid" style="max-width: 440px;">
+      <div class="form-grid password-form">
         <div class="field">
           <label>Phone Number</label>
           <input class="field-control tabular-num" [(ngModel)]="pwPhone" placeholder="Registered 10-digit phone" maxlength="10" aria-label="Registered phone number" />
         </div>
-        <div class="field" *ngIf="!pwOtpSent()" style="display:flex;align-items:flex-end;">
+        <div class="field password-otp-field" *ngIf="!pwOtpSent()">
           <button class="primary-btn" [disabled]="!pwPhone || pwPhone.length !== 10 || pwLoading()" (click)="requestPasswordOtp()">
             {{ pwLoading() ? 'Sending OTP...' : 'Send OTP' }}
           </button>
@@ -57,8 +57,10 @@ const API = environment.apiBaseUrl;
     </section>
   `,
   styles: [`
-    .success-text { color: var(--kb-color-success); font-size: 0.85rem; }
-    .error-text { color: var(--kb-color-error); font-size: 0.85rem; }
+    .success-text { color: var(--kb-color-success); font-size: var(--kb-text-md); }
+    .error-text { color: var(--kb-color-error); font-size: var(--kb-text-md); }
+    .password-form { max-width: 440px; }
+    .password-otp-field { display: flex; align-items: flex-end; }
   `]
 })
 export class PasswordChangeSectionComponent {

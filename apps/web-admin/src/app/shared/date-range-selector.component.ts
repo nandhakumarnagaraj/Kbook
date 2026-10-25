@@ -86,10 +86,13 @@ export function getPresetDateRange(
       min-height: 36px;
       padding: 0.4rem 0.55rem;
       border: 1px solid var(--kb-color-border-strong);
-      border-radius: var(--kb-radius-md, 6px);
+      border-radius: var(--kb-radius-md);
       background: var(--kb-color-input);
       color: var(--kb-color-foreground);
-      font: 500 0.78rem/1.2 var(--kb-font-sans, Arial, sans-serif);
+      font-weight: 500;
+      font-size: var(--kb-text-sm);
+      line-height: 1.2;
+      font-family: var(--kb-font-sans);
       font-variant-numeric: tabular-nums;
       cursor: text;
     }
@@ -104,8 +107,8 @@ export function getPresetDateRange(
       opacity: 0.72;
       cursor: pointer;
     }
-    .date-range__separator { color: var(--kb-color-muted-foreground); font-size: 0.78rem; }
-    @media (max-width: 680px) {
+    .date-range__separator { color: var(--kb-color-muted-foreground); font-size: var(--kb-text-sm); }
+    @media (max-width: 768px) {
       .date-range { flex-wrap: wrap; white-space: normal; }
       .date-range__input { width: 138px; }
       .date-range--single .date-range__input { width: 100%; }

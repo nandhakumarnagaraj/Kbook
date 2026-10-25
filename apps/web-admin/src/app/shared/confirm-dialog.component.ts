@@ -56,19 +56,19 @@ import {
     .confirm-dialog__overlay {
       position: fixed;
       inset: 0;
-      z-index: 1000;
+      z-index: var(--kb-z-modal);
       display: grid;
       place-items: center;
-      padding: 1rem;
+      padding: var(--kb-space-4);
       background: rgba(36, 23, 15, 0.56);
       backdrop-filter: blur(3px);
     }
     .confirm-dialog__card {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
-      gap: 1rem;
+      gap: var(--kb-space-4);
       width: min(460px, 100%);
-      padding: 1.5rem;
+      padding: var(--kb-space-6);
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 18px;
@@ -82,18 +82,18 @@ import {
       height: 2.5rem;
       color: var(--brand-deep);
       background: var(--brand-soft);
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       font-size: 1.1rem;
       font-weight: 800;
     }
     .confirm-dialog__icon--danger { color: var(--danger); background: var(--danger-soft); }
-    .confirm-dialog__title { margin: 0 0 0.45rem; font-size: 1.15rem; color: var(--ink); }
+    .confirm-dialog__title { margin: 0 0 0.45rem; font-size: var(--kb-text-xl); color: var(--ink); }
     .confirm-dialog__message { margin: 0; color: var(--muted); line-height: 1.55; }
     .confirm-dialog__actions {
       grid-column: 1 / -1;
       display: flex;
       justify-content: flex-end;
-      gap: 0.75rem;
+      gap: var(--kb-space-3);
       margin-top: 0.5rem;
     }
     .confirm-dialog__btn {
@@ -113,7 +113,7 @@ import {
     .confirm-dialog__btn--danger:hover { background: var(--kb-color-danger-solid-hover); }
     @media (max-width: 480px) {
       .confirm-dialog__overlay { place-items: end stretch; padding: 0; }
-      .confirm-dialog__card { width: 100%; padding: 1.25rem; border-radius: 18px 18px 0 0; }
+      .confirm-dialog__card { width: 100%; padding: var(--kb-space-5); border-radius: 18px 18px 0 0; }
       .confirm-dialog__actions { flex-direction: column-reverse; }
       .confirm-dialog__btn { width: 100%; }
     }

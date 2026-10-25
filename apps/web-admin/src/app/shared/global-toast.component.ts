@@ -34,11 +34,11 @@ import { ToastService } from '../core/services/toast.service';
       position: fixed;
       right: 1.5rem;
       bottom: 1.5rem;
-      z-index: 9999;
+      z-index: var(--kb-z-toast);
       display: grid;
       grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
-      gap: 0.75rem;
+      gap: var(--kb-space-3);
       width: min(380px, calc(100vw - 2rem));
       padding: 0.8rem 0.9rem;
       /* This used --ink as its background: a near-white fill with white text,
@@ -66,7 +66,7 @@ import { ToastService } from '../core/services/toast.service';
       place-items: center;
       width: 1.75rem;
       height: 1.75rem;
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface-2);
       color: var(--kb-color-foreground-2);
       font-weight: 800;
@@ -81,9 +81,9 @@ import { ToastService } from '../core/services/toast.service';
       color: inherit;
       background: transparent;
       border: 0;
-      border-radius: 8px;
+      border-radius: var(--kb-radius-lg);
       cursor: pointer;
-      font-size: 1.25rem;
+      font-size: var(--kb-text-xl);
     }
     /* The hover wash sits on the toast surface, not on a dark overlay: a white
        12% tint on a white toast is invisible. */

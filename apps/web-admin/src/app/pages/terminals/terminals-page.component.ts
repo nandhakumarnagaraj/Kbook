@@ -487,8 +487,8 @@ import { formatDate } from '../../shared/formatters';
   `,
   styles: [`
     .small-btn {
-      padding: 4px 10px;
-      font-size: 0.76rem;
+      padding: var(--kb-space-1) 10px;
+      font-size: var(--kb-text-xs);
     }
     .danger-btn {
       color: var(--kb-color-danger);
@@ -516,7 +516,7 @@ import { formatDate } from '../../shared/formatters';
       border: 1px solid rgba(var(--kb-color-warning-rgb), 0.4);
       background: rgba(var(--kb-color-warning-rgb), 0.08);
       color: var(--kb-color-warning);
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
       font-weight: 500;
       line-height: 1.4;
     }
@@ -535,7 +535,7 @@ import { formatDate } from '../../shared/formatters';
     }
     .topbar-heading h3 {
       margin: 0;
-      font-size: 1.05rem;
+      font-size: var(--kb-text-xl);
       font-weight: 600;
     }
     .heading-row {
@@ -544,9 +544,9 @@ import { formatDate } from '../../shared/formatters';
       gap: var(--kb-space-2);
     }
     .counter-badge {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
-      padding: 2px 8px;
+      padding: 2px var(--kb-space-2);
       border-radius: var(--kb-radius-full);
       background: rgba(var(--kb-color-warning-rgb), 0.12);
       color: var(--kb-color-warning);
@@ -560,8 +560,8 @@ import { formatDate } from '../../shared/formatters';
       border: 1px solid var(--kb-color-border);
       background: var(--kb-color-surface);
       border-radius: var(--kb-radius-full);
-      padding: 4px 12px;
-      font-size: 0.76rem;
+      padding: var(--kb-space-1) var(--kb-space-3);
+      font-size: var(--kb-text-xs);
       font-weight: 500;
       color: var(--kb-color-muted-foreground);
       cursor: pointer;
@@ -598,9 +598,9 @@ import { formatDate } from '../../shared/formatters';
     }
     .role-pill {
       display: inline-block;
-      padding: 2px 8px;
+      padding: 2px var(--kb-space-2);
       border-radius: var(--kb-radius-sm);
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
       letter-spacing: 0.04em;
     }
@@ -623,9 +623,9 @@ import { formatDate } from '../../shared/formatters';
       display: inline-flex;
       align-items: center;
       gap: 5px;
-      padding: 2px 8px;
+      padding: 2px var(--kb-space-2);
       border-radius: var(--kb-radius-full);
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
     }
     .indicator-dot {
@@ -658,7 +658,7 @@ import { formatDate } from '../../shared/formatters';
     .device-meta-cell {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: var(--kb-space-1);
     }
     .primary-badge {
       display: inline-block;
@@ -667,8 +667,8 @@ import { formatDate } from '../../shared/formatters';
       background: rgba(var(--kb-color-primary-rgb), 0.1);
       color: var(--kb-color-link);
       border: 1px solid rgba(var(--kb-color-primary-rgb), 0.3);
-      border-radius: 999px;
-      font-size: 0.68rem;
+      border-radius: var(--kb-radius-full);
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       letter-spacing: 0.03em;
       text-transform: uppercase;
@@ -696,7 +696,7 @@ import { formatDate } from '../../shared/formatters';
     }
     .credential-label {
       color: var(--kb-color-link);
-      font-size: 0.74rem;
+      font-size: var(--kb-text-xs);
       font-weight: 700;
       letter-spacing: 0.05em;
       text-transform: uppercase;
@@ -709,9 +709,9 @@ import { formatDate } from '../../shared/formatters';
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);
       line-height: 1.5;
-      font-size: 0.85rem;
+      font-size: var(--kb-text-md);
     }
-    .error-text { margin: 0.75rem 0 0; color: var(--kb-color-error); font-weight: 600; font-size: 0.85rem; }
+    .error-text { margin: var(--kb-space-3) 0 0; color: var(--kb-color-error); font-weight: 600; font-size: var(--kb-text-md); }
     .modal-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--kb-space-2); margin-top: var(--kb-space-4); }
     .device-pill {
       display: inline-flex;
@@ -720,9 +720,9 @@ import { formatDate } from '../../shared/formatters';
       padding: 0.15rem 0.45rem;
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-sm, 4px);
+      border-radius: var(--kb-radius-sm);
       font-family: var(--kb-font-mono);
-      font-size: 0.8rem;
+      font-size: var(--kb-text-sm);
     }
     .device-copy-btn {
       background: none;

@@ -12,9 +12,9 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, FocusTrapDirective],
   styles: [`
-    .modal-content { width: 100%; max-width: 560px; }
+    .modal-content { width: 100%; max-width: 640px; }
     .role-disabled-note {
-      font-size: 0.75rem; color: var(--kb-color-muted-foreground);
+      font-size: var(--kb-text-xs); color: var(--kb-color-muted-foreground);
       font-style: italic; margin-top: var(--kb-space-1);
     }
     .toggle-switch {
@@ -32,53 +32,116 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     }
     .toggle-switch input:checked + .toggle-slider { background: var(--kb-color-primary); }
     .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+    /* ── Permissions dialog layout ──
+       These declarations used to be inline style attributes. Values are
+       unchanged; the carrier moved into the component so the stylesheet
+       checks can see them. The .row/.row--between utilities supply
+       arrangement only; each class below owns its own rhythm. */
+    .permissions-heading { margin: 0 0 var(--kb-space-2); }
+    .permissions-role { margin: 0 0 var(--kb-space-5); font-size: var(--kb-text-md); }
+    .permissions-fixed { margin-bottom: var(--kb-space-4); }
+    .permissions-fixed-note { margin: 0 0 var(--kb-space-3); }
+    .permissions-category-group { margin-bottom: 0.6rem; }
+    .permissions-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--kb-space-1) var(--kb-space-2);
+      align-items: baseline;
+    }
+    .permissions-category-name {
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-primary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: var(--kb-space-1);
+    }
+    .permissions-denied { text-decoration: line-through; }
+    .permissions-template-actions {
+      display: flex;
+      gap: var(--kb-space-2);
+      flex-wrap: wrap;
+      margin-bottom: var(--kb-space-4);
+    }
+    .permissions-template-btn { font-size: var(--kb-text-sm); }
+    .permissions-template-btn--dashed { border-style: dashed; }
+    .permissions-templates { margin-bottom: var(--kb-space-4); }
+    .permissions-section-label {
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .permissions-row { padding: 0.4rem 0; border-bottom: 1px solid var(--line); }
+    .permissions-template-name { font-size: var(--kb-text-md); font-weight: 500; }
+    .permissions-template-meta {
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+      margin-left: var(--kb-space-2);
+    }
+    .permissions-template-apply { font-size: var(--kb-text-xs); }
+    .permissions-category { margin-bottom: var(--kb-space-4); }
+    .permissions-category-head {
+      padding: 0.3rem 0;
+      border-bottom: 2px solid var(--kb-color-primary);
+      margin-bottom: var(--kb-space-1);
+    }
+    .permissions-category-toggle {
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-primary);
+      cursor: pointer;
+    }
+    .permissions-perm-name { font-size: var(--kb-text-md); }
+    .permissions-create-modal { max-width: 400px; }
+    .permissions-create-heading { margin: 0 0 var(--kb-space-4); }
+    .permissions-create-note { font-size: var(--kb-text-sm); margin-bottom: var(--kb-space-4); }
   `],
   template: `
     <div class="modal-backdrop" *ngIf="open()" appFocusTrap (escape)="close.emit()" (click)="close.emit()">
       <div class="modal-box modal-content" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
-        <h3 style="margin:0 0 0.5rem">Permissions — {{ staff()?.name }}</h3>
-        <p class="muted" style="margin:0 0 1.25rem;font-size:0.85rem">
+        <h3 class="permissions-heading">Permissions — {{ staff()?.name }}</h3>
+        <p class="muted permissions-role">
           Role: <span class="chip">{{ staff()?.role }}</span>
         </p>
 
         <div *ngIf="permissionsLoading()" class="loading">Loading permissions...</div>
 
-        <div *ngIf="!permissionsLoading() && isRoleFixed()" style="margin-bottom:1rem">
-          <p class="role-disabled-note" style="margin:0 0 0.75rem">
+        <div class="permissions-fixed" *ngIf="!permissionsLoading() && isRoleFixed()">
+          <p class="role-disabled-note permissions-fixed-note">
             Staff permissions are fixed by the <strong>Sales Staff</strong> role and cannot be changed per member.
           </p>
-          <div *ngFor="let cat of permissionCategories; trackBy: trackByIndex" style="margin-bottom:0.6rem">
-            <div style="display:flex;flex-wrap:wrap;gap:0.25rem 0.5rem;align-items:baseline">
-              <strong style="font-size:0.75rem;color:var(--kb-color-primary);text-transform:uppercase;letter-spacing:0.05em;margin-right:0.25rem">{{ cat.name }}:</strong>
+          <div class="permissions-category-group" *ngFor="let cat of permissionCategories; trackBy: trackByIndex">
+            <div class="permissions-chip-row">
+              <strong class="permissions-category-name">{{ cat.name }}:</strong>
               <span *ngFor="let perm of cat.items; trackBy: trackByIndex">
                 <span class="chip" *ngIf="permissionsSet().has(perm.key)">{{ perm.displayName }}</span>
-                <span class="muted" *ngIf="!permissionsSet().has(perm.key)" style="text-decoration:line-through">{{ perm.displayName }}</span>
+                <span class="muted permissions-denied" *ngIf="!permissionsSet().has(perm.key)">{{ perm.displayName }}</span>
               </span>
             </div>
           </div>
         </div>
 
         <div *ngIf="!permissionsLoading() && !isRoleFixed()">
-          <div style="margin-bottom:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-            <button class="ghost-btn" (click)="applyCounterStaffTemplate()" style="font-size:0.8rem">Counter Staff</button>
-            <button class="ghost-btn" (click)="applyManagerTemplate()" style="font-size:0.8rem">Manager</button>
-            <button class="ghost-btn" (click)="showCreateTemplate.set(true)" style="font-size:0.8rem;border-style:dashed">+ Save as Template</button>
+          <div class="permissions-template-actions">
+            <button class="ghost-btn permissions-template-btn" (click)="applyCounterStaffTemplate()">Counter Staff</button>
+            <button class="ghost-btn permissions-template-btn" (click)="applyManagerTemplate()">Manager</button>
+            <button class="ghost-btn permissions-template-btn permissions-template-btn--dashed" (click)="showCreateTemplate.set(true)">+ Save as Template</button>
           </div>
 
-          <div *ngIf="roleTemplates.length > 0" style="margin-bottom:1rem">
-            <strong style="font-size:0.75rem;color:var(--kb-color-muted-foreground);text-transform:uppercase;letter-spacing:0.05em">Saved Templates</strong>
-            <div *ngFor="let tpl of roleTemplates; trackBy: trackByIndex" style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--line)">
+          <div class="permissions-templates" *ngIf="roleTemplates.length > 0">
+            <strong class="permissions-section-label">Saved Templates</strong>
+            <div class="row row--between permissions-row" *ngFor="let tpl of roleTemplates; trackBy: trackByIndex">
               <div>
-                <span style="font-size:0.875rem;font-weight:500">{{ tpl.name }}</span>
-                <span style="font-size:0.75rem;color:var(--kb-color-muted-foreground);margin-left:0.5rem">{{ tpl.permissions?.length || 0 }} permissions</span>
+                <span class="permissions-template-name">{{ tpl.name }}</span>
+                <span class="permissions-template-meta">{{ tpl.permissions?.length || 0 }} permissions</span>
               </div>
-              <button class="ghost-btn" style="font-size:0.75rem" (click)="applyServerTemplate(tpl)">Apply</button>
+              <button class="ghost-btn permissions-template-apply" (click)="applyServerTemplate(tpl)">Apply</button>
             </div>
           </div>
 
-          <div *ngFor="let cat of permissionCategories; trackBy: trackByIndex" style="margin-bottom:1rem">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:0.3rem 0;border-bottom:2px solid var(--kb-color-primary);margin-bottom:0.25rem">
-              <strong style="font-size:0.8rem;color:var(--kb-color-primary);cursor:pointer" (click)="toggleCategory(cat.name, cat.items)">
+          <div class="permissions-category" *ngFor="let cat of permissionCategories; trackBy: trackByIndex">
+            <div class="row row--between permissions-category-head">
+              <strong class="permissions-category-toggle" (click)="toggleCategory(cat.name, cat.items)">
                 {{ cat.name }}
               </strong>
               <label class="toggle-switch">
@@ -89,8 +152,8 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
                 <span class="toggle-slider"></span>
               </label>
             </div>
-            <div *ngFor="let perm of cat.items; trackBy: trackByIndex" style="display:flex;justify-content:space-between;align-items:center;padding:0.4rem 0;border-bottom:1px solid var(--line)">
-              <span style="font-size:0.875rem">{{ perm.displayName }}</span>
+            <div class="row row--between permissions-row" *ngFor="let perm of cat.items; trackBy: trackByIndex">
+              <span class="permissions-perm-name">{{ perm.displayName }}</span>
               <label class="toggle-switch">
                 <input type="checkbox" [checked]="permissionsSet().has(perm.key)" (change)="togglePermission(perm.key)">
                 <span class="toggle-slider"></span>
@@ -110,8 +173,8 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
     <!-- Create Template Dialog -->
     <div class="modal-backdrop" *ngIf="showCreateTemplate()" appFocusTrap (escape)="showCreateTemplate.set(false)" (click)="showCreateTemplate.set(false)">
-      <div class="modal-box modal-content" role="dialog" style="max-width:400px" (click)="$event.stopPropagation()">
-        <h3 style="margin:0 0 1rem">Save as Role Template</h3>
+      <div class="modal-box modal-content permissions-create-modal" role="dialog" (click)="$event.stopPropagation()">
+        <h3 class="permissions-create-heading">Save as Role Template</h3>
         <div class="form-group">
           <label>Template Name *</label>
             <!-- The template ref is what gives this field a touched state: the
@@ -132,7 +195,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
           <label>Description</label>
           <input class="field-control" type="text" [(ngModel)]="templateDescription" placeholder="Optional description" />
         </div>
-        <p class="muted" style="font-size:0.8rem;margin-bottom:1rem">
+        <p class="muted permissions-create-note">
           Will save {{ permissionsSet().size }} selected permissions as a reusable template.
         </p>
         <div class="modal-actions">

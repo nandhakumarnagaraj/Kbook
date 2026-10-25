@@ -117,7 +117,7 @@ import { AuthService } from '../../core/auth/auth.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2.5rem 1.5rem;
+      padding: var(--kb-space-10) var(--kb-space-6);
       background: radial-gradient(circle at 50% 20%, var(--kb-color-primary-soft) 0%, var(--kb-color-surface-2) 60%);
     }
 
@@ -126,8 +126,8 @@ import { AuthService } from '../../core/auth/auth.service';
       position: relative;
       width: 100%;
       max-width: 440px;
-      background: #FFFFFF;
-      border-radius: 4px;
+      background: var(--kb-color-surface);
+      border-radius: var(--kb-radius-sm);
       box-shadow:
         0 20px 40px -15px rgba(0, 0, 0, 0.08),
         0 0 0 1px rgba(0, 0, 0, 0.05);
@@ -150,17 +150,17 @@ import { AuthService } from '../../core/auth/auth.service';
     }
     .zigzag-edge--top {
       top: -10px;
-      background-image: linear-gradient(135deg, #FFFFFF 50%, transparent 50%),
-                        linear-gradient(225deg, #FFFFFF 50%, transparent 50%);
+      background-image: linear-gradient(135deg, var(--kb-color-surface) 50%, transparent 50%),
+                        linear-gradient(225deg, var(--kb-color-surface) 50%, transparent 50%);
     }
     .zigzag-edge--bottom {
       bottom: -10px;
-      background-image: linear-gradient(45deg, #FFFFFF 50%, transparent 50%),
-                        linear-gradient(315deg, #FFFFFF 50%, transparent 50%);
+      background-image: linear-gradient(45deg, var(--kb-color-surface) 50%, transparent 50%),
+                        linear-gradient(315deg, var(--kb-color-surface) 50%, transparent 50%);
     }
 
     .receipt-content {
-      padding: 2.25rem 2rem;
+      padding: 2.25rem var(--kb-space-8);
     }
 
     /* Header */
@@ -175,7 +175,7 @@ import { AuthService } from '../../core/auth/auth.service';
       height: 40px;
       border-radius: 10px;
       background: var(--kb-color-primary);
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
       margin-bottom: 0.75rem;
     }
     .brand-logo-txt {
@@ -184,14 +184,14 @@ import { AuthService } from '../../core/auth/auth.service';
       letter-spacing: -0.02em;
     }
     .receipt-title {
-      font-size: 1.25rem;
+      font-size: var(--kb-text-xl);
       font-weight: 800;
       color: var(--kb-color-foreground);
-      margin: 0 0 0.25rem;
+      margin: 0 0 var(--kb-space-1);
       letter-spacing: -0.02em;
     }
     .receipt-sub {
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
@@ -201,14 +201,14 @@ import { AuthService } from '../../core/auth/auth.service';
 
     .dashed-divider {
       border-bottom: 1.5px dashed var(--kb-color-border-strong);
-      margin: 1.25rem 0;
+      margin: var(--kb-space-5) 0;
     }
 
     /* Meta Grid */
     .ticket-meta-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.85rem 1rem;
+      gap: 0.85rem var(--kb-space-4);
     }
     .meta-item {
       display: flex;
@@ -216,13 +216,13 @@ import { AuthService } from '../../core/auth/auth.service';
       gap: 0.15rem;
     }
     .meta-label {
-      font-size: 0.68rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       color: var(--kb-color-muted-foreground);
       letter-spacing: 0.06em;
     }
     .meta-value {
-      font-size: 0.86rem;
+      font-size: var(--kb-text-md);
       font-weight: 700;
       color: var(--kb-color-foreground);
     }
@@ -232,19 +232,19 @@ import { AuthService } from '../../core/auth/auth.service';
 
     /* Body */
     .receipt-body {
-      padding: 0.25rem 0;
+      padding: var(--kb-space-1) 0;
     }
     .body-message {
-      font-size: 0.84rem;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
       line-height: 1.5;
-      margin: 0 0 1rem;
+      margin: 0 0 var(--kb-space-4);
     }
     .bill-line {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 0.86rem;
+      font-size: var(--kb-text-md);
       font-weight: 700;
       color: var(--kb-color-foreground);
     }
@@ -252,7 +252,7 @@ import { AuthService } from '../../core/auth/auth.service';
       margin-top: 0.25rem;
     }
     .line-sub {
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       font-weight: 500;
       color: var(--kb-color-muted-foreground);
       word-break: break-all;
@@ -264,7 +264,7 @@ import { AuthService } from '../../core/auth/auth.service';
     /* Barcode */
     .barcode-wrapper {
       text-align: center;
-      padding: 0.5rem 0;
+      padding: var(--kb-space-2) 0;
     }
     .barcode-lines {
       display: flex;
@@ -284,7 +284,7 @@ import { AuthService } from '../../core/auth/auth.service';
 
     .barcode-digits {
       display: block;
-      font-size: 0.68rem;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       color: var(--kb-color-muted-foreground);
       letter-spacing: 0.18em;

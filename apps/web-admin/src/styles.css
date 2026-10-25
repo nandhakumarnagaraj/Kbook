@@ -90,11 +90,9 @@
   /* ---------------------------------------------------------------------- */
   /* Radii                                                                   */
   /* ---------------------------------------------------------------------- */
-  --r-sm:  4px;
-  --r-md:  6px;
-  --r-lg:  8px;
-  --r-xl:  12px;
-  --r-2xl: 16px;
+  /* The ladder lives once, as --kb-radius-* (see the scale block below). The old --r-*
+     aliases had the same five values under a second name; the 28 references now read the
+     canonical token, so the aliases are gone. */
 
   /* ---------------------------------------------------------------------- */
   /* Typography                                                              */
@@ -169,21 +167,41 @@
   --kb-color-success-rgb:       22, 101, 52;
   --kb-color-warning-rgb:       154, 63, 8;
   --kb-color-danger-rgb:        185, 28, 28;
-  --kb-color-info-rgb:          29, 78, 216;
+  --kb-color-info-rgb:          67, 56, 202;
   --kb-brand-orange:            var(--brand-orange);
   --kb-brand-orange-ink:        var(--brand-orange-ink);
   --kb-brand-purple:            var(--brand-purple);
   --kb-color-error:             var(--kb-color-danger);
   --kb-color-error-soft:        var(--kb-color-danger-soft);
   --kb-easing-fast:             var(--kb-ease-standard);
-  --kb-font-caption:            0.75rem;
   --kb-gradient-hero:           linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
   --kb-gradient-cream:          linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
   --kb-font-sans:               "Inter", ui-sans-serif, system-ui, sans-serif;
   --kb-font-display:            "Plus Jakarta Sans", "Inter", sans-serif;
   --kb-font-mono:               "JetBrains Mono", ui-monospace, monospace;
-  --kb-font-size-display:       clamp(2rem, 3.2vw, 2.75rem);
-  --kb-font-size-h1:            1.75rem;
+
+  /* ---------------------------------------------------------------------- */
+  /* Type scale — nine steps, and nothing in between                        */
+  /* ---------------------------------------------------------------------- */
+  /* Before this block the app painted 65 distinct font sizes, fifteen of them
+     inside a single visual tier (0.68 → 0.88rem, i.e. 10.9 → 14.1px). Two of
+     those — 0.8125rem and 0.82rem — were the same 13px written two ways, and
+     0.85rem alone appeared 38 times as the de-facto body size.
+     Every step below is a size the app already renders, so consuming a token is
+     a rename, not a redesign. Values within ~0.6px of a step were snapped to it
+     (0.85rem → 14px is +0.4px); anything further away was left alone and is
+     listed as remaining work in docs/audit/web-admin-consistency-audit-2026-10-25.md.
+     scripts/check-type-scale.mjs fails if a new literal size appears. */
+  --kb-text-2xs: 0.6875rem;  /* 11px — eyebrow, uppercase table header, micro label */
+  --kb-text-xs:  0.75rem;    /* 12px — caption, chip, hint */
+  --kb-text-sm:  0.8125rem;  /* 13px — dense table cell, secondary body */
+  --kb-text-md:  0.875rem;   /* 14px — body copy, the default */
+  --kb-text-lg:  1rem;       /* 16px — card title, emphasised value */
+  --kb-text-xl:  1.25rem;    /* 20px — section heading */
+  --kb-text-2xl: 1.5rem;     /* 24px — page heading */
+  --kb-text-3xl: 1.75rem;    /* 28px — KPI figure */
+  --kb-text-4xl: 2rem;       /* 32px — hero figure */
+
   /* Links are the deep blue: the 500 fill is 5.2:1 on white but the 600 step
      leaves headroom on tinted rows too. Hover deepens rather than lightens —
      lightening on a white canvas reads as disabled. */
@@ -204,9 +222,30 @@
   --kb-ease-standard: cubic-bezier(0.2,0,0.2,1);
   --ease-out:                   cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out:                cubic-bezier(0.77, 0, 0.175, 1);
-  --kb-z-topbar: 30; --kb-z-backdrop: 40; --kb-z-modal: 50; --kb-z-toast: 60;
+  /* Layering: one ladder, low to high. Every z-index in the app names a rung
+     here; a component picks a rung, never a number. Before this the shell had
+     five unrelated layers (99/100/101/110/130), three of the four declared
+     tokens were dead, and the mobile drawer painted *under* the topbar.
+     Local stacking inside a component (the auth card's 0/1/2 art layers) is
+     not a global layer and stays a literal in that component.
+     100-140 is the app shell; 1000+ floats over a page. */
+  --kb-z-raised:   1;    /* sticky table head inside its scroll container */
+  --kb-z-tooltip:  10;   /* hover/focus chip above the content it describes */
+  --kb-z-dock:     30;   /* fixed bottom docks: action bar, save dock */
+  --kb-z-dropdown: 60;   /* notification flyout */
+  --kb-z-topbar:   100;  /* mobile topbar */
+  --kb-z-backdrop: 110;  /* drawer scrim, dims the inert topbar too */
+  --kb-z-sidebar:  120;  /* drawer, above its scrim */
+  --kb-z-skip:     130;  /* skip link, above the shell */
+  --kb-z-peek:     140;  /* collapsed-rail hover chip */
+  --kb-z-modal:    1000; /* every modal overlay, whichever component owns it */
+  --kb-z-toast:    1100; /* every toast, above an open modal */
   --kb-sidebar-width: 240px; --kb-topbar-height: 56px;
-  --kb-content-max-width: 1400px;
+  /* One content measure, read by .page-shell and nothing else. 1680px is the
+     shipped and chosen width (owner decision 2026-10-25); it preserves the
+     data-dense layout at 1920px. DESIGN_SYSTEM_FREEZE.md rule 1 is aligned. The
+     old token said 1400px but was never read. */
+  --kb-content-max-width: 1680px;
   --kb-touch-min: 44px; --kb-touch-primary: 48px;
 
   /* POS Command Center Theme Tokens.
@@ -248,7 +287,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--kb-text-md);
   line-height: 1.5;
 }
 
@@ -269,9 +308,9 @@ a:hover { color: var(--kb-color-link-hover); }
    dashboard bento layout. Pages must NOT override padding/max-width/gap. */
 .page-shell {
   width: 100%;
-  max-width: 1680px;
+  max-width: var(--kb-content-max-width);
   margin: 0 auto;
-  padding: 1.75rem 2rem 3.5rem;
+  padding: 1.75rem var(--kb-space-8) 3.5rem;
   display: grid;
   /* minmax(0, 1fr), not the implicit `auto` track: an auto track is floored at
      the items' min-content width, so one nowrap table widened the column past
@@ -279,20 +318,20 @@ a:hover { color: var(--kb-color-link-hover); }
      track to shrink hands the scrolling back to the inner .table-wrap wrappers
      that were built for it. */
   grid-template-columns: minmax(0, 1fr);
-  gap: 1.5rem;
+  gap: var(--kb-space-6);
 }
 
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--r-xl);
+  border-radius: var(--kb-radius-xl);
   box-shadow: var(--shadow-xs);
 }
 
 .page-hero {
-  padding: 1.25rem 1.5rem;
+  padding: var(--kb-space-5) var(--kb-space-6);
   border: 1px solid var(--line);
-  border-radius: var(--r-xl);
+  border-radius: var(--kb-radius-xl);
   background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
   box-shadow: var(--shadow-xs);
 }
@@ -305,25 +344,25 @@ a:hover { color: var(--kb-color-link-hover); }
 .page-hero p {
   max-width: 60rem;
   margin-bottom: 0;
-  font-size: 0.875rem;
+  font-size: var(--kb-text-md);
   color: var(--muted);
 }
 .hero-meta {
   margin-top: 0.85rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--kb-space-2);
 }
 
 .section-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: var(--kb-space-4);
   margin-bottom: 0.85rem;
   flex-wrap: wrap;
 }
-.section-head h3 { margin: 0; font-size: 1rem; font-weight: 650; letter-spacing: -0.01em; }
+.section-head h3 { margin: 0; font-size: var(--kb-text-lg); font-weight: 650; letter-spacing: -0.01em; }
 
 .muted { color: var(--muted); }
 
@@ -333,8 +372,8 @@ a:hover { color: var(--kb-color-link-hover); }
   align-items: center;
   gap: 0.35rem;
   padding: 0.22rem 0.65rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
+  border-radius: var(--kb-radius-full);
+  font-size: var(--kb-text-2xs);
   font-weight: 700;
   background: var(--panel-2);
   color: var(--ink-2);
@@ -372,13 +411,13 @@ a:hover { color: var(--kb-color-link-hover); }
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  gap: var(--kb-space-4);
 }
 .stat-card {
-  padding: 1.15rem 1.25rem;
+  padding: 1.15rem var(--kb-space-5);
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--r-xl);
+  border-radius: var(--kb-radius-xl);
   box-shadow: var(--shadow-xs);
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   display: grid;
@@ -391,14 +430,14 @@ a:hover { color: var(--kb-color-link-hover); }
 }
 .stat-card h3 {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: var(--kb-text-2xs);
   color: var(--muted);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 .stat-card strong {
-  font-size: 1.75rem;
+  font-size: var(--kb-text-3xl);
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.02em;
@@ -423,7 +462,7 @@ a:hover { color: var(--kb-color-link-hover); }
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--kb-color-border);
-  border-radius: var(--r-xl);
+  border-radius: var(--kb-radius-xl);
   scrollbar-width: thin;
   scrollbar-color: var(--kb-color-border) transparent;
 }
@@ -442,7 +481,7 @@ table { width: 100%; border-collapse: collapse; }
   position: sticky;
   top: 0;
   background: var(--kb-color-surface-2);
-  z-index: 1;
+  z-index: var(--kb-z-raised);
 }
 /* Totals row — one definition for every table that shows a running total. */
 .data-table .table-totals-row td {
@@ -483,14 +522,14 @@ th, td {
    invoice or item a row is about still reads as that row's identifier and not
    as another header. Weight, not colour, is what sets it apart. */
 .data-table tbody th {
-  font-size: 0.88rem;
+  font-size: var(--kb-text-md);
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink-2);
 }
 th {
-  font-size: 0.7rem;
+  font-size: var(--kb-text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--kb-color-muted-foreground);
@@ -498,7 +537,7 @@ th {
 }
 /* Cell ink is `--ink-2` (alias of --kb-color-foreground-2): one deliberate step
    below body text, so the value is scannable while labels stay secondary. */
-td { color: var(--ink-2); font-size: 0.88rem; }
+td { color: var(--ink-2); font-size: var(--kb-text-md); }
 tr:last-child td { border-bottom: none; }
 tbody tr { transition: background 0.15s ease; }
 tbody tr:hover { background: var(--kb-color-surface-2); }
@@ -527,7 +566,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--kb-space-3);
   margin-bottom: 0.85rem;
   flex-wrap: wrap;
 }
@@ -539,13 +578,13 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   justify-content: center;
   gap: 0.45rem;
   background: var(--brand);
-  color: #fff;
+  color: var(--kb-color-on-primary);
   border: 1px solid var(--brand);
-  border-radius: var(--r-lg);
-  padding: 0.55rem 1rem;
+  border-radius: var(--kb-radius-lg);
+  padding: 0.55rem var(--kb-space-4);
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.86rem;
+  font-size: var(--kb-text-md);
   letter-spacing: -0.005em;
   box-shadow: var(--shadow-xs);
   transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
@@ -567,29 +606,12 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   transform: none;
 }
 
-.ghost-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  background: var(--panel);
-  color: var(--ink);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-lg);
-  padding: 0.5rem 0.85rem;
-  cursor: pointer;
-  font-weight: 500;
-  font-size: 0.84rem;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
-}
-.ghost-btn:hover {
-  background: var(--panel-2);
-  border-color: var(--muted);
-  color: var(--ink);
-}
-.ghost-btn:active { transform: scale(0.97); }
-.ghost-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.ghost-btn[disabled] { opacity: 0.4; cursor: not-allowed; }
+/* .ghost-btn is declared ONCE, in styles/bento.css.
+   It used to be declared here as well, with different geometry (8px radius, 500
+   weight, 0.84rem) from the copy in bento.css (9px, 700, 12.5px). bento.css loads
+   last, so its version was the one on screen and this one was only contributing
+   the structural props — two answers to one question. Button vocabulary belongs
+   to bento.css under freeze-doc rule 3, so the whole block moved there. */
 
 /* ============ Refresh Button (uniform colored CTA) ============ */
 .refresh-btn {
@@ -597,12 +619,12 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  padding: 0.55rem 1rem;
+  padding: 0.55rem var(--kb-space-4);
   background: var(--brand);
-  color: #fff;
+  color: var(--kb-color-on-primary);
   border: 1px solid var(--brand);
-  border-radius: var(--r-lg);
-  font-size: 0.84rem;
+  border-radius: var(--kb-radius-lg);
+  font-size: var(--kb-text-sm);
   font-weight: 600;
   letter-spacing: -0.005em;
   cursor: pointer;
@@ -640,13 +662,13 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 /* ============ Form fields ============ */
 .field-control, .field-select {
   width: 100%;
-  min-height: var(--kb-touch-min, 44px);
+  min-height: var(--kb-touch-min);
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-lg);
+  border-radius: var(--kb-radius-lg);
   padding: 0.55rem 0.8rem;
-  background: var(--kb-color-input, #FFFFFF);
+  background: var(--kb-color-input);
   color: var(--ink);
-  font-size: 0.88rem;
+  font-size: var(--kb-text-md);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .field-control::placeholder { color: var(--muted); }
@@ -663,18 +685,18 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 }
 .field { display: grid; gap: 0.35rem; }
 .field-label {
-  font-size: 0.78rem;
+  font-size: var(--kb-text-sm);
   font-weight: 600;
   color: var(--ink-2);
   letter-spacing: 0.005em;
 }
 .field-input {
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-lg);
+  border-radius: var(--kb-radius-lg);
   padding: 0.55rem 0.8rem;
-  background: var(--kb-color-input, #FFFFFF);
+  background: var(--kb-color-input);
   color: var(--ink);
-  font-size: 0.88rem;
+  font-size: var(--kb-text-md);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .field-input:focus {
@@ -699,19 +721,19 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   border-color: var(--kb-color-danger);
   box-shadow: 0 0 0 3px var(--kb-color-danger-soft);
 }
-.field-error { font-size: 0.78rem; color: var(--danger); }
-.hint-text { font-size: 0.78rem; color: var(--muted); }
+.field-error { font-size: var(--kb-text-sm); color: var(--danger); }
+.hint-text { font-size: var(--kb-text-sm); color: var(--muted); }
 
-.filter-panel { padding: 1rem 1.15rem; }
+.filter-panel { padding: var(--kb-space-4) 1.15rem; }
 .filter-grid {
   display: grid;
   grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(140px, 1fr)) auto;
-  gap: 0.75rem;
+  gap: var(--kb-space-3);
   align-items: end;
 }
 .filter-group { display: grid; gap: 0.3rem; }
 .filter-group label {
-  font-size: 0.72rem;
+  font-size: var(--kb-text-2xs);
   font-weight: 600;
   color: var(--muted);
   text-transform: uppercase;
@@ -721,19 +743,19 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: var(--kb-space-4);
   margin-top: 0.75rem;
   flex-wrap: wrap;
-  font-size: 0.83rem;
+  font-size: var(--kb-text-sm);
   color: var(--muted);
 }
 
 /* ============ Loading / Empty / Error ============ */
 .loading {
-  padding: 2rem;
+  padding: var(--kb-space-8);
   text-align: center;
   color: var(--muted);
-  font-size: 0.88rem;
+  font-size: var(--kb-text-md);
 }
 
 .empty-state {
@@ -742,23 +764,23 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 0.5rem;
-  padding: 2.5rem 1.5rem;
+  gap: var(--kb-space-2);
+  padding: var(--kb-space-10) var(--kb-space-6);
   color: var(--muted);
   border: 1px dashed var(--line);
-  border-radius: var(--r-xl);
+  border-radius: var(--kb-radius-xl);
   background: var(--panel-2);
 }
-.empty-state .empty-icon { font-size: 2rem; line-height: 1; opacity: 0.4; }
-.empty-state .empty-title { margin: 0; font-size: 1rem; font-weight: 650; color: var(--ink); }
-.empty-state .empty-text { margin: 0; max-width: 36rem; font-size: 0.85rem; }
+.empty-state .empty-icon { font-size: var(--kb-text-4xl); line-height: 1; opacity: 0.4; }
+.empty-state .empty-title { margin: 0; font-size: var(--kb-text-lg); font-weight: 650; color: var(--ink); }
+.empty-state .empty-text { margin: 0; max-width: 36rem; font-size: var(--kb-text-md); }
 .empty-state .empty-action { margin-top: 0.35rem; }
 
 .alert {
-  padding: 0.85rem 1rem;
-  border-radius: var(--r-lg);
+  padding: 0.85rem var(--kb-space-4);
+  border-radius: var(--kb-radius-lg);
   margin-bottom: 0.85rem;
-  font-size: 0.86rem;
+  font-size: var(--kb-text-md);
   border: 1px solid transparent;
 }
 .alert.error {
@@ -776,16 +798,16 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
+  z-index: var(--kb-z-modal);
+  padding: var(--kb-space-4);
   animation: fadeIn 0.15s ease;
 }
 .modal-box {
   /* One step above the card it sits on: a dialog is the topmost plane. */
   background: var(--kb-color-surface-3);
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-2xl);
-  padding: 1.5rem;
+  border-radius: var(--kb-radius-2xl);
+  padding: var(--kb-space-6);
   min-width: 340px;
   max-width: 480px;
   max-height: min(88vh, 760px);
@@ -794,7 +816,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   box-shadow: var(--shadow-lg);
   animation: slideUp 0.2s ease;
 }
-.modal-box h3 { margin: 0 0 0.35rem; font-weight: 650; font-size: 1.05rem; }
+.modal-box h3 { margin: 0 0 0.35rem; font-weight: 650; font-size: var(--kb-text-xl); }
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -807,8 +829,8 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 .modal-box .modal-actions {
   position: sticky;
   bottom: -1.5rem;
-  margin: 1.5rem -1.5rem -1.5rem;
-  padding: 0.9rem 1.5rem 1.5rem;
+  margin: var(--kb-space-6) -1.5rem -1.5rem;
+  padding: 0.9rem var(--kb-space-6) var(--kb-space-6);
   background: var(--kb-color-surface-3);
   border-top: 1px solid var(--line);
 }
@@ -829,11 +851,11 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   background: var(--kb-color-surface-3);
   color: var(--ink);
   padding: 0.8rem 1.15rem;
-  border-radius: var(--r-lg);
+  border-radius: var(--kb-radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 1100;
+  z-index: var(--kb-z-toast);
   max-width: 360px;
-  font-size: 0.86rem;
+  font-size: var(--kb-text-md);
   animation: slideUp 0.2s ease;
 }
 
@@ -845,16 +867,17 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   border-top-color: var(--brand);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
-  margin: 0.5rem auto;
+  margin: var(--kb-space-2) auto;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* `spin` is declared once, next to the first control that uses it (~line 600).
+   The second copy that lived here was identical and only shadowed the first. */
 
 /* ============ Skeleton ============ */
 .skeleton {
   position: relative;
   overflow: hidden;
   background: var(--kb-color-surface-2);
-  border-radius: var(--r-sm);
+  border-radius: var(--kb-radius-sm);
 }
 .skeleton::after {
   content: "";
@@ -865,10 +888,10 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   animation: shimmer 1.3s infinite;
 }
 @keyframes shimmer { 100% { transform: translateX(100%); } }
-.skeleton-stat { height: 84px; border-radius: var(--r-xl); }
-.skeleton-line { height: 0.75rem; margin: 0.35rem 0; border-radius: 4px; }
-.skeleton-row { height: 48px; border-radius: var(--r-lg); margin-bottom: 0.4rem; }
-.skeleton-stack { display: grid; gap: 0.5rem; }
+.skeleton-stat { height: 84px; border-radius: var(--kb-radius-xl); }
+.skeleton-line { height: 0.75rem; margin: 0.35rem 0; border-radius: var(--kb-radius-sm); }
+.skeleton-row { height: 48px; border-radius: var(--kb-radius-lg); margin-bottom: 0.4rem; }
+.skeleton-stack { display: grid; gap: var(--kb-space-2); }
 
 /* ============ Action buttons ============ */
 .row-actions, .action-cell {
@@ -886,9 +909,9 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   background: transparent;
   color: var(--ink-2);
   border: 1px solid transparent;
-  border-radius: var(--r-sm);
+  border-radius: var(--kb-radius-sm);
   padding: 0.32rem 0.6rem;
-  font-size: 0.78rem;
+  font-size: var(--kb-text-sm);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
@@ -908,12 +931,12 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 
 /* ============ Toggle switch ============ */
 .toggle-wrap { display: inline-flex; align-items: center; gap: 0.6rem; }
-.toggle-label { font-size: 0.82rem; color: var(--muted); font-weight: 500; }
+.toggle-label { font-size: var(--kb-text-sm); color: var(--muted); font-weight: 500; }
 .toggle-btn {
   position: relative;
   width: 42px;
   height: 24px;
-  border-radius: 999px;
+  border-radius: var(--kb-radius-full);
   background: var(--line-strong);
   border: none;
   cursor: pointer;
@@ -921,7 +944,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   transition: background 0.18s ease;
 }
 .toggle-btn.on,
-.toggle-btn--on { background: var(--brand); color: #ffffff; }
+.toggle-btn--on { background: var(--brand); color: var(--kb-color-on-primary); }
 .toggle-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .toggle-knob {
   position: absolute;
@@ -930,7 +953,7 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--kb-color-surface);
   box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   transition: transform 0.18s ease;
 }
@@ -947,12 +970,12 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   justify-content: center;
   gap: 0.35rem;
   min-height: 30px;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
+  padding: var(--kb-space-1) var(--kb-space-3);
+  border-radius: var(--kb-radius-full);
   border: 1px solid var(--kb-color-border);
   background: var(--kb-color-surface-2);
   color: var(--kb-color-muted-foreground);
-  font-size: 0.78rem;
+  font-size: var(--kb-text-sm);
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
@@ -1065,6 +1088,7 @@ button[disabled],
    ring, so the cross in the orders dialog behaved differently from the one in
    the dashboard's. */
 .icon-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1073,9 +1097,26 @@ button[disabled],
   padding: 0;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--r-sm);
+  border-radius: var(--kb-radius-sm);
   color: var(--kb-color-muted-foreground);
   cursor: pointer;
+}
+
+/* A 32px visual box with a 44px target. Owners use this on terminals and tablets, where
+   a thumb aiming at a modal cross needs the repo's own --kb-touch-min, not the WCAG floor
+   of 24px. The ring is drawn at 32px so nothing reflows; only the invisible hit area grows,
+   and only on a coarse pointer, because on a mouse the crowded toolbars are already
+   comfortable at 32 and an overlapping ring would swallow a neighbour's click. */
+@media (pointer: coarse) {
+  .icon-btn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--kb-touch-min);
+    height: var(--kb-touch-min);
+    transform: translate(-50%, -50%);
+  }
 }
 .icon-btn:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); }
 .icon-btn:active { transform: scale(0.94); }
@@ -1109,12 +1150,12 @@ td.price,
 
 
 .stacked-meta { display: grid; gap: 0.15rem; line-height: 1.35; }
-.stacked-meta .small { font-size: 0.75rem; color: var(--muted); }
+.stacked-meta .small { font-size: var(--kb-text-xs); color: var(--muted); }
 
 /* The padded panel: .panel + .soft-section is the card used for table and
    content panels. Its padding is the shared card padding, so a table card and a
    .bento-tile tile have the same inner inset. */
-.soft-section { padding: 1.25rem 1.35rem; }
+.soft-section { padding: var(--kb-space-5) 1.35rem; }
 
 /* ---- Dish photo thumbnail + no-photo placeholder ----
    Items without a photo fall back to a neutral tile carrying the veg /
@@ -1123,7 +1164,7 @@ td.price,
 .item-cell { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
 .item-cell .stacked-meta { min-width: 0; }
 .thumb {
-  flex: 0 0 auto; width: 40px; height: 40px; border-radius: var(--r-md, 8px);
+  flex: 0 0 auto; width: 40px; height: 40px; border-radius: var(--kb-radius-md);
   overflow: hidden; background: var(--panel-2); border: 1px solid var(--line);
   display: flex; align-items: center; justify-content: center;
 }
@@ -1142,18 +1183,18 @@ td.price,
 
 /* Mobile record cards replace dense operational tables below 768px. */
 .mobile-data-list { display: none; }
-.mobile-data-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--shadow-xs); overflow: hidden; }
+.mobile-data-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--kb-radius-xl); box-shadow: var(--shadow-xs); overflow: hidden; }
 .mobile-data-card--danger { border-left: 4px solid var(--danger); }
-.mobile-data-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
-.mobile-data-card > .mobile-data-card__head, .mobile-data-card > p { margin: 0; padding: 0.9rem 1rem 0; }
-.mobile-data-card > p { padding-top: 0.3rem; color: var(--muted); font-size: 0.8rem; }
-.mobile-data-card__primary { width: 100%; display: grid; gap: 0.35rem; padding: 0.9rem 1rem; text-align: left; color: var(--ink); background: transparent; border: 0; cursor: pointer; }
+.mobile-data-card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--kb-space-3); }
+.mobile-data-card > .mobile-data-card__head, .mobile-data-card > p { margin: 0; padding: 0.9rem var(--kb-space-4) 0; }
+.mobile-data-card > p { padding-top: 0.3rem; color: var(--muted); font-size: var(--kb-text-sm); }
+.mobile-data-card__primary { width: 100%; display: grid; gap: 0.35rem; padding: 0.9rem var(--kb-space-4); text-align: left; color: var(--ink); background: transparent; border: 0; cursor: pointer; }
 .mobile-data-card__primary:focus, .mobile-data-card__primary:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
-.mobile-data-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; margin: 0; padding: 0.9rem 1rem; }
+.mobile-data-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; margin: 0; padding: 0.9rem var(--kb-space-4); }
 .mobile-data-card dl div { min-width: 0; }
-.mobile-data-card dt { color: var(--muted); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mobile-data-card dt { color: var(--muted); font-size: var(--kb-text-2xs); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
 .mobile-data-card dd { margin: 0.12rem 0 0; color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
-.mobile-data-card__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; padding: 0.7rem 1rem; border-top: 1px solid var(--line); background: var(--panel-2); }
+.mobile-data-card__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--kb-space-2); padding: 0.7rem var(--kb-space-4); border-top: 1px solid var(--line); background: var(--panel-2); }
 
 /* ============ Migrated from the retired wave sheets ============
    wave-c.css and wave-de.css were the light theme. They were loaded AFTER this
@@ -1165,11 +1206,11 @@ td.price,
 /* Toolbar: the label sits on the same baseline as the controls beside it. */
 .toolbar {
   align-items: flex-end;
-  padding: 0.25rem 0.25rem 0.6rem;
+  padding: var(--kb-space-1) var(--kb-space-1) 0.6rem;
 }
-.toolbar h3 { margin: 0 0 0.15rem; font-size: 1.05rem; letter-spacing: -0.005em; }
-.toolbar .muted { margin: 0; font-size: 0.85rem; }
-.toolbar-actions { display: inline-flex; gap: 0.5rem; flex-wrap: wrap; }
+.toolbar h3 { margin: 0 0 0.15rem; font-size: var(--kb-text-xl); letter-spacing: -0.005em; }
+.toolbar .muted { margin: 0; font-size: var(--kb-text-md); }
+.toolbar-actions { display: inline-flex; gap: var(--kb-space-2); flex-wrap: wrap; }
 
 /* Row actions stay quiet until the row is under the pointer or focused. Four
    buttons of equal weight on every row is what made the action column shout. */
@@ -1186,7 +1227,7 @@ td.price,
 }
 .form-group .field-label,
 .form-group label {
-  font-size: 0.72rem;
+  font-size: var(--kb-text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
@@ -1202,8 +1243,8 @@ td.price,
   padding: 0.85rem 1.1rem;
   background: var(--panel-2);
   color: var(--muted);
-  font-size: 0.88rem;
-  border-radius: var(--r-xl);
+  font-size: var(--kb-text-md);
+  border-radius: var(--kb-radius-xl);
   border: 1px solid var(--line);
 }
 .panel.loading::before {
@@ -1222,7 +1263,7 @@ td.price,
   width: 12px;
   height: 12px;
   border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: #fff;
+  border-top-color: var(--kb-color-foreground-contrast);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   vertical-align: -1px;
@@ -1230,12 +1271,19 @@ td.price,
 app-date-range-selector { display: block; width: 100%; }
 
 /* ============ Responsive ============ */
-@media (max-width: 900px) {
-  .page-shell { padding: 1rem; }
-  .page-hero, .soft-section { padding: 1rem; }
-  th, td { padding: 0.7rem 0.75rem; }
+/* One ladder: 480 (phone) / 640 (phone landscape) / 768 (tablet, where a table gives way
+   to cards) / 1024 (laptop, paired with min-width: 1025 above it) / 1100 (the dashboards'
+   four-up KPI rows). Before this, fourteen widths answered the same question — at 600px
+   one page stacked into cards while another kept its table, and 767 sat one pixel away
+   from 768. The remaining off-ladder widths are budgeted in `npm run check:breakpoints`
+   and wait for a rendered pass: moving a threshold restyles a laptop, so it is a design
+   call, not a rename. */
+@media (max-width: 1024px) {
+  .page-shell { padding: var(--kb-space-4); }
+  .page-hero, .soft-section { padding: var(--kb-space-4); }
+  th, td { padding: 0.7rem var(--kb-space-3); }
   .filter-grid { grid-template-columns: 1fr; }
-  .stat-card strong { font-size: 1.5rem; }
+  .stat-card strong { font-size: var(--kb-text-2xl); }
 }
 @media (max-width: 640px) {
   .modal-backdrop { align-items: flex-end; padding: 0; }
@@ -1244,17 +1292,17 @@ app-date-range-selector { display: block; width: 100%; }
     max-width: none;
     max-height: 88vh;
     overflow-y: auto;
-    padding: 1.25rem;
-    border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+    padding: var(--kb-space-5);
+    border-radius: var(--kb-radius-2xl) var(--kb-radius-2xl) 0 0;
     animation: sheetUp 0.2s ease;
   }
   .modal-actions { flex-direction: column-reverse; }
   .modal-actions button { width: 100%; }
 }
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .table-wrap:has(.mobile-data-list) > .data-table { display: none; }
   .table-wrap:not(:has(.mobile-data-list)) { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .mobile-data-list { display: grid; gap: 0.75rem; padding: 0.75rem; }
+  .mobile-data-list { display: grid; gap: var(--kb-space-3); padding: var(--kb-space-3); }
 }
 @keyframes sheetUp {
   from { opacity: 0; transform: translateY(24px); }
@@ -1333,8 +1381,8 @@ app-date-range-selector { display: block; width: 100%; }
    controls are gone: which period a report covers, which day a closing slip
    closes. Typography only — .print-only owns the visibility. */
 .print-meta {
-  margin: 0 0 0.75rem;
-  font-size: 0.85rem;
+  margin: 0 0 var(--kb-space-3);
+  font-size: var(--kb-text-md);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--kb-color-foreground);
@@ -1358,7 +1406,7 @@ app-date-range-selector { display: block; width: 100%; }
 
   html,
   body {
-    background: #FFFFFF !important;
+    background: var(--kb-color-surface) !important;
   }
 
   .layout-shell {
@@ -1388,14 +1436,14 @@ app-date-range-selector { display: block; width: 100%; }
   .split-card,
   .audit-stat {
     box-shadow: none !important;
-    background: #FFFFFF !important;
+    background: var(--kb-color-surface) !important;
     border: 1px solid #D6DCE5 !important;
     border-radius: 0 !important;
     break-inside: avoid;
   }
 
   .panel {
-    padding: 0.75rem !important;
+    padding: var(--kb-space-3) !important;
     margin-bottom: 0.75rem !important;
   }
 
@@ -1403,7 +1451,7 @@ app-date-range-selector { display: block; width: 100%; }
      like a mistake. Paper gets a deliberate 2 x 2 block instead. */
   .kb-kpi-row {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.5rem !important;
+    gap: var(--kb-space-2) !important;
   }
 
   /* The split bar is data, not decoration: print its fills and its track. */
@@ -1458,7 +1506,7 @@ app-date-range-selector { display: block; width: 100%; }
 
   .data-table thead th {
     position: static !important;
-    background: #F1F5F9 !important;
+    background: var(--kb-color-surface-2) !important;
   }
 
   .data-table tr {
@@ -1471,7 +1519,7 @@ app-date-range-selector { display: block; width: 100%; }
 
   .data-table th,
   .data-table td {
-    padding: 0.2rem 0.25rem !important;
+    padding: 0.2rem var(--kb-space-1) !important;
   }
 
   a {

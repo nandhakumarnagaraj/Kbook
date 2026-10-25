@@ -235,7 +235,7 @@ function todayRange(): { from: string; to: string } {
                   <caption class="visually-hidden">Items sold in the selected period, ranked by quantity, with revenue and average price</caption>
                   <thead>
                     <tr>
-                      <th scope="col" style="width: 60px;"># Rank</th>
+                      <th class="rank-col" scope="col"># Rank</th>
                       <th scope="col">Dish / Item Name</th>
                       <th scope="col" class="num-cell">Units Sold</th>
                       <th scope="col" class="num-cell">Total Revenue</th>
@@ -300,7 +300,7 @@ function todayRange(): { from: string; to: string } {
       display: block;
       width: 100%;
       min-height: 100vh;
-      background: var(--pos-bg-body, var(--kb-color-surface-2));
+      background: var(--pos-bg-body);
       font-family: var(--kb-font-sans);
     }
 
@@ -331,17 +331,17 @@ function todayRange(): { from: string; to: string } {
       .financial-strip-card { grid-template-columns: 1fr; }
     }
     .strip-item {
-      padding: 1.25rem 1.35rem;
+      padding: var(--kb-space-5) 1.35rem;
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: var(--kb-space-1);
       border-right: 1px solid var(--kb-color-border);
     }
     .strip-item:last-child {
       border-right: none;
     }
     .strip-label {
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
@@ -354,7 +354,7 @@ function todayRange(): { from: string; to: string } {
       font-variant-numeric: tabular-nums;
     }
     .strip-hint {
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
     }
     .text-danger { color: var(--kb-color-danger) !important; }
@@ -364,8 +364,8 @@ function todayRange(): { from: string; to: string } {
     .audit-note-card {
       display: flex;
       align-items: flex-start;
-      gap: 1rem;
-      padding: 1.25rem 1.35rem;
+      gap: var(--kb-space-4);
+      padding: var(--kb-space-5) 1.35rem;
       margin-bottom: 1.5rem;
     }
     .note-icon-halo {
@@ -380,14 +380,14 @@ function todayRange(): { from: string; to: string } {
       flex-shrink: 0;
     }
     .note-copy h4 {
-      margin: 0 0 0.25rem;
-      font-size: 0.95rem;
+      margin: 0 0 var(--kb-space-1);
+      font-size: var(--kb-text-lg);
       font-weight: 700;
       color: var(--kb-color-foreground);
     }
     .note-copy p {
       margin: 0;
-      font-size: 0.84rem;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
       line-height: 1.5;
     }
@@ -395,7 +395,7 @@ function todayRange(): { from: string; to: string } {
     /* ── Tab Navigation ── */
     .report-tabs-nav {
       display: flex;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       margin-bottom: 1.5rem;
       border-bottom: 1px solid var(--kb-color-border);
       padding-bottom: 0.75rem;
@@ -404,13 +404,13 @@ function todayRange(): { from: string; to: string } {
     .tab-pill {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       padding: 0.55rem 1.1rem;
-      border-radius: 999px;
-      font-size: 0.84rem;
+      border-radius: var(--kb-radius-full);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
       cursor: pointer;
       transition: all 150ms ease;
@@ -423,12 +423,12 @@ function todayRange(): { from: string; to: string } {
     }
     .tab-pill--active {
       background: var(--kb-color-primary);
-      color: #FFFFFF;
+      color: var(--kb-color-on-primary);
       border-color: var(--kb-color-primary);
       box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.25);
     }
     .tab-pill--active:hover {
-      color: #FFFFFF;
+      color: var(--kb-color-on-primary);
     }
 
     /* ── Tables & Cards ── */
@@ -442,7 +442,7 @@ function todayRange(): { from: string; to: string } {
     /* The table design is defined once in the global stylesheet (see the
        "Tables" section of styles.css). Only column layout belongs here. */
     .empty-table-state {
-      padding: 3rem 1.5rem;
+      padding: var(--kb-space-12) var(--kb-space-6);
       text-align: center;
     }
     .empty-table-state svg.empty-icon-glyph {
@@ -452,7 +452,7 @@ function todayRange(): { from: string; to: string } {
     }
     .empty-table-state h4 {
       margin: 0 0 0.35rem;
-      font-size: 1rem;
+      font-size: var(--kb-text-lg);
       font-weight: 700;
       color: var(--kb-color-foreground);
     }
@@ -461,6 +461,7 @@ function todayRange(): { from: string; to: string } {
     .skeleton { background: var(--kb-color-border); border-radius: 14px; animation: pulse 1.5s ease-in-out infinite; }
     .skeleton-stat { height: 120px; }
     @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
+    .rank-col { width: 60px; }
   `]
 })
 export class ReportsPageComponent {

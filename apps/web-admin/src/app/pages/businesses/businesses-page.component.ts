@@ -179,7 +179,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
             <h3>{{ detail.shopName }}</h3>
             <p class="muted">Restaurant ID: {{ detail.restaurantId }}</p>
           </div>
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <div class="row row--wrap businesses-actions">
             <button class="ghost-btn" (click)="clearDetail()">Close</button>
           </div>
         </div>
@@ -191,7 +191,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       <div class="modal-backdrop" *ngIf="showCreateModal" appFocusTrap (escape)="closeCreateModal()" (click)="closeCreateModal()">
         <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="create-business-title" (click)="$event.stopPropagation()">
           <h3 id="create-business-title">Add New Restaurant</h3>
-          <p class="muted" style="margin-bottom: 1rem; font-size: 0.85rem;">
+          <p class="muted businesses-note">
             Provision a new restaurant tenant and initial owner account.
           </p>
 
@@ -259,7 +259,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
             <div class="form-group">
               <label for="create-address">Address / City (optional)</label>
-              <textarea id="create-address" class="field-control" rows="3" formControlName="address" placeholder="e.g. Indiranagar, Bangalore" style="resize: vertical; min-height: 72px; font-family: inherit;"></textarea>
+              <textarea id="create-address" class="field-control textarea-address" rows="3" formControlName="address" placeholder="e.g. Indiranagar, Bangalore"></textarea>
             </div>
 
             <div class="modal-actions">
@@ -292,12 +292,12 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1rem;
-      border-radius: 12px;
+      gap: var(--kb-space-2);
+      padding: 0.65rem var(--kb-space-4);
+      border-radius: var(--kb-radius-xl);
       border: 1px solid transparent;
       font-weight: 600;
-      font-size: 0.85rem;
+      font-size: var(--kb-text-md);
       cursor: pointer;
       transition: box-shadow 150ms ease;
       white-space: nowrap;
@@ -305,22 +305,22 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     .biz-action-btn--danger {
       background: var(--kb-color-error);
       border-color: var(--kb-color-error);
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
     }
     .biz-action-btn--danger:hover {
       background: var(--kb-color-error);
       border-color: var(--kb-color-error);
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
     }
     .biz-action-btn--success {
       background: var(--kb-color-success);
       border-color: var(--kb-color-success);
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
     }
     .biz-action-btn--success:hover {
       background: var(--kb-color-success);
       border-color: var(--kb-color-success);
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
     }
     .modal-backdrop {
       position: fixed;
@@ -329,14 +329,14 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       backdrop-filter: blur(4px);
       display: grid;
       place-items: center;
-      z-index: 1000;
-      padding: 1rem;
+      z-index: var(--kb-z-modal);
+      padding: var(--kb-space-4);
     }
     .modal-box {
       background: var(--panel);
-      border-radius: var(--r-xl);
+      border-radius: var(--kb-radius-xl);
       padding: 1.75rem;
-      max-width: 520px;
+      max-width: 640px;
       width: 100%;
       box-shadow: var(--shadow-lg);
       border: 1px solid var(--line);
@@ -351,27 +351,27 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     }
     .field-error {
       color: var(--kb-color-error);
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
     }
     .form-error {
       background: var(--kb-color-error-soft);
       border: 1px solid var(--kb-color-error-soft);
       color: var(--kb-color-error);
       padding: 0.65rem 0.85rem;
-      border-radius: var(--r-md);
-      font-size: 0.85rem;
+      border-radius: var(--kb-radius-md);
+      font-size: var(--kb-text-md);
       margin-bottom: 1rem;
     }
     .modal-actions {
       display: flex;
       justify-content: flex-end;
-      gap: 0.75rem;
+      gap: var(--kb-space-3);
       margin-top: 1.5rem;
     }
     .toolbar--inline {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: var(--kb-space-3);
       flex-wrap: wrap;
       margin-bottom: 0;
     }
@@ -380,7 +380,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     .header-controls {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       flex-wrap: wrap;
     }
     /* ── Businesses table column rhythm (layout only: the design itself lives
@@ -419,6 +419,8 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
         align-items: stretch;
       }
     }
+    .businesses-actions { gap: var(--kb-space-2); }
+    .businesses-note { margin-bottom: var(--kb-space-4); font-size: var(--kb-text-md); }
   `]
 })
 export class BusinessesPageComponent {

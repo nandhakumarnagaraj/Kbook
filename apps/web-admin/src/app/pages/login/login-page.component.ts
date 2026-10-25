@@ -391,7 +391,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <h2 class="login-heading">Password updated!</h2>
               <p class="login-sub">Your password has been changed successfully. You can now sign in with your new credentials.</p>
             </header>
-            <a href="#login" class="login-button" (click)="backToLogin($event)" role="button" style="text-decoration:none;">
+            <a href="#login" class="login-button login-button--link" (click)="backToLogin($event)" role="button">
               Sign in now &rarr;
             </a>
           </ng-container>
@@ -506,7 +506,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       background: var(--kb-color-surface);
       display: grid;
       place-items: center;
-      padding: 4px;
+      padding: var(--kb-space-1);
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
     }
     .brand-logo img {
@@ -528,7 +528,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .brand-title {
       font-weight: 800;
-      font-size: 2rem;
+      font-size: var(--kb-text-4xl);
       letter-spacing: -0.025em;
       color: var(--kb-color-surface);
     }
@@ -545,13 +545,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       border: 1px solid rgba(255, 255, 255, 0.18);
       padding: 10px 23px;
       margin-top: 4px;
-      border-radius: 9999px;
-      font-size: 0.85rem;
+      border-radius: var(--kb-radius-full);
+      font-size: var(--kb-text-md);
       font-weight: 650;
       letter-spacing: normal;
       text-transform: none;
       color: rgba(255, 255, 255, 0.9);
-      gap: 8px;
+      gap: var(--kb-space-2);
     }
 
     .brand-body {
@@ -628,12 +628,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       align-items: center;
       gap: 18px;
-      padding: 8px 0;
+      padding: var(--kb-space-2) 0;
     }
     .feature-icon-badge {
       width: 60px;
       height: 60px;
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       background: rgba(255, 255, 255, 0.18);
       color: var(--kb-color-surface);
       display: grid;
@@ -657,7 +657,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .feature-text {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: var(--kb-space-1);
       max-width: 340px;
     }
     .feature-heading {
@@ -677,11 +677,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       align-items: center;
       justify-content: space-around;
-      gap: 0.75rem;
+      gap: var(--kb-space-3);
       width: min(100%, 900px);
       margin: 0 auto;
       padding-top: 0;
-      font-size: 13px;
+      font-size: var(--kb-text-sm);
       color: rgba(255, 255, 255, 0.9);
       position: relative;
       z-index: 1;
@@ -690,10 +690,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .brand-foot-item {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: var(--kb-space-3);
       flex: 1;
       min-width: 0;
-      padding: 4px 16px;
+      padding: var(--kb-space-1) var(--kb-space-4);
     }
     .brand-foot-item:not(:last-child) {
       border-right: 1px solid rgba(255, 255, 255, 0.35);
@@ -705,13 +705,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       line-height: 1.25;
     }
     .brand-foot-item strong {
-      color: #FFFFFF;
-      font-size: 13px;
+      color: var(--kb-color-foreground-contrast);
+      font-size: var(--kb-text-sm);
       font-weight: 650;
     }
     .brand-foot-item small {
       color: rgba(255, 255, 255, 0.82);
-      font-size: 12px;
+      font-size: var(--kb-text-xs);
     }
     .brand-foot {
       margin: 0;
@@ -720,7 +720,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .brand-foot-links {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--kb-space-2);
     }
     .brand-foot-link {
       color: rgba(255, 255, 255, 0.88);
@@ -750,8 +750,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      max-width: 520px;
-      margin: 0 auto 1.5rem;
+      max-width: 640px;
+      margin: 0 auto var(--kb-space-6);
       transform: translateX(26px);
     }
     .auth-topbar-actions {
@@ -763,10 +763,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       gap: 6px;
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
-      border-radius: 9999px;
+      border-radius: var(--kb-radius-full);
       min-height: 42px;
-      padding: 8px 20px;
-      font-size: 14px;
+      padding: var(--kb-space-2) var(--kb-space-5);
+      font-size: var(--kb-text-md);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       cursor: default;
@@ -784,7 +784,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       margin: auto;
       display: flex;
       flex-direction: column;
-      gap: 40px;
+      gap: var(--kb-space-10);
       box-sizing: border-box;
       transform: translate(22px, 5px);
     }
@@ -795,7 +795,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .mobile-brand {
       display: inline-flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: var(--kb-space-3);
       text-decoration: none;
     }
     .mobile-brand-meta {
@@ -803,7 +803,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       flex-direction: column;
     }
     .brand-subtitle {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       color: var(--login-orange-action);
       font-weight: 700;
       letter-spacing: 0.04em;
@@ -813,7 +813,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .auth-head {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--kb-space-2);
     }
     .login-heading {
       margin: 0;
@@ -832,7 +832,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
     .google-wrap {
       display: grid;
-      gap: 8px;
+      gap: var(--kb-space-2);
       width: 100%;
       min-width: 0;
       min-height: 58px;
@@ -846,9 +846,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .google-loading {
       text-align: center;
-      font-size: 0.84rem;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
-      padding: 0.25rem 0;
+      padding: var(--kb-space-1) 0;
     }
 
     .divider {
@@ -856,7 +856,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       align-items: center;
       gap: 14px;
       color: var(--kb-color-muted-foreground);
-      font-size: 13px;
+      font-size: var(--kb-text-sm);
       font-weight: 500;
       margin: -1px 0;
     }
@@ -869,7 +869,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
     .auth-form {
       display: grid;
-      gap: 24px;
+      gap: var(--kb-space-6);
       margin-top: -27px;
     }
     .field {
@@ -877,7 +877,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       gap: 6px;
     }
     .field-label {
-      font-size: 13.5px;
+      font-size: var(--kb-text-md);
       font-weight: 600;
       color: var(--kb-color-foreground);
       letter-spacing: -0.01em;
@@ -907,9 +907,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       box-sizing: border-box;
       width: 100%;
       min-height: 52px;
-      padding: 14px 16px;
+      padding: 14px var(--kb-space-4);
       border: 1px solid var(--kb-color-border);
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       background: var(--kb-color-surface);
       font: inherit;
       font-size: 15px;
@@ -939,12 +939,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       cursor: pointer;
       min-width: 40px;
       min-height: 40px;
-      padding: 8px;
+      padding: var(--kb-space-2);
       color: var(--kb-color-muted-foreground);
       display: grid;
       place-items: center;
       z-index: 1;
-      border-radius: 8px;
+      border-radius: var(--kb-radius-lg);
       transition: color 0.15s ease;
     }
     .toggle-pwd-btn:hover {
@@ -966,8 +966,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .remember-label {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      font-size: 14px;
+      gap: var(--kb-space-2);
+      font-size: var(--kb-text-md);
       color: var(--kb-color-muted-foreground);
       cursor: pointer;
       user-select: none;
@@ -975,13 +975,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .remember-checkbox {
       width: 17px;
       height: 17px;
-      border-radius: 4px;
+      border-radius: var(--kb-radius-sm);
       border: 1.5px solid var(--kb-color-border);
       accent-color: var(--kb-color-primary);
       cursor: pointer;
     }
     .forgot-link {
-      font-size: 14px;
+      font-size: var(--kb-text-md);
       font-weight: 600;
       color: var(--login-orange-action);
       text-decoration: none;
@@ -997,18 +997,18 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       width: 100%;
       min-height: 52px;
       border: 0;
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       background: var(--login-orange-action);
       color: var(--kb-color-surface);
       font: inherit;
-      font-size: 16px;
+      font-size: var(--kb-text-lg);
       font-weight: 650;
       cursor: pointer;
       box-shadow: 0 4px 14px rgba(125, 52, 0, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: var(--kb-space-2);
       transition: background 160ms ease,
                   transform 160ms ease,
                   box-shadow 160ms ease;
@@ -1024,7 +1024,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .login-button:disabled {
       background: var(--login-orange-action);
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
       box-shadow: none;
       cursor: not-allowed;
       transform: none;
@@ -1037,7 +1037,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .btn-spinner-row {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       justify-content: center;
     }
     .spinning {
@@ -1059,7 +1059,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .footer-links {
       margin: 0;
       color: var(--kb-color-muted-foreground);
-      font-size: 14px;
+      font-size: var(--kb-text-md);
     }
     .signup-link {
       color: var(--login-orange-action);
@@ -1081,7 +1081,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       justify-content: center;
       padding-top: 14px;
       border-top: 1px solid var(--kb-color-border);
-      font-size: 13px;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
       font-weight: 500;
       margin-top: 33px;
@@ -1090,8 +1090,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 8px 16px;
-      font-size: 13px;
+      gap: var(--kb-space-2) var(--kb-space-4);
+      font-size: var(--kb-text-sm);
       line-height: 1.5;
       margin-top: -12px;
     }
@@ -1112,13 +1112,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       border-radius: 2px;
     }
     .trust-icon {
-      font-size: 13px;
+      font-size: var(--kb-text-sm);
     }
     .mobile-foot-row {
       display: none;
-      font-size: 13px;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
-      gap: 8px;
+      gap: var(--kb-space-2);
     }
     .mobile-foot-link {
       color: var(--login-orange-action);
@@ -1133,7 +1133,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
     .back-link {
       color: var(--kb-color-muted-foreground);
-      font-size: 14px;
+      font-size: var(--kb-text-md);
       font-weight: 600;
       cursor: pointer;
       text-decoration: none;
@@ -1150,8 +1150,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
     .alert-box {
       border-radius: 10px;
-      padding: 12px 16px;
-      font-size: 14px;
+      padding: var(--kb-space-3) var(--kb-space-4);
+      font-size: var(--kb-text-md);
       line-height: 1.4;
     }
     .alert-box.error {
@@ -1165,7 +1165,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       border: 1px solid var(--kb-color-success-soft);
     }
 
-    @media (max-width: 1080px) {
+    @media (max-width: 1100px) {
       .auth-shell {
         grid-template-columns: 1fr;
       }
@@ -1179,7 +1179,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         display: flex !important;
       }
       .auth-main {
-        padding: 24px 20px;
+        padding: var(--kb-space-6) var(--kb-space-5);
       }
       .brand-foot-row {
         display: none;
@@ -1189,7 +1189,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         transform: none;
       }
       .auth-card {
-        gap: 24px;
+        gap: var(--kb-space-6);
       }
       .auth-form {
         gap: 18px;
@@ -1202,7 +1202,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         margin-top: 0;
       }
       .auth-card-footer {
-        gap: 12px;
+        gap: var(--kb-space-3);
         margin-top: 8px;
       }
       .trust-badge-row,
@@ -1218,6 +1218,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       .divider { color: #000000; font-weight: 700; }
       .divider::before, .divider::after { background: #000000; height: 2px; }
     }
+    .login-button--link { text-decoration: none; }
   `]
 })
 export class LoginPageComponent implements OnInit, OnDestroy {

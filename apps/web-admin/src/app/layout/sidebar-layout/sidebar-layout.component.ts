@@ -194,19 +194,19 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       grid-template-columns: 240px 1fr;
       align-items: start;
     }
-    .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--pos-bg-body, #F6F8FD); }
+    .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--kb-color-bg-app); }
     .skip-link {
-      position: fixed; left: 1rem; top: 0; z-index: 110;
-      padding: 0.65rem 1rem; color: #ffffff; background: var(--kb-color-primary, #0066cc);
+      position: fixed; left: 1rem; top: 0; z-index: var(--kb-z-skip);
+      padding: 0.65rem var(--kb-space-4); color: var(--kb-color-on-primary); background: var(--kb-color-primary);
       font-weight: 600; text-decoration: none;
       border-radius: var(--kb-radius-sm); transform: translateY(-110%);
       transition: transform 0.15s ease;
     }
-    .skip-link:focus { transform: translateY(0); outline: 2px solid #ffffff; outline-offset: 2px; }
+    .skip-link:focus { transform: translateY(0); outline: 2px solid var(--kb-color-foreground-contrast); outline-offset: 2px; }
 
     /* ── Sidebar (POS Command Center Navy) ── */
     .sidebar {
-      padding: 1.5rem 1rem;
+      padding: var(--kb-space-6) var(--kb-space-4);
       display: flex;
       flex-direction: column;
       gap: var(--kb-space-3);
@@ -214,23 +214,23 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       top: 0;
       height: 100vh;
       overflow-y: auto;
-      background: var(--pos-sidebar-bg, #12162A);
+      background: var(--pos-sidebar-bg);
       /* The rail's edge belongs to the rail: borrowing the workspace border token
          would paint a light seam down the side of a dark panel the moment the
          workspace theme changed. */
-      border-right: 1px solid var(--pos-sidebar-border, #343B66);
-      color: var(--pos-sidebar-text, #A7B1C6);
+      border-right: 1px solid var(--pos-sidebar-border);
+      color: var(--pos-sidebar-text);
     }
 
     /* The brand and the footer must never be compressed by a short window: the
        nav is the only part of the rail that gives (see the desktop block). */
-    .brand-block { padding: 0 0.5rem 0.5rem; flex-shrink: 0; }
-    .brand-row { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-block { padding: 0 var(--kb-space-2) var(--kb-space-2); flex-shrink: 0; }
+    .brand-row { display: flex; align-items: center; gap: var(--kb-space-3); }
     .brand-logo-circle {
       width: 44px;
       height: 44px;
       border-radius: 10px;
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -241,7 +241,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .brand-logo-circle--sm {
       width: 32px;
       height: 32px;
-      border-radius: 8px;
+      border-radius: var(--kb-radius-lg);
       padding: 2px;
     }
     .brand-logo-img {
@@ -250,9 +250,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       object-fit: contain;
     }
     .brand-title {
-      font-size: 1.25rem;
+      font-size: var(--kb-text-xl);
       font-weight: 700;
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
       letter-spacing: -0.02em;
     }
     .sidebar-close-btn { display: none; }
@@ -267,32 +267,33 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       flex-shrink: 0;
       align-items: center;
       gap: 0.85rem;
-      padding: 0.75rem 1rem;
-      border-radius: 12px;
-      color: var(--pos-sidebar-text, #A7B1C6);
+      padding: 0.7rem 0.9rem;
+      border-radius: 10px;
+      color: var(--pos-sidebar-text);
       text-decoration: none;
       font-weight: 500;
       font-size: 0.92rem;
-      transition: all 150ms var(--ease-out, ease-out);
+      transition: all 150ms var(--ease-out);
     }
-    .nav-link__icon { font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; width: 22px; color: inherit; }
-    .nav-link:hover { background: var(--pos-sidebar-hover, #22274A); color: #FFFFFF; }
+    .nav-link__icon { font-size: var(--kb-text-lg); display: inline-flex; align-items: center; justify-content: center; width: 22px; color: inherit; }
+    .nav-link:hover { background: var(--pos-sidebar-hover); color: var(--kb-color-foreground-contrast); }
     .nav-link:active { transform: scale(0.97); }
     .nav-link.active-link {
-      background: var(--pos-purple, #0066CC);
-      color: #FFFFFF;
+      background: var(--kb-color-primary);
+      color: var(--kb-color-foreground-contrast);
       font-weight: 600;
       border: none;
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
     }
     /* The app draws one blue keyboard ring, but on this dark plane it measures
        ~3.6:1. The rail states focus in white, the way every other control on it
        does (toggle, sign out, drawer close, skip link). */
     .nav-link:focus-visible {
-      outline: 2px solid #FFFFFF;
+      outline: 2px solid var(--kb-color-foreground-contrast);
       outline-offset: 2px;
     }
     .nav-link.active-link .nav-link__icon {
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
     }
     .nav-link__badge {
       margin-left: auto;
@@ -301,14 +302,14 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      border-radius: 999px;
+      border-radius: var(--kb-radius-full);
       background: rgba(255, 255, 255, 0.12);
       color: rgba(255, 255, 255, 0.72);
       border: 1px solid rgba(255, 255, 255, 0.22);
     }
     .nav-link.active-link .nav-link__badge {
       background: rgba(255, 255, 255, 0.25);
-      color: #FFFFFF;
+      color: var(--kb-color-foreground-contrast);
       border-color: rgba(255, 255, 255, 0.4);
     }
 
@@ -345,7 +346,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 0.82rem;
+      font-size: var(--kb-text-sm);
       flex-shrink: 0;
       box-shadow: var(--kb-shadow-xs);
     }
@@ -359,48 +360,48 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       width: 9px;
       height: 9px;
       border-radius: var(--kb-radius-full);
-      background: var(--pos-sidebar-success, #22C55E);
-      box-shadow: 0 0 0 2px var(--pos-sidebar-bg, #12162A);
+      background: var(--pos-sidebar-success);
+      box-shadow: 0 0 0 2px var(--pos-sidebar-bg);
     }
-    .presence-dot--offline { background: var(--pos-sidebar-ink-muted, #93A0B8); }
+    .presence-dot--offline { background: var(--pos-sidebar-ink-muted); }
 
     .user-meta { display: grid; min-width: 0; }
     /* These two used the ink for text that sits ON a foreground fill
        (--kb-color-foreground-contrast, #0B0E1A) and the recessed-input surface
        (--kb-color-muted), which rendered the signed-in name at 1.2:1 and the
        role at 1.2:1 — present in the DOM, invisible on screen. */
-    .user-name { font-weight: 600; font-size: 0.82rem; color: var(--pos-sidebar-ink, #F3F6FB); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-role { font-size: 0.65rem; color: var(--pos-sidebar-ink-muted, #93A0B8); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .user-name { font-weight: 600; font-size: var(--kb-text-sm); color: var(--pos-sidebar-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-role { font-size: 0.65rem; color: var(--pos-sidebar-ink-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
     /* Sign out: subtle restrained danger styling with tactile feedback */
     .logout-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.5rem;
+      gap: var(--kb-space-2);
       padding: 0.55rem 0.9rem;
       /* A destructive ACTION is a solid fill with white content — the same pair
          the order card's Cancel button uses, so "danger" means one thing. */
-      background: var(--pos-sidebar-danger, #DC2626);
-      color: #FFFFFF;
-      border: 1px solid var(--pos-sidebar-danger, #DC2626);
-      border-radius: 12px;
+      background: var(--pos-sidebar-danger);
+      color: var(--kb-color-foreground-contrast);
+      border: 1px solid var(--pos-sidebar-danger);
+      border-radius: var(--kb-radius-xl);
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.88rem;
+      font-size: var(--kb-text-md);
       transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 150ms ease;
     }
     .logout-btn:hover {
-      background: var(--pos-sidebar-danger-hover, #F87171);
-      color: #ffffff;
-      border-color: var(--pos-sidebar-danger-hover, #F87171);
+      background: var(--pos-sidebar-danger-hover);
+      color: var(--kb-color-foreground-contrast);
+      border-color: var(--pos-sidebar-danger-hover);
       transform: translateY(-1px);
     }
     .logout-btn:active {
       transform: scale(0.97);
     }
     .logout-btn:focus-visible {
-      outline: 2px solid #FFFFFF;
+      outline: 2px solid var(--kb-color-foreground-contrast);
       outline-offset: 2px;
     }
 
@@ -454,7 +455,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       .sidebar {
         width: 240px;
         overflow: hidden;
-        transition: width 200ms var(--ease-out, ease-out);
+        transition: width 200ms var(--ease-out);
       }
       .nav-links {
         flex: 1 1 auto;
@@ -466,13 +467,13 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         /* A thin rail-coloured scrollbar rather than the OS one: a 15px native
            bar inside a 64px rail would eat a third of every target. */
         scrollbar-width: thin;
-        scrollbar-color: var(--pos-sidebar-border, #343B66) transparent;
+        scrollbar-color: var(--pos-sidebar-border) transparent;
       }
       .nav-links::-webkit-scrollbar { width: 6px; }
       .nav-links::-webkit-scrollbar-track { background: transparent; }
       .nav-links::-webkit-scrollbar-thumb {
-        background: var(--pos-sidebar-border, #343B66);
-        border-radius: var(--kb-radius-full, 999px);
+        background: var(--pos-sidebar-border);
+        border-radius: var(--kb-radius-full);
       }
 
       /* 44px hit area, 32px circle drawn inside it: the toggle stays visually
@@ -489,7 +490,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         padding: 0;
         border: 0;
         background: transparent;
-        color: var(--pos-sidebar-ink, #F3F6FB);
+        color: var(--pos-sidebar-ink);
         cursor: pointer;
       }
       .sidebar-toggle::before {
@@ -497,15 +498,15 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         position: absolute;
         inset: 6px;
         border: 1px solid rgba(255, 255, 255, 0.18);
-        border-radius: var(--kb-radius-full, 999px);
+        border-radius: var(--kb-radius-full);
         background: rgba(255, 255, 255, 0.06);
-        transition: background 150ms var(--ease-out, ease-out);
+        transition: background 150ms var(--ease-out);
       }
       .sidebar-toggle svg { position: relative; }
-      .sidebar-toggle:hover { color: #FFFFFF; }
-      .sidebar-toggle:hover::before { background: var(--pos-sidebar-hover, #22274A); }
+      .sidebar-toggle:hover { color: var(--kb-color-foreground-contrast); }
+      .sidebar-toggle:hover::before { background: var(--pos-sidebar-hover); }
       .sidebar-toggle:focus-visible {
-        outline: 2px solid #FFFFFF;
+        outline: 2px solid var(--kb-color-foreground-contrast);
         outline-offset: 2px;
       }
 
@@ -518,7 +519,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       /* Brand block reduces to just the logo, with the expand chevron under it */
       .sidebar--collapsed .brand-row {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: var(--kb-space-2);
       }
       .sidebar--collapsed .brand-block { padding: 0; }
       .sidebar--collapsed .brand-copy { display: none; }
@@ -534,7 +535,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
 
       /* Nav links become 44px-tall targets filling the rail's column — the
          --kb-touch-min height, instead of a 48px row squeezed into a 46px track. */
-      .sidebar--collapsed .nav-links { gap: 8px; }
+      .sidebar--collapsed .nav-links { gap: var(--kb-space-2); }
       .sidebar--collapsed .nav-link {
         justify-content: center;
         gap: 0;
@@ -582,18 +583,18 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       .nav-peek {
         position: fixed;
         transform: translateY(-50%);
-        z-index: 130;
+        z-index: var(--kb-z-peek);
         padding: 0.45rem 0.7rem;
         border-radius: 10px;
-        background: var(--pos-sidebar-peek-bg, #272D50);
-        color: #FFFFFF;
-        font-size: 0.82rem;
+        background: var(--pos-sidebar-peek-bg);
+        color: var(--kb-color-foreground-contrast);
+        font-size: var(--kb-text-sm);
         font-weight: 600;
         line-height: 1.3;
         white-space: normal;
         overflow-wrap: anywhere;
         pointer-events: none;
-        box-shadow: var(--kb-shadow-md, 0 6px 16px rgba(15, 18, 38, 0.25));
+        box-shadow: var(--kb-shadow-md);
       }
     }
 
@@ -609,7 +610,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     @media (prefers-contrast: more) {
       .sidebar a:focus-visible,
       .sidebar button:focus-visible {
-        outline-color: #FFFFFF !important;
+        outline-color: var(--kb-color-foreground-contrast) !important;
       }
     }
 
@@ -635,18 +636,22 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         gap: var(--kb-space-4);
         position: sticky;
         top: 0;
-        z-index: 101;
+        z-index: var(--kb-z-topbar);
         padding: var(--kb-space-3) var(--kb-space-4);
-        background: var(--kb-color-surface-2);
+        background: var(--kb-color-surface);
         border-bottom: 1px solid var(--kb-color-border);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
       }
-      .topbar__title { font-size: 0.9rem; line-height: 1.15; font-weight: 700; color: var(--kb-color-foreground); letter-spacing: -0.01em; }
-      .topbar__context { overflow: hidden; color: var(--kb-color-muted-foreground); font-size: 0.72rem; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+      .topbar__title { font-size: var(--kb-text-md); line-height: 1.15; font-weight: 700; color: var(--kb-color-foreground); letter-spacing: -0.01em; }
+      .topbar__context { overflow: hidden; color: var(--kb-color-muted-foreground); font-size: var(--kb-text-2xs); line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+      /* The drawer is fixed and full height, so it owns the top of the screen:
+         it must paint above the sticky topbar (which is inert while open) and
+         above its own scrim. Both are rungs of the z ladder in styles.css. */
       .sidebar {
         position: fixed;
         top: 0;
         left: 0;
-        z-index: 100;
+        z-index: var(--kb-z-sidebar);
         width: 280px;
         max-width: 85vw;
         height: 100vh;
@@ -665,15 +670,15 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: 10px;
         background: transparent;
-        color: var(--pos-sidebar-ink, #F3F6FB);
+        color: var(--pos-sidebar-ink);
         cursor: pointer;
       }
-      .sidebar-close-btn:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+      .sidebar-close-btn:focus-visible { outline: 2px solid var(--kb-color-foreground-contrast); outline-offset: 2px; }
       .sidebar-backdrop {
         display: block;
         position: fixed;
         inset: 0;
-        z-index: 99;
+        z-index: var(--kb-z-backdrop);
         background: rgba(26, 26, 26, 0.5);
         backdrop-filter: blur(2px);
       }

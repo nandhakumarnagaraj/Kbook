@@ -251,7 +251,7 @@ interface DailyClosingData {
       display: block;
       width: 100%;
       min-height: 100vh;
-      background: var(--pos-bg-body, var(--kb-color-surface-2));
+      background: var(--pos-bg-body);
       font-family: var(--kb-font-sans);
     }
 
@@ -266,14 +266,14 @@ interface DailyClosingData {
     .draft-warning-banner {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.85rem 1.25rem;
+      gap: var(--kb-space-3);
+      padding: 0.85rem var(--kb-space-5);
       margin-bottom: 1.25rem;
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       background: var(--kb-color-warning-soft);
       border: 1px solid var(--kb-color-warning-soft);
       color: var(--kb-color-warning);
-      font-size: 0.86rem;
+      font-size: var(--kb-text-md);
       line-height: 1.4;
     }
     .draft-warning-banner svg {
@@ -295,15 +295,15 @@ interface DailyClosingData {
     }
     .panel-sub {
       margin: 0;
-      font-size: 0.84rem;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
     }
     .reconciliation-grid {
       display: grid;
       grid-template-columns: 1fr 1.2fr 1fr;
-      gap: 1.25rem;
+      gap: var(--kb-space-5);
     }
-    @media (max-width: 860px) {
+    @media (max-width: 1024px) {
       .reconciliation-grid { grid-template-columns: 1fr; }
     }
 
@@ -311,13 +311,13 @@ interface DailyClosingData {
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-card);
-      padding: 1rem 1.15rem;
+      padding: var(--kb-space-4) 1.15rem;
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
     }
     .recon-label {
-      font-size: 0.76rem;
+      font-size: var(--kb-text-xs);
       font-weight: 700;
       color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
@@ -330,7 +330,7 @@ interface DailyClosingData {
       font-variant-numeric: tabular-nums;
     }
     .recon-hint {
-      font-size: 0.75rem;
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
     }
     .recon-card--match { border-color: var(--kb-color-success-soft); background: var(--kb-color-success-soft); }
@@ -344,7 +344,7 @@ interface DailyClosingData {
       position: relative;
       display: flex;
       align-items: center;
-      margin: 0.25rem 0;
+      margin: var(--kb-space-1) 0;
     }
     .currency-prefix {
       position: absolute;
@@ -355,13 +355,13 @@ interface DailyClosingData {
     }
     .cash-count-field {
       width: 100%;
-      padding: 0.65rem 1rem 0.65rem 2.2rem;
-      font-size: 1.25rem;
+      padding: 0.65rem var(--kb-space-4) 0.65rem 2.2rem;
+      font-size: var(--kb-text-xl);
       font-weight: 800;
       color: var(--kb-color-foreground);
       border: 2px solid var(--kb-color-border-strong);
-      border-radius: 12px;
-      background: #FFFFFF;
+      border-radius: var(--kb-radius-xl);
+      background: var(--kb-color-input);
       font-variant-numeric: tabular-nums;
       outline: none;
       transition: border-color 150ms ease;
@@ -374,8 +374,8 @@ interface DailyClosingData {
     .variance-badge {
       display: inline-block;
       padding: 0.2rem 0.65rem;
-      border-radius: 8px;
-      font-size: 0.74rem;
+      border-radius: var(--kb-radius-lg);
+      font-size: var(--kb-text-xs);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.04em;
@@ -391,26 +391,26 @@ interface DailyClosingData {
     .payment-splits-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 1rem;
+      gap: var(--kb-space-4);
       margin-top: 1rem;
     }
     .split-card {
       background: var(--kb-color-bg-app);
       border: 1px solid var(--kb-color-border);
       border-radius: 14px;
-      padding: 1.15rem 1.25rem;
+      padding: 1.15rem var(--kb-space-5);
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: var(--kb-space-4);
     }
     .split-icon-box {
       width: 44px;
       height: 44px;
-      border-radius: 12px;
+      border-radius: var(--kb-radius-xl);
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #FFFFFF;
+      background: var(--kb-color-surface);
       color: var(--kb-color-link);
       border: 1px solid var(--kb-color-border);
       flex-shrink: 0;
@@ -422,7 +422,7 @@ interface DailyClosingData {
       flex-direction: column;
     }
     .split-label {
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
     }
@@ -433,7 +433,7 @@ interface DailyClosingData {
       font-variant-numeric: tabular-nums;
     }
     .split-count {
-      font-size: 0.72rem;
+      font-size: var(--kb-text-2xs);
       color: var(--kb-color-muted-foreground);
     }
 
@@ -444,7 +444,7 @@ interface DailyClosingData {
     .audit-row-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
+      gap: var(--kb-space-4);
       margin-top: 1rem;
     }
     @media (max-width: 768px) {
@@ -452,14 +452,14 @@ interface DailyClosingData {
     }
     .audit-stat {
       background: var(--kb-color-bg-app);
-      border-radius: 12px;
-      padding: 1rem 1.2rem;
+      border-radius: var(--kb-radius-xl);
+      padding: var(--kb-space-4) 1.2rem;
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: var(--kb-space-1);
     }
     .stat-name {
-      font-size: 0.78rem;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
     }
