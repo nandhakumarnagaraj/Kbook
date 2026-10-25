@@ -15,6 +15,7 @@ import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { environment } from '../../../environments/environment';
 
@@ -22,7 +23,7 @@ import { environment } from '../../../environments/environment';
   selector: 'app-menu-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent, PaginationBarComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent, PaginationBarComponent, FocusTrapDirective],
   template: `
     <div class="page-shell">
       <!-- Canonical page header (shared design system) -->
@@ -320,7 +321,7 @@ import { environment } from '../../../environments/environment';
       </ng-template>
 
       <!-- Add/Edit Menu Item Modal -->
-      <div class="modal-backdrop" *ngIf="showFormModal" (click)="closeFormModal()">
+      <div class="modal-backdrop" *ngIf="showFormModal" appFocusTrap (escape)="closeFormModal()" (click)="closeFormModal()">
         <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="menu-form-title" (click)="$event.stopPropagation()">
           <h3 id="menu-form-title">{{ editingItem ? 'Edit Menu Item' : 'Add Menu Item' }}</h3>
           <p class="muted" *ngIf="editingItem">Editing: {{ editingItem.name }}</p>
@@ -529,7 +530,7 @@ import { environment } from '../../../environments/environment';
       </div>
 
       <!-- Manage Categories Modal -->
-      <div class="modal-backdrop" *ngIf="showCategoriesModal" (click)="closeCategoriesModal()">
+      <div class="modal-backdrop" *ngIf="showCategoriesModal" appFocusTrap (escape)="closeCategoriesModal()" (click)="closeCategoriesModal()">
         <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title" (click)="$event.stopPropagation()" style="max-width: 540px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
             <h3 id="cat-modal-title" style="margin:0;">Manage Categories</h3>
@@ -606,7 +607,7 @@ import { environment } from '../../../environments/environment';
       </div>
 
       <!-- Bulk move: the way out of "cannot delete a category containing dishes" -->
-      <div class="modal-backdrop" *ngIf="bulkMoveSource" (click)="cancelBulkMove()">
+      <div class="modal-backdrop" *ngIf="bulkMoveSource" appFocusTrap (escape)="cancelBulkMove()" (click)="cancelBulkMove()">
         <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="bulk-move-title" (click)="$event.stopPropagation()" style="max-width: 520px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
             <h3 id="bulk-move-title" style="margin:0;">Move dishes out of '{{ bulkMoveSource.name }}'</h3>

@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -9,12 +9,13 @@ import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { ToastService } from '../../core/services/toast.service';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
 @Component({
   selector: 'app-inventory-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, RefreshButtonComponent, HeaderSearchComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, RefreshButtonComponent, HeaderSearchComponent, FocusTrapDirective],
   styles: [`
     .card { background: var(--kb-color-card); border: 1px solid var(--kb-color-border); border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
     .materials-grid {
@@ -274,7 +275,7 @@ import { ToastService } from '../../core/services/toast.service';
       </div>
 
       <!-- Add/Edit Material Modal -->
-      <div class="modal-backdrop" *ngIf="showMaterialModal" (click)="closeMaterialModal()">
+      <div class="modal-backdrop" *ngIf="showMaterialModal" appFocusTrap (escape)="closeMaterialModal()" (click)="closeMaterialModal()">
         <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="material-modal-title" (click)="$event.stopPropagation()">
           <h3 id="material-modal-title">{{ editingMaterial ? 'Edit Material' : 'Add Material' }}</h3>
 
@@ -325,7 +326,7 @@ import { ToastService } from '../../core/services/toast.service';
       </div>
 
       <!-- Material Detail Modal (stock actions) -->
-      <div class="modal-backdrop" *ngIf="showDetailModal" (click)="closeDetailModal()">
+      <div class="modal-backdrop" *ngIf="showDetailModal" appFocusTrap (escape)="closeDetailModal()" (click)="closeDetailModal()">
         <div class="modal-box modal-content" style="max-width:520px" role="dialog" aria-modal="true" aria-labelledby="material-detail-title" (click)="$event.stopPropagation()">
           <h3 id="material-detail-title">{{ selectedMaterial?.name }}</h3>
           <p style="margin:0 0 1rem;color:var(--kb-color-muted-foreground)">

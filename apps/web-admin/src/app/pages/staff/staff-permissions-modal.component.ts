@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessStaffItem } from '../../core/models/api.models';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
 @Component({
   selector: 'app-staff-permissions-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, FocusTrapDirective],
   styles: [`
     .modal-content { width: 100%; max-width: 560px; }
     .role-disabled-note {
@@ -33,7 +34,7 @@ import { BusinessStaffItem } from '../../core/models/api.models';
     .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
   `],
   template: `
-    <div class="modal-backdrop" *ngIf="open()" (click)="close.emit()">
+    <div class="modal-backdrop" *ngIf="open()" appFocusTrap (escape)="close.emit()" (click)="close.emit()">
       <div class="modal-box modal-content" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <h3 style="margin:0 0 0.5rem">Permissions — {{ staff()?.name }}</h3>
         <p class="muted" style="margin:0 0 1.25rem;font-size:0.85rem">
@@ -108,7 +109,7 @@ import { BusinessStaffItem } from '../../core/models/api.models';
     </div>
 
     <!-- Create Template Dialog -->
-    <div class="modal-backdrop" *ngIf="showCreateTemplate()" (click)="showCreateTemplate.set(false)">
+    <div class="modal-backdrop" *ngIf="showCreateTemplate()" appFocusTrap (escape)="showCreateTemplate.set(false)" (click)="showCreateTemplate.set(false)">
       <div class="modal-box modal-content" role="dialog" style="max-width:400px" (click)="$event.stopPropagation()">
         <h3 style="margin:0 0 1rem">Save as Role Template</h3>
         <div class="form-group">

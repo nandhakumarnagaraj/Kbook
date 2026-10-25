@@ -9,12 +9,13 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
 @Component({
   selector: 'app-live-orders-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent],
+  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent, FocusTrapDirective],
   template: `
     <div class="tab-panel">
       <!-- Loading and Error States -->
@@ -156,7 +157,7 @@ import { ApiStateComponent } from '../../core/components/api-state.component';
       </app-order-detail-modal>
 
       <!-- Order Cancellation Modal (Accessible Design-System Dialog) -->
-      <div class="modal-backdrop" *ngIf="orderToCancel()" (click)="closeCancelModal()" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title">
+      <div class="modal-backdrop" *ngIf="orderToCancel()" appFocusTrap (escape)="closeCancelModal()" (click)="closeCancelModal()" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title">
         <section class="modal-box" (click)="$event.stopPropagation()">
           <div class="modal-header">
             <div>

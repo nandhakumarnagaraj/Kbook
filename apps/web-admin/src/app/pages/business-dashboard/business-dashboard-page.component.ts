@@ -478,10 +478,10 @@ function getTodayIsoDate(): string {
     </div>
 
     <!-- ── Terminal Fleet Status Modal ── -->
-    <div class="tactile-modal-overlay" *ngIf="terminalsModalOpen()" appFocusTrap (click)="toggleTerminalsModal()">
-      <div class="tactile-modal-box" (click)="$event.stopPropagation()">
+    <div class="tactile-modal-overlay" *ngIf="terminalsModalOpen()" appFocusTrap (escape)="toggleTerminalsModal()" (click)="toggleTerminalsModal()">
+      <div class="tactile-modal-box" role="dialog" aria-modal="true" aria-labelledby="terminals-modal-title" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
-          <h3>POS terminals</h3>
+          <h3 id="terminals-modal-title">POS terminals</h3>
           <button type="button" class="icon-btn" (click)="toggleTerminalsModal()">✕</button>
         </div>
         <div class="tactile-modal-body">
@@ -511,14 +511,14 @@ function getTodayIsoDate(): string {
     </div>
 
     <!-- ── Low Stock Alert Modal ── -->
-    <div class="tactile-modal-overlay" *ngIf="lowStockModalOpen()" appFocusTrap (click)="toggleLowStockModal()">
-      <div class="tactile-modal-box" (click)="$event.stopPropagation()">
+    <div class="tactile-modal-overlay" *ngIf="lowStockModalOpen()" appFocusTrap (escape)="toggleLowStockModal()" (click)="toggleLowStockModal()">
+      <div class="tactile-modal-box" role="dialog" aria-modal="true" aria-labelledby="low-stock-modal-title" (click)="$event.stopPropagation()">
         <div class="tactile-modal-head">
           <div class="tactile-head-with-icon">
             <span class="warning-icon-badge">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg>
             </span>
-            <h3>Low Stock Raw Ingredients</h3>
+            <h3 id="low-stock-modal-title">Low Stock Raw Ingredients</h3>
           </div>
           <button type="button" class="icon-btn" (click)="toggleLowStockModal()">✕</button>
         </div>

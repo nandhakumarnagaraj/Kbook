@@ -13,12 +13,13 @@ import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent, PaginationBarComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent, PaginationBarComponent, FocusTrapDirective],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -187,7 +188,7 @@ import { PaginationBarComponent } from '../../shared/pagination-bar.component';
       </div>
 
       <!-- Create Restaurant Modal -->
-      <div class="modal-backdrop" *ngIf="showCreateModal" (click)="closeCreateModal()">
+      <div class="modal-backdrop" *ngIf="showCreateModal" appFocusTrap (escape)="closeCreateModal()" (click)="closeCreateModal()">
         <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="create-business-title" (click)="$event.stopPropagation()">
           <h3 id="create-business-title">Add New Restaurant</h3>
           <p class="muted" style="margin-bottom: 1rem; font-size: 0.85rem;">
@@ -448,7 +449,7 @@ export class BusinessesPageComponent {
   });
 
   searchTerm = '';
-  pageSize = 20;
+  pageSize = 10;
   currentPage = 1;
   sortKey: 'joined' | 'lastUsed' | null = null;
   sortDir: 'asc' | 'desc' = 'desc';

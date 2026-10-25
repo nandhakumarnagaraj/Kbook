@@ -1,10 +1,10 @@
-import { Directive, ElementRef, HostListener, inject, OnDestroy, OnInit } from '@angular/core';
+import { Directive, ElementRef, EventEmitter, HostListener, inject, OnDestroy, OnInit, Output } from '@angular/core';
 
 /**
  * FocusTrapDirective — keeps keyboard focus inside a modal while it is open.
  *
  * Usage:
- *   <div class="modal-overlay" *ngIf="open" appFocusTrap>
+ *   <div class="modal-overlay" *ngIf="open" appFocusTrap (escape)="close()">
  *     <section class="modal-box" tabindex="-1">
  *       <button #close type="button">✕</button>
  *     </section>
@@ -24,12 +24,14 @@ export class FocusTrapDirective implements OnInit, OnDestroy {
   private previousBodyOverflow = '';
   private trapActive = false;
 
+  @Output() escape = new EventEmitter<void>();
+
   ngOnInit(): void {
     this.trapActive = true;
     this.previouslyFocused = document.activeElement as HTMLElement | null;
     this.previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    this.focusFirstFocusable();
+    setTimeout(() => this.focusFirstFocusable(), 0);
   }
 
   ngOnDestroy(): void {
@@ -41,6 +43,7 @@ export class FocusTrapDirective implements OnInit, OnDestroy {
     if (!this.trapActive) return;
     if (event.key === 'Escape') {
       event.preventDefault();
+      this.escape.emit();
       return;
     }
     if (event.key !== 'Tab') return;

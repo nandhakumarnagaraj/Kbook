@@ -5,12 +5,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/models/api.models';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
 @Component({
   selector: 'app-staff-form-modal',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, FocusTrapDirective],
   styles: [`
     .modal-content { width: 100%; max-width: 460px; }
     .modal-content h3 { margin: 0 0 1.5rem; color: var(--kb-color-foreground); }
@@ -37,7 +38,7 @@ import { BusinessStaffItem, StaffCreatedResponse, StaffRole } from '../../core/m
     .success-section p.muted { font-size: 0.76rem; color: var(--kb-color-muted-foreground); }
   `],
   template: `
-    <div class="modal-backdrop" *ngIf="open()" (click)="close.emit()">
+    <div class="modal-backdrop" *ngIf="open()" appFocusTrap (escape)="close.emit()" (click)="close.emit()">
       <div class="modal-box modal-content" role="dialog" aria-modal="true" [attr.aria-labelledby]="isEdit() ? 'edit-staff-title' : 'create-staff-title'" (click)="$event.stopPropagation()">
 
         <!-- Success View (Create mode) -->

@@ -11,6 +11,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 
@@ -81,7 +82,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
   selector: 'app-order-history-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent, PaginationBarComponent],
+  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent, PaginationBarComponent, FocusTrapDirective],
   template: `
     <app-order-detail-modal
       *ngIf="selectedOrderDetail"
@@ -91,7 +92,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
     </app-order-detail-modal>
 
     <div class="tab-panel">
-      <div class="modal-backdrop" *ngIf="refundTarget" (click)="closeRefund()">
+      <div class="modal-backdrop" *ngIf="refundTarget" appFocusTrap (escape)="closeRefund()" (click)="closeRefund()">
         <section
           class="modal-box"
           role="dialog"
@@ -160,7 +161,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
       </div>
 
       <!-- Order Cancellation Modal (Accessible Design-System Dialog) -->
-      <div class="modal-backdrop" *ngIf="orderToCancel" (click)="closeCancelModal()" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title">
+      <div class="modal-backdrop" *ngIf="orderToCancel" appFocusTrap (escape)="closeCancelModal()" (click)="closeCancelModal()" role="dialog" aria-modal="true" aria-labelledby="cancel-modal-title">
         <section class="modal-box" (click)="$event.stopPropagation()">
           <div class="modal-header">
             <div>
@@ -215,7 +216,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
       ></app-api-state>
 
       <!-- ── Order History Table (no container chrome: bare table only) ── -->
-      <ng-container aria-label="Order history">
+      <ng-container *ngIf="!ordersError" aria-label="Order history">
         <!-- Orders Tactile Table -->
         <div class="table-wrap" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
           <table class="data-table">
@@ -601,7 +602,7 @@ export class OrderHistoryTabComponent implements OnDestroy {
     }
   }
   @Output() searchQueryChange = new EventEmitter<string>();
-  orderPageSize = 15;
+  orderPageSize = 10;
   orderCurrentPage = 1;
   exportingCsv = false;
 
@@ -933,7 +934,7 @@ export class OrderHistoryTabComponent implements OnDestroy {
     this.orderSearchTerm = '';
     this.searchQueryChange.emit('');
     this.orderSourceFilter = 'ALL';
-    this.orderPageSize = 15;
+    this.orderPageSize = 10;
     this.orderCurrentPage = 1;
     this.setPreset('today');
   }

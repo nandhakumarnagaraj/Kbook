@@ -11,13 +11,14 @@ import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
+import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 import { formatDate } from '../../shared/formatters';
 
 @Component({
   selector: 'app-terminals-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, RefreshButtonComponent, KpiRowComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, RefreshButtonComponent, KpiRowComponent, FocusTrapDirective],
   template: `
     <div class="page-shell">
       <!-- Operational Header (unified PageHeaderComponent) -->
@@ -346,7 +347,7 @@ import { formatDate } from '../../shared/formatters';
         ></app-empty-state>
       </section>
 
-      <div class="modal-backdrop" *ngIf="recoveringTerminal() as terminal" (click)="closeRecovery()">
+      <div class="modal-backdrop" *ngIf="recoveringTerminal() as terminal" appFocusTrap (escape)="closeRecovery()" (click)="closeRecovery()">
         <section
           class="modal-box recovery-dialog"
           role="dialog"
@@ -404,7 +405,7 @@ import { formatDate } from '../../shared/formatters';
         </section>
       </div>
 
-      <div class="modal-backdrop" *ngIf="approvingRequest() as req" (click)="closeApprove()">
+      <div class="modal-backdrop" *ngIf="approvingRequest() as req" appFocusTrap (escape)="closeApprove()" (click)="closeApprove()">
         <section
           class="modal-box"
           role="dialog"

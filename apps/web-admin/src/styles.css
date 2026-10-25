@@ -1148,7 +1148,7 @@ td.price,
 .mobile-data-card > .mobile-data-card__head, .mobile-data-card > p { margin: 0; padding: 0.9rem 1rem 0; }
 .mobile-data-card > p { padding-top: 0.3rem; color: var(--muted); font-size: 0.8rem; }
 .mobile-data-card__primary { width: 100%; display: grid; gap: 0.35rem; padding: 0.9rem 1rem; text-align: left; color: var(--ink); background: transparent; border: 0; cursor: pointer; }
-.mobile-data-card__primary:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.mobile-data-card__primary:focus, .mobile-data-card__primary:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .mobile-data-card dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; margin: 0; padding: 0.9rem 1rem; }
 .mobile-data-card dl div { min-width: 0; }
 .mobile-data-card dt { color: var(--muted); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
