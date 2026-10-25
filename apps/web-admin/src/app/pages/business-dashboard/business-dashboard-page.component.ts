@@ -279,6 +279,9 @@ function getTodayIsoDate(): string {
           <article class="intel-card intel-card--floor">
             <div class="intel-card__head">
               <div class="intel-card__title-group">
+                <!-- The other three sections carry an eyebrow and this one did not,
+                     which also left the floor's accent role with nowhere to show. -->
+                <span class="intel-card__eyebrow">Floor Status</span>
                 <div class="matrix-title-row">
                   <h3 class="intel-card__title">Live Floor</h3>
                 </div>
@@ -383,7 +386,7 @@ function getTodayIsoDate(): string {
         <!-- ── RIGHT COLUMN (4 COLS) ── -->
         <div class="ops-side-col">
           <!-- 3. Top Selling Dishes Today -->
-          <article class="intel-card">
+          <article class="intel-card intel-card--top">
             <div class="intel-card__head">
               <div class="intel-card__title-group">
                 <span class="intel-card__eyebrow">Kitchen Velocity</span>
@@ -596,7 +599,7 @@ function getTodayIsoDate(): string {
 
     /* Freshness stamp next to the refresh control */
     .freshness-chip {
-      font-size: 0.76rem;
+      font-size: 0.8125rem;
       font-weight: 500;
       color: var(--kb-color-muted-foreground);
       white-space: nowrap;
@@ -656,13 +659,36 @@ function getTodayIsoDate(): string {
       gap: 0.2rem;
     }
 
+    /* Each section's eyebrow carries its accent role as a coloured dot plus the ink,
+       so the five sections separate at a glance without a header icon and without
+       re-tinting any numbers. Orange as *text* is the -ink step (4.7:1); the dot may
+       use the fill itself because a marker is not text. */
     .intel-card__eyebrow {
-      font-size: 0.72rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8125rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--kb-color-muted-foreground);
     }
+
+    .intel-card__eyebrow::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      flex: none;
+    }
+
+    .intel-card--chart .intel-card__eyebrow { color: var(--kb-brand-orange-ink); }
+    .intel-card--chart .intel-card__eyebrow::before { background: var(--kb-brand-orange); }
+    .intel-card--floor .intel-card__eyebrow { color: var(--kb-brand-purple); }
+    .intel-card--top .intel-card__eyebrow { color: var(--kb-brand-orange-ink); }
+    .intel-card--top .intel-card__eyebrow::before { background: var(--kb-brand-orange); }
+    .intel-card--ledger .intel-card__eyebrow { color: var(--kb-color-link); }
 
     .intel-card__title {
       font-size: 1.1rem;
@@ -673,7 +699,7 @@ function getTodayIsoDate(): string {
     }
 
     .intel-card__subtext {
-      font-size: 0.78rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
     }
 
@@ -682,7 +708,7 @@ function getTodayIsoDate(): string {
       display: flex;
       align-items: center;
       gap: 0.85rem;
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
     }
 
@@ -696,7 +722,7 @@ function getTodayIsoDate(): string {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--kb-color-danger-solid);
+      background: var(--kb-brand-orange);
     }
 
     .legend-dash {
@@ -712,7 +738,7 @@ function getTodayIsoDate(): string {
       padding: 0.15rem 0.5rem;
       border-radius: 9999px;
       font-weight: 600;
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
     }
 
     /* Hourly Chart Wrapper & Histogram */
@@ -734,7 +760,7 @@ function getTodayIsoDate(): string {
     }
 
     .benchmark-tag {
-      font-size: 0.68rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       background: var(--kb-color-surface);
       padding: 0 0.35rem;
@@ -772,10 +798,12 @@ function getTodayIsoDate(): string {
       padding: 2px;
     }
 
+    /* Sales volume is activity, not an alarm. These bars used to be painted in
+       the danger red, so an ordinary trading day looked like an incident. */
     .bar-pill-fill {
       width: 100%;
       border-radius: 4px;
-      background: rgba(var(--kb-color-danger-rgb), 0.35);
+      background: rgba(var(--kb-brand-orange-rgb), 0.38);
       transition: height 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
       position: relative;
     }
@@ -784,9 +812,10 @@ function getTodayIsoDate(): string {
       background: rgba(var(--kb-color-danger-rgb), 0.65);
     }
 
+    /* The busiest hour is the same measure one step louder, not a different one. */
     .bar-pill-fill--peak {
-      background: var(--kb-color-danger-solid);
-      box-shadow: 0 0 12px rgba(var(--kb-color-danger-rgb), 0.45);
+      background: var(--kb-brand-orange);
+      box-shadow: 0 0 12px rgba(var(--kb-brand-orange-rgb), 0.45);
     }
 
     .peak-badge-tag {
@@ -794,7 +823,7 @@ function getTodayIsoDate(): string {
       top: -18px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 0.62rem;
+      font-size: 0.8125rem;
       font-weight: 800;
       color: #FFFFFF;
       background: var(--kb-color-danger-solid);
@@ -815,7 +844,7 @@ function getTodayIsoDate(): string {
     }
 
     .bar-tick-label {
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
       font-weight: 500;
@@ -846,7 +875,7 @@ function getTodayIsoDate(): string {
     }
 
     .vel-label {
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.03em;
@@ -867,7 +896,7 @@ function getTodayIsoDate(): string {
     }
 
     .matrix-hall-pill {
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
       padding: 0.2rem 0.55rem;
       background: var(--kb-color-surface-2);
       border-radius: 9999px;
@@ -886,7 +915,7 @@ function getTodayIsoDate(): string {
     .filter-pill {
       background: transparent;
       border: none;
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       font-weight: 600;
       padding: 0.3rem 0.65rem;
       border-radius: 7px;
@@ -917,7 +946,7 @@ function getTodayIsoDate(): string {
       display: flex;
       align-items: center;
       gap: 1.25rem;
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       flex-wrap: wrap;
     }
@@ -988,7 +1017,7 @@ function getTodayIsoDate(): string {
     }
 
     .table-chip__pax {
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
@@ -1007,27 +1036,27 @@ function getTodayIsoDate(): string {
     }
 
     .table-chip__vacant-label {
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
       font-weight: 700;
       color: var(--kb-color-success);
       letter-spacing: 0.04em;
     }
 
     .table-chip__duration {
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
 
     .table-chip__badge-sent {
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-danger);
       font-weight: 600;
       font-variant-numeric: tabular-nums;
     }
 
     .table-chip__note {
-      font-size: 0.7rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       opacity: 0.85;
       white-space: nowrap;
@@ -1060,7 +1089,7 @@ function getTodayIsoDate(): string {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.74rem;
+      font-size: 0.8125rem;
       font-weight: 700;
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
@@ -1097,7 +1126,7 @@ function getTodayIsoDate(): string {
     }
 
     .dish-category-tag {
-      font-size: 0.68rem;
+      font-size: 0.8125rem;
       background: var(--kb-color-surface-3);
       padding: 0.1rem 0.4rem;
       border-radius: 4px;
@@ -1133,7 +1162,7 @@ function getTodayIsoDate(): string {
     .dish-leader-sub {
       display: flex;
       justify-content: space-between;
-      font-size: 0.7rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
     }
@@ -1171,7 +1200,7 @@ function getTodayIsoDate(): string {
     }
 
     .ledger-time-window {
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-success);
       background: var(--kb-color-success-soft);
       padding: 0.15rem 0.5rem;
@@ -1220,7 +1249,7 @@ function getTodayIsoDate(): string {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
     }
 
     .tender-badge {
@@ -1240,7 +1269,7 @@ function getTodayIsoDate(): string {
       display: flex;
       align-items: center;
       gap: 0.3rem;
-      font-size: 0.68rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
       border-top: 1px dashed var(--kb-color-border);
       padding-top: 0.3rem;
@@ -1248,7 +1277,19 @@ function getTodayIsoDate(): string {
 
     .sync-check {
       color: var(--kb-color-success);
-      font-size: 0.55rem;
+      font-size: 0.8125rem;
+    }
+
+    /* The empty states get the pale circle the rest of the app uses for "nothing
+       here yet", so an empty section reads as quiet rather than broken. */
+    .intel-empty-box::before {
+      content: '';
+      display: block;
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 0.65rem;
+      border-radius: 50%;
+      background: var(--kb-color-surface-2);
     }
 
     .hardware-sync-foot {
@@ -1257,7 +1298,7 @@ function getTodayIsoDate(): string {
       align-items: center;
       padding-top: 0.65rem;
       border-top: 1px solid var(--kb-color-border);
-      font-size: 0.74rem;
+      font-size: 0.8125rem;
       color: var(--kb-color-muted-foreground);
     }
 
@@ -1274,7 +1315,7 @@ function getTodayIsoDate(): string {
     .hardware-status-ok {
       color: var(--kb-color-success);
       font-weight: 600;
-      font-size: 0.72rem;
+      font-size: 0.8125rem;
     }
   `]
 })
@@ -1457,6 +1498,9 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
       {
         label: "Today's Gross Sales",
         value: data.todayRevenueFormatted,
+        // Money in: the one tile that is activity by definition.
+        icon: 'reports',
+        accent: 'activity',
         emphasis: true,
         badge: trend
           ? { text: `${trend.arrow ? trend.arrow + ' ' : ''}${trend.label}`, tone: trend.tone === 'down' ? 'danger' : trend.tone === 'neutral' ? 'neutral' : 'success' }
@@ -1475,6 +1519,9 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         label: 'Seated Tables',
         value: this.seatedTableCount(),
         unit: 'Tables',
+        // Occupancy: the floor, not money.
+        icon: 'dashboard',
+        accent: 'flow',
         badge: this.takeawayFloorCount() > 0
           ? { text: `${this.takeawayFloorCount()} Takeaway`, tone: 'neutral' }
           : undefined,
@@ -1485,6 +1532,9 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         label: 'Running Kitchen KOTs',
         value: this.activeOrderCount(),
         unit: 'Open Orders',
+        // The kitchen queue, same role as the floor it feeds.
+        icon: 'kitchen',
+        accent: 'flow',
         badge: {
           text: `${this.cookingOrderCount()} Cooking`,
           tone: this.cookingOrderCount() > 0 ? 'warning' : 'neutral',
@@ -1496,6 +1546,9 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         label: 'Tender Breakdown',
         value: this.netCollectedFormatted() ?? '—',
         unit: closing ? 'collected' : undefined,
+        // Settled money: positive, not activity — nothing new is being sold here.
+        icon: 'payments',
+        accent: 'positive',
         badge: closing
           ? { text: "Today's closing", tone: 'neutral' }
           : { text: 'Closing not loaded', tone: 'neutral' },

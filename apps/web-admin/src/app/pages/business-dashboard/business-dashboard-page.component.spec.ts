@@ -133,6 +133,67 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
     expect(fixture.nativeElement.querySelector('.stale-banner')).toBeFalsy();
   });
 
+  /**
+   * The dashboard was read at 50% browser zoom because its own stylesheet had
+   * twenty-six declarations between 8.8px and 12.5px. This measures the rendered
+   * page instead of trusting the source: any element that directly owns text and
+   * resolves below 13px is a regression, and it names itself.
+   */
+  it('renders every piece of dashboard text at or above the 13px floor', () => {
+    api.getDashboard.and.returnValue(of(mockDashboardData));
+
+    fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    // The tender splits only render once today's closing is known, and their
+    // percentage labels are the tile's smallest text — without this the floor
+    // would be checked against a tile that is missing its densest part.
+    component.dailyClosingData.set({ netRevenue: 38400, expectedCash: 16283 });
+    fixture.detectChanges();
+
+    const offenders: string[] = [];
+    (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLElement>('.page-shell *').forEach((el) => {
+      const ownsText = Array.from(el.childNodes).some(
+        (node) => node.nodeType === Node.TEXT_NODE && (node.textContent || '').trim().length > 0
+      );
+      if (!ownsText) return;
+      const size = parseFloat(getComputedStyle(el).fontSize);
+      if (size < 13) {
+        offenders.push(`${el.tagName.toLowerCase()}.${el.className || '(no class)'} → ${size}px "${(el.textContent || '').trim().slice(0, 24)}"`);
+      }
+    });
+
+    expect(offenders).withContext('text below the 13px floor').toEqual([]);
+  });
+
+  /**
+   * Accents are roles, not per-page palette picks: money in is activity, the floor
+   * and the kitchen queue are flow, settled money is positive. Pinning the mapping
+   * here stops a future edit from recolouring a tile for looks.
+   */
+  it('gives each tile its accent role, and every accent a real icon', () => {
+    api.getDashboard.and.returnValue(of(mockDashboardData));
+
+    fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement as HTMLElement;
+    const tiles = Array.from(host.querySelectorAll<HTMLElement>('.kb-kpi'));
+    const roleOf = (tile: HTMLElement): string =>
+      ['activity', 'flow', 'positive'].find((role) => tile.classList.contains(`kb-kpi--accent-${role}`)) ?? 'none';
+
+    expect(tiles.length).withContext('four tiles').toBe(4);
+    expect(tiles.map(roleOf))
+      .withContext('gross sales, seated tables, kitchen queue, tender breakdown')
+      .toEqual(['activity', 'flow', 'flow', 'positive']);
+
+    // An accent tints the icon chip, so an accent without an icon would tint nothing.
+    expect(tiles.every((tile) => !!tile.querySelector('.kb-kpi__icon')))
+      .withContext('every accented tile renders its icon')
+      .toBeTrue();
+  });
+
   it('renders state-panel error with alert role when initial load fails', () => {
     api.getDashboard.and.returnValue(throwError(() => ({ status: 500 })));
 

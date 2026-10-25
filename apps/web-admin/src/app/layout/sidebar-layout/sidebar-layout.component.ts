@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, ElementRef, ViewChild, HostListener, inject, signal, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, ElementRef, ViewChild, HostListener, inject, signal, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { BottomActionBarComponent } from '../bottom-action-bar/bottom-action-bar.component';
 import { IconComponent } from '../../shared/icon.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { PresenceService } from '../../core/services/presence.service';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -121,8 +122,18 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
 
         <div class="sidebar-footer">
           <div class="user-card">
-            <div class="user-avatar" aria-hidden="true">
-              {{ (session()?.userName || 'O').charAt(0).toUpperCase() }}
+            <div class="user-avatar">
+              <span aria-hidden="true">{{ (session()?.userName || 'O').charAt(0).toUpperCase() }}</span>
+              <!-- Presence comes from the server's own heartbeat, so the dot
+                   states a measurement. No dot until the first ack resolves. -->
+              <span
+                *ngIf="presence.connected() !== null"
+                class="presence-dot"
+                [class.presence-dot--offline]="presence.connected() === false"
+                aria-hidden="true"></span>
+              <!-- Colour is never the only signal; the state is also text. The class
+                   keeps this distinct from the collapse announcement's live region. -->
+              <span class="sr-only presence-status" role="status">{{ presenceLabel() }}</span>
             </div>
             <div class="user-meta">
               <span class="user-name">{{ session()?.userName || 'Operator' }}</span>
@@ -155,19 +166,29 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
 
       <!-- Hover peek label, shown while a nav icon is hovered/focused in collapsed mode.
            Rendered position:fixed and measured from the link rect so it can escape
-           the sidebar's overflow clipping. -->
+           the sidebar's overflow clipping. maxWidth is clamped to the viewport, so a
+           long label wraps onto a second line instead of leaving the screen. -->
       <div
         *ngIf="peekTip() as tip"
         class="nav-peek"
         role="tooltip"
         [style.left.px]="tip.x"
-        [style.top.px]="tip.y">{{ tip.label }}</div>
+        [style.top.px]="tip.y"
+        [style.maxWidth.px]="tip.maxWidth">{{ tip.label }}</div>
     </div>
   `,
   styles: [`
     :host { display: block; min-height: 100vh; background: var(--kb-color-bg-app); }
 
     .layout-shell {
+      /* The collapsed rail's width, declared once and read by both the grid track
+         and the rail itself; before this it was a literal in two places, which is
+         how a rail and its grid track drift apart. It sits on the layout rather
+         than :host because this is the element that uses it, and an unresolved
+         custom property would silently drop the whole grid-template-columns
+         declaration. The rail's own 1px edge and 10px padding leave a 43px
+         column for the targets. */
+      --rail-width: 64px;
       min-height: 100vh;
       display: grid;
       grid-template-columns: 240px 1fr;
@@ -201,7 +222,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       color: var(--pos-sidebar-text, #A7B1C6);
     }
 
-    .brand-block { padding: 0 0.5rem 0.5rem; }
+    /* The brand and the footer must never be compressed by a short window: the
+       nav is the only part of the rail that gives (see the desktop block). */
+    .brand-block { padding: 0 0.5rem 0.5rem; flex-shrink: 0; }
     .brand-row { display: flex; align-items: center; gap: 0.75rem; }
     .brand-logo-circle {
       width: 44px;
@@ -239,6 +262,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .nav-link {
       position: relative;
       display: flex;
+      /* A nav row is a target, not a cushion: when the column runs out of height
+         the list must scroll, not squeeze nine 44px rows into whatever is left. */
+      flex-shrink: 0;
       align-items: center;
       gap: 0.85rem;
       padding: 0.75rem 1rem;
@@ -257,6 +283,13 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       color: #FFFFFF;
       font-weight: 600;
       border: none;
+    }
+    /* The app draws one blue keyboard ring, but on this dark plane it measures
+       ~3.6:1. The rail states focus in white, the way every other control on it
+       does (toggle, sign out, drawer close, skip link). */
+    .nav-link:focus-visible {
+      outline: 2px solid #FFFFFF;
+      outline-offset: 2px;
     }
     .nav-link.active-link .nav-link__icon {
       color: #FFFFFF;
@@ -282,6 +315,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     /* Sidebar Footer (footer.design standard) */
     .sidebar-footer {
       margin-top: auto;
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
       gap: 0.65rem;
@@ -301,6 +335,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       border-radius: var(--kb-radius-card);
     }
     .user-avatar {
+      position: relative;
       width: 32px;
       height: 32px;
       border-radius: var(--kb-radius-full);
@@ -314,6 +349,21 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       flex-shrink: 0;
       box-shadow: var(--kb-shadow-xs);
     }
+    /* Presence dot: an 8:1 green on the rail's navy, ringed in the rail colour so
+       it reads where it overlaps the avatar's edge. Offline is the muted ink, not
+       a second red — a dropped heartbeat is not an error state. */
+    .presence-dot {
+      position: absolute;
+      right: -1px;
+      bottom: -1px;
+      width: 9px;
+      height: 9px;
+      border-radius: var(--kb-radius-full);
+      background: var(--pos-sidebar-success, #22C55E);
+      box-shadow: 0 0 0 2px var(--pos-sidebar-bg, #12162A);
+    }
+    .presence-dot--offline { background: var(--pos-sidebar-ink-muted, #93A0B8); }
+
     .user-meta { display: grid; min-width: 0; }
     /* These two used the ink for text that sits ON a foreground fill
        (--kb-color-foreground-contrast, #0B0E1A) and the recessed-input surface
@@ -397,39 +447,72 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .sidebar-toggle { display: none; }
 
     @media (min-width: 1025px) {
+      /* The rail no longer scrolls as one block. Nine items and a footer are taller
+         than a short laptop window, and scrolling the whole rail pushed the profile
+         and sign out below the fold; now the nav is the scroller and the footer
+         stays put. Mobile keeps its whole-drawer scroll (this is desktop only). */
       .sidebar {
         width: 240px;
+        overflow: hidden;
         transition: width 200ms var(--ease-out, ease-out);
       }
+      .nav-links {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        /* The 2px ring offset needs room, or the scroller clips it. */
+        padding-block: 2px;
+        /* A thin rail-coloured scrollbar rather than the OS one: a 15px native
+           bar inside a 64px rail would eat a third of every target. */
+        scrollbar-width: thin;
+        scrollbar-color: var(--pos-sidebar-border, #343B66) transparent;
+      }
+      .nav-links::-webkit-scrollbar { width: 6px; }
+      .nav-links::-webkit-scrollbar-track { background: transparent; }
+      .nav-links::-webkit-scrollbar-thumb {
+        background: var(--pos-sidebar-border, #343B66);
+        border-radius: var(--kb-radius-full, 999px);
+      }
+
+      /* 44px hit area, 32px circle drawn inside it: the toggle stays visually
+         secondary while its target meets --kb-touch-min. */
       .sidebar-toggle {
+        position: relative;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        width: 30px;
-        height: 30px;
+        width: 44px;
+        height: 44px;
         margin-left: auto;
         padding: 0;
+        border: 0;
+        background: transparent;
+        color: var(--pos-sidebar-ink, #F3F6FB);
+        cursor: pointer;
+      }
+      .sidebar-toggle::before {
+        content: '';
+        position: absolute;
+        inset: 6px;
         border: 1px solid rgba(255, 255, 255, 0.18);
         border-radius: var(--kb-radius-full, 999px);
         background: rgba(255, 255, 255, 0.06);
-        color: var(--pos-sidebar-ink, #F3F6FB);
-        cursor: pointer;
-        transition: background 150ms var(--ease-out, ease-out), color 150ms var(--ease-out, ease-out);
+        transition: background 150ms var(--ease-out, ease-out);
       }
-      .sidebar-toggle:hover {
-        background: var(--pos-sidebar-hover, #22274A);
-        color: #FFFFFF;
-      }
+      .sidebar-toggle svg { position: relative; }
+      .sidebar-toggle:hover { color: #FFFFFF; }
+      .sidebar-toggle:hover::before { background: var(--pos-sidebar-hover, #22274A); }
       .sidebar-toggle:focus-visible {
         outline: 2px solid #FFFFFF;
         outline-offset: 2px;
       }
 
-      .layout-shell--collapsed { grid-template-columns: 68px 1fr; }
+      .layout-shell--collapsed { grid-template-columns: var(--rail-width) 1fr; }
       .sidebar--collapsed {
-        width: 68px;
-        padding-inline: 0.65rem;
+        width: var(--rail-width);
+        padding-inline: 10px;
       }
 
       /* Brand block reduces to just the logo, with the expand chevron under it */
@@ -439,19 +522,31 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       }
       .sidebar--collapsed .brand-block { padding: 0; }
       .sidebar--collapsed .brand-copy { display: none; }
+      /* A 36px square sits in the 44px column: the rail is 24px narrower than a
+         sidebar, so the mark scales with it rather than filling it edge to edge. */
+      .sidebar--collapsed .brand-logo-circle {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        padding: 2px;
+      }
       .sidebar--collapsed .sidebar-toggle { margin-left: 0; }
 
-      /* Nav links become icon-only, centered, with the label as a tooltip */
+      /* Nav links become 44px-tall targets filling the rail's column — the
+         --kb-touch-min height, instead of a 48px row squeezed into a 46px track. */
+      .sidebar--collapsed .nav-links { gap: 8px; }
       .sidebar--collapsed .nav-link {
         justify-content: center;
         gap: 0;
-        padding-inline: 0;
+        padding: 0;
+        height: 44px;
+        border-radius: 10px;
       }
       .sidebar--collapsed .nav-link__label { display: none; }
       .sidebar--collapsed .nav-link__badge {
         position: absolute;
-        top: 7px;
-        right: calc(50% - 14px);
+        top: 5px;
+        right: 5px;
         width: 8px;
         height: 8px;
         padding: 0;
@@ -462,18 +557,28 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         overflow: hidden;
       }
 
-      /* Footer: avatar only, icon-only sign out */
+      /* Footer: avatar only, 44px square sign out */
       .sidebar--collapsed .user-card {
         justify-content: center;
-        padding-inline: 0;
+        padding: 0;
         background: transparent;
         border-color: transparent;
       }
       .sidebar--collapsed .user-meta { display: none; }
-      .sidebar--collapsed .logout-btn { padding: 0.65rem 0.55rem; }
+      .sidebar--collapsed .user-avatar { width: 34px; height: 34px; }
+      .sidebar--collapsed .logout-btn {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        margin-inline: auto;
+        border-radius: 10px;
+      }
       .sidebar--collapsed .logout-btn span { display: none; }
 
-      /* Hover peek chip: anchored to the fixed coords measured off the link rect */
+      /* Hover peek chip: anchored to the fixed coords measured off the link rect.
+         It follows the app's one tooltip pattern (staff's .tooltip-text): a plain
+         rounded chip, no arrow. It wraps inside the viewport-clamped width instead
+         of running off the right edge. */
       .nav-peek {
         position: fixed;
         transform: translateY(-50%);
@@ -484,15 +589,28 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         color: #FFFFFF;
         font-size: 0.82rem;
         font-weight: 600;
-        white-space: nowrap;
+        line-height: 1.3;
+        white-space: normal;
+        overflow-wrap: anywhere;
         pointer-events: none;
         box-shadow: var(--kb-shadow-md, 0 6px 16px rgba(15, 18, 38, 0.25));
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .hamburger__bar { transition: none; }
-      .sidebar { transition: none; }
+      .hamburger__bar,
+      .sidebar,
+      .nav-link,
+      .sidebar-toggle::before { transition: none; }
+    }
+
+    /* Increased-contrast mode turns every focus ring near-black (#0F172A), which
+       is invisible on the navy plane. The rail keeps its own white ring there. */
+    @media (prefers-contrast: more) {
+      .sidebar a:focus-visible,
+      .sidebar button:focus-visible {
+        outline-color: #FFFFFF !important;
+      }
     }
 
     /* Screen-reader only helper for the collapse announcement */
@@ -565,16 +683,14 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     @media (min-width: 1025px) {
       .sidebar-backdrop { display: none !important; }
     }
-    @media (prefers-reduced-motion: reduce) {
-      .hamburger__bar { transition: none; }
-    }
   `]
 })
-export class SidebarLayoutComponent implements OnInit {
+export class SidebarLayoutComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
-  private readonly businessApi = inject(BusinessApiService);
+  private  readonly businessApi = inject(BusinessApiService);
+  readonly presence = inject(PresenceService);
   @ViewChild('menuButton') private menuButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('sidebar') private sidebar?: ElementRef<HTMLElement>;
 
@@ -604,17 +720,43 @@ export class SidebarLayoutComponent implements OnInit {
   }
 
   /* Hover peek: while the rail is collapsed, hovering or focusing a nav link
-     shows its label in an instant styled chip next to the icon. */
-  readonly peekTip = signal<{ label: string; x: number; y: number } | null>(null);
+     shows its label in a styled chip beside the icon. */
+  readonly peekTip = signal<{ label: string; x: number; y: number; maxWidth: number } | null>(null);
+
+  /** Pointer dwell before the chip appears. Keyboard focus skips it: a keyboard
+      user has already committed to the item, so making them wait reads as lag. */
+  private static readonly PEEK_DELAY_MS = 280;
+  private peekTimer?: ReturnType<typeof setTimeout>;
 
   peek(event: MouseEvent | FocusEvent, link: NavLink): void {
     if (!this.collapsed() || this.isMobileView()) { this.hidePeek(); return; }
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.peekTip.set({ label: link.label, x: rect.right + 10, y: rect.top + rect.height / 2 });
+    const x = rect.right + 10;
+    // Clamped to the viewport, so a wide label wraps instead of running off screen.
+    // 120px is the floor that keeps a label from collapsing into a word-per-line
+    // column; if even that would overflow, the chip slides left instead of clipping.
+    const maxWidth = Math.max(120, window.innerWidth - x - 12);
+    const tip = {
+      label: link.label,
+      x: Math.min(x, Math.max(8, window.innerWidth - 12 - maxWidth)),
+      y: rect.top + rect.height / 2,
+      maxWidth
+    };
+    this.clearPeekTimer();
+    if (event.type === 'focus') { this.peekTip.set(tip); return; }
+    this.peekTimer = setTimeout(() => this.peekTip.set(tip), SidebarLayoutComponent.PEEK_DELAY_MS);
   }
 
   hidePeek(): void {
+    this.clearPeekTimer();
     this.peekTip.set(null);
+  }
+
+  private clearPeekTimer(): void {
+    if (this.peekTimer !== undefined) {
+      clearTimeout(this.peekTimer);
+      this.peekTimer = undefined;
+    }
   }
   readonly orderPaymentFlowMode = signal<string>('pay_before_food');
 
@@ -670,6 +812,9 @@ export class SidebarLayoutComponent implements OnInit {
 
   ngOnInit(): void {
     this.isMobileView.set(window.innerWidth <= 1024);
+    // The shell only renders behind the auth guard, but a null session must not
+    // start a heartbeat that would 401 on every tick.
+    if (this.session()) this.presence.start();
     const role = this.session()?.role;
     if (role === 'OWNER') {
       this.businessApi.getProfile().subscribe({
@@ -736,7 +881,27 @@ export class SidebarLayoutComponent implements OnInit {
   /* Close menu on Escape key */
   @HostListener('document:keydown.escape', ['$event'])
   onEscape(event: KeyboardEvent): void {
+    this.hidePeek();
     if (this.menuOpen()) this.closeMenu();
+  }
+
+  /* A fixed-position chip would hang in place while the page scrolls under it. */
+  @HostListener('window:scroll')
+  onScroll(): void {
+    this.hidePeek();
+  }
+
+  /** Text alternative for the presence dot — colour alone is not a signal. */
+  presenceLabel(): string {
+    const connected = this.presence.connected();
+    if (connected === null) return '';
+    return connected ? 'Connected to KhanaBook' : 'Not connected to KhanaBook';
+  }
+
+  ngOnDestroy(): void {
+    this.presence.stop();
+    // A pending dwell must not fire into a torn-down component.
+    this.clearPeekTimer();
   }
 
   @HostListener('document:keydown.tab', ['$event'])

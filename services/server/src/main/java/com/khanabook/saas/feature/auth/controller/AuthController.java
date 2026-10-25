@@ -2,8 +2,10 @@ package com.khanabook.saas.feature.auth.controller;
 
 import com.khanabook.saas.feature.auth.entity.TokenBlocklist;
 import com.khanabook.saas.feature.auth.repository.TokenBlocklistRepository;
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.core.security.TokenRevocationCache;
 import com.khanabook.saas.feature.auth.service.AuthService;
+import com.khanabook.saas.feature.auth.service.PresenceService;
 import com.khanabook.saas.feature.auth.service.DbRateLimiter;
 import com.khanabook.saas.feature.auth.service.LoginRateLimiter;
 import com.khanabook.saas.feature.auth.service.OtpRateLimiter;
@@ -47,6 +49,7 @@ public class AuthController {
 	private final DbRateLimiter otpRateLimiterDb;
 	private final DbRateLimiter loginRateLimiterDb;
 	private final WebAdminPasswordResetService webAdminPasswordResetService;
+	private final PresenceService presenceService;
 
 	public AuthController(AuthService authService,
 	                      JwtUtility jwtUtility,
@@ -56,7 +59,8 @@ public class AuthController {
 	                      LoginRateLimiter loginRateLimiter,
 	                      @Qualifier("otpRateLimiterDb") DbRateLimiter otpRateLimiterDb,
 	                      @Qualifier("loginRateLimiterDb") DbRateLimiter loginRateLimiterDb,
-	                      WebAdminPasswordResetService webAdminPasswordResetService) {
+	                      WebAdminPasswordResetService webAdminPasswordResetService,
+	                      PresenceService presenceService) {
 		this.authService = authService;
 		this.jwtUtility = jwtUtility;
 		this.tokenBlocklistRepository = tokenBlocklistRepository;
@@ -66,6 +70,7 @@ public class AuthController {
 		this.otpRateLimiterDb = otpRateLimiterDb;
 		this.loginRateLimiterDb = loginRateLimiterDb;
 		this.webAdminPasswordResetService = webAdminPasswordResetService;
+		this.presenceService = presenceService;
 	}
 
 	/**
@@ -198,6 +203,21 @@ public class AuthController {
 	) {
 		authService.changePassword(principal.getName(), request.getCurrentPassword(), request.getNewPassword());
 		return ResponseEntity.ok().build();
+	}
+
+	/**
+	 * Web-session presence: the console pings this while a tab is open, and the row
+	 * is written at most once a minute per user (see PresenceService).
+	 *
+	 * <p>204 with no body: a heartbeat is not data, so there is nothing to cache,
+	 * parse or surface. It is authenticated like any other endpoint — it is absent
+	 * from the permitAll list in SecurityConfig on purpose, and the user comes from
+	 * the token through TenantContext, never from the request body.
+	 */
+	@PostMapping("/heartbeat")
+	public ResponseEntity<Void> heartbeat() {
+		presenceService.touch(TenantContext.getCurrentUserId());
+		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping("/refresh")

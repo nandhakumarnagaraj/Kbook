@@ -68,6 +68,20 @@ export interface KpiItem {
   tone?: 'default' | 'success' | 'warning' | 'danger' | 'brand';
   /** A name from the shared `kb-icon` set, rendered above the label. */
   icon?: string;
+  /**
+   * The tile's accent **role**, never a palette pick — the same role must mean the
+   * same thing on every page:
+   *
+   *   activity — sales, money in, order volume   (orange accent)
+   *   flow     — occupancy, kitchen queue, tables (purple accent)
+   *   positive — settled, collected, connected    (green accent)
+   *
+   * The accent tints the icon chip only. It never colours the value, because the
+   * orange (#E87A1E) is 2.9:1 on white and fails AA as text; the value keeps the
+   * ordinary ink and stays readable. Pages that pass no accent render exactly as
+   * before, which is why this landed on the dashboard first.
+   */
+  accent?: 'activity' | 'flow' | 'positive';
   /** Tints the whole tile, for a metric that is over a limit or has work waiting. */
   alert?: boolean;
   /** Marks the page's primary figure. Bigger value, tinted tile. */
@@ -96,9 +110,12 @@ export interface KpiItem {
         [class.kb-kpi--warning]="item.tone === 'warning'"
         [class.kb-kpi--danger]="item.tone === 'danger'"
         [class.kb-kpi--brand]="item.tone === 'brand'"
+        [class.kb-kpi--accent-activity]="item.accent === 'activity'"
+        [class.kb-kpi--accent-flow]="item.accent === 'flow'"
+        [class.kb-kpi--accent-positive]="item.accent === 'positive'"
       >
         <span class="kb-kpi__icon" *ngIf="item.icon" aria-hidden="true">
-          <kb-icon [name]="item.icon" [size]="16"></kb-icon>
+          <kb-icon [name]="item.icon" [size]="18"></kb-icon>
         </span>
 
         <div class="kb-kpi__head">
@@ -204,12 +221,29 @@ export interface KpiItem {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 26px;
-        height: 26px;
+        width: 30px;
+        height: 30px;
         margin-bottom: 0.15rem;
-        border-radius: var(--kb-radius-md, 6px);
+        border-radius: var(--kb-radius-lg, 8px);
         background: var(--kb-color-surface-2);
         color: var(--kb-color-muted-foreground);
+      }
+
+      /* Accent roles tint the chip and nothing else. An orange value would be
+         2.9:1 on white; the ink is what carries the colour, not the numeral. */
+      .kb-kpi--accent-activity .kb-kpi__icon {
+        background: rgba(var(--kb-brand-orange-rgb), 0.12);
+        color: var(--kb-brand-orange-ink);
+      }
+
+      .kb-kpi--accent-flow .kb-kpi__icon {
+        background: rgba(var(--kb-brand-purple-rgb), 0.1);
+        color: var(--kb-brand-purple);
+      }
+
+      .kb-kpi--accent-positive .kb-kpi__icon {
+        background: rgba(var(--kb-color-success-rgb), 0.1);
+        color: var(--kb-color-success);
       }
 
       /* The badge drops to its own line rather than squeezing the label out:
@@ -223,7 +257,9 @@ export interface KpiItem {
       }
 
       .kb-kpi__label {
-        font-size: 0.72rem;
+        /* 13px, not the 11.5px this was: the strip is read at a glance, and it was
+           the densest small type in the app. */
+        font-size: 0.8125rem;
         font-weight: 700;
         line-height: 1.2;
         letter-spacing: 0.06em;
@@ -238,7 +274,7 @@ export interface KpiItem {
         padding: 0.12rem 0.45rem;
         border: 1px solid transparent;
         border-radius: 999px;
-        font-size: 0.68rem;
+        font-size: 0.8125rem;
         font-weight: 600;
         line-height: 1.35;
         letter-spacing: 0.01em;
@@ -288,7 +324,7 @@ export interface KpiItem {
 
       .kb-kpi__value small {
         margin-left: 0.3rem;
-        font-size: 0.8rem;
+        font-size: 0.8125rem;
         font-weight: 500;
         letter-spacing: 0;
         color: var(--kb-color-muted-foreground);
@@ -345,7 +381,7 @@ export interface KpiItem {
         align-items: baseline;
         justify-content: space-between;
         gap: 0.5rem;
-        font-size: 0.72rem;
+        font-size: 0.8125rem;
       }
 
       .kb-kpi__segment-label {
@@ -369,11 +405,14 @@ export interface KpiItem {
 
       .kb-kpi__segment-value small {
         margin-left: 0.25rem;
+        /* The small element defaults to 0.833em, which put this share at 10.8px
+           under a 13px legend. It is read, so it gets the size of its own line. */
+        font-size: 0.8125rem;
         color: var(--kb-color-muted-foreground);
       }
 
       .kb-kpi__caption {
-        font-size: 0.76rem;
+        font-size: 0.8125rem;
         line-height: 1.35;
         color: var(--kb-color-muted-foreground);
       }
@@ -386,7 +425,7 @@ export interface KpiItem {
         background: none;
         color: var(--kb-color-link);
         font: inherit;
-        font-size: 0.76rem;
+        font-size: 0.8125rem;
         font-weight: 600;
         cursor: pointer;
       }

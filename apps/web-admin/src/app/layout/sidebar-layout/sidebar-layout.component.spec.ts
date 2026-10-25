@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { SidebarLayoutComponent } from './sidebar-layout.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { BusinessApiService } from '../../core/services/business-api.service';
+import { PresenceService } from '../../core/services/presence.service';
 
 const COLLAPSE_KEY = 'kb.sidebar.collapsed';
 
@@ -24,6 +25,14 @@ class BusinessApiServiceStub {
 
 class HttpClientStub {}
 
+/* The heartbeat is a loop with timers and HTTP; the shell's job is only to start
+   and stop it, so the shell tests use a value stub instead of the real service. */
+class PresenceServiceStub {
+  connected = signal<boolean | null>(null);
+  start = jasmine.createSpy('start');
+  stop = jasmine.createSpy('stop');
+}
+
 /* Shared module config: the component injects AuthService (session signal,
    logout) and BusinessApiService (OWNER profile fetch) at construction, so both
    are stubbed plus a bare HttpClient for their own constructor deps. */
@@ -34,6 +43,7 @@ function configureSidebarTestingModule(): void {
       provideRouter([]),
       { provide: AuthService, useClass: AuthServiceStub },
       { provide: BusinessApiService, useClass: BusinessApiServiceStub },
+      { provide: PresenceService, useClass: PresenceServiceStub },
       { provide: HttpClient, useClass: HttpClientStub },
     ],
   });
@@ -119,16 +129,115 @@ describe('SidebarLayoutComponent — collapsible sidebar', () => {
     expect(btn.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('sets a peek tip when hovering a link while collapsed on desktop', () => {
-    const { comp } = create();
-    comp.collapsed.set(true);
-    const fakeEvent = {
+  /** A synthetic peek event: `type` is what decides whether the dwell applies. */
+  function peekEvent(type: 'mouseenter' | 'focus') {
+    return {
+      type,
       currentTarget: { getBoundingClientRect: () => ({ right: 70, top: 10, height: 44 }) },
     } as unknown as MouseEvent;
-    comp.peek(fakeEvent, { label: 'Reports', path: '/business/reports', icon: '', iconKey: 'reports' });
+  }
+
+  const REPORTS = { label: 'Reports', path: '/business/reports', icon: '', iconKey: 'reports' };
+
+  it('waits out the pointer dwell before showing the peek chip', fakeAsync(() => {
+    const { comp } = create();
+    comp.collapsed.set(true);
+
+    comp.peek(peekEvent('mouseenter'), REPORTS);
+    expect(comp.peekTip()).withContext('nothing on the first frame of a hover').toBeNull();
+    tick(279);
+    expect(comp.peekTip()).withContext('still dwelling').toBeNull();
+    tick(1);
+
     expect(comp.peekTip()?.label).toBe('Reports');
     expect(comp.peekTip()?.x).toBe(80);
     expect(comp.peekTip()?.y).toBe(32);
+  }));
+
+  it('shows the peek chip at once for keyboard focus, and it names the target', fakeAsync(() => {
+    const { comp, fixture } = create();
+    comp.collapsed.set(true);
+
+    comp.peek(peekEvent('focus'), REPORTS);
+    fixture.detectChanges();
+
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('.nav-peek');
+    expect(comp.peekTip()).withContext('a keyboard user has already committed — no wait').not.toBeNull();
+    expect(chip?.getAttribute('role')).toBe('tooltip');
+    expect(chip?.textContent?.trim()).toBe('Reports');
+    comp.hidePeek();
+  }));
+
+  it('cancels a pending dwell when the pointer leaves before it fires', fakeAsync(() => {
+    const { comp } = create();
+    comp.collapsed.set(true);
+
+    comp.peek(peekEvent('mouseenter'), REPORTS);
+    comp.hidePeek();
+    tick(400);
+
+    expect(comp.peekTip()).withContext('a cancelled timer must not paint a chip later').toBeNull();
+  }));
+
+  it('clamps the chip so it cannot leave the viewport', fakeAsync(() => {
+    const { comp } = create();
+    comp.collapsed.set(true);
+
+    comp.peek({
+      type: 'focus',
+      currentTarget: { getBoundingClientRect: () => ({ right: innerWidth - 40, top: 10, height: 44 }) },
+    } as unknown as MouseEvent, REPORTS);
+
+    const tip = comp.peekTip()!;
+    expect(tip.maxWidth).withContext('wide enough for a label to wrap sensibly').toBeGreaterThanOrEqual(120);
+    expect(tip.x + tip.maxWidth).withContext('right edge stays inside the viewport').toBeLessThanOrEqual(innerWidth - 12);
+    comp.hidePeek();
+  }));
+
+  it('keeps the nine navigation destinations in their approved order', () => {
+    const { comp } = create();
+    expect(comp.links().map((link) => link.label)).toEqual([
+      'Dashboard', 'Orders', 'Menu', 'Staff', 'Inventory', 'Terminals', 'Daily Closing', 'Reports', 'Settings',
+    ]);
+  });
+
+  it('starts the presence heartbeat with the shell and stops it on destroy', () => {
+    const { fixture } = create();
+    const presence = TestBed.inject(PresenceService) as unknown as PresenceServiceStub;
+
+    expect(presence.start).withContext('the session is live, so presence starts').toHaveBeenCalled();
+
+    fixture.destroy();
+    expect(presence.stop).withContext('a destroyed shell must not keep a timer alive').toHaveBeenCalled();
+  });
+
+  it('paints no presence dot until the server answers, then states it in text too', () => {
+    const { comp, fixture } = create();
+    const presence = TestBed.inject(PresenceService) as unknown as PresenceServiceStub;
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelector('.presence-dot')).withContext('unknown is not connected').toBeNull();
+    expect(comp.presenceLabel()).withContext('nothing is announced before the first ack').toBe('');
+
+    presence.connected.set(true);
+    fixture.detectChanges();
+    expect(root.querySelector('.presence-dot')?.classList.contains('presence-dot--offline')).toBeFalse();
+    expect(root.querySelector('.presence-status')?.textContent?.trim()).toBe('Connected to KhanaBook');
+
+    presence.connected.set(false);
+    fixture.detectChanges();
+    expect(root.querySelector('.presence-dot')?.classList.contains('presence-dot--offline'))
+      .withContext('offline is its own dot state')
+      .toBeTrue();
+    expect(root.querySelector('.presence-status')?.textContent?.trim())
+      .withContext('colour alone is not a signal')
+      .toBe('Not connected to KhanaBook');
+  });
+
+  it('labels the sign-out control for screen readers', () => {
+    const { fixture } = create();
+    const btn = (fixture.nativeElement as HTMLElement).querySelector('.logout-btn') as HTMLButtonElement;
+    expect(btn.getAttribute('aria-label')).toBe('Sign out');
   });
 
   it('suppresses the peek tip when not collapsed', () => {
@@ -141,14 +250,18 @@ describe('SidebarLayoutComponent — collapsible sidebar', () => {
     expect(comp.peekTip()).toBeNull();
   });
 
-  it('clears the peek tip on toggle and on hidePeek', () => {
+  it('clears the peek tip on toggle, on hidePeek, and on page scroll', () => {
     const { comp } = create();
     comp.collapsed.set(true);
-    comp.peekTip.set({ label: 'x', x: 1, y: 2 });
+    comp.peekTip.set({ label: 'x', x: 1, y: 2, maxWidth: 120 });
     comp.toggleCollapsed();
     expect(comp.peekTip()).toBeNull();
-    comp.peekTip.set({ label: 'y', x: 1, y: 2 });
+    comp.peekTip.set({ label: 'y', x: 1, y: 2, maxWidth: 120 });
     comp.hidePeek();
+    expect(comp.peekTip()).toBeNull();
+    // A fixed-position chip would otherwise hang in place while the page moves.
+    comp.peekTip.set({ label: 'z', x: 1, y: 2, maxWidth: 120 });
+    comp.onScroll();
     expect(comp.peekTip()).toBeNull();
   });
 

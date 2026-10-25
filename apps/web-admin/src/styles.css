@@ -161,6 +161,11 @@
   --kb-color-surface-1:         var(--kb-color-surface);
   --kb-color-on-primary:        #FFFFFF;
   --kb-color-primary-rgb:       37, 99, 235;
+  /* Channel projections of the two accents, for the alpha tints the accent roles
+     need (icon chips, bar glows). Same reason --kb-color-primary-rgb exists:
+     an alpha variant is written as rgba(var(--...-rgb), a) and never re-typed. */
+  --kb-brand-orange-rgb:        232, 122, 30;
+  --kb-brand-purple-rgb:        89, 38, 184;
   --kb-color-success-rgb:       22, 101, 52;
   --kb-color-warning-rgb:       154, 63, 8;
   --kb-color-danger-rgb:        185, 28, 28;
@@ -217,6 +222,9 @@
   --pos-sidebar-peek-bg:    #272D50; /* Collapsed-nav hover chip */
   --pos-sidebar-danger:     #DC2626; /* Sign out fill */
   --pos-sidebar-danger-hover: #F87171;
+  /* Presence dot. A rail colour, not the canvas one: --kb-color-success (#166534)
+     is ~2.5:1 against #12162A, below the 3:1 floor a non-text indicator needs. */
+  --pos-sidebar-success:    #22C55E; /* ~8:1 on the rail */
   --pos-purple:             var(--kb-color-primary);
   --pos-purple-hover:       var(--kb-color-primary-hover);
   --pos-purple-soft:        var(--kb-color-primary-soft);

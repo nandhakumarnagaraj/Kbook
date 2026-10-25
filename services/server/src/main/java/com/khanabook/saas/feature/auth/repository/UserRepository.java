@@ -3,8 +3,11 @@ package com.khanabook.saas.feature.auth.repository;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.entity.UserRole;
 import com.khanabook.saas.feature.sync.data.SyncRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,6 +62,26 @@ public interface UserRepository extends SyncRepository<User, Long> {
 	// Per-restaurant owner for admin businesses list
 	@Query("SELECT u FROM User u WHERE u.isDeleted = false AND u.role = com.khanabook.saas.feature.auth.entity.UserRole.OWNER")
 	List<User> findAllActiveOwners();
+
+	/**
+	 * Presence heartbeat (V118). Native on purpose: {@code last_seen_at} is not
+	 * mapped on {@link User}, because users travel in the master-sync payload as
+	 * UserDTO and a presence timestamp must not enter that contract.
+	 *
+	 * <p>The {@code cutoff} is the throttle: the row is written at most once a
+	 * minute per user, so a tab left open costs one UPDATE a minute and not one per
+	 * request. {@code REQUIRES_NEW} keeps the write out of the caller's transaction,
+	 * which may be read-only — an UPDATE attempted in a read-only transaction poisons
+	 * every later query in the same request.
+	 */
+	@Modifying
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	@Query(value = "UPDATE users SET last_seen_at = :now "
+			+ "WHERE id = :userId AND (last_seen_at IS NULL OR last_seen_at < :cutoff)",
+			nativeQuery = true)
+	int touchLastSeen(@org.springframework.data.repository.query.Param("userId") Long userId,
+			@org.springframework.data.repository.query.Param("now") Long now,
+			@org.springframework.data.repository.query.Param("cutoff") Long cutoff);
 
 	boolean existsByEmail(String email);
 

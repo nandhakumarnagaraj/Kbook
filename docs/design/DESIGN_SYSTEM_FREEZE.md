@@ -47,8 +47,9 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 >
 > **The sidebar is the one dark plane left and is deliberately self-contained:**
 > every colour inside it comes from its own `--pos-sidebar-*` tokens (`bg`,
-> `hover`, `text`, `ink`, `ink-muted`, `border`, `peek-bg`, `danger`), so a
-> workspace-theme change cannot repaint the rail. It must stay pixel-identical.
+> `hover`, `text`, `ink`, `ink-muted`, `border`, `peek-bg`, `danger`, `success`), so a
+> workspace-theme change cannot repaint the rail. Its **colours** are frozen; its
+> **geometry** is not — see the collapsed-rail revision below.
 >
 > Earlier revisions in this table (dark navy surfaces, cream `#FAF7F2`, purple
 > `#6C27D9`, warm brown `#b56a2d`) are recorded only as migration history; none of
@@ -86,6 +87,26 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 | `--kb-color-info` / `-soft` | #1D4ED8 / 8% | Informational states |
 | `--brand-orange` / `-ink` | #E87A1E / #B45309 | Accent marker (fill only) / orange text |
 | `--brand-purple` | #5926B8 | Secondary accent text |
+
+> **Collapsed-rail revision (2026-10-25):** the 68px icon rail was rebuilt to a
+> 64px rail against an approved design: a 36px logo, 44px-tall targets in the
+> 43px column the rail's 1px edge leaves (10px padding a side), 8px gaps, a 10px
+> radius, a 44px hit area around the existing toggle circle, a 34px avatar and a
+> 44px square sign-out. The nav is now the scrolling region on desktop in both
+> states, so the profile and sign-out stay pinned instead of scrolling off a
+> short window. **No colour value changed** — the active fill, the danger fill
+> and the icon ink are the same `--kb-color-primary` / `--pos-sidebar-danger` /
+> `--pos-sidebar-text` tokens as before, which is why this did not need a palette
+> change. The rail's width is declared once, as `--rail-width` on `.layout-shell`,
+> and read by both the grid track and the rail so the two cannot drift apart.
+>
+> **Presence (same day):** the avatar carries a 9px dot fed by the server's own
+> heartbeat (`users.last_seen_at`, V118; `POST /auth/heartbeat`, one write a
+> minute per user). This is the one new rail colour, and it leaves the canvas
+> palette untouched: `--pos-sidebar-success: #22C55E` is ~8:1 on `#12162A`,
+> where `--kb-color-success` would be ~2.5:1 — under the 3:1 floor a non-text
+> indicator needs. The dot is not the only signal: the state is also announced as
+> text.
 
 `apps/web-admin/src/app/shared/design-tokens.spec.ts` measures every one of those
 ink/surface pairs with the browser's own resolved colours and fails below 4.5:1

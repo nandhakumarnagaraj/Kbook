@@ -390,7 +390,9 @@
       background: none;
       border: none;
       color: var(--kb-color-primary);
-      font-size: 0.8rem;
+      /* 13px, not 12.8: this is the shared "view as table / view menu" link, and
+         the dashboard holds every text run on the page to a 13px floor. */
+      font-size: 0.8125rem;
       font-weight: 700;
       cursor: pointer;
       padding: 0;
