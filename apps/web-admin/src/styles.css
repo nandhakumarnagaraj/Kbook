@@ -52,7 +52,7 @@
   /* Focus indicator: solid blue, high contrast against the midnight canvas */
   --brand-focus-ring: rgba(var(--kb-color-primary-rgb), 0.45);
 
-  --gradient-primary: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  --gradient-primary: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
   --gradient-hero:    linear-gradient(135deg, var(--kb-color-surface) 0%, var(--kb-color-bg-app) 100%);
   /* Brand accents. Orange is a fill/marker colour only: on white it is 3.1:1, so
      text that must be AA uses the --brand-orange-ink step beside it. */
@@ -108,10 +108,10 @@
   /* KhanaBook Design Tokens (--kb-* for dark command center)                */
   /* ---------------------------------------------------------------------- */
   /* Primitive palette: raw values only. Semantic tokens below alias these. */
-  --kb-blue-300:                #93C5FD;
-  --kb-blue-400:                #60A5FA;
-  --kb-blue-500:                #2563EB;
-  --kb-blue-600:                #1D4ED8;
+  --kb-blue-300:                #A5B4FC;
+  --kb-blue-400:                #818CF8;
+  --kb-blue-500:                #4F46E5;
+  --kb-blue-600:                #4338CA;
   /* Surfaces are separated by a deliberate lightness step AND a border: white
      cards on a cool #F7F9FC canvas, with #F1F5F9 for a table header or a
      recessed well. A dialog is white too, but it also carries the largest
@@ -139,7 +139,7 @@
   --kb-color-primary:           var(--kb-blue-500);
   --kb-color-primary-foreground:#FFFFFF;
   --kb-color-primary-hover:     var(--kb-blue-600);
-  --kb-color-primary-soft:      rgba(37, 99, 235, 0.08);
+  --kb-color-primary-soft:      rgba(79, 70, 229, 0.08);
   /* Semantic status. Each foreground clears 4.5:1 against its own soft tint
      composited on --kb-color-surface, so the pin does not rely on colour alone
      AND stays readable. The inks are the deep steps: the dark theme's pastels
@@ -154,13 +154,13 @@
      On the light canvas the ink and the fill are the same deep red (6.4:1). */
   --kb-color-danger-solid:      #B91C1C;
   --kb-color-danger-solid-hover:#991B1B;
-  --kb-color-info:              #1D4ED8;
-  --kb-color-info-soft:         rgba(29, 78, 216, 0.08);
+  --kb-color-info:              #4338CA;
+  --kb-color-info-soft:         rgba(67, 56, 202, 0.08);
   /* Aliases for legacy token names still referenced by page components */
   --kb-color-card:              var(--kb-color-surface);
   --kb-color-surface-1:         var(--kb-color-surface);
   --kb-color-on-primary:        #FFFFFF;
-  --kb-color-primary-rgb:       37, 99, 235;
+  --kb-color-primary-rgb:       79, 70, 229;
   /* Channel projections of the two accents, for the alpha tints the accent roles
      need (icon chips, bar glows). Same reason --kb-color-primary-rgb exists:
      an alpha variant is written as rgba(var(--...-rgb), a) and never re-typed. */
@@ -177,7 +177,7 @@
   --kb-color-error-soft:        var(--kb-color-danger-soft);
   --kb-easing-fast:             var(--kb-ease-standard);
   --kb-font-caption:            0.75rem;
-  --kb-gradient-hero:           linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  --kb-gradient-hero:           linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
   --kb-gradient-cream:          linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
   --kb-font-sans:               "Inter", ui-sans-serif, system-ui, sans-serif;
   --kb-font-display:            "Plus Jakarta Sans", "Inter", sans-serif;
@@ -213,13 +213,13 @@
      The sidebar is the one dark plane left, and it is self-contained: every
      colour inside it comes from this block, never from a workspace token, so a
      workspace theme change cannot repaint the rail. */
-  --pos-sidebar-bg:         #12162A;
-  --pos-sidebar-hover:      #1C2138;
+  --pos-sidebar-bg:         #0F1020;
+  --pos-sidebar-hover:      #1A1B33;
   --pos-sidebar-text:       #A7B1C6;
   --pos-sidebar-ink:        #F3F6FB; /* User name, collapse chevron, drawer close */
   --pos-sidebar-ink-muted:  #93A0B8; /* User role */
-  --pos-sidebar-border:     #343B66; /* The rail's right edge */
-  --pos-sidebar-peek-bg:    #272D50; /* Collapsed-nav hover chip */
+  --pos-sidebar-border:     #2A2B4A; /* The rail's right edge */
+  --pos-sidebar-peek-bg:    #23244A; /* Collapsed-nav hover chip */
   --pos-sidebar-danger:     #DC2626; /* Sign out fill */
   --pos-sidebar-danger-hover: #F87171;
   /* Presence dot. A rail colour, not the canvas one: --kb-color-success (#166534)
@@ -228,7 +228,7 @@
   --pos-purple:             var(--kb-color-primary);
   --pos-purple-hover:       var(--kb-color-primary-hover);
   --pos-purple-soft:        var(--kb-color-primary-soft);
-  --pos-purple-gradient:    linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  --pos-purple-gradient:    linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
   --pos-bg-body:            var(--kb-color-bg-app);
   --pos-card-bg:            var(--kb-color-surface);
   --pos-card-border:        var(--kb-color-border);
@@ -727,28 +727,6 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
   font-size: 0.83rem;
   color: var(--muted);
 }
-
-.pagination-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1.15rem;
-  border-top: 1px solid var(--line);
-  background: var(--panel-2);
-  border-radius: 0 0 var(--r-xl) var(--r-xl);
-  font-size: 0.82rem;
-  color: var(--muted);
-  flex-wrap: wrap;
-}
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-.pagination-controls .ghost-btn { padding: 0.4rem 0.7rem; font-size: 0.8rem; }
-.pagination-controls .ghost-btn[disabled] { opacity: 0.4; cursor: not-allowed; transform: none; }
 
 /* ============ Loading / Empty / Error ============ */
 .loading {

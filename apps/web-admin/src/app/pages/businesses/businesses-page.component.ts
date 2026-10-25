@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, ViewChild, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -12,12 +12,13 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
 import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
+import { PaginationBarComponent } from '../../shared/pagination-bar.component';
 
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent, PaginationBarComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -50,7 +51,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
         (retry)="loadBusinesses()"
       ></app-api-state>
 
-      <div class="panel table-wrap" *ngIf="loaded && visibleBusinesses.length; else loading">
+      <div class="panel table-wrap" *ngIf="loaded && pagedBusinesses.length; else loading">
         <table class="data-table businesses-table">
           <thead>
             <tr>
@@ -76,7 +77,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
           </thead>
           <tbody>
             <tr
-              *ngFor="let business of visibleBusinesses; trackBy: trackByRestaurantId"
+              *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId"
               class="clickable-row"
               tabindex="0"
               [attr.aria-label]="'View ' + business.shopName"
@@ -125,7 +126,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
         </table>
 
         <div class="mobile-data-list" aria-label="Businesses">
-          <article class="mobile-data-card" *ngFor="let business of visibleBusinesses; trackBy: trackByRestaurantId" [class.mobile-data-card--danger]="business.isSuspended">
+          <article class="mobile-data-card" *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId" [class.mobile-data-card--danger]="business.isSuspended">
             <button type="button" class="mobile-data-card__primary" (click)="showDetails(business)">
               <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
               <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
@@ -145,15 +146,13 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
           </article>
         </div>
 
-        <div class="infinite-footer" aria-live="polite">
-          <div #infiniteSentinel class="infinite-sentinel" aria-hidden="true"></div>
-          <p class="muted infinite-status" *ngIf="hasMore">
-            Showing {{ visibleBusinesses.length }} of {{ filteredBusinesses.length }} — scroll for more
-          </p>
-          <p class="muted infinite-status" *ngIf="!hasMore && filteredBusinesses.length > pageBatch">
-            All {{ filteredBusinesses.length }} businesses shown
-          </p>
-        </div>
+        <app-pagination-bar
+          *ngIf="filteredBusinesses.length > 0"
+          [currentPage]="currentPage"
+          [pageSize]="pageSize"
+          [totalItems]="filteredBusinesses.length"
+          (pageChange)="goToPage($event)"
+        />
       </div>
 
       <ng-template #loading>
@@ -383,17 +382,6 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
       gap: 0.5rem;
       flex-wrap: wrap;
     }
-    .infinite-footer {
-      padding: 0.85rem 1rem 1rem;
-      text-align: center;
-    }
-    .infinite-sentinel {
-      height: 1px;
-    }
-    .infinite-status {
-      margin: 0.35rem 0 0;
-      font-size: 0.82rem;
-    }
     /* ── Businesses table column rhythm (layout only: the design itself lives
        in the global stylesheet's "Tables" section) ── */
     .businesses-table th.business-col {
@@ -432,7 +420,7 @@ import { RefreshButtonComponent } from '../../shared/refresh-button.component';
     }
   `]
 })
-export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
+export class BusinessesPageComponent {
   private readonly api = inject(AdminApiService);
   private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
@@ -460,13 +448,10 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   });
 
   searchTerm = '';
-  pageBatch = 20;
-  visibleCount = 20;
+  pageSize = 20;
+  currentPage = 1;
   sortKey: 'joined' | 'lastUsed' | null = null;
   sortDir: 'asc' | 'desc' = 'desc';
-
-  @ViewChild('infiniteSentinel') private infiniteSentinel?: ElementRef<HTMLElement>;
-  private infiniteObserver?: IntersectionObserver;
 
   constructor() {
     this.loadBusinesses();
@@ -537,12 +522,9 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  get visibleBusinesses(): AdminBusinessListItem[] {
-    return this.sortedBusinesses.slice(0, this.visibleCount);
-  }
-
-  get hasMore(): boolean {
-    return this.visibleCount < this.sortedBusinesses.length;
+  get pagedBusinesses(): AdminBusinessListItem[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.sortedBusinesses.slice(start, start + this.pageSize);
   }
 
   /** Date-column sorting. Nulls (never-joined / never-used) always sink last. */
@@ -570,49 +552,12 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
     } else {
       this.sortDir = this.sortDir === 'desc' ? 'asc' : 'desc';
     }
-    this.visibleCount = this.pageBatch;
-    setTimeout(() => this.observeInfiniteSentinel());
+    this.currentPage = 1;
   }
 
-  @HostListener('window:scroll', [])
-  onWindowScroll(): void {
-    if (!this.loaded || !this.hasMore) return;
-    // Fallback for browsers without IntersectionObserver + extra safety net.
-    const thresholdPx = 500;
-    const scrolledTo = window.innerHeight + window.scrollY;
-    const pageHeight = document.documentElement.scrollHeight;
-    if (pageHeight - scrolledTo < thresholdPx) {
-      this.loadMore();
-    }
-  }
-
-  ngAfterViewInit(): void {
-    this.observeInfiniteSentinel();
-  }
-
-  ngOnDestroy(): void {
-    this.infiniteObserver?.disconnect();
-  }
-
-  private observeInfiniteSentinel(): void {
-    if (typeof IntersectionObserver === 'undefined') return;
-    this.infiniteObserver?.disconnect();
-    const target = this.infiniteSentinel?.nativeElement;
-    if (!target) return;
-    this.infiniteObserver = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          this.loadMore();
-        }
-      },
-      { rootMargin: '500px 0px' }
-    );
-    this.infiniteObserver.observe(target);
-  }
-
-  loadMore(): void {
-    if (!this.hasMore) return;
-    this.visibleCount = Math.min(this.visibleCount + this.pageBatch, this.filteredBusinesses.length);
+  goToPage(page: number): void {
+    const total = Math.max(1, Math.ceil(this.sortedBusinesses.length / this.pageSize));
+    this.currentPage = Math.min(Math.max(1, page), total);
     this.cdr.markForCheck();
   }
 
@@ -628,10 +573,8 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
         this.loaded = true;
         this.refreshing = false;
         this.loadError = '';
-        this.visibleCount = this.pageBatch;
+        this.currentPage = 1;
         this.cdr.markForCheck();
-        // Sentinel is re-created by *ngIf; observe on next tick.
-        setTimeout(() => this.observeInfiniteSentinel());
       },
       error: () => {
         if (!this.businesses.length) {
@@ -646,9 +589,7 @@ export class BusinessesPageComponent implements AfterViewInit, OnDestroy {
   }
 
   resetVisible(): void {
-    this.visibleCount = this.pageBatch;
-    // Re-arm sentinel after filter shrinks/grows the list.
-    setTimeout(() => this.observeInfiniteSentinel());
+    this.currentPage = 1;
   }
 
   showDetails(business: AdminBusinessListItem): void {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, HostListener, inject, signal, NgZone, OnDestroy, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, HostListener, inject, signal, NgZone, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { catchError, concatMap, forkJoin, from, map, of, tap, toArray } from 'rxjs';
@@ -13,6 +13,7 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
+import { PaginationBarComponent } from '../../shared/pagination-bar.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { environment } from '../../../environments/environment';
@@ -21,7 +22,7 @@ import { environment } from '../../../environments/environment';
   selector: 'app-menu-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent, PaginationBarComponent],
   template: `
     <div class="page-shell">
       <!-- Canonical page header (shared design system) -->
@@ -285,10 +286,13 @@ import { environment } from '../../../environments/environment';
           </article>
         </div>
 
-        <div #menuLoadMoreSentinel class="menu-load-more" aria-live="polite">
-          <span *ngIf="hasMoreItems">Scroll to load more menu items</span>
-          <span *ngIf="!hasMoreItems && filteredItems.length">All {{ filteredItems.length }} menu items loaded</span>
-        </div>
+        <app-pagination-bar
+          *ngIf="filteredItems.length > 0"
+          [currentPage]="currentPage"
+          [pageSize]="pageSize"
+          [totalItems]="filteredItems.length"
+          (pageChange)="goToPage($event)"
+        />
       </div>
 
       <ng-template #loading>
@@ -826,13 +830,6 @@ import { environment } from '../../../environments/environment';
     .menu-table td:nth-child(7) {
       text-align: right;
     }
-    .menu-load-more {
-      display: flex;
-      justify-content: center;
-      padding: 1rem;
-      color: var(--kb-color-muted-foreground);
-      font-size: 0.82rem;
-    }
     .photo-picker {
       display: flex;
       align-items: center;
@@ -945,8 +942,8 @@ import { environment } from '../../../environments/environment';
     .toggle-btn:active { transform: scale(0.97); }
     .toggle-btn:disabled { opacity: 0.5; cursor: default; }
     .toggle-btn--on {
-      border-color: var(--kb-color-primary, #0066cc);
-      background: var(--kb-color-primary, #0066cc);
+      border-color: var(--kb-color-primary, #4F46E5);
+      background: var(--kb-color-primary, #4F46E5);
       color: var(--kb-color-on-primary, #ffffff);
       font-weight: 600;
     }
@@ -1019,21 +1016,10 @@ export class MenuPageComponent implements OnDestroy {
   refreshing = false;
   loadError = '';
   private readonly cdr = inject(ChangeDetectorRef);
-  private menuLoadMoreObserver?: IntersectionObserver;
-
-  @ViewChild('menuLoadMoreSentinel')
-  set menuLoadMoreSentinel(element: ElementRef<HTMLElement> | undefined) {
-    this.menuLoadMoreObserver?.disconnect();
-    if (!element || typeof IntersectionObserver === 'undefined') return;
-    this.menuLoadMoreObserver = new IntersectionObserver(entries => {
-      if (entries.some(entry => entry.isIntersecting)) this.loadNextMenuItems();
-    }, { rootMargin: '120px 0px' });
-    this.menuLoadMoreObserver.observe(element.nativeElement);
-  }
 
   searchTerm = '';
   pageSize = 10;
-  visibleItemCount = 10;
+  currentPage = 1;
 
   /** Availability filter. 'all' shows the whole menu; the other two use isSellable. */
   statusFilter: 'all' | 'available' | 'out' = 'all';
@@ -1217,16 +1203,13 @@ export class MenuPageComponent implements OnDestroy {
   }
 
   get pagedItems(): BusinessMenuItem[] {
-    return this.filteredItems.slice(0, this.visibleItemCount);
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredItems.slice(start, start + this.pageSize);
   }
 
-  get hasMoreItems(): boolean {
-    return this.pagedItems.length < this.filteredItems.length;
-  }
-
-  loadNextMenuItems(): void {
-    if (!this.hasMoreItems) return;
-    this.visibleItemCount = Math.min(this.visibleItemCount + this.pageSize, this.filteredItems.length);
+  goToPage(page: number): void {
+    const total = Math.max(1, Math.ceil(this.filteredItems.length / this.pageSize));
+    this.currentPage = Math.min(Math.max(1, page), total);
     this.cdr.markForCheck();
   }
 
@@ -1251,7 +1234,7 @@ export class MenuPageComponent implements OnDestroy {
         this.loaded = true;
         this.refreshing = false;
         this.loadError = '';
-        this.visibleItemCount = this.pageSize;
+        this.currentPage = 1;
         this.cdr.markForCheck();
       },
       error: () => {
@@ -2041,7 +2024,7 @@ export class MenuPageComponent implements OnDestroy {
   // --- Filters and Pagination ---
 
   resetPage(): void {
-    this.visibleItemCount = this.pageSize;
+    this.currentPage = 1;
   }
 
   formatCurrencyValue(value: number): string {
@@ -2161,7 +2144,6 @@ export class MenuPageComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.menuLoadMoreObserver?.disconnect();
     this.stopPolling();
   }
 

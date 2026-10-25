@@ -9,6 +9,7 @@ import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
+import { PaginationBarComponent } from '../../shared/pagination-bar.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { ToastService } from '../../core/services/toast.service';
 import { formatDate } from '../../shared/formatters';
@@ -19,7 +20,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
   selector: 'app-staff-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent, HeaderSearchComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent, HeaderSearchComponent, RefreshButtonComponent, PaginationBarComponent],
   styles: [`
     .danger-btn {
       color: var(--kb-color-danger);
@@ -303,13 +304,13 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
           </article>
         </div>
 
-        <div class="pagination-bar" *ngIf="filteredStaff.length > pageSize">
-          <p class="muted">Page {{ currentPage }} of {{ totalPages }}</p>
-          <div class="pagination-controls">
-            <button class="ghost-btn" [disabled]="currentPage === 1" (click)="goToPage(currentPage - 1)">Previous</button>
-            <button class="ghost-btn" [disabled]="currentPage === totalPages" (click)="goToPage(currentPage + 1)">Next</button>
-          </div>
-        </div>
+        <app-pagination-bar
+          *ngIf="filteredStaff.length > 0"
+          [currentPage]="currentPage"
+          [pageSize]="pageSize"
+          [totalItems]="filteredStaff.length"
+          (pageChange)="goToPage($event)"
+        />
       </div>
 
       <ng-template #loading>
@@ -328,6 +329,12 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
             [actionLabel]="isOwner ? 'Add Staff' : ''"
             (action)="openCreateModal()"
           ></app-empty-state>
+          <app-pagination-bar
+            *ngIf="!loadError()"
+            [currentPage]="1"
+            [pageSize]="pageSize"
+            [totalItems]="0"
+          />
         </ng-template>
       </ng-template>
 
