@@ -177,10 +177,8 @@ function getTodayIsoDate(): string {
         (action)="onKpiAction($event)">
       </app-kpi-row>
 
-      <!-- ── Operational Intelligence Split Grid (8 cols Left, 4 cols Right) ── -->
-      <section class="dashboard-operational-grid" aria-label="Operational Intelligence">
-        <!-- ── LEFT / CENTER COLUMN (8 COLS) ── -->
-        <div class="ops-main-col">
+      <!-- ── Hourly chart: full width, above the split grid ── -->
+      <section class="dashboard-chart-row" aria-label="Hourly Revenue Velocity">
           <!-- 1. Peak Hour Velocity Curve (Hourly Revenue Velocity) -->
           <article class="intel-card intel-card--chart">
             <div class="intel-card__head">
@@ -274,6 +272,12 @@ function getTodayIsoDate(): string {
               </table>
             </div>
           </article>
+      </section>
+
+      <!-- ── Operational Intelligence Split Grid (8 cols Left, 4 cols Right) ── -->
+      <section class="dashboard-operational-grid" aria-label="Operational Intelligence">
+        <!-- ── LEFT / CENTER COLUMN (8 COLS) ── -->
+        <div class="ops-main-col">
 
           <!-- 2. Live Floor -->
           <article class="intel-card intel-card--floor">
@@ -620,6 +624,11 @@ function getTodayIsoDate(): string {
       }
     }
 
+    .dashboard-chart-row {
+      margin-top: 1.5rem;
+      min-width: 0;
+    }
+
     .ops-main-col {
       display: flex;
       flex-direction: column;
@@ -637,7 +646,8 @@ function getTodayIsoDate(): string {
     .intel-card {
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
-      border-radius: 16px;
+      border-radius: 12px;
+      box-shadow: var(--kb-shadow-sm);
       padding: 1.25rem;
       display: flex;
       flex-direction: column;
@@ -683,8 +693,8 @@ function getTodayIsoDate(): string {
       flex: none;
     }
 
-    .intel-card--chart .intel-card__eyebrow { color: var(--kb-brand-orange-ink); }
-    .intel-card--chart .intel-card__eyebrow::before { background: var(--kb-brand-orange); }
+    .intel-card--chart .intel-card__eyebrow { color: var(--kb-color-primary); }
+    .intel-card--chart .intel-card__eyebrow::before { background: var(--kb-color-primary); }
     .intel-card--floor .intel-card__eyebrow { color: var(--kb-brand-purple); }
     .intel-card--top .intel-card__eyebrow { color: var(--kb-brand-orange-ink); }
     .intel-card--top .intel-card__eyebrow::before { background: var(--kb-brand-orange); }

@@ -84,6 +84,7 @@
               "zone.js/testing"
             ],
             "tsConfig": "tsconfig.spec.json",
+            "browsers": "ChromeHeadless",
             "styles": [
               "src/styles.css",
               "src/styles/bento.css"
