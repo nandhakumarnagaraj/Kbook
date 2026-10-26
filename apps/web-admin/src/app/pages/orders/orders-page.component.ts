@@ -109,11 +109,11 @@ export type OrdersTab = 'live' | 'history';
     `
       .orders-tabs {
         display: flex;
-        gap: 0.4rem;
-        padding: 0.2rem;
-        background: var(--kb-color-surface-2);
-        border: 1px solid var(--kb-color-border);
-        border-radius: var(--kb-radius-full);
+        gap: var(--kb-space-2);
+        padding: var(--kb-space-3);
+        background: var(--kb-color-surface);
+        border: 1px solid var(--kb-color-border-strong);
+        border-radius: var(--kb-radius-xl);
         width: fit-content;
         max-width: 100%;
         overflow-x: auto;
@@ -122,14 +122,14 @@ export type OrdersTab = 'live' | 'history';
       .orders-tab {
         display: inline-flex;
         align-items: center;
-        gap: 0.45rem;
-        padding: 6px var(--kb-space-3);
+        gap: var(--kb-space-2);
+        padding: var(--kb-space-2) var(--kb-space-3);
         border: none;
         background: transparent;
         border-radius: var(--kb-radius-full);
         font-family: inherit;
-        font-size: var(--kb-text-md);
-        font-weight: 700;
+        font-size: var(--kb-text-sm);
+        font-weight: 600;
         color: var(--kb-color-muted-foreground);
         cursor: pointer;
         white-space: nowrap;
@@ -140,13 +140,13 @@ export type OrdersTab = 'live' | 'history';
         color: var(--kb-color-foreground);
       }
 
-      /* The active tab is a raised dark pill, not a white one: a white chip on a
-         dark rail was the last light-theme island on this page, and brand blue
-         on white was 5.2:1 while link blue on white is 2.4:1. */
+      /* The active tab uses the primary soft pill with primary ink, matching the
+         dashboard filter-pill--active pattern. */
       .orders-tab--active {
-        background: var(--kb-color-surface-3);
-        color: var(--kb-color-link);
-        box-shadow: var(--shadow-xs);
+        background: var(--kb-color-primary-soft);
+        color: var(--kb-color-primary);
+        border-color: var(--kb-color-primary);
+        box-shadow: none;
       }
 
       .orders-tab:focus-visible {

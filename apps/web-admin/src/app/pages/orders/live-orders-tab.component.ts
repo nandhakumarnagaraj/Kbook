@@ -26,8 +26,26 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
       <div class="panel loading" *ngIf="showReloadSkeleton()" role="status" aria-busy="true">
         <span class="visually-hidden">Loading live orders...</span>
-        <div class="skeleton-stack">
-          <div class="skeleton-row" *ngFor="let i of [1,2,3]"></div>
+        <!-- Card-shaped, not row-shaped: the live board loads the same grid it
+             ends up showing, so nothing reflows when the orders land. The
+             shapes carry the fill themselves (a bare skeleton-row has none,
+             which is why this panel used to load as a blank box), and none of
+             them prints an order code, a guest name or an amount. -->
+        <div class="skeleton-card-grid">
+          <div class="bento-tile skeleton-card" *ngFor="let i of [1,2,3,4]" aria-hidden="true">
+            <div class="skeleton-card__row">
+              <span class="skeleton skeleton-avatar"></span>
+              <span class="skeleton skeleton-line skeleton-line--name"></span>
+              <span class="skeleton skeleton-line skeleton-line--chip"></span>
+            </div>
+            <div class="skeleton-card__row">
+              <span class="skeleton skeleton-line skeleton-line--grow"></span>
+            </div>
+            <div class="skeleton-card__row">
+              <span class="skeleton skeleton-line skeleton-line--name"></span>
+              <span class="skeleton skeleton-line skeleton-line--action"></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -246,6 +264,25 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
       gap: 1.15rem;
+    }
+
+    /* The loading state borrows .bento-tile for its box, and repeats the card
+       track of .active-orders-grid so the board does not jump when the orders
+       land. The class is separate on purpose: "is there a grid" is also what a
+       test asks to tell loaded cards from placeholders. */
+    .skeleton-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: var(--kb-space-4);
+    }
+    /* A placeholder cannot be hovered or pressed like a card. */
+    .skeleton-card {
+      pointer-events: none;
+    }
+    .skeleton-card__row {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-3);
     }
 
     /* Surface, radius, padding and the idle hover all come from the shared

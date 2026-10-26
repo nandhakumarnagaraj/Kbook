@@ -103,8 +103,8 @@ export function getPresetDateRange(
       border-color: var(--kb-color-primary);
     }
     .date-range__input::-webkit-calendar-picker-indicator {
-      filter: invert(0.8);
-      opacity: 0.72;
+      filter: none;
+      opacity: 1;
       cursor: pointer;
     }
     .date-range__separator { color: var(--kb-color-muted-foreground); font-size: var(--kb-text-sm); }

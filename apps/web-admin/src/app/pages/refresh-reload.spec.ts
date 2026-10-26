@@ -71,6 +71,37 @@ function skeleton<T>(fixture: ComponentFixture<T>, selector = '.panel.loading'):
   return host(fixture).querySelector(selector);
 }
 
+/**
+ * A record skeleton copies the anatomy of the row it stands in for — avatar or
+ * photo tile, name, meta, action — and nothing else: no initials, no dish, no
+ * order code, no price. Every shape must also be painted, because a row that
+ * carries the class without the fill renders as a blank panel.
+ */
+function expectContentFreeSkeleton(root: Element): void {
+  // Rows for list pages, cards for the live board: both are one placeholder per
+  // record, and both must obey the same two rules (painted, content-free).
+  const rows = Array.from(root.querySelectorAll('.skeleton-row--detail, .skeleton-card'));
+  expect(rows.length).withContext('one placeholder per record').toBeGreaterThan(0);
+
+  for (const row of rows) {
+    const shapes = Array.from(row.querySelectorAll('.skeleton'));
+    expect(shapes.length)
+      .withContext('the row is drawn as separate shapes, not one grey band')
+      .toBeGreaterThan(1);
+    expect(row.textContent?.trim())
+      .withContext('a skeleton must not print a name, code, price or any copy')
+      .toBe('');
+    expect(row.querySelector('img, picture, svg'))
+      .withContext('a skeleton must not show a photo or icon')
+      .toBeNull();
+    for (const shape of shapes) {
+      expect(getComputedStyle(shape).backgroundColor)
+        .withContext('every shape is filled — an unpainted row loads as a blank panel')
+        .not.toBe('rgba(0, 0, 0, 0)');
+    }
+  }
+}
+
 /** Clicks the shared header refresh button, which is how a user asks for this. */
 function clickRefresh<T>(fixture: ComponentFixture<T>, selector = 'app-refresh-button button'): void {
   const button = host(fixture).querySelector(selector) as HTMLButtonElement | null;
@@ -90,6 +121,7 @@ describe('manual refresh visibly reloads the data', () => {
 
     expect(skeleton(fixture)).withContext('staff: first load shows the skeleton').toBeTruthy();
     expect(rows()).withContext('staff: no rows while the first load is pending').toBeFalsy();
+    expectContentFreeSkeleton(skeleton(fixture)!);
 
     staff.subject.next([{ userId: 1, name: 'Ravi', loginId: 'ravi', role: 'STAFF', isActive: true }]);
     fixture.detectChanges();
@@ -357,6 +389,7 @@ describe('background polls stay silent', () => {
     const grid = () => host(fixture).querySelector('.active-orders-grid');
 
     expect(skeleton(fixture)).withContext('active orders: first load shows the skeleton').toBeTruthy();
+    expectContentFreeSkeleton(skeleton(fixture)!);
 
     orders.subject.next({ content: [{ orderId: 1, orderCode: 'C01' }], totalElements: 1 });
     fixture.detectChanges();

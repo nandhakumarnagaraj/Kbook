@@ -45,7 +45,7 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from 
         <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
         <path d="M16 21h5v-5" />
       </svg>
-      <span>{{ label }}</span>
+      <span>{{ loading ? loadingLabel : label }}</span>
     </button>
   `,
   styles: [
@@ -74,6 +74,12 @@ export class RefreshButtonComponent {
   /** Spins the icon and disables the button while the reload is in flight. */
   @Input() loading = false;
   @Input() label = 'Refresh';
+  /**
+   * Visible label while the reload is in flight. The icon spin alone is easy to
+   * miss, so the button states what it is doing. The accessible name stays on
+   * `ariaLabel` (the button is aria-busy), so this is a sighted-only change.
+   */
+  @Input() loadingLabel = 'Refreshing…';
   @Input() ariaLabel = 'Refresh';
   @Output() refresh = new EventEmitter<void>();
 }

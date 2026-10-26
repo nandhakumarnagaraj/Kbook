@@ -214,6 +214,8 @@ export interface BusinessTerminal {
   credentialVersion: number | null;
   createdAt: number | null;
   updatedAt: number | null;
+  /** Last authenticated sync activity seen by the server (epoch ms), if any. */
+  lastSeenAt?: number | null;
 }
 
 export interface TerminalRequest {

@@ -311,9 +311,9 @@ function todayRange(): { from: string; to: string } {
        exactly where the tiles will. */
     .kpi-skeleton-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
-      gap: 0.85rem;
-      margin-bottom: 1.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(var(--kb-space-lg), 1fr));
+      gap: var(--kb-space-4);
+      margin-bottom: var(--kb-space-6);
     }
 
 
@@ -324,32 +324,32 @@ function todayRange(): { from: string; to: string } {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       overflow: hidden;
-      margin-bottom: 1.5rem;
+      margin-bottom: var(--kb-space-6);
     }
     .table-section { margin-top: 1.25rem; }
     @media (max-width: 768px) {
       .financial-strip-card { grid-template-columns: 1fr; }
     }
     .strip-item {
-      padding: var(--kb-space-5) 1.35rem;
+      padding: var(--kb-space-4) var(--kb-space-3);
       display: flex;
       flex-direction: column;
-      gap: var(--kb-space-1);
+      gap: var(--kb-space-2);
       border-right: 1px solid var(--kb-color-border);
     }
     .strip-item:last-child {
       border-right: none;
     }
     .strip-label {
-      font-size: var(--kb-text-sm);
+      font-size: var(--kb-text-xs);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
     .strip-val {
-      font-size: 1.3rem;
-      font-weight: 800;
+      font-size: var(--kb-text-lg);
+      font-weight: 700;
       color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
@@ -358,22 +358,24 @@ function todayRange(): { from: string; to: string } {
       color: var(--kb-color-muted-foreground);
     }
     .text-danger { color: var(--kb-color-danger) !important; }
+
+    .text-warning { color: var(--kb-color-warning) !important; }
     .text-warn { color: var(--kb-color-warning) !important; }
 
     /* ── Audit Note Card (unsection.com aesthetic) ── */
     .audit-note-card {
       display: flex;
       align-items: flex-start;
-      gap: var(--kb-space-4);
-      padding: var(--kb-space-5) 1.35rem;
-      margin-bottom: 1.5rem;
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-4) var(--kb-space-3);
+      margin-bottom: var(--kb-space-5);
     }
     .note-icon-halo {
       width: 38px;
       height: 38px;
-      border-radius: 10px;
+      border-radius: var(--kb-radius-lg);
       background: var(--kb-color-primary-soft);
-      color: var(--kb-color-link);
+      color: var(--kb-color-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -381,7 +383,7 @@ function todayRange(): { from: string; to: string } {
     }
     .note-copy h4 {
       margin: 0 0 var(--kb-space-1);
-      font-size: var(--kb-text-lg);
+      font-size: var(--kb-text-xl);
       font-weight: 700;
       color: var(--kb-color-foreground);
     }
@@ -395,17 +397,17 @@ function todayRange(): { from: string; to: string } {
     /* ── Tab Navigation ── */
     .report-tabs-nav {
       display: flex;
-      gap: var(--kb-space-2);
-      margin-bottom: 1.5rem;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-5);
       border-bottom: 1px solid var(--kb-color-border);
-      padding-bottom: 0.75rem;
+      padding-bottom: var(--kb-space-3);
       overflow-x: auto;
     }
     .tab-pill {
       display: inline-flex;
       align-items: center;
       gap: var(--kb-space-2);
-      padding: 0.55rem 1.1rem;
+      padding: var(--kb-space-2) var(--kb-space-3);
       border-radius: var(--kb-radius-full);
       font-size: var(--kb-text-sm);
       font-weight: 600;
@@ -437,6 +439,39 @@ function todayRange(): { from: string; to: string } {
     .invoice-link {
       color: var(--kb-color-link);
       text-decoration: underline;
+    }
+
+    .kpi-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--kb-space-1);
+      background: var(--kb-color-surface-3);
+      padding: var(--kb-space-1) var(--kb-space-2);
+      border-radius: var(--kb-radius-sm);
+      font-size: var(--kb-text-xs);
+      font-weight: 700;
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-tag--green {
+      background: var(--kb-color-success-soft);
+      color: var(--kb-color-success);
+    }
+
+    .kpi-tag--amber {
+      background: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
+    }
+
+    .kpi-tag--warn {
+      background: var(--kb-color-danger-soft);
+      color: var(--kb-color-danger);
+    }
+
+    .kpi-tag--neutral {
+      background: var(--kb-color-surface-3);
+      color: var(--kb-color-muted-foreground);
     }
 
     /* The table design is defined once in the global stylesheet (see the

@@ -133,7 +133,14 @@ import { formatDate } from '../../shared/formatters';
         <div class="panel loading" role="status" aria-busy="true">
           <span class="visually-hidden">Loading feature flags...</span>
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]"></div>
+            <!-- Flag row anatomy: name, key, state, kill switch. No flag name
+                 or key is painted before it loads. -->
+            <div class="skeleton-row skeleton-row--detail" *ngFor="let i of [1,2,3,4]">
+              <span class="skeleton skeleton-line skeleton-line--name"></span>
+              <span class="skeleton skeleton-line skeleton-line--grow"></span>
+              <span class="skeleton skeleton-line skeleton-line--chip"></span>
+              <span class="skeleton skeleton-line skeleton-line--action"></span>
+            </div>
           </div>
         </div>
       </ng-template>

@@ -12,6 +12,8 @@ import { environment } from '../../../environments/environment';
 const API = environment.apiBaseUrl;
 
 type NavLink = { label: string; path: string; icon: string; iconKey: string; badge?: string };
+/** A headed cluster of destinations. `heading` is empty for the flat admin rail. */
+type NavGroup = { heading: string; links: NavLink[] };
 
 type BottomActionBarItem = { label: string; iconKey: string; route: string; badge?: string };
 
@@ -75,6 +77,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
           <div class="brand-row">
             <div class="brand-logo-circle" aria-hidden="true">
               <img src="/khanabook_logo.png" alt="KhanaBook" class="brand-logo-img" />
+              <span class="brand-mark-kb" aria-hidden="true">Kb</span>
             </div>
             <div class="brand-copy">
               <span class="brand-title">KhanaBook</span>
@@ -99,25 +102,31 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         </div>
 
         <nav class="nav-links" aria-label="Main">
-          <a
-            *ngFor="let link of links(); trackBy: trackByNavLink"
-            [routerLink]="link.path"
-            routerLinkActive="active-link"
-            ariaCurrentWhenActive="page"
-            class="nav-link"
-            [attr.aria-label]="link.label"
-            (mouseenter)="peek($event, link)"
-            (mouseleave)="hidePeek()"
-            (focus)="peek($event, link)"
-            (blur)="hidePeek()"
-            (click)="closeMenu(false)">
-            <span class="nav-link__icon" aria-hidden="true">
-              <kb-icon *ngIf="link.iconKey" [name]="link.iconKey" [size]="18"></kb-icon>
-              <span *ngIf="!link.iconKey">{{ link.icon }}</span>
-            </span>
-            <span class="nav-link__label">{{ link.label }}</span>
-            <span *ngIf="link.badge" class="nav-link__badge">{{ link.badge }}</span>
-          </a>
+          <div class="nav-group" *ngFor="let group of navGroups(); trackBy: trackByNavGroup">
+            <!-- The heading is decoration for the eye: each link already carries
+                 its own accessible name, so announcing "Operations" before the
+                 row adds a stop without adding information. -->
+            <p class="nav-group__heading" *ngIf="group.heading" aria-hidden="true">{{ group.heading }}</p>
+            <a
+              *ngFor="let link of group.links; trackBy: trackByNavLink"
+              [routerLink]="link.path"
+              routerLinkActive="active-link"
+              ariaCurrentWhenActive="page"
+              class="nav-link"
+              [attr.aria-label]="link.label"
+              (mouseenter)="peek($event, link)"
+              (mouseleave)="hidePeek()"
+              (focus)="peek($event, link)"
+              (blur)="hidePeek()"
+              (click)="closeMenu(false)">
+              <span class="nav-link__icon" aria-hidden="true">
+                <kb-icon *ngIf="link.iconKey" [name]="link.iconKey" [size]="18"></kb-icon>
+                <span *ngIf="!link.iconKey">{{ link.icon }}</span>
+              </span>
+              <span class="nav-link__label">{{ link.label }}</span>
+              <span *ngIf="link.badge" class="nav-link__badge">{{ link.badge }}</span>
+            </a>
+          </div>
         </nav>
 
         <div class="sidebar-footer">
@@ -259,31 +268,32 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
 
     /* Navigation */
     .nav-links { display: flex; flex-direction: column; gap: 6px; }
+
+    /* Section headings. 11px uppercase is the one place on the rail where type
+       steps below --kb-text-sm: the label is a signpost, not a target, and at
+       13px it would compete with the destinations it names. */
+    .nav-group { display: flex; flex-direction: column; gap: 6px; }
+    .nav-group + .nav-group { margin-top: var(--kb-space-3); }
+    .nav-group__heading {
+      margin: 0 0 var(--kb-space-1) var(--kb-space-4);
+      font-size: var(--kb-text-2xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--pos-sidebar-ink-muted);
+      white-space: nowrap;
+    }
+
     .nav-link {
       position: relative;
       display: flex;
-      /* A nav row is a target, not a cushion: when the column runs out of height
-         the list must scroll, not squeeze nine 44px rows into whatever is left. */
-      flex-shrink: 0;
-      align-items: center;
-      gap: 0.85rem;
-      padding: 0.7rem 0.9rem;
-      border-radius: 10px;
-      color: var(--pos-sidebar-text);
-      text-decoration: none;
-      font-weight: 500;
-      font-size: 0.92rem;
-      transition: all 150ms var(--ease-out);
-    }
-    .nav-link__icon { font-size: var(--kb-text-lg); display: inline-flex; align-items: center; justify-content: center; width: 22px; color: inherit; }
-    .nav-link:hover { background: var(--pos-sidebar-hover); color: var(--kb-color-foreground-contrast); }
-    .nav-link:active { transform: scale(0.97); }
-    .nav-link.active-link {
+      /* A nav row is a target, not a cushion: when the column runs out of height         the list must scroll, not squeeze nine 44px rows into whatever is left. */      flex-shrink: 0;      align-items: center;      gap: var(--kb-space-3);      padding: var(--kb-space-3) var(--kb-space-4);      border-radius: var(--kb-radius-lg);      color: var(--pos-sidebar-text);      text-decoration: none;      font-weight: 500;      font-size: var(--kb-text-sm);      transition: all 150ms var(--ease-out);    }
+    .nav-link__icon { font-size: var(--kb-text-md); display: inline-flex; align-items: center; justify-content: center; width: 24px; color: inherit; }
+    .nav-link:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); }
+    .nav-link:active { transform: scale(0.97); }.nav-link.active-link {
       background: var(--kb-color-primary);
       color: var(--kb-color-foreground-contrast);
-      font-weight: 600;
-      border: none;
-      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+      font-weight: 600;      border: none;      box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.25);
     }
     /* The app draws one blue keyboard ring, but on this dark plane it measures
        ~3.6:1. The rail states focus in white, the way every other control on it
@@ -291,26 +301,10 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .nav-link:focus-visible {
       outline: 2px solid var(--kb-color-foreground-contrast);
       outline-offset: 2px;
-    }
-    .nav-link.active-link .nav-link__icon {
+    }.nav-link.active-link .nav-link__icon {
       color: var(--kb-color-foreground-contrast);
-    }
-    .nav-link__badge {
-      margin-left: auto;
-      padding: 0.15rem 0.45rem;
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      border-radius: var(--kb-radius-full);
-      background: rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-    }
-    .nav-link.active-link .nav-link__badge {
-      background: rgba(255, 255, 255, 0.25);
-      color: var(--kb-color-foreground-contrast);
-      border-color: rgba(255, 255, 255, 0.4);
+    }.nav-link__badge {      margin-left: auto;      padding: var(--kb-space-1) var(--kb-space-2);      font-size: var(--kb-text-xs);      font-weight: 600;      text-transform: uppercase;      letter-spacing: 0.04em;      border-radius: var(--kb-radius-full);      background: var(--kb-color-surface-3);      color: var(--kb-color-muted-foreground);      border: 1px solid var(--kb-color-border);
+    }.nav-link.active-link .nav-link__badge {      background: var(--kb-color-primary-soft);      color: var(--kb-color-primary);      border-color: var(--kb-color-primary);
     }
 
     /* Sidebar Footer (footer.design standard) */
@@ -516,7 +510,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         padding-inline: 10px;
       }
 
-      /* Brand block reduces to just the logo, with the expand chevron under it */
+      /* Brand block reduces to a compact Kb mark, with the expand chevron under it */
       .sidebar--collapsed .brand-row {
         flex-direction: column;
         gap: var(--kb-space-2);
@@ -529,7 +523,15 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         width: 36px;
         height: 36px;
         border-radius: 10px;
-        padding: 2px;
+        padding: 0;
+      }
+      .sidebar--collapsed .brand-logo-img { display: none; }
+      .sidebar--collapsed .brand-mark-kb {
+        display: inline-block;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--kb-color-foreground);
       }
       .sidebar--collapsed .sidebar-toggle { margin-left: 0; }
 
@@ -543,7 +545,11 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         height: 44px;
         border-radius: 10px;
       }
+      .sidebar--collapsed .nav-link__icon { width: 24px; }
       .sidebar--collapsed .nav-link__label { display: none; }
+      /* A 64px rail has no room for a heading, and there is nothing to group
+         against once the labels are gone. */
+      .sidebar--collapsed .nav-group__heading { display: none; }
       .sidebar--collapsed .nav-link__badge {
         position: absolute;
         top: 5px;
@@ -554,7 +560,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         font-size: 0;
         border: none;
         color: transparent;
-        background: #F04438;
+        background: var(--kb-color-danger);
         overflow: hidden;
       }
 
@@ -595,6 +601,17 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         overflow-wrap: anywhere;
         pointer-events: none;
         box-shadow: var(--kb-shadow-md);
+      }
+      /* Pointer toward the icon, so the chip reads as belonging to its item. */
+      .nav-peek::before {
+        content: '';
+        position: absolute;
+        left: -5px;
+        top: 50%;
+        width: 10px;
+        height: 10px;
+        background: var(--pos-sidebar-peek-bg);
+        transform: translateY(-50%) rotate(45deg);
       }
     }
 
@@ -767,32 +784,78 @@ export class SidebarLayoutComponent implements OnInit, OnDestroy {
 
   readonly session = this.authService.session;
   readonly contextTitle = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'KhanaBook Platform' : 'Restaurant operations');
-  readonly links = computed<NavLink[]>(() => {
+  /**
+   * Owner navigation, grouped by the job the screen is for. Nine flat rows gave
+   * a counter, a catalogue, stock, payroll and the books the same weight; the
+   * headings let someone find "the money screens" without reading every label.
+   *
+   * Only destinations that exist are listed. Payments and GST live inside
+   * Business Settings, so they are not separate rows that would deep-link into
+   * a page the owner then has to scroll.
+   */
+  readonly navGroups = computed<NavGroup[]>(() => {
     const role = this.session()?.role;
+    // Platform staff see one flat group: three destinations do not earn headings.
     if (role === 'KBOOK_ADMIN') {
-      return [
-        { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '', iconKey: 'dashboard' },
-        { label: 'Businesses', path: '/admin/businesses', icon: '', iconKey: 'business' },
-        { label: 'Feature Flags', path: '/admin/feature-flags', icon: '', iconKey: 'flag' }
-      ];
+      return [{
+        heading: '',
+        links: [
+          { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '', iconKey: 'dashboard' },
+          { label: 'Businesses', path: '/admin/businesses', icon: '', iconKey: 'business' },
+          { label: 'Feature Flags', path: '/admin/feature-flags', icon: '', iconKey: 'flag' }
+        ]
+      }];
     }
     if (role !== 'OWNER') {
       // SHOP_STAFF has no business web access (server /business/** is OWNER-only).
       return [];
     }
-    const items: NavLink[] = [
-      { label: 'Dashboard', path: '/business/dashboard', icon: '', iconKey: 'dashboard' },
-      { label: 'Orders', path: '/business/orders', icon: '', iconKey: 'orders' },
-      { label: 'Menu', path: '/business/menu', icon: '', iconKey: 'menu' },
-      { label: 'Staff', path: '/business/staff', icon: '', iconKey: 'staff' },
-      { label: 'Inventory', path: '/business/inventory', icon: '', iconKey: 'inventory' },
-      { label: 'Terminals', path: '/business/terminals', icon: '', iconKey: 'terminals' },
-      { label: 'Daily Closing', path: '/business/daily-closing', icon: '', iconKey: 'payments' },
-      { label: 'Reports', path: '/business/reports', icon: '', iconKey: 'reports' },
-      { label: 'Settings', path: '/business/settings', icon: '', iconKey: 'settings' }
+    return [
+      {
+        heading: 'Overview',
+        links: [
+          { label: 'Dashboard', path: '/business/dashboard', icon: '', iconKey: 'dashboard' }
+        ]
+      },
+      {
+        heading: 'Operations',
+        links: [
+          { label: 'Orders', path: '/business/orders', icon: '', iconKey: 'orders' },
+          { label: 'Menu', path: '/business/menu', icon: '', iconKey: 'menu' },
+          { label: 'Inventory', path: '/business/inventory', icon: '', iconKey: 'inventory' },
+          { label: 'Staff', path: '/business/staff', icon: '', iconKey: 'staff' },
+          { label: 'Terminals', path: '/business/terminals', icon: '', iconKey: 'terminals' }
+        ]
+      },
+      {
+        heading: 'Finance',
+        links: [
+          { label: 'Daily Closing', path: '/business/daily-closing', icon: '', iconKey: 'payments' },
+          { label: 'Reports', path: '/business/reports', icon: '', iconKey: 'reports' }
+        ]
+      },
+      {
+        heading: 'Business',
+        // The route is the settings screen and holds the profile, taxes, receipt
+        // and payment configuration. Calling the row "Profile" promised a page
+        // that only edited the owner's name.
+        links: [
+          { label: 'Business Settings', path: '/business/settings', icon: '', iconKey: 'profile' }
+        ]
+      },
+      {
+        // Support sits last on purpose: it is where someone goes when the app is
+        // not doing what it should, not part of the daily round.
+        heading: 'Help',
+        links: [
+          { label: 'Help & Support', path: '/business/help', icon: '', iconKey: 'help' }
+        ]
+      }
     ];
-    return items;
   });
+
+  /** Flat view of `navGroups` — the current-page label and the specs read this. */
+  readonly links = computed<NavLink[]>(() => this.navGroups().flatMap((group) => group.links));
 
   readonly bottomActionItems = computed<BottomActionBarItem[]>(() => {
     return [
@@ -927,4 +990,5 @@ export class SidebarLayoutComponent implements OnInit, OnDestroy {
   }
 
   trackByNavLink = (_: number, link: NavLink) => link.path;
+  trackByNavGroup = (_: number, group: NavGroup) => group.heading;
 }

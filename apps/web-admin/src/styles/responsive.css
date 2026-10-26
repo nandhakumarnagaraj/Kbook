@@ -1,0 +1,62 @@
+/* ============================================================================
+   KB Responsive Tokens — GENERATED FILE, DO NOT EDIT BY HAND
+   ----------------------------------------------------------------------------
+   Build-time calculated screen sizes and font sizes for the breakpoint ladder:
+   480, 640, 768, 1024, 1100px
+
+   Regenerate with: npm run generate:responsive
+   ============================================================================ */
+
+:root {
+  /* Fallback values (smallest breakpoint) */
+  --kb-font-size: 14px;
+  --kb-container-width: 441.6px;
+  --kb-gap: 12px;
+  --kb-line-height: 1.45;
+  --kb-vh-safe: 248.4px;
+
+  /* 480px breakpoint */
+  --kb-font-size-480: 14px;
+  --kb-container-width-480: 441.6px;
+  --kb-gap-480: 12px;
+  --kb-line-height-480: 1.45;
+  --kb-vh-safe-480: 248.4px;
+
+  /* 640px breakpoint */
+  --kb-font-size-640: 15.03px;
+  --kb-container-width-640: 576px;
+  --kb-gap-640: 16px;
+  --kb-line-height-640: 1.489;
+  --kb-vh-safe-640: 331.2px;
+
+  /* 768px breakpoint */
+  --kb-font-size-768: 15.86px;
+  --kb-container-width-768: 652.8px;
+  --kb-gap-768: 20px;
+  --kb-line-height-768: 1.52;
+  --kb-vh-safe-768: 397.44px;
+
+  /* 1024px breakpoint */
+  --kb-font-size-1024: 17.51px;
+  --kb-container-width-1024: 819.2px;
+  --kb-gap-1024: 24px;
+  --kb-line-height-1024: 1.582;
+  --kb-vh-safe-1024: 529.92px;
+
+  /* 1100px breakpoint */
+  --kb-font-size-1100: 18px;
+  --kb-container-width-1100: 825px;
+  --kb-gap-1100: 28px;
+  --kb-line-height-1100: 1.6;
+  --kb-vh-safe-1100: 569.25px;
+
+}
+
+/* ============================================================================
+   Usage:
+   - Font size:   font-size: var(--kb-font-size, var(--kb-font-size-768));
+   - Container:   max-width: var(--kb-container-width, var(--kb-container-width-768));
+   - Grid gap:    gap: var(--kb-gap, var(--kb-gap-768));
+   - Line height: line-height: var(--kb-line-height, var(--kb-line-height-768));
+   - Safe VH:     min-height: var(--kb-vh-safe, var(--kb-vh-safe-768));
+   ============================================================================ */

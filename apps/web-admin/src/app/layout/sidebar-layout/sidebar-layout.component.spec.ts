@@ -222,12 +222,38 @@ describe('SidebarLayoutComponent — collapsible sidebar', () => {
     comp.hidePeek();
   }));
 
-  it('keeps the nine navigation destinations in their approved order', () => {
+  it('keeps the ten navigation destinations in their approved order', () => {
     const { comp } = create();
     expect(comp.links().map((link) => link.label)).toEqual([
-      'Dashboard', 'Orders', 'Menu', 'Staff', 'Inventory', 'Terminals', 'Daily Closing', 'Reports', 'Settings',
+      'Dashboard', 'Orders', 'Menu', 'Inventory', 'Staff', 'Terminals', 'Daily Closing', 'Reports',
+      'Business Settings', 'Help & Support',
     ]);
   });
+
+  // The headings are the whole point of the regroup, so they are pinned: a link
+  // that falls out of a group changes the order above, and a group that loses
+  // its last link must not keep an empty heading on the rail.
+  it('files those destinations under five headings, none of them empty', () => {
+    const { comp, fixture } = create();
+    expect(comp.navGroups().map((group) => group.heading)).toEqual([
+      'Overview', 'Operations', 'Finance', 'Business', 'Help',
+    ]);
+    for (const group of comp.navGroups()) {
+      expect(group.links.length).withContext(`"${group.heading}" must hold at least one destination`).toBeGreaterThan(0);
+    }
+    expect(comp.navGroups().flatMap((group) => group.links).length)
+      .withContext('grouping must not drop or duplicate a destination')
+      .toBe(comp.links().length);
+
+    // The heads actually reach the rail, in order, above their own links.
+    const nav = (fixture.nativeElement as HTMLElement).querySelector('nav.nav-links')!;
+    expect(Array.from(nav.querySelectorAll('.nav-group__heading')).map((heading) => heading.textContent?.trim()))
+      .toEqual(['Overview', 'Operations', 'Finance', 'Business', 'Help']);
+    expect(nav.querySelectorAll('a.nav-link').length)
+      .withContext('every destination is still rendered, exactly once')
+      .toBe(10);
+  });
+
 
   it('starts the presence heartbeat with the shell and stops it on destroy', () => {
     const { fixture } = create();

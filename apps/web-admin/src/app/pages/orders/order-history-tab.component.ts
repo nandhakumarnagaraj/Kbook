@@ -309,7 +309,15 @@ export function orderStatusLabel(status: string | null | undefined): string {
           <div class="panel loading" *ngIf="!ordersLoaded; else emptyOrdersTable" role="status" aria-busy="true">
             <span class="visually-hidden">Loading recent orders...</span>
             <div class="skeleton-stack">
-              <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
+              <!-- Order row anatomy: code, channel, guest line, amount, status,
+                   action. No order code or guest name is painted before it loads. -->
+              <div class="skeleton-row skeleton-row--detail" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex">
+                <span class="skeleton skeleton-line skeleton-line--name"></span>
+                <span class="skeleton skeleton-line skeleton-line--chip"></span>
+                <span class="skeleton skeleton-line skeleton-line--grow"></span>
+                <span class="skeleton skeleton-line skeleton-line--meta"></span>
+                <span class="skeleton skeleton-line skeleton-line--action"></span>
+              </div>
             </div>
           </div>
           <ng-template #emptyOrdersTable>
@@ -994,9 +1002,11 @@ export class OrderHistoryTabComponent implements OnDestroy {
         this.toast.show('Order cancelled.', 'success');
         this.closeCancelModal();
         this.loadOrders();
+        this.cdr.markForCheck();
       },
       error: (err: any) => {
         this.cancelSubmitting = false;
+        this.cdr.markForCheck();
         const msg = err?.error?.message || err?.error?.error || 'Failed to cancel order.';
         this.toast.show(msg, 'error');
       }
@@ -1007,13 +1017,21 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   openOrderDetail(order: BusinessOrder): void {
     this.orderDetailLoading = true;
+    // Same OnPush reason as loadOrders(): these fields change outside a template
+    // event (the click's own change-detection pass is already over by the time the
+    // response lands), so without this the spinner and the modal never reach the
+    // renderer until some unrelated click marks the view dirty again. That is what
+    // made a 2 s response look like a 10 s "View" on the history table.
+    this.cdr.markForCheck();
     this.api.getOrderDetail(order.orderId).subscribe({
       next: (detail) => {
         this.selectedOrderDetail = detail;
         this.orderDetailLoading = false;
+        this.cdr.markForCheck();
       },
       error: () => {
         this.orderDetailLoading = false;
+        this.cdr.markForCheck();
         this.toast.show('Unable to load order details.', 'error');
       }
     });
@@ -1021,6 +1039,9 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   closeOrderDetail(): void {
     this.selectedOrderDetail = null;
+    // Without this the modal stays painted after the user closes it: the emit
+    // happens from the modal's view, so this component is never re-checked.
+    this.cdr.markForCheck();
   }
 
   // --- Refund ---
@@ -1071,10 +1092,12 @@ export class OrderHistoryTabComponent implements OnDestroy {
         if (idx !== -1) this.orders[idx] = updated;
         this.refunding = false;
         this.closeRefund();
+        this.cdr.markForCheck();
       },
       error: (err) => {
         this.refundError = err?.error?.error || 'Refund failed. Please try again.';
         this.refunding = false;
+        this.cdr.markForCheck();
       }
     });
   }

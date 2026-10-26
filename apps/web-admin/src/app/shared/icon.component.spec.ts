@@ -47,7 +47,7 @@ describe('IconComponent', () => {
        visual bug, so protect the full mapping here. */
     const required = [
       'dashboard', 'orders', 'menu', 'staff', 'inventory',
-      'terminals', 'payments', 'reports', 'settings', 'business', 'flag',
+      'terminals', 'payments', 'reports', 'settings', 'profile', 'business', 'flag',
     ];
     const { fixture, comp } = render();
     for (const name of required) {

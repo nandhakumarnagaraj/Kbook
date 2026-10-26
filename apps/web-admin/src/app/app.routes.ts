@@ -101,6 +101,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/business-settings/business-settings-page.component').then(m => m.BusinessSettingsPageComponent)
       },
       {
+        path: 'business/help',
+        canActivate: [roleGuard],
+        data: { roles: ['OWNER'] },
+        loadComponent: () => import('./pages/help/help-support-page.component').then(m => m.HelpSupportPageComponent)
+      },
+      {
         path: '',
         pathMatch: 'full',
         redirectTo: () => inject(Router).parseUrl(inject(AuthService).getLandingPath())

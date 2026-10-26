@@ -216,7 +216,15 @@ import { formatDate } from '../../shared/formatters';
         <div class="panel loading" role="status" aria-busy="true">
           <span class="visually-hidden">Loading terminals...</span>
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
+            <!-- Terminal row anatomy: device tile, register name, role, device
+                 ID, status. The register's real name stays hidden until it loads. -->
+            <div class="skeleton-row skeleton-row--detail" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex">
+              <span class="skeleton skeleton-thumb"></span>
+              <span class="skeleton skeleton-line skeleton-line--name"></span>
+              <span class="skeleton skeleton-line skeleton-line--chip"></span>
+              <span class="skeleton skeleton-line skeleton-line--grow"></span>
+              <span class="skeleton skeleton-line skeleton-line--action"></span>
+            </div>
           </div>
         </div>
       </ng-template>

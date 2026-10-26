@@ -160,7 +160,15 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
         <div class="panel loading" *ngIf="!loaded && !loadError; else businessesEmpty" role="status" aria-busy="true">
           <span class="visually-hidden">Loading businesses...</span>
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
+            <!-- Tenant row anatomy: shop name, id, owner, status, action. The
+                 tenant's real name and owner stay hidden while it loads. -->
+            <div class="skeleton-row skeleton-row--detail" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex">
+              <span class="skeleton skeleton-line skeleton-line--name"></span>
+              <span class="skeleton skeleton-line skeleton-line--meta"></span>
+              <span class="skeleton skeleton-line skeleton-line--chip"></span>
+              <span class="skeleton skeleton-line skeleton-line--grow"></span>
+              <span class="skeleton skeleton-line skeleton-line--action"></span>
+            </div>
           </div>
         </div>
         <ng-template #businessesEmpty>

@@ -215,23 +215,44 @@
       align-items: center;
       gap: 0.45rem;
       padding: 0.55rem 0.95rem;
-      background: var(--kb-color-surface-2);
-      border: 1px solid var(--kb-color-border);
+      /* White fill, not the recessed surface: the button then reads as a control
+         sitting on the page canvas instead of a grey chip the same tone as its
+         own edge. */
+      background: var(--kb-color-surface);
+      /* One crisp edge. --kb-color-border (#E2E8F0) measured 1.06:1 against the
+         old #F1F5F9 fill, so the outline was invisible and the button looked
+         blurry rather than clickable. The strong step is the token this system
+         already reserves for control borders. */
+      border: 1px solid var(--kb-color-border-strong);
       border-radius: var(--kb-radius-xl);
       font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-foreground);
       cursor: pointer;
       box-shadow: var(--shadow-xs);
-      transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+      transition: background 150ms ease, border-color 150ms ease,
+                  transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
+/* Hover wears the accent on the edge only: the fill steps back to the recessed
+   surface, so the button reads as pressed rather than as a second primary. */
 .header-action-btn:hover {
-      background: var(--kb-color-border);
-      border-color: var(--kb-color-border-strong);
+      background: var(--kb-color-surface-2);
+      border-color: var(--kb-color-primary);
     }
 
 .header-action-btn:active { transform: scale(0.98); }
+
+.header-action-btn:focus-visible {
+      outline: 2px solid var(--kb-color-primary);
+      outline-offset: 2px;
+    }
+
+.header-action-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
 
 .header-action-btn--primary {
       background: var(--kb-color-primary);

@@ -67,13 +67,13 @@ interface RestaurantProfile {
           Live Sync Ready
         </span>
 
-        <button type="button" class="header-action-btn header-action-btn--primary" [disabled]="saving() || loading()" (click)="saveProfile()" aria-label="Save All Changes">
+        <button type="button" class="header-action-btn header-action-btn--primary" [disabled]="saving() || loading()" (click)="saveProfile()" aria-label="Save">
             <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
               <polyline points="17 21 17 13 7 13 7 21"/>
               <polyline points="7 3 7 8 15 8"/>
             </svg>
-            {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
+            {{ saving() ? 'Saving...' : 'Save' }}
           </button>
         <app-refresh-button (refresh)="refreshSettings()" [loading]="loading()" ariaLabel="Reload settings from server" />
       </app-page-header>
@@ -211,12 +211,6 @@ interface RestaurantProfile {
               <button class="ghost-btn" type="button" [disabled]="saving()" (click)="discardChanges()" aria-label="Discard Changes">
                 Discard
               </button>
-              <button class="primary-btn" type="button" [disabled]="saving()" (click)="saveProfile()" aria-label="Save All Changes">
-                <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                {{ saving() ? 'Saving Changes...' : 'Save All Changes' }}
-              </button>
             </div>
           </div>
         </div>
@@ -282,7 +276,7 @@ interface RestaurantProfile {
       text-transform: uppercase;
       letter-spacing: 0.04em;
       background: rgba(245, 158, 11, 0.15);
-      color: #b45309;
+      color: var(--kb-color-error);
       border: 1px solid rgba(245, 158, 11, 0.3);
     }
     .dock-actions {

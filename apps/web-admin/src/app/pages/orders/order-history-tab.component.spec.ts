@@ -1,11 +1,12 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { Component } from '@angular/core';
+import { Subject, of } from 'rxjs';
 
 import { OrderHistoryTabComponent, orderStatusLabel } from './order-history-tab.component';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { PaginatedOrdersResponse } from '../../core/models/api.models';
+import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatLocalDate } from '../../shared/date-range-selector.component';
 import { DATE_RANGE_STORAGE_KEY, readStoredDateRange, storeDateRange } from '../../core/utils/date-range-storage.util';
 
@@ -224,5 +225,117 @@ describe('OrderHistoryTabComponent — table semantics', () => {
     expect(rowHeader.textContent).toContain('1041');
     // The row header still reads as data, not as an uppercase column label.
     expect(getComputedStyle(rowHeader).textTransform).not.toBe('uppercase');
+  });
+});
+
+/**
+ * "View" used to sit on the spinner long after the API had answered. The response
+ * handler wrote `selectedOrderDetail` and `orderDetailLoading` — plain fields on an
+ * OnPush view whose only dirtying event, the click, was already over — so the modal
+ * waited for some later interaction to be painted. These specs mount the tab under a
+ * host, the way the Orders page does, and re-check with the host: that is the same
+ * traversal zone.js runs after an XHR, which skips a clean OnPush view. Forcing the
+ * tab's own view with its own detectChanges() would hide the bug.
+ */
+@Component({
+  standalone: true,
+  imports: [OrderHistoryTabComponent],
+  template: `<app-order-history-tab></app-order-history-tab>`,
+})
+class OrderHistoryHostComponent {}
+
+describe('OrderHistoryTabComponent — the order detail modal paints on the response', () => {
+  let fixture: ComponentFixture<OrderHistoryHostComponent>;
+  let detail$: Subject<OrderDetailResponse>;
+
+  const order: BusinessOrder = {
+    sourceType: 'POS',
+    orderType: 'DINE_IN',
+    orderId: 41,
+    orderCode: '1041',
+    invoiceNumber: 'INV-1041',
+    publicToken: null,
+    customerName: 'Table 4',
+    customerContact: null,
+    tableNumber: 4,
+    orderStatus: 'Completed',
+    paymentStatus: 'Paid',
+    paymentMethod: 'Cash',
+    totalAmount: 640,
+    gatewayPaidAmount: null,
+    refundAmount: 0,
+    refundStatus: 'NONE',
+    refundMode: null,
+    cancelReason: null,
+    manualRefundAllowed: false,
+    gatewayRefundAllowed: false,
+    createdAt: Date.now(),
+  };
+
+  beforeEach(() => {
+    sessionStorage.removeItem(DATE_RANGE_STORAGE_KEY);
+    detail$ = new Subject<OrderDetailResponse>();
+    const api = jasmine.createSpyObj<BusinessApiService>('BusinessApiService', [
+      'getOrdersPaginated',
+      'voidBill',
+      'getOrderDetail',
+    ]);
+    api.getOrdersPaginated.and.returnValue(of({
+      content: [order], totalElements: 1, totalPages: 1, page: 0, size: 15,
+    } as PaginatedOrdersResponse));
+    api.getOrderDetail.and.returnValue(detail$.asObservable());
+
+    TestBed.configureTestingModule({
+      imports: [OrderHistoryHostComponent],
+      providers: [
+        { provide: BusinessApiService, useValue: api },
+        { provide: AuthService, useValue: { session: () => null } },
+        { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['show']) },
+      ],
+    });
+
+    fixture = TestBed.createComponent(OrderHistoryHostComponent);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => sessionStorage.removeItem(DATE_RANGE_STORAGE_KEY));
+
+  function host(): HTMLElement {
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  function modal(): Element | null {
+    return host().querySelector('app-order-detail-modal');
+  }
+
+  it('shows the modal in the pass the response lands in', () => {
+    (host().querySelector('button[aria-label="View order details"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(host().querySelector('.panel.loading'))
+      .withContext('the click itself must paint the loading state')
+      .toBeTruthy();
+
+    detail$.next({ order, lineItems: [] });
+    fixture.detectChanges();
+
+    expect(modal()).withContext('the answer was already on the wire — paint it now').toBeTruthy();
+    expect(host().querySelector('.panel.loading'))
+      .withContext('the loading panel must give way to the modal')
+      .toBeFalsy();
+    fixture.destroy();
+  });
+
+  it('takes the modal away as soon as it is closed', () => {
+    (host().querySelector('button[aria-label="View order details"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    detail$.next({ order, lineItems: [] });
+    fixture.detectChanges();
+    expect(modal()).withContext('the modal has to be open before it can be closed').toBeTruthy();
+
+    (host().querySelector('.order-modal__close') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(modal()).withContext('a closed modal must not stay painted').toBeFalsy();
+    fixture.destroy();
   });
 });

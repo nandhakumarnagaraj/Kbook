@@ -101,8 +101,8 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
       cursor: not-allowed;
     }
     .pagination-page--active {
-      background: #FF851B;
-      border-color: #FF851B;
+      background: var(--brand-orange);
+      border-color: var(--brand-orange);
       color: var(--kb-color-on-primary);
     }
     .pagination-nav:focus-visible,

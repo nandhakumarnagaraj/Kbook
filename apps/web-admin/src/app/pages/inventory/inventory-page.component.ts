@@ -171,7 +171,14 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       <div class="panel loading" *ngIf="loading" role="status" aria-busy="true">
         <span class="visually-hidden">Loading inventory...</span>
         <div class="skeleton-stack">
-          <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
+          <!-- Material card anatomy: unit tile, material name, stock figure,
+               low-stock flag. No name or quantity is shown while loading. -->
+          <div class="skeleton-row skeleton-row--detail" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex">
+            <span class="skeleton skeleton-thumb"></span>
+            <span class="skeleton skeleton-line skeleton-line--name"></span>
+            <span class="skeleton skeleton-line skeleton-line--grow"></span>
+            <span class="skeleton skeleton-line skeleton-line--chip"></span>
+          </div>
         </div>
       </div>
 

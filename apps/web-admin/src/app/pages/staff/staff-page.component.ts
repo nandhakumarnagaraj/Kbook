@@ -317,7 +317,17 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         <div class="panel loading" *ngIf="!loaded() && !loadError(); else staffEmpty" role="status" aria-busy="true">
           <span class="visually-hidden">Loading staff members...</span>
           <div class="skeleton-stack">
-            <div class="skeleton skeleton-row" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex"></div>
+            <!-- One shape per thing a staff row actually shows: avatar, name,
+                 login, role, contact, status, action. The initials, the name
+                 and the login ID stay invisible until the record loads. -->
+            <div class="skeleton-row skeleton-row--detail" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex">
+              <span class="skeleton skeleton-avatar"></span>
+              <span class="skeleton skeleton-line skeleton-line--name"></span>
+              <span class="skeleton skeleton-line skeleton-line--meta"></span>
+              <span class="skeleton skeleton-line skeleton-line--chip"></span>
+              <span class="skeleton skeleton-line skeleton-line--grow"></span>
+              <span class="skeleton skeleton-line skeleton-line--action"></span>
+            </div>
           </div>
         </div>
         <ng-template #staffEmpty>

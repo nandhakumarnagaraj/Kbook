@@ -124,8 +124,8 @@
   --kb-color-surface-3:         #FFFFFF; /* Modal, popover, raised controls */
   --kb-color-muted:             #F1F5F9; /* Recessed input / well */
   --kb-color-muted-foreground:  #556377; /* Secondary text (6.1:1 on white, 5.6:1 on a table header) */
-  --kb-color-border:            #E2E8F0; /* Dividers and card edges */
-  --kb-color-border-strong:     #8A94A6; /* Control borders (>=3:1 on white) */
+  --kb-color-border:            #CBD5E1; /* Dividers and card edges (1.41:1 on #F7F9FC — decorative) */
+  --kb-color-border-strong:     #4B5563; /* Control borders (3.5:1 on #F7F9FC, >=3:1 UI boundary) */
   --kb-color-input:             #FFFFFF; /* Field background (reads as recessed on canvas) */
   --kb-color-ring:              rgba(var(--kb-color-primary-rgb), 0.45);
   --kb-color-espresso:          #0F172A;
@@ -168,9 +168,9 @@
   --kb-color-warning-rgb:       154, 63, 8;
   --kb-color-danger-rgb:        185, 28, 28;
   --kb-color-info-rgb:          67, 56, 202;
-  --kb-brand-orange:            var(--brand-orange);
-  --kb-brand-orange-ink:        var(--brand-orange-ink);
-  --kb-brand-purple:            var(--brand-purple);
+  --kb-brand-orange:            #E87A1E; /* Accent only: 2.75:1 on #F7F9FC — not for body text */
+  --kb-brand-orange-ink:        #9A450A; /* Dark ink step for orange text (4.5:1 on white) */
+  --kb-brand-purple:            #5926B8; /* 8.32:1 on #F7F9FC — passes AA */
   --kb-color-error:             var(--kb-color-danger);
   --kb-color-error-soft:        var(--kb-color-danger-soft);
   --kb-easing-fast:             var(--kb-ease-standard);
@@ -892,6 +892,36 @@ tbody tr:hover { background: var(--kb-color-surface-2); }
 .skeleton-line { height: 0.75rem; margin: 0.35rem 0; border-radius: var(--kb-radius-sm); }
 .skeleton-row { height: 48px; border-radius: var(--kb-radius-lg); margin-bottom: 0.4rem; }
 .skeleton-stack { display: grid; gap: var(--kb-space-2); }
+
+/* A row that copies the anatomy of the record it stands in for — photo tile or
+   avatar, name, then meta text — so the layout does not jump when the data
+   lands. Every shape is empty on purpose: no initials, no photos, no names,
+   no prices, no copy. The detail of a real row stays invisible until it exists. */
+.skeleton-row--detail {
+  display: flex;
+  align-items: center;
+  gap: var(--kb-space-3);
+  height: auto;
+  margin-bottom: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+.skeleton-avatar { width: 2.25rem; height: 2.25rem; border-radius: 50%; flex: 0 0 auto; }
+.skeleton-thumb { width: 2.75rem; height: 2.75rem; border-radius: var(--kb-radius-md); flex: 0 0 auto; }
+.skeleton-line--name { width: 26%; min-width: 5rem; height: 0.8rem; }
+.skeleton-line--meta { width: 14%; min-width: 3rem; }
+.skeleton-line--grow { flex: 1 1 auto; max-width: 12rem; }
+.skeleton-line--chip { width: 4.5rem; height: 1.5rem; border-radius: var(--kb-radius-full); flex: 0 0 auto; }
+.skeleton-line--action { width: 3rem; height: 1.75rem; margin-left: auto; border-radius: var(--kb-radius-md); flex: 0 0 auto; }
+
+/* On a phone the row keeps what identifies it — the tile and the name — and
+   drops the meta and action shapes rather than overfilling the panel. */
+@media (max-width: 640px) {
+  .skeleton-line--meta,
+  .skeleton-line--action { display: none; }
+  .skeleton-line--name { width: 40%; }
+}
 
 /* ============ Action buttons ============ */
 .row-actions, .action-cell {

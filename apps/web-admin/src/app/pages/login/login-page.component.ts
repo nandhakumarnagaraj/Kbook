@@ -35,7 +35,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
           </a>
 
           <span class="brand-context-pill">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="#FFB31A" aria-hidden="true"><path d="m12 2.5 2.85 5.78 6.38.93-4.62 4.5 1.09 6.36L12 17.06l-5.7 3 1.09-6.36-4.62-4.5 6.38-.93L12 2.5Z"/></svg>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--kb-color-primary)" aria-hidden="true"><path d="m12 2.5 2.85 5.78 6.38.93-4.62 4.5 1.09 6.36L12 17.06l-5.7 3 1.09-6.36-4.62-4.5 6.38-.93L12 2.5Z"/></svg>
             Trusted by 250+ Restaurants
           </span>
         </div>
@@ -102,20 +102,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
           </div>
         </div>
 
-        <div class="brand-foot-row" aria-label="Service highlights">
-          <div class="brand-foot-item">
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
-            <span><strong>SSL Encrypted</strong><small>Your data is safe</small></span>
-          </div>
-          <div class="brand-foot-item">
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15a4 4 0 0 1 4-4 5 5 0 0 1 9.7-1.2A4 4 0 1 1 18 18H7a4 4 0 0 1-4-3Z"/><path d="m9 16 3 3 3-3"/><path d="M12 19v-7"/></svg>
-            <span><strong>Offline First</strong><small>Works even without internet</small></span>
-          </div>
-          <div class="brand-foot-item">
-            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3"/><rect x="2" y="13" width="5" height="7" rx="2"/><rect x="17" y="13" width="5" height="7" rx="2"/><path d="M19 20a7 7 0 0 1-7 2h-2"/></svg>
-            <span><strong>24/7 Support</strong><small>We’re here to help</small></span>
-          </div>
-        </div>
       </aside>
 
       <!-- Right Form Panel (37.5% desktop) -->
@@ -133,16 +119,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
             </a>
           </div>
 
-          <div class="auth-topbar-actions">
-            <div class="lang-selector-pill" aria-label="Language: English">
-              <svg class="lang-globe" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
-              </svg>
-              <span class="lang-name">English</span>
-              <svg class="lang-caret" viewBox="0 0 12 8" width="12" height="8" fill="none" aria-hidden="true"><path d="m1 1 5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            </div>
-          </div>
         </div>
 
         <div class="auth-card">
@@ -224,25 +200,21 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               <div *ngIf="error()" class="alert-box error" role="alert">{{ error() }}</div>
 
               <button class="login-button" type="submit" [disabled]="form.invalid || loading()">
-                <span *ngIf="!loading()">Sign in &rarr;</span>
+                <span *ngIf="!loading()">Sign in</span>
                 <span *ngIf="loading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                   Signing in…
                 </span>
               </button>
+              <br />
             </form>
 
             <div class="auth-card-footer">
               <p class="footer-links">
                 New to KhanaBook?
                 <a href="https://khanabook.in/get-started" class="signup-link" target="_blank" rel="noopener">Get started</a>
-                or
-                <a href="https://khanabook.in" class="signup-link" target="_blank" rel="noopener">learn more</a>
               </p>
-              <div class="trust-badge-row">
-                <svg class="trust-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/><path d="M12 14v3"/></svg>
-                <span>Secure sign-in • Restaurant Cloud</span>
-              </div>
+              <br />
               <nav class="login-footer-links" aria-label="Legal and support">
                 <a href="https://khanabook.in/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
                 <a href="https://khanabook.in/terms-and-conditions" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a>
@@ -281,7 +253,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               </div>
               <div *ngIf="forgotError()" class="alert-box error" role="alert">{{ forgotError() }}</div>
               <button class="login-button" type="submit" [disabled]="phoneForm.invalid || forgotLoading()">
-                <span *ngIf="!forgotLoading()">Send OTP &rarr;</span>
+                <span *ngIf="!forgotLoading()">Send OTP</span>
                 <span *ngIf="forgotLoading()" class="btn-spinner-row">
                   <svg class="spinning" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
                   Sending OTP…
@@ -402,9 +374,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
   styles: [`
     :host {
       display: block;
-      --login-orange: #F58213;
-    --login-orange-action: #C35500;
-    --login-orange-hover: #A94400;
+      --login-orange: var(--kb-color-primary);
+    --login-orange-action: var(--kb-color-primary-action);
+    --login-orange-hover: var(--kb-color-primary-hover);
       --kb-color-foreground: #172347;
       --kb-color-muted-foreground: #7180A2;
       --kb-color-border: #D8E0F1;
@@ -601,14 +573,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       grid-row: 1 / span 2;
       align-self: center;
       justify-self: center;
-      width: 100%;
-      max-width: 660px;
-      max-height: 100%;
+      width: 125%;
+      height: auto;
+      max-width: 700px;
       object-fit: contain;
       filter: drop-shadow(0 18px 28px rgba(18, 5, 43, 0.34));
       position: relative;
       z-index: 1;
-      transform: translate(-4px, 20px) scaleX(1.15) scaleY(1.34);
     }
 
     /* Translucent Feature Cards */
@@ -622,7 +593,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       max-width: none;
       position: relative;
       z-index: 2;
-      transform: translateY(-53px);
     }
     .brand-feature-card {
       display: flex;
@@ -647,11 +617,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       border-color: rgba(255, 255, 255, 0.38);
     }
     .feature-icon-badge--menu {
-      background: #6847E8;
+      background: var(--kb-color-primary);
       border-color: rgba(255, 255, 255, 0.32);
     }
     .feature-icon-badge--reports {
-      background: #0D9F83;
+      background: var(--kb-color-success);
       border-color: rgba(255, 255, 255, 0.32);
     }
     .feature-text {
@@ -673,66 +643,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       line-height: 1.3;
     }
 
-    .brand-foot-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      gap: var(--kb-space-3);
-      width: min(100%, 900px);
-      margin: 0 auto;
-      padding-top: 0;
-      font-size: var(--kb-text-sm);
-      color: rgba(255, 255, 255, 0.9);
-      position: relative;
-      z-index: 1;
-      transform: translateY(-25px);
-    }
-    .brand-foot-item {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-3);
-      flex: 1;
-      min-width: 0;
-      padding: var(--kb-space-1) var(--kb-space-4);
-    }
-    .brand-foot-item:not(:last-child) {
-      border-right: 1px solid rgba(255, 255, 255, 0.35);
-    }
-    .brand-foot-item > span {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      line-height: 1.25;
-    }
-    .brand-foot-item strong {
-      color: var(--kb-color-foreground-contrast);
-      font-size: var(--kb-text-sm);
-      font-weight: 650;
-    }
-    .brand-foot-item small {
-      color: rgba(255, 255, 255, 0.82);
-      font-size: var(--kb-text-xs);
-    }
-    .brand-foot {
-      margin: 0;
-      display: none;
-    }
-    .brand-foot-links {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-    }
-    .brand-foot-link {
-      color: rgba(255, 255, 255, 0.88);
-      text-decoration: none;
-      font-weight: 500;
-      transition: color 0.15s ease;
-    }
-    .brand-foot-link:hover {
-      color: var(--kb-color-surface);
-      text-decoration: underline;
-    }
-
     /* RIGHT MAIN FORM PANEL */
     .auth-main {
       display: flex;
@@ -749,36 +659,9 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       align-items: center;
       justify-content: space-between;
-      width: 100%;
-      max-width: 640px;
+      width: min(100%, 506px);
       margin: 0 auto var(--kb-space-6);
-      transform: translateX(26px);
     }
-    .auth-topbar-actions {
-      margin-left: auto;
-    }
-    .lang-selector-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--kb-color-surface-2);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-full);
-      min-height: 42px;
-      padding: var(--kb-space-2) var(--kb-space-5);
-      font-size: var(--kb-text-md);
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      cursor: default;
-    }
-    .lang-globe {
-      flex: none;
-    }
-    .lang-caret {
-      color: var(--kb-color-muted-foreground);
-      flex: none;
-    }
-
     .auth-card {
       width: min(100%, 506px);
       margin: auto;
@@ -786,7 +669,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       flex-direction: column;
       gap: var(--kb-space-10);
       box-sizing: border-box;
-      transform: translate(22px, 5px);
     }
 
     .mobile-brand-container {
@@ -805,9 +687,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .brand-subtitle {
       font-size: var(--kb-text-2xs);
       color: var(--login-orange-action);
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      font-weight: 600;
     }
 
     .auth-head {
@@ -870,7 +750,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .auth-form {
       display: grid;
       gap: var(--kb-space-6);
-      margin-top: -27px;
     }
     .field {
       display: grid;
@@ -961,7 +840,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-top: -4px;
     }
     .remember-label {
       display: inline-flex;
@@ -1012,7 +890,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transition: background 160ms ease,
                   transform 160ms ease,
                   box-shadow 160ms ease;
-      margin-top: 9px;
     }
     .login-button:hover:not(:disabled) {
       background: var(--login-orange-hover);
@@ -1049,7 +926,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
 
     .auth-card-footer {
-      margin-top: -10px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -1072,20 +948,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       text-decoration: underline;
       text-underline-offset: 3px;
     }
-    .trust-badge-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      width: 100%;
-      box-sizing: border-box;
-      justify-content: center;
-      padding-top: 14px;
-      border-top: 1px solid var(--kb-color-border);
-      font-size: var(--kb-text-sm);
-      color: var(--kb-color-muted-foreground);
-      font-weight: 500;
-      margin-top: 33px;
-    }
     .login-footer-links {
       display: flex;
       flex-wrap: wrap;
@@ -1093,7 +955,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       gap: var(--kb-space-2) var(--kb-space-4);
       font-size: var(--kb-text-sm);
       line-height: 1.5;
-      margin-top: -12px;
     }
     .login-footer-links a {
       color: var(--login-orange-action);
@@ -1110,9 +971,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       outline: 2px solid var(--login-orange-action);
       outline-offset: 3px;
       border-radius: 2px;
-    }
-    .trust-icon {
-      font-size: var(--kb-text-sm);
     }
     .mobile-foot-row {
       display: none;
@@ -1181,19 +1039,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       .auth-main {
         padding: var(--kb-space-6) var(--kb-space-5);
       }
-      .brand-foot-row {
-        display: none;
-      }
-      .auth-topbar,
-      .auth-card {
-        transform: none;
-      }
       .auth-card {
         gap: var(--kb-space-6);
       }
       .auth-form {
         gap: 18px;
-        margin-top: 0;
       }
       .google-wrap {
         min-height: 50px;
@@ -1205,18 +1055,58 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         gap: var(--kb-space-3);
         margin-top: 8px;
       }
-      .trust-badge-row,
       .login-footer-links {
         margin-top: 0;
       }
     }
 
+    @media (min-width: 1101px) and (max-height: 860px) {
+      .auth-main {
+        padding-top: var(--kb-space-4);
+        padding-bottom: var(--kb-space-4);
+      }
+      .auth-topbar {
+        margin-bottom: var(--kb-space-3);
+      }
+      .auth-card {
+        gap: var(--kb-space-5);
+      }
+      .auth-form {
+        gap: var(--kb-space-4);
+      }
+      .auth-card-footer {
+        gap: var(--kb-space-2);
+      }
+    }
+
+    @media (min-width: 1101px) and (max-height: 800px) {
+      .auth-main {
+        padding-top: var(--kb-space-3);
+        padding-bottom: var(--kb-space-3);
+      }
+      .auth-card {
+        gap: var(--kb-space-4);
+      }
+      .auth-form {
+        gap: var(--kb-space-3);
+      }
+      .field-input {
+        min-height: 46px;
+      }
+      .google-wrap {
+        min-height: 48px;
+      }
+      .auth-card-footer {
+        margin-top: 0;
+      }
+    }
+
     @media (prefers-contrast: more) {
-      .field-input { border-color: #000000; border-width: 2px; }
-      .field-label { color: #000000; font-weight: 700; }
-      .login-button { background: var(--login-orange-action); color: var(--kb-color-surface); border: 2px solid #000000; }
-      .divider { color: #000000; font-weight: 700; }
-      .divider::before, .divider::after { background: #000000; height: 2px; }
+      .field-input { border-color: var(--kb-color-error); border-width: 2px; }
+      .field-label { color: var(--kb-color-foreground); font-weight: 700; }
+      .login-button { background: var(--kb-color-primary-action); color: var(--kb-color-surface); border: 2px solid var(--kb-color-error); }
+      .divider { color: var(--kb-color-error); font-weight: 700; }
+      .divider::before, .divider::after { background: var(--kb-color-error); height: 2px; }
     }
     .login-button--link { text-decoration: none; }
   `]

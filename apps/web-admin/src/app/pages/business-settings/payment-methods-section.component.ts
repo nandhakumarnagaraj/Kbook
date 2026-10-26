@@ -257,7 +257,7 @@ export interface PaymentMethodsSettings {
     .test-qr-content { flex: 1; min-width: 240px; }
     .test-qr-badge {
       display: inline-block; font-size: var(--kb-text-2xs); font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.15); color: #34D399;
+      letter-spacing: 0.5px; background: rgba(16, 185, 129, 0.15); color: var(--kb-color-success);
       padding: 2px var(--kb-space-2); border-radius: var(--kb-radius-sm); margin-bottom: 6px;
     }
     .test-qr-content h4 { margin: 0 0 var(--kb-space-1); font-size: var(--kb-text-lg); color: var(--kb-color-foreground); }
@@ -280,12 +280,12 @@ export interface PaymentMethodsSettings {
     }
     .chip-green {
       background: rgba(16, 185, 129, 0.15);
-      color: #34D399;
+      color: var(--kb-color-success);
       border: 1px solid rgba(16, 185, 129, 0.3);
     }
     .chip-amber {
       background: rgba(245, 158, 11, 0.15);
-      color: #FBBF24;
+      color: var(--kb-color-warning);
       border: 1px solid rgba(245, 158, 11, 0.3);
     }
 

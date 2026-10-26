@@ -1021,7 +1021,7 @@ function getTodayIsoDate(): string {
     }
 
     .table-chip__number {
-      font-size: 0.95rem;
+      font-size: var(--kb-text-md);
       font-weight: 700;
       color: var(--kb-color-foreground);
       letter-spacing: -0.01em;
