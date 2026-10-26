@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "design-resources": {
+      "command": "node",
+      "args": ["C:/Users/nandh/Desktop/designrefs-mcp/index.js"],
+      "timeout": 30000
+    }
+  }
+}

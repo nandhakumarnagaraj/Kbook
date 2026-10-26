@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sentry": {
+      "command": "npx",
+      "args": ["-y", "@sentry/mcp-server"],
+      "env": {
+        "SENTRY_ACCESS_TOKEN": "your-sentry-access-token",
+        "SENTRY_ORG": "piquant-consultancy"
+      }
+    }
+  }
+}

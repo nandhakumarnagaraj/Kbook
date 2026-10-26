@@ -72,8 +72,10 @@ apps/android/*.aab
 .kiro/
 .specify/
 .freebuff/
-# Root-level tooling only — docs/mcp/ and docs/specs/ are real, tracked documentation.
-/mcp/
+# Root-level tooling only — docs/specs/ is real, tracked documentation.
+# /mcp/ is tracked on purpose: a config that points at a package nobody can
+# install (e.g. the 404 ui-ux-pro-max entry) stays broken for every machine as
+# long as it only exists locally. docs/mcp/ remains the human-facing index.
 /specs/
 opencode.json
 /CONTEXT.md

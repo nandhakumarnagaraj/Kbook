@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "notification": {
+      "command": "npx",
+      "args": ["-y", "@pinkpixel/notification-mcp"]
+    }
+  }
+}
