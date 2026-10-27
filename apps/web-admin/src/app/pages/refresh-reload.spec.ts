@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Subject, of } from 'rxjs';
 
 import { BusinessesPageComponent } from './businesses/businesses-page.component';
@@ -52,6 +52,7 @@ function mount<T>(component: unknown, providers: unknown[] = []): ComponentFixtu
     imports: [component as never],
     providers: [
       provideHttpClient(),
+      provideRouter([]),
       { provide: AuthService, useValue: authStub },
       { provide: ToastService, useValue: toastStub() },
       ...(providers as never[]),
@@ -247,7 +248,7 @@ describe('manual refresh visibly reloads the data', () => {
     ]);
     // The profile payload's own form. The password section is a static form
     // that deliberately stays put, so it is not what this pins.
-    const form = () => (host(fixture).textContent || '').includes('Restaurant Identity');
+    const form = () => host(fixture).querySelector('#field-shopName') !== null;
 
     expect(skeleton(fixture)).withContext('settings: first load shows the skeleton').toBeTruthy();
     expect(form()).withContext('settings: no settings form while the first load is pending').toBeFalsy();
