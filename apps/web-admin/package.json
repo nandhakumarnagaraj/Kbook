@@ -14,6 +14,8 @@
     "check:spacing": "node scripts/check-spacing.mjs",
     "check:z-index": "node scripts/check-z-index.mjs",
     "check:colors": "node scripts/check-colors.mjs",
+    "check:contrast": "node scripts/check-contrast.mjs",
+    "check:accent-budget": "node scripts/check-accent-budget.mjs",
     "check:inline-styles": "node scripts/check-inline-styles.mjs"
   },
   "dependencies": {
