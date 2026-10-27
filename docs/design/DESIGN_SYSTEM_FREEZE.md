@@ -83,7 +83,7 @@ Each change touched 20–40 files and generated cascading bugs. **This stops now
 | `--kb-color-foreground` | #111827 | Primary text (16.9:1 on white) |
 | `--kb-color-foreground-2` | #334155 | Values and table cells |
 | `--kb-color-muted-foreground` | #556377 | Secondary text (6.1:1 on white, 5.6:1 on a table header) |
-| `--kb-color-border` / `-strong` | #E2E8F0 / #8A94A6 | Dividers / control borders (3.1:1) |
+| `--kb-color-border` / `-strong` | #CBD5E1 / #64748B | Dividers / control borders (3.1:1) |
 | `--kb-color-primary` | **#4F46E5** | Primary action fill (indigo, third-pass revision) |
 | `--kb-color-primary-hover` | #4338CA | Fill hover |
 | `--kb-color-link` / `-hover` | #1D4ED8 / #1E40AF | Brand colour used as **text** (6.7:1) |

@@ -24,13 +24,12 @@
 > Android section. Only one colour source of truth exists per app.
 
 ### 2.1 Brand & Interactive Tokens
-* **Primary Brand Blue (fill):** `--kb-color-primary: #2563EB;` — primary buttons,
-  active navigation, selected pills. White content on it = 5.17:1.
-* **Primary Hover:** `--kb-color-primary-hover: #1D4ED8;`
+* **Primary Brand Indigo (fill):** `--kb-color-primary: #4F46E5;` — primary buttons,
+  active navigation, selected pills. White content on it = 6.29:1.
+* **Primary Hover:** `--kb-color-primary-hover: #4338CA;`
 * **Primary Foreground (on the fill):** `--kb-color-primary-foreground: #FFFFFF;`
-* **Link / brand-as-text:** `--kb-color-link: #60A5FA;` (hover `#93C5FD`) — links,
-  active tab labels, brand-coloured icons. The fill colour only reaches 3.4:1 as
-  text on a card, so text never uses `--kb-color-primary`.
+* **Link / brand-as-text:** `--kb-color-link: #4338CA;` (hover `#1E40AF`) — links,
+  active tab labels, brand-coloured icons.
 * **Focus ring:** `rgba(var(--kb-color-primary-rgb), 0.45)` halo, plus a solid
   2px outline in `--kb-color-primary`.
 

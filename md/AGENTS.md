@@ -95,7 +95,7 @@ Before making ANY code or architectural modification, the agent MUST inspect and
 
 ## 6. UI/UX & Styling Discipline (Web Admin)
 
-1. **Brand Blue:** Always use `--kb-color-primary: #0066cc;` for primary actions, active navigation items, and focus rings. Never introduce rogue purple (`#7c3aed`) or unvetted accent colors.
+1. **Brand Indigo:** Always use `--kb-color-primary: #4F46E5;` for primary actions, active navigation items, and focus rings. Never introduce rogue purple (`#7c3aed`) or unvetted accent colors.
 2. **Contrast Enforcement (WCAG 2.1 AA):** Every button, toggle label, and badge must maintain at least 4.5:1 contrast against its background. **Never** style `.toggle-btn--on` with white text on a white background.
 3. **Table Row Densities:** Always use `white-space: nowrap; flex-wrap: nowrap;` for `.action-stack` inside table cells to preserve uniform ~`52px` row heights and prevent row ballooning.
 4. **Modal Viewport Safety:** All modals must specify `max-height: min(88vh, 760px); overflow-y: auto;` to ensure footer actions remain visible on laptops and compact screens.

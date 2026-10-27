@@ -80,8 +80,13 @@ describe('design tokens', () => {
       { label: 'warning ink on its chip', ink: colour('var(--kb-color-warning)'), background: tintOn('var(--kb-color-warning-soft)'), min: 4.5 },
       { label: 'danger ink on its chip', ink: colour('var(--kb-color-danger)'), background: tintOn('var(--kb-color-danger-soft)'), min: 4.5 },
       { label: 'info ink on its chip', ink: colour('var(--kb-color-info)'), background: tintOn('var(--kb-color-info-soft)'), min: 4.5 },
+      { label: 'money text on white', ink: colour('var(--kb-accent-money)'), background: surface, min: 4.5 },
+      { label: 'money text on canvas', ink: colour('var(--kb-accent-money)'), background: colour('var(--kb-color-bg-app)'), min: 4.5 },
+      { label: 'flow text on white', ink: colour('var(--kb-accent-flow)'), background: surface, min: 4.5 },
       // Non-text: a control's outline must be findable, which is 3:1, not 4.5:1.
-      { label: 'control border on a card', ink: colour('var(--kb-color-border-strong)'), background: surface, min: 3 }
+      { label: 'control border on a card', ink: colour('var(--kb-border-control)'), background: surface, min: 3 },
+      { label: 'control border on canvas', ink: colour('var(--kb-border-control)'), background: colour('var(--kb-color-bg-app)'), min: 3 },
+      { label: 'strong border on a card', ink: colour('var(--kb-color-border-strong)'), background: surface, min: 3 }
     ];
 
     for (const testCase of cases) {

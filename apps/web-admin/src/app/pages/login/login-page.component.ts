@@ -789,7 +789,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       width: 100%;
       min-height: 52px;
       padding: 14px var(--kb-space-4);
-      border: 1px solid var(--kb-color-border);
+      border: 1px solid var(--kb-border-control);
       border-radius: var(--kb-radius-xl);
       background: var(--kb-color-surface);
       font: inherit;
@@ -804,12 +804,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       padding-right: 48px;
     }
     .field-input::placeholder {
-      color: var(--kb-color-muted-foreground);
+      color: var(--kb-border-control);
     }
     .field-input:focus {
-      outline: 3px solid rgba(189, 77, 0, 0.24);
-      outline-offset: 2px;
-      border-color: var(--login-orange-action);
+      outline: none;
+      border-color: var(--kb-color-primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
     }
 
     .toggle-pwd-btn {
@@ -832,7 +832,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       color: var(--kb-color-foreground);
     }
     .toggle-pwd-btn:focus-visible {
-      outline: 2px solid var(--login-orange-action);
+      outline: 2px solid var(--kb-color-primary);
     }
     .pwd-icon {
       display: block;
@@ -856,20 +856,20 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       width: 17px;
       height: 17px;
       border-radius: var(--kb-radius-sm);
-      border: 1.5px solid var(--kb-color-border);
+      border: 1.5px solid var(--kb-border-control);
       accent-color: var(--kb-color-primary);
       cursor: pointer;
     }
     .forgot-link {
       font-size: var(--kb-text-md);
       font-weight: 600;
-      color: var(--kb-color-primary);
+      color: var(--kb-color-link);
       text-decoration: underline;
       text-underline-offset: 3px;
       transition: color 0.15s ease;
     }
     .forgot-link:hover {
-      color: var(--login-orange-hover);
+      color: var(--kb-color-link-hover);
       text-decoration: underline;
       text-underline-offset: 3px;
     }
@@ -879,13 +879,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       min-height: 52px;
       border: 0;
       border-radius: var(--kb-radius-xl);
-      background: var(--login-orange-action);
+      background: var(--kb-color-primary);
       color: var(--kb-color-surface);
       font: inherit;
       font-size: var(--kb-text-lg);
       font-weight: 650;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(125, 52, 0, 0.2);
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -895,15 +895,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                   box-shadow 160ms ease;
     }
     .login-button:hover:not(:disabled) {
-      background: var(--login-orange-hover);
-      box-shadow: 0 6px 20px rgba(125, 52, 0, 0.28);
+      background: var(--kb-color-primary-hover);
+      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.28);
       transform: translateY(-1px);
     }
     .login-button:active:not(:disabled) {
       transform: scale(0.98);
     }
     .login-button:disabled {
-      background: var(--login-orange-action);
+      background: var(--kb-color-primary);
       opacity: 0.6;
       color: var(--kb-color-surface);
       box-shadow: none;
@@ -911,7 +911,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       transform: none;
     }
     .login-button:focus-visible {
-      outline: 3px solid var(--login-orange);
+      outline: 3px solid var(--kb-color-primary);
       outline-offset: 3px;
     }
 
@@ -942,13 +942,13 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-size: var(--kb-text-md);
     }
     .signup-link {
-      color: var(--login-orange-action);
+      color: var(--kb-color-link);
       font-weight: 600;
       text-decoration: none;
       transition: color 0.15s ease;
     }
     .signup-link:hover {
-      color: var(--login-orange-hover);
+      color: var(--kb-color-link-hover);
       text-decoration: underline;
       text-underline-offset: 3px;
     }
@@ -961,18 +961,18 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       line-height: 1.5;
     }
     .login-footer-links a {
-      color: var(--login-orange-action);
+      color: var(--kb-color-link);
       text-decoration: none;
       text-underline-offset: 3px;
     }
     .login-footer-links a:hover {
-      color: var(--login-orange-hover);
+      color: var(--kb-color-link-hover);
       text-decoration: underline;
     }
     .login-footer-links a:focus-visible,
     .forgot-link:focus-visible,
     .signup-link:focus-visible {
-      outline: 2px solid var(--login-orange-action);
+      outline: 2px solid var(--kb-color-primary);
       outline-offset: 3px;
       border-radius: 2px;
     }
@@ -983,12 +983,12 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       gap: var(--kb-space-2);
     }
     .mobile-foot-link {
-      color: var(--login-orange-action);
+      color: var(--kb-color-link);
       font-weight: 600;
       text-decoration: none;
     }
     .mobile-foot-link:hover {
-      color: var(--login-orange-hover);
+      color: var(--kb-color-link-hover);
       text-decoration: underline;
       text-underline-offset: 3px;
     }

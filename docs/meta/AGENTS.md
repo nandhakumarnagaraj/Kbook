@@ -171,10 +171,10 @@ Use these custom components from `ui/designsystem/`:
   - `--kb-color-surface-3: #FFFFFF` modal/popover (separated by shadow, not fill)
   - `--kb-color-foreground: #111827` primary text / `--kb-color-foreground-2: #334155` values
   - `--kb-color-muted-foreground: #556377` secondary text
-  - `--kb-color-border: #E2E8F0` / `--kb-color-border-strong: #8A94A6` borders
-  - `--kb-color-primary: #2563EB` action **fill**; `--kb-color-link: #1D4ED8` brand colour as **text**
+  - `--kb-color-border: #CBD5E1` / `--kb-color-border-strong: #64748B` borders
+  - `--kb-color-primary: #4F46E5` action **fill**; `--kb-color-link: #4338CA` brand colour as **text**
   - `--kb-color-danger-solid: #B91C1C` destructive fill (white content); `--kb-color-danger: #B91C1C` error ink
-  - `--kb-color-success: #166534` / `--kb-color-warning: #9A3F08` / `--kb-color-info: #1D4ED8`
+  - `--kb-color-success: #166534` / `--kb-color-warning: #9A3F08` / `--kb-color-info: #4338CA`
   - `--brand-orange: #E87A1E` (accent fill only; text uses `--brand-orange-ink`) / `--brand-purple: #5926B8`
   - The **sidebar is the only dark plane** and reads `--pos-sidebar-*` tokens exclusively; workspace tokens must never style it.
   - Prefer the `--kb-color-*` aliases in new work; the short names (`--bg`, `--brand`, …) are legacy aliases of the same values. Component stylesheets must not declare their own hex colours.

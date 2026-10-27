@@ -48,7 +48,7 @@ function tokenBorder(name: string): string {
   return value;
 }
 const flaggedBorder = () => tokenBorder('--kb-color-danger');
-const restingBorder = () => tokenBorder('--kb-color-border-strong');
+const restingBorder = () => tokenBorder('--kb-border-control');
 
 const authStub = {
   session: () => ({ role: 'OWNER', restaurantId: 1, loginId: 'owner', restaurantName: 'Test Kitchen' }),

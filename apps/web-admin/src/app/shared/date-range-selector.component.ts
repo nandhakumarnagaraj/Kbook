@@ -85,7 +85,7 @@ export function getPresetDateRange(
       width: 142px;
       min-height: 36px;
       padding: 0.4rem 0.55rem;
-      border: 1px solid var(--kb-color-border-strong);
+      border: 1px solid var(--kb-border-control);
       border-radius: var(--kb-radius-md);
       background: var(--kb-color-input);
       color: var(--kb-color-foreground);
@@ -98,9 +98,9 @@ export function getPresetDateRange(
     }
     .date-range__input:hover { border-color: var(--kb-color-primary); }
     .date-range__input:focus-visible {
-      outline: 2px solid var(--kb-color-primary);
-      outline-offset: 1px;
+      outline: none;
       border-color: var(--kb-color-primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
     }
     .date-range__input::-webkit-calendar-picker-indicator {
       filter: none;

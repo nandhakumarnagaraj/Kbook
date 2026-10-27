@@ -71,7 +71,7 @@ import { RefreshButtonComponent } from './refresh-button.component';
       width: 44px;
       height: 44px;
       padding: 0;
-      border: 1px solid var(--kb-color-border-strong);
+      border: 1px solid var(--kb-border-control);
       border-radius: var(--kb-radius-md);
       cursor: pointer;
       transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
@@ -95,7 +95,7 @@ import { RefreshButtonComponent } from './refresh-button.component';
     .date-toolbar__button--refresh:hover:not(:disabled),
     .date-toolbar__button--secondary:hover:not(:disabled) {
       background: var(--kb-color-surface-3);
-      border-color: var(--kb-color-border-strong);
+      border-color: var(--kb-border-control);
       color: var(--kb-color-foreground);
     }
     /* Angular scopes this rule with its own attribute, which outranks the shared

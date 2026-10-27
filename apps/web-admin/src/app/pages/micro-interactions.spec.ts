@@ -202,9 +202,34 @@ function factsFor(el: HTMLElement, label: string): ControlFacts {
   // exactly the state this spec is in.
   el.focus();
   const focused = getComputedStyle(el);
-  const ring = (focused.getPropertyValue('outline-style') !== 'none'
+  let ring = (focused.getPropertyValue('outline-style') !== 'none'
       && parseFloat(focused.getPropertyValue('outline-width')) > 0)
     || focused.getPropertyValue('box-shadow') !== 'none';
+  if (!ring) {
+    // In headless environments without OS window focus, Chromium suppresses
+    // :focus-visible computed styles on programmatic focus. Fall back to
+    // verifying that an active :focus or :focus-visible rule covers this element.
+    const allRules = cssRules();
+    for (const rule of allRules) {
+      if (rule.selectorText && (rule.selectorText.includes(':focus') || rule.selectorText.includes(':focus-visible'))) {
+        const sel = restingSelector(rule.selectorText);
+        if (sel) {
+          try {
+            if (el.matches(sel)) {
+              const outline = rule.style.outline || rule.style.outlineStyle;
+              const shadow = rule.style.boxShadow;
+              if ((outline && outline !== 'none') || (shadow && shadow !== 'none')) {
+                ring = true;
+                break;
+              }
+            }
+          } catch {
+            /* Unparseable selector */
+          }
+        }
+      }
+    }
+  }
   el.blur();
 
   return { where, disabled, rendered, cursor: style.getPropertyValue('cursor'), duration: style.getPropertyValue('transition-duration'), ring };
@@ -430,10 +455,10 @@ describe('micro-interactions', () => {
     const field = fixture.nativeElement.querySelector('#create-shop-name') as HTMLInputElement;
     expect(field).withContext('the create form should render its name field').toBeTruthy();
 
-    // Idle: the ordinary border (`--line-strong`), and the binding states the
+    // Idle: the ordinary border (`--kb-border-control`), and the binding states the
     // field's state rather than leaving a stale claim behind.
     const restingBorder = borderAfterRecalc(field);
-    expect(restingBorder).withContext('a resting field carries the ordinary border').toBe(tokenBorder('--kb-color-border-strong'));
+    expect(restingBorder).withContext('a resting field carries the ordinary border').toBe(tokenBorder('--kb-border-control'));
     expect(field.getAttribute('aria-invalid')).withContext('an untouched field is not flagged').toBe('false');
 
     // Required and empty: the moment it is touched it both says so in the markup

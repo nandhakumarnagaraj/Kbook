@@ -215,15 +215,8 @@
       align-items: center;
       gap: 0.45rem;
       padding: 0.55rem 0.95rem;
-      /* White fill, not the recessed surface: the button then reads as a control
-         sitting on the page canvas instead of a grey chip the same tone as its
-         own edge. */
       background: var(--kb-color-surface);
-      /* One crisp edge. --kb-color-border (#E2E8F0) measured 1.06:1 against the
-         old #F1F5F9 fill, so the outline was invisible and the button looked
-         blurry rather than clickable. The strong step is the token this system
-         already reserves for control borders. */
-      border: 1px solid var(--kb-color-border-strong);
+      border: 1px solid var(--kb-border-control);
       border-radius: var(--kb-radius-xl);
       font-size: var(--kb-text-sm);
       font-weight: 600;
@@ -234,11 +227,9 @@
                   transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-/* Hover wears the accent on the edge only: the fill steps back to the recessed
-   surface, so the button reads as pressed rather than as a second primary. */
 .header-action-btn:hover {
       background: var(--kb-color-surface-2);
-      border-color: var(--kb-color-primary);
+      border-color: var(--kb-border-control);
     }
 
 .header-action-btn:active { transform: scale(0.98); }
@@ -249,6 +240,9 @@
     }
 
 .header-action-btn:disabled {
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
+      border-color: var(--kb-color-border);
       opacity: 0.55;
       cursor: not-allowed;
       box-shadow: none;
@@ -523,9 +517,9 @@
 
 .badge-preparing { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
 
-.badge-cooking { background: var(--kb-color-warning-soft); color: var(--kb-color-burnt); }
+.badge-cooking { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
 
-.badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-primary-hover); }
+.badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
 
 .badge-completed { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
 
@@ -870,19 +864,20 @@
   min-height: 34px;
   padding: 6px 13px;
   border-radius: 9px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--kb-border-control);
   background: var(--panel);
   font-size: var(--kb-text-sm);
   font-weight: 700;
-  color: var(--ink-2);
+  color: var(--ink);
   cursor: pointer;
   transition: background-color 150ms ease, border-color 150ms ease,
               color 150ms ease, transform 150ms ease;
 }
 
 .ghost-btn:hover:not(:disabled) {
-  border-color: var(--brand);
-  color: var(--brand);
+  background: var(--panel-2);
+  border-color: var(--kb-border-control);
+  color: var(--ink);
 }
 
 .ghost-btn:active:not(:disabled) { transform: scale(0.97); }
@@ -896,9 +891,40 @@
    <label> carries the page-local .ghost-btn--disabled modifier (menu-page). */
 .ghost-btn:disabled,
 .ghost-btn[disabled] {
+  background: var(--panel-2);
+  color: var(--muted);
+  border-color: var(--line);
   opacity: 0.55;
   cursor: not-allowed;
   transform: none;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--kb-color-link);
+  border-radius: var(--kb-radius-lg);
+  padding: 0.55rem var(--kb-space-4);
+  font-weight: 600;
+  font-size: var(--kb-text-md);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--panel-2);
+  color: var(--kb-color-link);
+}
+
+.btn-ghost:disabled,
+.btn-ghost[disabled] {
+  background: transparent;
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
 .ghost-btn--danger {
@@ -969,11 +995,11 @@
 }
 
 .split-meter-segment--upi {
-  background: var(--kb-color-info);
+  background: var(--kb-chart-1);
 }
 
 .split-meter-segment--cash {
-  background: var(--kb-color-success);
+  background: var(--kb-chart-3);
 }
 
 .split-meter--neutral {
@@ -994,8 +1020,8 @@
   border-radius: 50%;
 }
 
-.split-legend--cash { background: var(--kb-color-success); }
-.split-legend--upi { background: var(--kb-color-info); }
+.split-legend--cash { background: var(--kb-chart-3); }
+.split-legend--upi { background: var(--kb-chart-1); }
 
 .split-val { color: var(--kb-color-foreground); font-weight: 600; }
 .split-pct { color: var(--kb-color-muted-foreground); font-size: var(--kb-text-2xs); }
@@ -1044,14 +1070,14 @@
 
 .bar-pill-fill {
   width: 100%;
-  background: var(--kb-color-border-strong);
+  background: var(--kb-chart-5);
   border-radius: 7px;
   transform-origin: bottom;
   transition: height 240ms ease, background 150ms ease;
 }
 
-.bar-pill-fill--peak { background: var(--kb-color-primary); }
-.bar-pill-fill--current { background: var(--kb-color-burnt); }
+.bar-pill-fill--peak { background: var(--kb-chart-1); }
+.bar-pill-fill--current { background: var(--kb-chart-2); }
 
 .hourly-bar-node:hover .bar-pill-fill { filter: brightness(0.92); }
 
@@ -1062,16 +1088,16 @@
   font-variant-numeric: tabular-nums;
 }
 
-.bar-tick-label--current { color: var(--kb-color-burnt); font-weight: 700; }
+.bar-tick-label--current { color: var(--kb-chart-2); font-weight: 700; }
 .current-hour-dot {
   display: inline-block;
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--kb-color-burnt);
+  background: var(--kb-chart-2);
   margin-left: 2px;
   vertical-align: middle;
-  box-shadow: 0 0 4px rgba(217, 119, 6, 0.6);
+  box-shadow: 0 0 4px rgba(89, 38, 184, 0.4);
 }
 
 /* ── Top Dishes Stack ── */

@@ -697,9 +697,10 @@ function getTodayIsoDate(): string {
 
     .intel-card--chart .intel-card__eyebrow { color: var(--kb-color-primary); }
     .intel-card--chart .intel-card__eyebrow::before { background: var(--kb-color-primary); }
-    .intel-card--floor .intel-card__eyebrow { color: var(--kb-brand-purple); }
-    .intel-card--top .intel-card__eyebrow { color: var(--kb-brand-orange-ink); }
-    .intel-card--top .intel-card__eyebrow::before { background: var(--kb-brand-orange); }
+    .intel-card--floor .intel-card__eyebrow { color: var(--kb-accent-flow); }
+    .intel-card--floor .intel-card__eyebrow::before { background: var(--kb-accent-flow); }
+    .intel-card--top .intel-card__eyebrow { color: var(--kb-accent-money); }
+    .intel-card--top .intel-card__eyebrow::before { background: var(--kb-accent-money); }
     .intel-card--ledger .intel-card__eyebrow { color: var(--kb-color-link); }
 
     /* Font size comes from the shared .intel-card__title rule in bento.css;
@@ -735,7 +736,7 @@ function getTodayIsoDate(): string {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: var(--kb-brand-orange);
+      background: var(--kb-chart-1);
     }
 
     .legend-dash {
@@ -816,19 +817,18 @@ function getTodayIsoDate(): string {
     .bar-pill-fill {
       width: 100%;
       border-radius: var(--kb-radius-sm);
-      background: rgba(var(--kb-brand-orange-rgb), 0.38);
+      background: var(--kb-chart-5);
       transition: height 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
       position: relative;
     }
 
-    .bar-pill-fill--mid {
-      background: rgba(var(--kb-color-danger-rgb), 0.65);
+    .bar-pill-fill--peak {
+      background: var(--kb-chart-1);
+      box-shadow: 0 0 12px rgba(var(--kb-color-primary-rgb), 0.35);
     }
 
-    /* The busiest hour is the same measure one step louder, not a different one. */
-    .bar-pill-fill--peak {
-      background: var(--kb-brand-orange);
-      box-shadow: 0 0 12px rgba(var(--kb-brand-orange-rgb), 0.45);
+    .bar-pill-fill--current {
+      background: var(--kb-chart-2);
     }
 
     .peak-badge-tag {
@@ -839,7 +839,7 @@ function getTodayIsoDate(): string {
       font-size: var(--kb-text-sm);
       font-weight: 800;
       color: var(--kb-color-foreground-contrast);
-      background: var(--kb-color-danger-solid);
+      background: var(--kb-chart-1);
       padding: 1px var(--kb-space-1);
       border-radius: 3px;
       letter-spacing: 0.05em;

@@ -82,7 +82,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
       min-width: 2rem;
       height: 2rem;
       padding: 0 var(--kb-space-2);
-      border: 1px solid var(--line-strong);
+      border: 1px solid var(--kb-border-control);
       border-radius: var(--kb-radius-md);
       background: var(--kb-color-surface);
       color: var(--kb-color-foreground);
@@ -101,13 +101,13 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
       cursor: not-allowed;
     }
     .pagination-page--active {
-      background: var(--brand-orange);
-      border-color: var(--brand-orange);
+      background: var(--kb-color-primary);
+      border-color: var(--kb-color-primary);
       color: var(--kb-color-on-primary);
     }
     .pagination-nav:focus-visible,
     .pagination-page:focus-visible {
-      outline: 2px solid var(--brand-focus-ring);
+      outline: 2px solid var(--kb-color-primary);
       outline-offset: 2px;
     }
     .pagination-ellipsis {
