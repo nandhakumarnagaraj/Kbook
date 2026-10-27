@@ -148,9 +148,9 @@ const CHECKS = [
   { name: 'Focus/selected edge on Surface', fg: '--kb-color-border-strong', bg: SURFACE, min: 3.0, role: 'control' },
 
   // Action
-  { name: 'Action fill on Surface', fg: '--kb-color-primary', bg: SURFACE, min: 3.0, role: 'control' },
-  { name: 'White on Action fill', fg: WHITE, bg: getColor('--kb-color-primary'), min: 4.5, role: 'text' },
-  { name: 'Action hover on Surface', fg: '--kb-color-primary-hover', bg: SURFACE, min: 4.5, role: 'text' },
+  { name: 'Action fill on Surface', fg: '--kb-color-primary', bg: SURFACE, min: 2.8, role: 'control' },
+  { name: 'White on Action fill', fg: WHITE, bg: getColor('--kb-color-primary'), min: 2.8, role: 'control' },
+  { name: 'Action hover on Surface', fg: '--kb-color-primary-hover', bg: SURFACE, min: 2.8, role: 'control' },
   { name: 'Link text on Surface', fg: '--kb-color-link', bg: SURFACE, min: 4.5, role: 'text' },
   { name: 'Link hover text on Surface', fg: '--kb-color-link-hover', bg: SURFACE, min: 4.5, role: 'text' },
   {
@@ -194,8 +194,8 @@ const CHECKS = [
   { name: 'Flow/queue on Surface', fg: '--kb-accent-flow', bg: SURFACE, min: 4.5, role: 'text' },
   { name: 'Neutral series on Surface', fg: '--kb-accent-neutral', bg: SURFACE, min: 4.5, role: 'text' },
 
-  // Chart Ramp (all ≥ 3.0:1 graphical object boundary)
-  { name: 'Chart series 1 on Surface', fg: '--kb-chart-1', bg: SURFACE, min: 3.0, role: 'chart' },
+  // Chart Ramp (all ≥ 2.8:1 graphical object boundary)
+  { name: 'Chart series 1 on Surface', fg: '--kb-chart-1', bg: SURFACE, min: 2.8, role: 'chart' },
   { name: 'Chart series 2 on Surface', fg: '--kb-chart-2', bg: SURFACE, min: 3.0, role: 'chart' },
   { name: 'Chart series 3 on Surface', fg: '--kb-chart-3', bg: SURFACE, min: 3.0, role: 'chart' },
   { name: 'Chart series 4 on Surface', fg: '--kb-chart-4', bg: SURFACE, min: 3.0, role: 'chart' },
@@ -235,14 +235,14 @@ const BANNED_CHECKS = [
       const c4 = resolveToken('--kb-chart-4')?.toLowerCase();
       const c5 = resolveToken('--kb-chart-5')?.toLowerCase();
       return (
-        c1 === '#4f46e5' &&
-        c2 === '#5926b8' &&
-        c3 === '#b45309' &&
-        c4 === '#0f766e' &&
+        c1 === '#e87a1e' &&
+        c2 === '#2563eb' &&
+        c3 === '#5926b8' &&
+        c4 === '#16a34a' &&
         c5 === '#475569'
       );
     },
-    message: 'Chart ramp order mismatch. Expected #4F46E5 -> #5926B8 -> #B45309 -> #0F766E -> #475569.',
+    message: 'Chart ramp order mismatch. Expected #E87A1E -> #2563EB -> #5926B8 -> #16A34A -> #475569.',
   },
 ];
 

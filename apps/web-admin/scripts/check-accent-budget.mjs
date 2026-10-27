@@ -71,6 +71,9 @@ function classifyPixel(r, g, b, a) {
   h = Math.round(h * 60);
   if (h < 0) h += 360;
 
+  // Navy rail (#1E3A8A: h~224, lum<110) belongs to the 60% Primary Background base
+  if (h >= 210 && h <= 235 && lum < 110) return 'structure';
+
   if (h >= 225 && h <= 255) return 'indigo_action';
   if ((h >= 20 && h <= 50) || (h >= 256 && h <= 290) || (h >= 170 && h <= 190)) return 'data_accent';
   if ((h >= 100 && h <= 160) || h >= 350 || h <= 15) return 'status';

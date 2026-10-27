@@ -289,11 +289,14 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       display: flex;
       /* A nav row is a target, not a cushion: when the column runs out of height         the list must scroll, not squeeze nine 44px rows into whatever is left. */      flex-shrink: 0;      align-items: center;      gap: var(--kb-space-3);      padding: var(--kb-space-3) var(--kb-space-4);      border-radius: var(--kb-radius-lg);      color: var(--pos-sidebar-text);      text-decoration: none;      font-weight: 500;      font-size: var(--kb-text-sm);      transition: all 150ms var(--ease-out);    }
     .nav-link__icon { font-size: var(--kb-text-md); display: inline-flex; align-items: center; justify-content: center; width: 24px; color: inherit; }
-    .nav-link:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); }
-    .nav-link:active { transform: scale(0.97); }.nav-link.active-link {
-      background: var(--kb-color-primary);
+    .nav-link:hover { background: var(--pos-sidebar-hover); color: var(--pos-sidebar-ink); }
+    .nav-link:active { transform: scale(0.97); }
+    .nav-link.active-link {
+      background: var(--pos-sidebar-active);
       color: var(--kb-color-foreground-contrast);
-      font-weight: 600;      border: none;      box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.25);
+      font-weight: 600;
+      border: none;
+      box-shadow: 0 2px 8px rgba(var(--pos-sidebar-active-rgb), 0.35);
     }
     /* The app draws one blue keyboard ring, but on this dark plane it measures
        ~3.6:1. The rail states focus in white, the way every other control on it

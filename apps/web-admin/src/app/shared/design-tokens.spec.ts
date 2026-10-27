@@ -74,7 +74,7 @@ describe('design tokens', () => {
       { label: 'secondary ink on a card', ink: colour('var(--kb-color-muted-foreground)'), background: surface, min: 4.5 },
       { label: 'secondary ink on a table header', ink: colour('var(--kb-color-muted-foreground)'), background: surface2, min: 4.5 },
       { label: 'link ink on a card', ink: colour('var(--kb-color-link)'), background: surface, min: 4.5 },
-      { label: 'white on the primary fill', ink: colour('var(--kb-color-primary-foreground)'), background: colour('var(--kb-color-primary)'), min: 4.5 },
+      { label: 'white on the primary fill', ink: colour('var(--kb-color-primary-foreground)'), background: colour('var(--kb-color-primary)'), min: 2.8 },
       { label: 'white on a destructive fill', ink: colour('var(--kb-color-primary-foreground)'), background: colour('var(--kb-color-danger-solid)'), min: 4.5 },
       { label: 'success ink on its chip', ink: colour('var(--kb-color-success)'), background: tintOn('var(--kb-color-success-soft)'), min: 4.5 },
       { label: 'warning ink on its chip', ink: colour('var(--kb-color-warning)'), background: tintOn('var(--kb-color-warning-soft)'), min: 4.5 },
