@@ -68,4 +68,36 @@ describe('HelpSupportPageComponent', () => {
     expect(contact.getAttribute('target')).toBe('_blank');
     expect(contact.getAttribute('rel')).withContext('noopener stops the new tab reaching back').toContain('noopener');
   });
+
+  it('filters FAQ items reactively by search query and category chips', () => {
+    const component = fixture.componentInstance;
+    const searchInput = host.querySelector('.faq-search__input') as HTMLInputElement;
+    expect(searchInput).toBeTruthy();
+
+    // Type "gst" into search input
+    searchInput.value = 'gst';
+    searchInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const questions = Array.from(host.querySelectorAll('details.help-faq'));
+    const visible = questions.filter((q) => !q.hasAttribute('hidden'));
+    expect(visible.length).toBe(1);
+    expect(visible[0].textContent).toContain('GST');
+
+    // Clear search
+    const clearBtn = host.querySelector('.faq-search__clear') as HTMLButtonElement;
+    expect(clearBtn).toBeTruthy();
+    clearBtn.click();
+    fixture.detectChanges();
+
+    expect(questions.filter((q) => !q.hasAttribute('hidden')).length).toBe(6);
+
+    // Filter by topic category
+    component.selectCategory('hardware');
+    fixture.detectChanges();
+
+    const hardwareVisible = questions.filter((q) => !q.hasAttribute('hidden'));
+    expect(hardwareVisible.length).toBe(1);
+    expect(hardwareVisible[0].textContent).toContain('terminal');
+  });
 });
