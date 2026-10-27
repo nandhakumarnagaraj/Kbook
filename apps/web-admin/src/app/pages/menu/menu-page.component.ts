@@ -2092,12 +2092,14 @@ export class MenuPageComponent implements OnDestroy {
         const idx = this.items.findIndex(i => i.menuItemId === updated.menuItemId);
         if (idx >= 0) this.items[idx] = updated;
         this.togglingId = null;
+        this.cdr.markForCheck();
         this.showToast(updated.available ? 'Item marked available' : 'Item marked unavailable');
       },
       error: () => {
         // Revert on error
         item.available = previousState;
         this.togglingId = null;
+        this.cdr.markForCheck();
         this.showToast('Failed to update availability', 'error');
       }
     });

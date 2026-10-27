@@ -311,7 +311,7 @@ function todayRange(): { from: string; to: string } {
        exactly where the tiles will. */
     .kpi-skeleton-row {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(var(--kb-space-lg), 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
       gap: var(--kb-space-4);
       margin-bottom: var(--kb-space-6);
     }

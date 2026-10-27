@@ -157,6 +157,17 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
         animation: notifFlyoutIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
       }
 
+      @media (max-width: 640px) {
+        .notif-flyout {
+          position: fixed;
+          top: 64px;
+          left: 16px;
+          right: 16px;
+          width: auto;
+          max-height: calc(100vh - 80px);
+        }
+      }
+
       @keyframes notifFlyoutIn {
         from { opacity: 0; transform: translateY(-4px); }
         to { opacity: 1; transform: translateY(0); }

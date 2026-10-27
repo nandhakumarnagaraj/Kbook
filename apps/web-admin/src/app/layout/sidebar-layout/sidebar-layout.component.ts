@@ -24,10 +24,10 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive, BottomActionBarComponent, IconComponent],
   template: `
     <div class="layout-shell" [class.layout-shell--collapsed]="collapsed() && !isMobileView()">
-      <a class="skip-link" href="#main-content">Skip to main content</a>
+      <a class="skip-link" href="#main-content" (click)="skipToMain($event)">Skip to main content</a>
       <!-- Screen-reader feedback for the collapse toggle (role=status = aria-live polite) -->
       <div class="sr-only" role="status" aria-live="polite">
-        {{ collapsed() && !isMobileView() ? 'Sidebar collapsed' : 'Sidebar expanded' }}
+        {{ isMobileView() ? (menuOpen() ? 'Menu drawer open' : 'Menu drawer closed') : (collapsed() ? 'Sidebar collapsed' : 'Sidebar expanded') }}
       </div>
       <header class="topbar topbar--mobile" [attr.aria-hidden]="isMobileView() && menuOpen() ? 'true' : null" [attr.inert]="isMobileView() && menuOpen() ? '' : null">
         <button
@@ -895,6 +895,15 @@ export class SidebarLayoutComponent implements OnInit, OnDestroy {
           // until settings load succeeds elsewhere.
         }
       });
+    }
+  }
+
+  skipToMain(event: Event): void {
+    event.preventDefault();
+    const main = document.getElementById('main-content');
+    if (main) {
+      main.focus();
+      main.scrollIntoView();
     }
   }
 

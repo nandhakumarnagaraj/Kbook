@@ -430,7 +430,10 @@
       font-size: var(--kb-text-sm);
       font-weight: 700;
       cursor: pointer;
-      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 2px var(--kb-space-1);
       transition: color 150ms ease;
     }
 

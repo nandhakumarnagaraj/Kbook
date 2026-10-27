@@ -154,27 +154,27 @@ interface RestaurantProfile {
           <div class="form-grid">
             <div class="field">
               <label>Shop Name *</label>
-              <input class="field-control" [(ngModel)]="p.shopName" placeholder="Restaurant name" aria-label="Shop name (required)" />
+              <input class="field-control" [(ngModel)]="p.shopName" (ngModelChange)="onFieldChange()" placeholder="Restaurant name" aria-label="Shop name (required)" />
             </div>
             <div class="field">
               <label>WhatsApp Contact Number</label>
-              <input class="field-control tabular-num" [(ngModel)]="p.whatsappNumber" placeholder="10-digit mobile number" maxlength="10" aria-label="WhatsApp contact number" />
+              <input class="field-control tabular-num" [(ngModel)]="p.whatsappNumber" (ngModelChange)="onFieldChange()" placeholder="10-digit mobile number" maxlength="10" aria-label="WhatsApp contact number" />
             </div>
             <div class="field">
               <label>Official Email</label>
-              <input class="field-control" type="email" [(ngModel)]="p.email" placeholder="Business email" aria-label="Official business email" />
+              <input class="field-control" type="email" [(ngModel)]="p.email" (ngModelChange)="onFieldChange()" placeholder="Business email" aria-label="Official business email" />
             </div>
             <div class="field field--span-2">
               <label>Shop Address</label>
-              <textarea class="field-control textarea-address" [(ngModel)]="p.shopAddress" placeholder="Full address" aria-label="Shop address" rows="3"></textarea>
+              <textarea class="field-control textarea-address" [(ngModel)]="p.shopAddress" (ngModelChange)="onFieldChange()" placeholder="Full address" aria-label="Shop address" rows="3"></textarea>
             </div>
             <div class="field">
               <label>Thermal Receipt Footer Note</label>
-              <input class="field-control" [(ngModel)]="p.invoiceFooter" placeholder="Thank you message on receipts" aria-label="Thermal receipt footer note" />
+              <input class="field-control" [(ngModel)]="p.invoiceFooter" (ngModelChange)="onFieldChange()" placeholder="Thank you message on receipts" aria-label="Thermal receipt footer note" />
             </div>
             <div class="field field--full">
               <label>Google Maps Review URL</label>
-              <input class="field-control" [(ngModel)]="p.reviewUrl" placeholder="https://g.page/r/your-restaurant/review" aria-label="Google Maps review URL" />
+              <input class="field-control" [(ngModel)]="p.reviewUrl" (ngModelChange)="onFieldChange()" placeholder="https://g.page/r/your-restaurant/review" aria-label="Google Maps review URL" />
             </div>
           </div>
         </section>
@@ -471,6 +471,12 @@ export class BusinessSettingsPageComponent {
     const p = this.profile();
     if (!p) return;
     this.profile.set({ ...p, ...patch });
+  }
+
+  onFieldChange(): void {
+    const p = this.profile();
+    if (!p) return;
+    this.profile.set({ ...p });
   }
 
   discardChanges(): void {

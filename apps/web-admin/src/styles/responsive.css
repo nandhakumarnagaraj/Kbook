@@ -9,7 +9,7 @@
 
 :root {
   /* Fallback values (smallest breakpoint) */
-  --kb-font-size: 14px;
+  --kb-font-size: var(--kb-text-md);
   --kb-container-width: 441.6px;
   --kb-gap: 12px;
   --kb-line-height: 1.45;
