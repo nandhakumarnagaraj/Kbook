@@ -210,6 +210,18 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         (cancelled)="cancelRevoke()"
       ></app-confirm-dialog>
 
+      <!-- Reset password for one staff member -->
+      <app-confirm-dialog
+        *ngIf="staffToResetPassword"
+        title="Reset Staff Password"
+        [message]="'Generate a new password for ' + staffToResetPassword.name + ' (' + (staffToResetPassword.whatsappNumber || staffToResetPassword.loginId) + ')? A new password will be sent to their WhatsApp number, and they will be signed out of all devices immediately.'"
+        confirmLabel="Reset Password"
+        cancelLabel="Cancel"
+        [confirmDanger]="false"
+        (confirmed)="confirmResetPassword()"
+        (cancelled)="cancelResetPassword()"
+      ></app-confirm-dialog>
+
       <!-- Revoke sessions for one staff member is the only sign-out action on
            this page: the bulk "sign out all devices" button was removed from the
            header when staff was aligned with the other page headers. -->
@@ -257,6 +269,16 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
                   <button
                     class="small-action-btn"
                     *ngIf="item.active"
+                    (click)="requestResetPassword(item)"
+                    [disabled]="resettingStaffId() === item.userId"
+                    title="Generate a new password and send it to staff via WhatsApp"
+                    [attr.aria-label]="'Reset password for ' + item.name"
+                  >
+                    {{ resettingStaffId() === item.userId ? 'Resetting...' : 'Reset Password' }}
+                  </button>
+                  <button
+                    class="small-action-btn"
+                    *ngIf="item.active"
                     (click)="requestRevoke(item)"
                     title="Sign out of all devices without deactivating this account"
                     [attr.aria-label]="'Sign out ' + item.name + ' on all devices'"
@@ -278,6 +300,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
                     >Deactivate</button>
                   </ng-template>
                 </div>
+                <span class="muted" *ngIf="item.role === 'OWNER'">—</span>
               </td>
             </tr>
           </tbody>
@@ -299,6 +322,8 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
             <p><code>{{ item.loginId }}</code> · {{ item.whatsappNumber || item.email || 'No contact' }}</p>
             <dl><div><dt>Role</dt><dd>{{ roleLabel(item.role) }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(item.updatedAt) }}</dd></div></dl>
             <div class="mobile-data-card__actions" *ngIf="isOwner && item.role !== 'OWNER'">
+              <button class="ghost-btn" *ngIf="item.active" [disabled]="resettingStaffId() === item.userId" (click)="requestResetPassword(item)">Reset Password</button>
+              <button class="ghost-btn" *ngIf="item.active" (click)="requestRevoke(item)">Sign out</button>
               <button class="ghost-btn danger-btn" [disabled]="isSelf(item) || !item.active" (click)="requestDeactivate(item)">Deactivate</button>
             </div>
           </article>
@@ -390,6 +415,8 @@ export class StaffPageComponent {
 
   staffToDeactivate: BusinessStaffItem | null = null;
   staffToRevoke: BusinessStaffItem | null = null;
+  staffToResetPassword: BusinessStaffItem | null = null;
+  resettingStaffId = signal<number | null>(null);
 
   showPermissionsModal = signal(false);
   permissionsStaff = signal<BusinessStaffItem | null>(null);
@@ -435,6 +462,40 @@ export class StaffPageComponent {
   closePermissionsModal(): void {
     this.showPermissionsModal.set(false);
     this.permissionsStaff.set(null);
+  }
+
+  requestResetPassword(item: BusinessStaffItem): void {
+    if (this.isSelf(item) || item.role === 'OWNER' || !item.active) return;
+    this.staffToResetPassword = item;
+  }
+
+  cancelResetPassword(): void {
+    this.staffToResetPassword = null;
+  }
+
+  confirmResetPassword(): void {
+    if (!this.staffToResetPassword) return;
+
+    const item = this.staffToResetPassword;
+    const userId = item.userId;
+    const name = item.name;
+    const phone = item.whatsappNumber || item.loginId;
+    this.staffToResetPassword = null;
+    this.resettingStaffId.set(userId);
+
+    this.api.resendStaffCredentials(userId).subscribe({
+      next: () => {
+        this.resettingStaffId.set(null);
+        this.toast.show(`A new password was generated and sent to ${name} (${phone}) on WhatsApp.`, 'success');
+        this.loadStaff();
+      },
+      error: (err: unknown) => {
+        this.resettingStaffId.set(null);
+        const errObj = err as { error?: { message?: string } };
+        const msg = errObj?.error?.message || 'Failed to reset staff password. Please try again.';
+        this.toast.show(msg, 'error');
+      }
+    });
   }
 
   requestDeactivate(item: BusinessStaffItem): void {
