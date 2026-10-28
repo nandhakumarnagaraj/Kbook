@@ -9,6 +9,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
   OrderDetailResponse,
+  DashboardTrendDay,
   HourlySalesRow,
   ItemSalesRow,
   BusinessTerminal,
@@ -264,8 +265,8 @@ function getTodayIsoDate(): string {
 
           <span class="visually-hidden" role="status">{{ hourlySummaryText() }}</span>
 
-          <!-- SVG Line Chart with Gradient Fill & Points -->
-          <div class="sales-line-chart-wrap" aria-hidden="true">
+          <!-- SVG line chart, plotted from the live hourly series -->
+          <div class="sales-line-chart-wrap" *ngIf="hasHourlySales(); else hourlyEmpty">
             <svg class="sales-line-chart-svg" viewBox="0 0 540 190" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
@@ -274,33 +275,20 @@ function getTodayIsoDate(): string {
                 </linearGradient>
               </defs>
 
-              <!-- Grid Lines & Y-Labels -->
+              <!-- Grid lines and a scale read from the busiest hour -->
               <g class="chart-grid-group">
-                <text x="5" y="24" class="chart-axis-label">20K</text>
-                <line x1="38" y1="20" x2="535" y2="20" class="chart-grid-line"/>
-
-                <text x="5" y="58" class="chart-axis-label">15K</text>
-                <line x1="38" y1="54" x2="535" y2="54" class="chart-grid-line"/>
-
-                <text x="5" y="92" class="chart-axis-label">10K</text>
-                <line x1="38" y1="88" x2="535" y2="88" class="chart-grid-line"/>
-
-                <text x="5" y="126" class="chart-axis-label">5K</text>
-                <line x1="38" y1="122" x2="535" y2="122" class="chart-grid-line"/>
-
-                <text x="18" y="158" class="chart-axis-label">0</text>
-                <line x1="38" y1="154" x2="535" y2="154" class="chart-grid-line"/>
+                <g *ngFor="let tick of salesChart().yTicks">
+                  <text x="5" [attr.y]="tick.y + 4" class="chart-axis-label">{{ tick.label }}</text>
+                  <line x1="38" [attr.y1]="tick.y" x2="535" [attr.y2]="tick.y" class="chart-grid-line"/>
+                </g>
               </g>
 
               <!-- Area Gradient Polygon -->
-              <polygon
-                points="55,154 55,142 125,124 195,134 265,108 335,92 405,102 475,82 525,60 525,154"
-                fill="url(#salesGrad)"
-              />
+              <polygon [attr.points]="salesChart().area" fill="url(#salesGrad)"/>
 
               <!-- Main Velocity Line -->
               <polyline
-                points="55,142 125,124 195,134 265,108 335,92 405,102 475,82 525,60"
+                [attr.points]="salesChart().line"
                 fill="none"
                 stroke="var(--kb-chart-1)"
                 stroke-width="3"
@@ -309,24 +297,22 @@ function getTodayIsoDate(): string {
               />
 
               <!-- Data Points -->
-              <circle cx="55" cy="142" r="3.5" class="chart-point"/>
-              <circle cx="125" cy="124" r="3.5" class="chart-point"/>
-              <circle cx="195" cy="134" r="3.5" class="chart-point"/>
-              <circle cx="265" cy="108" r="3.5" class="chart-point"/>
-              <circle cx="335" cy="92" r="3.5" class="chart-point"/>
-              <circle cx="405" cy="102" r="3.5" class="chart-point"/>
-              <circle cx="475" cy="82" r="3.5" class="chart-point"/>
-              <circle cx="525" cy="60" r="5" class="chart-point chart-point--peak"/>
+              <circle
+                *ngFor="let point of salesChart().points"
+                [attr.cx]="point.x"
+                [attr.cy]="point.y"
+                [attr.r]="point.isPeak ? 5 : 3.5"
+                class="chart-point"
+                [class.chart-point--peak]="point.isPeak"/>
 
               <!-- X-Axis Labels -->
               <g class="chart-x-labels">
-                <text x="55" y="174" text-anchor="middle" class="chart-axis-label">9 AM</text>
-                <text x="125" y="174" text-anchor="middle" class="chart-axis-label">11 AM</text>
-                <text x="195" y="174" text-anchor="middle" class="chart-axis-label">1 PM</text>
-                <text x="265" y="174" text-anchor="middle" class="chart-axis-label">3 PM</text>
-                <text x="335" y="174" text-anchor="middle" class="chart-axis-label">5 PM</text>
-                <text x="405" y="174" text-anchor="middle" class="chart-axis-label">7 PM</text>
-                <text x="475" y="174" text-anchor="middle" class="chart-axis-label">9 PM</text>
+                <text
+                  *ngFor="let tick of salesChart().xTicks"
+                  [attr.x]="tick.x"
+                  y="174"
+                  text-anchor="middle"
+                  class="chart-axis-label">{{ tick.label }}</text>
               </g>
             </svg>
 
@@ -348,6 +334,13 @@ function getTodayIsoDate(): string {
               </div>
             </div>
           </div>
+
+          <ng-template #hourlyEmpty>
+            <div class="chart-empty">
+              <p class="chart-empty__title">No sales recorded yet today</p>
+              <p class="chart-empty__body">The curve appears as soon as your first bill is closed.</p>
+            </div>
+          </ng-template>
 
           <!-- Bottom Velocity Metrics -->
           <div class="velocity-summary-strip">
@@ -402,39 +395,22 @@ function getTodayIsoDate(): string {
             </div>
           </div>
 
-          <div class="order-type-content" *ngIf="orderTypeBreakdown() as ot">
+          <ng-container *ngIf="orderTypeBreakdown() as ot">
+            <div class="order-type-content" *ngIf="ot.total > 0">
             <!-- SVG Donut Chart -->
             <div class="donut-chart-box">
               <svg class="donut-svg" viewBox="0 0 160 160" width="130" height="130" aria-label="Order type distribution">
                 <!-- Background Ring -->
                 <circle cx="80" cy="80" r="54" fill="none" stroke="var(--kb-color-surface-2)" stroke-width="18"/>
-                <!-- Dine-in Segment (62%) -->
+                <!-- One arc per order type, sized from the live split -->
                 <circle
+                  *ngFor="let seg of orderTypeSegments(); trackBy: trackBySegment"
                   cx="80" cy="80" r="54"
                   fill="none"
-                  stroke="var(--kb-chart-1)"
+                  [attr.stroke]="seg.color"
                   stroke-width="18"
-                  stroke-linecap="round"
-                  stroke-dasharray="210.4 339.3"
-                  stroke-dashoffset="0"
-                  transform="rotate(-90 80 80)"/>
-                <!-- Takeaway Segment (21%) -->
-                <circle
-                  cx="80" cy="80" r="54"
-                  fill="none"
-                  stroke="var(--kb-chart-2)"
-                  stroke-width="18"
-                  stroke-dasharray="71.2 339.3"
-                  stroke-dashoffset="-210.4"
-                  transform="rotate(-90 80 80)"/>
-                <!-- Online Segment (17%) -->
-                <circle
-                  cx="80" cy="80" r="54"
-                  fill="none"
-                  stroke="var(--kb-chart-4)"
-                  stroke-width="18"
-                  stroke-dasharray="57.7 339.3"
-                  stroke-dashoffset="-281.6"
+                  [attr.stroke-dasharray]="seg.dash"
+                  [attr.stroke-dashoffset]="seg.offset"
                   transform="rotate(-90 80 80)"/>
                 <!-- Center Total Text -->
                 <text x="80" y="76" text-anchor="middle" class="donut-center-val">{{ ot.total }}</text>
@@ -465,7 +441,17 @@ function getTodayIsoDate(): string {
                 <span class="ot-count">{{ ot.online.count }}</span>
               </div>
             </div>
-          </div>
+            </div>
+
+            <div class="order-type-empty" *ngIf="ot.total === 0">
+              <p class="card-empty__title">No orders to break down yet</p>
+              <p class="card-empty__body">Dine-in, takeaway and online shares appear after the first bill.</p>
+            </div>
+
+            <p class="dash-card__footnote" *ngIf="ot.total > 0">
+              Share of the {{ ot.total }} most recent bill{{ ot.total === 1 ? '' : 's' }}.
+            </p>
+          </ng-container>
         </article>
 
         <!-- ⑩ Terminal Status (3 cols) -->
@@ -493,8 +479,13 @@ function getTodayIsoDate(): string {
                 <div class="terminal-device-details">
                   <strong class="terminal-name">{{ term.name }}</strong>
                   <div class="terminal-status-indicator">
-                    <span class="terminal-dot" [class.terminal-dot--online]="term.status.tone === 'active'" [class.terminal-dot--syncing]="term.status.tone !== 'active'"></span>
-                    <span class="terminal-status-text" [class.text-active]="term.status.tone === 'active'">{{ term.status.label }}</span>
+                    <span class="terminal-dot"
+                      [class.terminal-dot--online]="term.status.tone === 'active'"
+                      [class.terminal-dot--syncing]="term.status.tone === 'attention'"
+                      [class.terminal-dot--offline]="term.status.tone === 'offline'"></span>
+                    <span class="terminal-status-text"
+                      [class.text-active]="term.status.tone === 'active'"
+                      [class.text-attention]="term.status.tone === 'attention'">{{ term.status.label }}</span>
                   </div>
                 </div>
               </div>
@@ -504,6 +495,12 @@ function getTodayIsoDate(): string {
                   <path d="m9 18 6-6-6-6"/>
                 </svg>
               </div>
+            </div>
+
+            <div class="card-empty" *ngIf="terminalWidgetList().length === 0">
+              <p class="card-empty__title">No terminals registered yet</p>
+              <p class="card-empty__body">Pair a POS counter to see its connection state here.</p>
+              <a (click)="navigateToTerminals()" role="button" tabindex="0" class="dash-view-all-link">Register a terminal</a>
             </div>
           </div>
         </article>
@@ -537,7 +534,7 @@ function getTodayIsoDate(): string {
 
           <!-- Orders Data Table -->
           <div class="orders-table-wrapper">
-            <div class="recent-orders-grid" role="table" aria-label="Recent Orders">
+            <div class="recent-orders-grid" role="table" aria-label="Recent Orders" *ngIf="recentOrdersDisplay().length > 0">
               <div class="recent-orders-header-row" role="row">
                 <span class="recent-th col-order" role="columnheader">Order No.</span>
                 <span class="recent-th col-type" role="columnheader">Type</span>
@@ -560,6 +557,11 @@ function getTodayIsoDate(): string {
                   <span class="recent-td col-time cell-time muted" role="cell">{{ ord.time }}</span>
                 </div>
               </div>
+            </div>
+
+            <div class="card-empty" *ngIf="recentOrdersDisplay().length === 0">
+              <p class="card-empty__title">No orders yet today</p>
+              <p class="card-empty__body">Bills appear here as soon as one of your counters rings one up.</p>
             </div>
           </div>
 
@@ -1161,6 +1163,72 @@ function getTodayIsoDate(): string {
       filter: drop-shadow(0 2px 6px rgba(var(--kb-color-primary-rgb), 0.5));
     }
 
+    /* Empty chart / table states: same footprint as the data they replace, so
+       the row does not reflow when a quiet day finally has no figures to plot. */
+    .chart-empty {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: var(--kb-space-1);
+      padding: var(--kb-space-4);
+      background: var(--kb-color-surface-2);
+      border: 1px dashed var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      text-align: center;
+    }
+
+    .chart-empty__title {
+      margin: 0;
+      font-size: var(--kb-text-md);
+      font-weight: 700;
+      color: var(--kb-color-foreground);
+    }
+
+    .chart-empty__body {
+      margin: 0;
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .card-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--kb-space-1);
+      width: 100%;
+      padding: var(--kb-space-4);
+      background: var(--kb-color-surface-2);
+      border: 1px dashed var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+    }
+
+    .card-empty__title {
+      margin: 0;
+      font-size: var(--kb-text-md);
+      font-weight: 700;
+      color: var(--kb-color-foreground);
+    }
+
+    .card-empty__body {
+      margin: 0;
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .order-type-empty {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-1);
+      padding: var(--kb-space-4) 0;
+    }
+
+    .dash-card__footnote {
+      margin: 0;
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-muted-foreground);
+    }
+
     .velocity-summary-strip {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -1350,12 +1418,21 @@ function getTodayIsoDate(): string {
       background: var(--kb-color-warning);
     }
 
+    .terminal-dot--offline {
+      background: var(--kb-color-danger);
+    }
+
     .terminal-status-text {
       color: var(--kb-color-muted-foreground);
     }
 
     .terminal-status-text.text-active {
       color: var(--kb-color-success);
+      font-weight: 600;
+    }
+
+    .terminal-status-text.text-attention {
+      color: var(--kb-color-warning);
       font-weight: 600;
     }
 
@@ -1897,6 +1974,8 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   // Live Data Signals from Swagger
   readonly hourlySalesData = signal<HourlySalesRow[]>([]);
+  /** Last seven days of per-day totals, newest last — the source for order deltas. */
+  readonly dashboardTrendDays = signal<DashboardTrendDay[]>([]);
   readonly topDishesData = signal<ItemSalesRow[]>([]);
   readonly lowStockMaterials = signal<any[]>([]);
   readonly inventoryStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
@@ -2022,18 +2101,62 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     return formatCurrency(Number(closing.netRevenue) || 0);
   });
 
+  /**
+   * The owner's four headline figures: money in, order volume, customers and the
+   * terminal fleet. The cash/UPI split rides along on the sales tile instead of
+   * getting a tile of its own, so the row answers "how is today going?" in one
+   * glance. Every value is read from the dashboard payload — nothing here is a
+   * placeholder, and a figure the shop does not collect yet says so.
+   */
+  /** Orders rung up today, from the daily trend series (newest entry last). */
+  readonly todayOrderCount = computed<number | null>(() => {
+    const days = this.dashboardTrendDays();
+    if (days.length === 0) return null;
+    return Number(days[days.length - 1].orderCount) || 0;
+  });
+
+  /** Today's order volume against yesterday's, mirroring the revenue delta. */
+  readonly orderTrend = computed<{ arrow: string; label: string; tone: 'up' | 'down' | 'neutral' } | null>(() => {
+    const days = this.dashboardTrendDays();
+    if (days.length < 2) return null;
+
+    const today = Number(days[days.length - 1].orderCount) || 0;
+    const yesterday = Number(days[days.length - 2].orderCount) || 0;
+    if (today <= 0) return null;
+    if (yesterday <= 0) return { arrow: '', label: 'No orders yesterday', tone: 'neutral' };
+
+    const delta = Math.round(((today - yesterday) / yesterday) * 100);
+    if (delta === 0) return { arrow: '', label: 'Level with yesterday', tone: 'neutral' };
+
+    return {
+      arrow: delta > 0 ? '↑' : '↓',
+      label: `${Math.abs(delta)}% vs yest.`,
+      tone: delta > 0 ? 'up' : 'down'
+    };
+  });
+
+  /**
+   * The owner's four headline figures, in the order the dashboard reads them:
+   * sales, order volume, new customers, stock risk. Every value is read from an
+   * API payload — where the shop has no source for a figure, the tile says so
+   * rather than printing the reference screenshot's sample number.
+   */
   readonly dashboardKpis = computed<KpiItem[]>(() => {
     const data = this.dashboard();
     if (!data) return [];
 
     const trend = this.revenueTrend();
-    const closing = this.dailyClosingData();
+    const orderTrend = this.orderTrend();
+    const todayOrders = this.todayOrderCount();
     const invoices = Number(data.posOrderCount) || 0;
     const avgTicket = this.avgTicketFormatted();
+    const openBills = this.activeOrderCount();
+    const lowStock = this.lowStockMaterials().length;
+    const inventoryStatus = this.inventoryStatus();
 
     return [
       {
-        label: "Today's Gross Sales",
+        label: 'Total Sales',
         value: data.todayRevenueFormatted,
         icon: 'reports',
         accent: 'activity',
@@ -2044,57 +2167,46 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         caption: avgTicket
           ? `Avg ticket ${avgTicket} • ${invoices} invoice${invoices === 1 ? '' : 's'}`
           : 'No invoices yet today',
-        segments: closing
-          ? [
-              { label: 'UPI', value: this.onlineRevenueFormatted(), percent: this.upiRatio(), tone: 'brand' },
-              { label: 'Cash', value: this.cashDrawerFormatted(), percent: this.cashRatio(), tone: 'success' },
-            ]
-          : undefined,
       },
       {
-        label: 'Seated Tables',
-        value: this.seatedTableCount(),
-        unit: 'Tables',
-        icon: 'dashboard',
+        label: 'Total Orders',
+        value: todayOrders ?? '—',
+        unit: todayOrders == null ? undefined : 'Orders',
+        icon: 'orders',
         accent: 'flow',
-        badge: this.takeawayFloorCount() > 0
-          ? { text: `${this.takeawayFloorCount()} Takeaway`, tone: 'neutral' }
-          : undefined,
-        caption: `${this.activeOrderCount()} open bill${this.activeOrderCount() === 1 ? '' : 's'} right now`,
-        action: { id: 'active-orders', label: 'Open bills' },
+        badge: orderTrend
+          ? { text: `${orderTrend.arrow ? orderTrend.arrow + ' ' : ''}${orderTrend.label}`, tone: orderTrend.tone === 'down' ? 'danger' : orderTrend.tone === 'neutral' ? 'neutral' : 'success' }
+          : { text: todayOrders == null ? 'Trend unavailable' : 'No orders yet', tone: 'neutral' },
+        caption: `${invoices} all-time • ${openBills} open now`,
+        action: { id: 'orders', label: 'View orders' },
       },
       {
-        label: 'Running Kitchen KOTs',
-        value: this.activeOrderCount(),
-        unit: 'Open Orders',
-        icon: 'kitchen',
-        accent: 'flow',
-        badge: {
-          text: `${this.cookingOrderCount()} Cooking`,
-          tone: this.cookingOrderCount() > 0 ? 'warning' : 'neutral',
-        },
-        caption: `${this.preparingOrderCount()} Preparing • ${this.servedOrderCount()} Served`,
-        action: { id: 'active-orders', label: 'Live KOT stream' },
-      },
-      {
-        label: 'Tender Breakdown',
-        value: this.netCollectedFormatted() ?? '—',
-        unit: closing ? 'collected' : undefined,
-        icon: 'payments',
+        // Nothing on a POS bill identifies a new customer yet — no customer table,
+        // no phone capture — so this tile reports the gap, never a made-up count.
+        label: 'New Customers',
+        value: '—',
+        icon: 'profile',
         accent: 'positive',
-        badge: closing
-          ? { text: "Today's closing", tone: 'neutral' }
-          : { text: 'Closing not loaded', tone: 'neutral' },
-        segments: closing
-          ? [
-              { label: 'Cash', value: this.cashDrawerFormatted(), percent: this.cashRatio(), tone: 'success' },
-              { label: 'UPI QR', value: this.onlineRevenueFormatted(), percent: this.upiRatio(), tone: 'brand' },
-            ]
-          : undefined,
-        caption: closing
-          ? 'Counts all-time POS invoices, not today'
-          : "Cash and UPI splits appear once today's closing figures are available.",
-        action: { id: 'terminals', label: 'Terminal fleet' },
+        badge: { text: 'Not tracked', tone: 'neutral' },
+        caption: 'No customer record is captured on POS bills yet.',
+      },
+      {
+        label: 'Low Stock Items',
+        value: inventoryStatus === 'available' ? lowStock : '—',
+        unit: inventoryStatus === 'available' ? (lowStock === 1 ? 'item' : 'items') : undefined,
+        icon: 'inventory',
+        accent: 'flow',
+        badge: inventoryStatus === 'available'
+          ? lowStock > 0
+            ? { text: 'Needs attention', tone: 'warning' }
+            : { text: 'All stocked', tone: 'success' }
+          : { text: inventoryStatus === 'loading' ? 'Checking stock' : 'Stock unavailable', tone: 'neutral' },
+        caption: inventoryStatus === 'available'
+          ? 'Below the minimum kitchen reserve'
+          : inventoryStatus === 'loading'
+            ? 'Reading raw-material levels…'
+            : 'Inventory levels could not be loaded.',
+        action: { id: 'inventory', label: 'Review inventory' },
       },
     ];
   });
@@ -2103,6 +2215,12 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     switch (item.action?.id) {
       case 'terminals':
         this.navigateToTerminals();
+        break;
+      case 'orders':
+        this.navigateToOrders();
+        break;
+      case 'inventory':
+        this.navigateToInventory();
         break;
       case 'active-orders':
         this.navigateToActiveOrders();
@@ -2125,60 +2243,101 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     }));
   });
 
+  /**
+   * The order-type mix, counted from the bills the dashboard actually returns.
+   * It used to be derived from a fixed 62/21/17 split when the API was quiet,
+   * so a shop with no orders still showed a completely full donut.
+   */
   readonly orderTypeBreakdown = computed(() => {
-    const orders = this.activeOrders();
-    const total = Number(this.dashboard()?.posOrderCount) || orders.length || 48;
-    const dineInCount = this.seatedTableCount() || Math.round(total * 0.62) || 30;
-    const takeawayCount = this.takeawayFloorCount() || Math.round(total * 0.21) || 10;
-    const onlineCount = Math.max(0, total - dineInCount - takeawayCount) || 8;
-    const dineInPct = Math.round((dineInCount / total) * 100);
-    const takeawayPct = Math.round((takeawayCount / total) * 100);
-    const onlinePct = Math.max(0, 100 - dineInPct - takeawayPct);
+    const orders = (this.dashboard()?.recentOrders || []) as BusinessOrder[];
+    const total = orders.length;
+    let dineInCount = 0;
+    let takeawayCount = 0;
+    let onlineCount = 0;
+
+    orders.forEach(order => {
+      const channel = this.channelLabel(order);
+      if (channel === 'Takeaway') takeawayCount++;
+      else if (channel.startsWith('Online')) onlineCount++;
+      else dineInCount++;
+    });
+
+    const pct = (count: number) => (total > 0 ? Math.round((count / total) * 100) : 0);
+    const dineInPct = pct(dineInCount);
+    const takeawayPct = pct(takeawayCount);
+
     return {
       total,
       dineIn: { count: dineInCount, pct: dineInPct },
       takeaway: { count: takeawayCount, pct: takeawayPct },
-      online: { count: onlineCount, pct: onlinePct }
+      // Absorb the rounding remainder so the three shares always total 100.
+      online: { count: onlineCount, pct: total > 0 ? Math.max(0, 100 - dineInPct - takeawayPct) : 0 }
     };
   });
 
-  readonly terminalWidgetList = computed(() => {
-    const list = this.terminals();
-    if (list && list.length > 0) {
-      return list.slice(0, 3).map((t, idx) => ({
-        id: t.id,
-        name: t.terminalName || `Counter ${String.fromCharCode(65 + idx)}`,
-        status: this.terminalStatusOf(t),
-        timeAgo: this.elapsedLabel((t as any).lastSyncAt || t.lastSeenAt || t.updatedAt) || `${(idx + 1) * 4} min ago`
-      }));
-    }
-    return [
-      { id: 1, name: 'Counter A', status: { label: 'Online', cls: 'badge-completed', tone: 'active' as const }, timeAgo: '12 min ago' },
-      { id: 2, name: 'Counter B', status: { label: 'Online', cls: 'badge-completed', tone: 'active' as const }, timeAgo: '8 min ago' },
-      { id: 3, name: 'Counter C', status: { label: 'Syncing...', cls: 'badge-recovery', tone: 'attention' as const }, timeAgo: '3 min ago' }
+  /** Donut arcs, in the same order and colours as the legend beside them. */
+  readonly orderTypeSegments = computed(() => {
+    const split = this.orderTypeBreakdown();
+    const circumference = 2 * Math.PI * 54;
+    const slices = [
+      { key: 'dine-in', pct: split.dineIn.pct, color: 'var(--kb-chart-1)' },
+      { key: 'takeaway', pct: split.takeaway.pct, color: 'var(--kb-chart-2)' },
+      { key: 'online', pct: split.online.pct, color: 'var(--kb-chart-4)' }
     ];
+
+    let consumed = 0;
+    return slices.map(slice => {
+      const length = (slice.pct / 100) * circumference;
+      const segment = {
+        key: slice.key,
+        color: slice.color,
+        dash: `${length.toFixed(2)} ${circumference.toFixed(2)}`,
+        offset: (-consumed).toFixed(2)
+      };
+      consumed += length;
+      return segment;
+    });
   });
 
+  trackBySegment = (_: number, segment: { key: string }) => segment.key;
+
+  /**
+   * The three terminals shown on the dashboard, straight from the fleet list.
+   * This used to fall back to three invented counters with invented sync times.
+   */
+  readonly terminalWidgetList = computed(() => {
+    return this.terminals().slice(0, 3).map((t, idx) => ({
+      id: t.id,
+      name: t.terminalName || t.terminalSeries || `Terminal ${idx + 1}`,
+      status: this.terminalStatusOf(t),
+      // If the server has no sync stamp, say so instead of inventing one.
+      timeAgo: this.elapsedLabel(t.lastSeenAt || t.updatedAt) || 'No sync recorded'
+    }));
+  });
+
+  /**
+   * The five most recent bills, as the API returns them. The table used to fall
+   * back to five invented invoices with invented statuses and times.
+   */
   readonly recentOrdersDisplay = computed(() => {
     const orders = (this.dashboard()?.recentOrders || []) as BusinessOrder[];
-    if (orders && orders.length > 0) {
-      return orders.slice(0, 5).map((o, idx) => ({
-        orderNo: `#KB${o.orderCode || o.orderId || (1025 - idx)}`,
-        type: this.channelLabel(o),
-        table: o.tableNumber ? `T${o.tableNumber}` : '—',
-        amount: formatCurrency(Number(o.totalAmount) || 0),
-        status: (o.orderStatus || 'Completed').toLowerCase(),
-        statusLabel: this.titleCase(o.orderStatus || 'Completed'),
-        time: o.createdAt ? new Date(o.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : `${(idx + 1) * 12}m ago`
-      }));
-    }
-    return [
-      { orderNo: '#KB1025', type: 'Dine-in', table: 'T3', amount: '₹ 420', status: 'preparing', statusLabel: 'Preparing', time: '02:08 PM' },
-      { orderNo: '#KB1024', type: 'Online (Zomato)', table: '—', amount: '₹ 560', status: 'confirmed', statusLabel: 'Confirmed', time: '01:54 PM' },
-      { orderNo: '#KB1023', type: 'Dine-in', table: 'T5', amount: '₹ 310', status: 'served', statusLabel: 'Served', time: '01:42 PM' },
-      { orderNo: '#KB1022', type: 'Takeaway', table: '—', amount: '₹ 280', status: 'completed', statusLabel: 'Completed', time: '01:25 PM' },
-      { orderNo: '#KB1021', type: 'Dine-in', table: 'T2', amount: '₹ 760', status: 'completed', statusLabel: 'Completed', time: '01:12 PM' }
-    ];
+
+    return orders.slice(0, 5).map(order => ({
+      orderNo: `#KB${order.orderCode || order.orderId}`,
+      type: this.channelLabel(order),
+      table: order.tableNumber ? `T${order.tableNumber}` : '—',
+      amount: formatCurrency(Number(order.totalAmount) || 0),
+      status: (order.orderStatus || 'completed').toLowerCase(),
+      statusLabel: this.titleCase(order.orderStatus || 'Completed'),
+      time: order.createdAt
+        ? new Date(order.createdAt).toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'Asia/Kolkata'
+          })
+        : '—'
+    }));
   });
 
   private isDineInSeat(label: string): boolean {
@@ -2327,6 +2486,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
               this.activeOrders.set([]);
             }
 
+            this.dashboardTrendDays.set(Array.isArray(trends.last7Days) ? trends.last7Days : []);
             this.lastUpdatedAt.set(Date.now());
 
             const todayRev = Number(trends.todayRevenue) || Number(data.todayRevenue) || 0;
@@ -2545,6 +2705,58 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         isCurrent: h === currentHour
       };
     });
+  });
+
+  /**
+   * Plot geometry for the Sales Overview line, derived from the hourly series.
+   * The chart used to draw a fixed polyline over a fixed 20K axis, so it showed
+   * the same rising curve on a day that had not taken a single bill.
+   */
+  readonly salesChart = computed(() => {
+    const bars = this.displayHourlyBars();
+    const left = 38;
+    const right = 535;
+    const top = 20;
+    const bottom = 154;
+    const round = (value: number) => Math.round(value * 10) / 10;
+
+    if (bars.length === 0) {
+      return { line: '', area: '', points: [], yTicks: [], xTicks: [] };
+    }
+
+    const peakItems = Math.max(...bars.map(bar => bar.itemsSold), 0);
+    // A clean three-step scale: 0 / step / 2·step / 3·step.
+    const step = Math.max(1, Math.ceil(peakItems / 3));
+    const axisMax = step * 3;
+    const xAt = (index: number) => (bars.length > 1
+      ? left + (index * (right - left)) / (bars.length - 1)
+      : left + (right - left) / 2);
+    const yAt = (items: number) =>
+      bottom - (Math.min(Math.max(items, 0), axisMax) / axisMax) * (bottom - top);
+
+    const points = bars.map((bar, index) => ({
+      x: round(xAt(index)),
+      y: round(yAt(bar.itemsSold)),
+      bar,
+      isPeak: peakItems > 0 && bar.itemsSold === peakItems
+    }));
+
+    const line = points.map(point => `${point.x},${point.y}`).join(' ');
+    const area = `${points[0].x},${bottom} ${line} ${points[points.length - 1].x},${bottom}`;
+
+    return {
+      line,
+      area,
+      points,
+      yTicks: [3, 2, 1, 0].map(multiplier => ({
+        label: String(step * multiplier),
+        y: round(yAt(step * multiplier))
+      })),
+      // Every other hour keeps the axis readable at narrow card widths.
+      xTicks: points
+        .filter((_, index) => index % 2 === 0)
+        .map(point => ({ x: point.x, label: point.bar.hourLabel }))
+    };
   });
 
   readonly itemsSoldToday = computed(() =>
