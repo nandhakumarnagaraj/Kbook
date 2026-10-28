@@ -20,10 +20,7 @@ import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
-import { PageHeaderComponent } from '../../shared/page-header.component';
-import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
-import { AnimatedCounterComponent } from '../../shared/animated-counter.component';
 import { NotificationBellComponent } from '../../shared/notification-bell.component';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { animate, stagger } from 'animejs';
@@ -99,33 +96,26 @@ function getTodayIsoDate(): string {
     FormsModule,
         OrderDetailModalComponent,
     FocusTrapDirective,
-    PageHeaderComponent,
-    AnimatedCounterComponent,
     NotificationBellComponent,
     RefreshButtonComponent,
-    HeaderSearchComponent,
     KpiRowComponent
   ],
   template: `
     <div class="page-shell kb-dashboard-shell" *ngIf="viewDashboard() as data; else loading">
 
-      <!-- ── ② Top Header Bar: Search, Notifications, Profile, Controls ── -->
+      <!-- ── ② Header: identity, live state and controls in one bar ── -->
       <header class="dash-top-header" role="banner">
-        <div class="dash-top-header__search">
-          <div class="dash-search-box">
-            <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.3-4.3"/>
-            </svg>
-            <input
-              type="search"
-              class="dash-search-input"
-              placeholder="Search orders, items, customers..."
-              aria-label="Search orders, items, customers"
-              [ngModel]="searchTerm()"
-              (ngModelChange)="searchTerm.set($event)"
-            />
-          </div>
+        <div class="dash-top-header__identity">
+          <span class="dash-eyebrow">
+            <span class="pulse-indicator" aria-hidden="true"></span>
+            Live operations
+          </span>
+          <h1 class="dash-title">{{ timeGreeting() }}, {{ adminName() }}</h1>
+          <p class="dash-meta">
+            <span>{{ currentIstDate() }}</span>
+            <span class="dash-meta__sep" aria-hidden="true">·</span>
+            <span>{{ currentIstTime() }} IST</span>
+          </p>
         </div>
 
         <div class="dash-top-header__actions">
@@ -173,18 +163,18 @@ function getTodayIsoDate(): string {
           </app-notification-bell>
 
           <!-- Admin Profile Avatar & Role -->
-          <div class="dash-user-profile" (click)="navigateToStaff()" title="View profile & staff">
-            <div class="dash-user-avatar">
+          <button type="button" class="dash-user-profile" (click)="navigateToStaff()" title="View profile & staff" aria-label="Open profile and staff">
+            <span class="dash-user-avatar">
               <span>{{ adminInitials() }}</span>
-            </div>
-            <div class="dash-user-info">
+            </span>
+            <span class="dash-user-info">
               <span class="dash-user-name">{{ adminName() }}</span>
               <span class="dash-user-role">{{ adminRole() }}</span>
-            </div>
+            </span>
             <svg class="dash-user-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m6 9 6 6 6-6"/>
             </svg>
-          </div>
+          </button>
         </div>
       </header>
 
@@ -199,29 +189,7 @@ function getTodayIsoDate(): string {
         <button type="button" class="ghost-btn" (click)="refresh()">Retry</button>
       </div>
 
-      <!-- ── ③ Page Heading: Greeting and Date ── -->
-      <section class="dash-heading-row" aria-label="Dashboard Overview Heading">
-        <div class="dash-heading-left">
-          <h1 class="dash-greeting-title">{{ timeGreeting() }}, {{ adminName() }} <span class="sun-emoji" aria-hidden="true">☀️</span></h1>
-          <p class="dash-greeting-subtitle">Here's what's happening at your restaurant today.</p>
-        </div>
-        <div class="dash-heading-right">
-          <div class="dash-date-badge">
-            <svg class="calendar-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            <div class="dash-date-text">
-              <span class="dash-date-day">{{ currentIstDate() }}</span>
-              <span class="dash-date-time">{{ currentIstTime() }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── ④–⑦ First Row: 4 Equal-Width KPI Cards ── -->
+      <!-- ── ③ First Row: 4 Equal-Width KPI Cards ── -->
       <section class="dash-kpi-section" aria-label="Key Performance Indicators">
         <app-kpi-row
           [items]="dashboardKpis()"
@@ -776,10 +744,10 @@ function getTodayIsoDate(): string {
     }
 
     .kb-dashboard-shell {
-      padding: var(--kb-space-6);
+      padding: var(--kb-space-5) var(--kb-space-6) var(--kb-space-8);
       display: flex;
       flex-direction: column;
-      gap: var(--kb-space-4);
+      gap: var(--kb-space-5);
       max-width: 1680px;
       margin: 0 auto;
     }
@@ -791,79 +759,101 @@ function getTodayIsoDate(): string {
       }
     }
 
-    /* ── ② Top Header Bar ── */
+    /* ── ② Header ──
+       One bar, two zones: who/where on the left, what-you-can-do on the right.
+       The greeting used to sit in a second full-width block below this one, so
+       two headers stacked before a single number appeared. Folding the date,
+       the live state and the greeting into the identity column removes that
+       band without losing any of the three. */
     .dash-top-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: var(--kb-space-4);
-      padding: var(--kb-space-3) var(--kb-space-4);
+      gap: var(--kb-space-6);
+      padding: var(--kb-space-4) var(--kb-space-5);
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-lg);
-      min-height: 64px;
+      border-radius: var(--kb-radius-card);
     }
 
-    @media (max-width: 1024px) {
-      .dash-top-header {
-        flex-direction: column;
-        align-items: stretch;
-      }
+    .dash-top-header__identity {
+      display: grid;
+      gap: var(--kb-space-1);
+      min-width: 0;
     }
 
-    .dash-top-header__search {
-      flex: 1;
-      max-width: 440px;
-    }
-
-    .dash-search-box {
-      display: flex;
+    .dash-eyebrow {
+      display: inline-flex;
       align-items: center;
       gap: var(--kb-space-2);
-      background: var(--kb-color-surface-2);
-      border: 1px solid var(--kb-border-control);
-      border-radius: var(--kb-radius-md);
-      padding: var(--kb-space-2) var(--kb-space-3);
-      transition: border-color 200ms ease;
-    }
-
-    .dash-search-box:focus-within {
-      border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 3px rgba(var(--kb-color-primary-rgb), 0.2);
-    }
-
-    .search-icon {
-      color: var(--kb-color-muted-foreground);
-      flex-shrink: 0;
-    }
-
-    .dash-search-input {
-      width: 100%;
-      background: transparent;
-      border: none;
-      outline: none;
       font-size: var(--kb-text-sm);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .dash-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: var(--kb-text-2xl);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
       color: var(--kb-color-foreground);
     }
 
-    .dash-search-input::placeholder {
+    .dash-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--kb-space-1);
+      margin: 0;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* A freshness chip inside the meta line is a footnote, not a control: the
+       chip keeps its text but drops the pill it had when it sat in the action
+       cluster, where it read like a button next to the real ones. */
+    .dash-meta .freshness-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--kb-space-1);
+      padding: 0;
+      background: none;
+      border: 0;
+      color: var(--kb-color-muted-foreground);
+    }
+
+    .dash-meta .freshness-chip::before {
+      content: '·';
+      color: var(--kb-color-border-strong);
+    }
+
+    @media (max-width: 1100px) {
+      .dash-top-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--kb-space-4);
+      }
     }
 
     .dash-top-header__actions {
       display: flex;
       align-items: center;
-      gap: var(--kb-space-3);
+      gap: var(--kb-space-2);
       flex-wrap: wrap;
     }
 
     .dash-pill-btn {
       display: inline-flex;
       align-items: center;
-      gap: var(--kb-space-2);
+      gap: 6px;
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
-      padding: var(--kb-space-2) var(--kb-space-3);
+      padding: var(--kb-space-1) var(--kb-space-2);
       border-radius: var(--kb-radius-full);
       font-size: var(--kb-text-sm);
       color: var(--kb-color-foreground);
@@ -905,6 +895,9 @@ function getTodayIsoDate(): string {
       border-radius: var(--kb-radius-md);
       cursor: pointer;
       border: 1px solid transparent;
+      background: transparent;
+      font: inherit;
+      text-align: left;
       transition: background 180ms ease;
     }
 
@@ -947,67 +940,6 @@ function getTodayIsoDate(): string {
       color: var(--kb-color-muted-foreground);
     }
 
-    /* ── ③ Page Heading ── */
-    .dash-heading-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: var(--kb-space-4);
-      padding: var(--kb-space-1) 0;
-    }
-
-    @media (max-width: 640px) {
-      .dash-heading-row {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-    }
-
-    .dash-greeting-title {
-      font-size: var(--kb-text-2xl);
-      font-weight: 750;
-      color: var(--kb-color-foreground);
-      margin: 0;
-      letter-spacing: -0.02em;
-    }
-
-    .dash-greeting-subtitle {
-      font-size: var(--kb-text-sm);
-      color: var(--kb-color-muted-foreground);
-      margin: var(--kb-space-1) 0 0;
-    }
-
-    .dash-date-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-      background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-md);
-      padding: var(--kb-space-2) var(--kb-space-3);
-      color: var(--kb-color-foreground);
-    }
-
-    .calendar-icon {
-      color: var(--kb-color-muted-foreground);
-    }
-
-    .dash-date-text {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-      font-size: var(--kb-text-sm);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .dash-date-day {
-      font-weight: 650;
-    }
-
-    .dash-date-time {
-      color: var(--kb-color-muted-foreground);
-    }
-
     /* ── ④–⑦ First Row: KPI Section ── */
     .dash-kpi-section {
       width: 100%;
@@ -1042,16 +974,18 @@ function getTodayIsoDate(): string {
     }
 
     /* ── Generic Card Anatomy ── */
+    /* Cards sit on the canvas by their hairline, not by a shadow: the page has
+       six of them, and six drop shadows read as six floating planes. */
     .dash-card {
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
-      border-radius: 10px;
+      border-radius: var(--kb-radius-card);
       padding: var(--kb-space-5);
       display: flex;
       flex-direction: column;
       gap: var(--kb-space-4);
-      box-shadow: var(--kb-shadow-sm);
       position: relative;
+      min-width: 0;
     }
 
     .dash-card__header {
@@ -1067,8 +1001,17 @@ function getTodayIsoDate(): string {
       gap: var(--kb-space-2);
     }
 
+    /* The icon is a 30px tinted chip rather than a bare glyph, so every card
+       opens with the same amount of ink and the title starts on one x-height. */
     .dash-card-icon {
+      box-sizing: content-box;
+      width: 18px;
+      height: 18px;
+      padding: 6px;
+      border-radius: var(--kb-radius-lg);
+      background: var(--kb-color-primary-soft);
       color: var(--kb-color-primary);
+      flex-shrink: 0;
     }
 
     .dash-card__title {
@@ -1351,19 +1294,23 @@ function getTodayIsoDate(): string {
       gap: var(--kb-space-2);
     }
 
+    /* Rows, not boxes: a tinted, bordered box inside a bordered card is a card
+       in a card. One hairline between terminals keeps the list legible. */
     .terminal-counter-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: var(--kb-space-2) var(--kb-space-3);
-      background: var(--kb-color-surface-2);
-      border: 1px solid var(--kb-color-border);
+      padding: var(--kb-space-2);
+      margin-inline: calc(-1 * var(--kb-space-2));
+      border-bottom: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-md);
       transition: background 180ms ease;
     }
 
+    .terminal-counter-row:last-child { border-bottom: 0; }
+
     .terminal-counter-row:hover {
-      background: var(--kb-color-border);
+      background: var(--kb-color-surface-2);
     }
 
     .terminal-counter-left {
@@ -1495,8 +1442,13 @@ function getTodayIsoDate(): string {
       background: var(--kb-color-surface-2);
     }
 
+    /* 13px, not the 11px the shared data table uses: the dashboard declares a
+       13px floor for all of its own text, and a header is text. */
     .recent-th {
       font-size: var(--kb-text-sm);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
     .recent-td {
@@ -1552,7 +1504,53 @@ function getTodayIsoDate(): string {
       border: 1px solid var(--kb-color-border);
     }
 
-    /* ── ⑫ Multi-Terminal POS Promo Card ── */
+    /* ── ⑫ Multi-Terminal POS Promo Card ──
+       The one filled brand surface on the page: the logo's violet gradient,
+       white copy and a white CTA. It is a product panel, not a data card, so it
+       is allowed to be the loudest thing in its row. */
+    .dash-card--multi-terminal {
+      background: var(--pos-purple-gradient);
+      border-color: transparent;
+      padding: var(--kb-space-6);
+      overflow: hidden;
+    }
+
+    .dash-card--multi-terminal .multi-pos-badge {
+      background: rgba(255, 255, 255, 0.16);
+      color: var(--kb-color-foreground-contrast);
+    }
+
+    .dash-card--multi-terminal .multi-terminal-title {
+      color: var(--kb-color-foreground-contrast);
+    }
+
+    .dash-card--multi-terminal .multi-terminal-sub {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .dash-card--multi-terminal .multi-terminal-checklist li {
+      color: var(--kb-color-foreground-contrast);
+    }
+
+    .dash-card--multi-terminal .check-icon {
+      color: var(--pos-sidebar-accent);
+    }
+
+    .dash-card--multi-terminal .multi-terminal-watermark {
+      color: rgba(255, 255, 255, 0.1);
+    }
+
+    .dash-card--multi-terminal .dash-primary-cta-btn {
+      background: var(--kb-color-foreground-contrast);
+      color: var(--kb-color-primary-hover);
+      box-shadow: none;
+    }
+
+    .dash-card--multi-terminal .dash-primary-cta-btn:hover {
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--kb-color-primary-hover);
+    }
+
     .multi-terminal-box {
       display: flex;
       justify-content: space-between;
@@ -1628,8 +1626,7 @@ function getTodayIsoDate(): string {
       font-weight: 700;
       border-radius: var(--kb-radius-md);
       text-decoration: none;
-      transition: background 200ms ease, box-shadow 200ms ease;
-      box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.35);
+      transition: background 200ms ease, color 200ms ease;
     }
 
     .dash-primary-cta-btn:hover {
@@ -1951,7 +1948,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   private readonly currentDashboard = signal<any>(null);
   readonly dashboard = this.currentDashboard.asReadonly();
 
-  searchTerm = signal('');
   timeRange = signal<'today' | 'week' | 'month'>('today');
 
   private readonly manualReload = signal(false);

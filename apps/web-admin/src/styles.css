@@ -9,10 +9,10 @@
  *   2. A surface is distinguished from its neighbour by a lightness step AND a
  *      border. A near-identical tint alone reads as one flat plane.
  *
- * The brand is blue: primary actions, links and selected states. Orange and
- * purple are accents only (--kb-brand-orange / --kb-brand-purple) and are never
- * used as an ink unless the --kb-brand-orange-ink step is used, because #E87A1E
- * is 3.1:1 on white and cannot carry text.
+ * The brand is the logo violet: primary actions, links, selected states and the
+ * rail. Saffron (the rupee mark in the logo) is the money accent only: it fills
+ * bars and icon chips, and as text it always uses --kb-brand-orange-ink, because
+ * the raw saffron is ~2.9:1 on white and cannot carry a label.
  *
  * The sidebar is the one dark plane left. It keeps its own --pos-sidebar-*
  * tokens and never borrows a workspace token that the light flip changed, so its
@@ -43,21 +43,23 @@
   --line-strong:   var(--kb-color-border-strong);
 
   /* ---------------------------------------------------------------------- */
-  /* Brand — KhanaBook 60-30-10 Brand Identity System                       */
-  /* 60% Navy (#1E3A8A) Rail • 30% Slate (#F8FAFC) • 10% Orange (#E87A1E)   */
+  /* Brand — sampled from khanabook_logo.png                               */
+  /* Violet #552AAF / #3F1B95 chevrons • charcoal #1F1F1F cloche            */
+  /* Saffron #EC8C17 rupee mark • receipt white                             */
+  /* 60% violet rail + ink • 30% slate canvas • 10% saffron money accent    */
   /* ---------------------------------------------------------------------- */
-  --brand:         #E87A1E;
-  --brand-deep:    #D97017;
+  --brand:         var(--kb-color-primary);
+  --brand-deep:    var(--kb-color-primary-hover);
   --brand-soft:    var(--kb-color-primary-soft);
   --brand-ring:    rgba(var(--kb-color-primary-rgb), 0.35);
   /* Focus indicator: brand highlight against surfaces */
   --brand-focus-ring: rgba(var(--kb-color-primary-rgb), 0.45);
 
-  --gradient-primary: linear-gradient(135deg, #F97316 0%, #E87A1E 100%);
+  --gradient-primary: linear-gradient(135deg, #6A36D6 0%, #3F1B95 100%);
   --gradient-hero:    linear-gradient(135deg, var(--kb-color-surface) 0%, var(--kb-color-bg-app) 100%);
-  --brand-orange:      #E87A1E;
+  --brand-orange:      #EC8C17;
   --brand-orange-ink:  #B45309;
-  --brand-purple:      #5926B8;
+  --brand-purple:      #552AAF;
 
   /* ---------------------------------------------------------------------- */
   /* Semantic colours                                                        */
@@ -119,7 +121,7 @@
      recessed well. A dialog is white too, but it also carries the largest
      shadow in the system — on a light canvas, elevation is a shadow, not a
      darker fill. */
-  --kb-color-bg-app:            #F8FAFC; /* Page canvas (30% Secondary from Dashboard.png) */
+  --kb-color-bg-app:            #F3F8FE; /* Page canvas */
   --kb-color-foreground:        #111827; /* Primary text (16.9:1 on white) */
   --kb-color-foreground-2:      #334155; /* Values and table cells (10.4:1) */
   --kb-color-foreground-contrast: #FFFFFF; /* Ink that sits ON foreground fills */
@@ -127,65 +129,67 @@
   --kb-color-surface-2:         #F1F5F9; /* Table header, hover, nested tiles */
   --kb-color-surface-3:         #FFFFFF; /* Modal, popover, raised controls */
   --kb-color-muted:             #F1F5F9; /* Recessed input / well */
-  --kb-color-muted-foreground:  #556377; /* Secondary text (6.1:1 on white, 5.6:1 on a table header) */
-  --kb-color-border:            #E2E8F0; /* Dividers and card edges (Dashboard.png standard) */
+  --kb-color-muted-foreground:  #657A9C; /* Muted slate blue secondary text */
+  --kb-color-border:            #D9E5F2; /* Cool blue-gray borders */
   --kb-color-border-strong:     #4B5563; /* Control borders (3.5:1 on #F7F9FC, >=3:1 UI boundary) */
   --kb-color-input:             #FFFFFF; /* Field background (reads as recessed on canvas) */
   --kb-color-ring:              rgba(var(--kb-color-primary-rgb), 0.45);
   --kb-border-control: #64748B;
   --kb-accent-money:            #B45309;
-  --kb-accent-money-fill:       #E87A1E;
-  --kb-accent-flow:             #5926B8;
+  --kb-accent-money-fill:       #EC8C17; /* Saffron accent (kept from existing) */
+  --kb-accent-flow:             #552AAF;
   --kb-accent-positive:         #166534;
   --kb-accent-neutral:          #334155;
-  --kb-chart-1:                 #E87A1E; /* Sales revenue velocity line */
+  --kb-chart-1:                 #F9731A; /* Sales revenue velocity line */
   --kb-chart-2:                 #2563EB; /* Orders / takeaway */
-  --kb-chart-3:                 #5926B8; /* Flow / tables */
-  --kb-chart-4:                 #16A34A; /* Delivery / positive */
-  --kb-chart-5:                 #475569; /* Reference line */
+  --kb-chart-3:                 #7C3AED; /* Flow / tables */
+  --kb-chart-4:                 #12A76A; /* Delivery / positive */
+  --kb-chart-5:                 #64748B; /* Reference line */
   --kb-color-saffron:           var(--kb-accent-money);
   --kb-color-burnt:             #B91C1C;
-  --kb-color-primary:           #E87A1E; /* KhanaBook 10% Accent (Highlights & Buttons) */
-  --kb-color-primary-foreground:#FFFFFF;
-  --kb-color-primary-hover:     #D97017;
-  --kb-color-primary-soft:      rgba(232, 122, 30, 0.10);
+  /* Primary is the logo violet: white on #552AAF is 9.0:1, so a filled action
+     can carry its own label (the old orange fill measured 3.1:1 with white). */
+  --kb-color-primary:           #FF5A0A; /* Primary action orange */
+  --kb-color-primary-foreground:#102B63; /* Orange on dark navy for labels */
+  --kb-color-primary-hover:     #3F1B95;
+  --kb-color-primary-soft:      rgba(85, 42, 175, 0.10);
   /* Semantic status. Each foreground clears 4.5:1 against its own soft tint
      composited on --kb-color-surface, so the pin does not rely on colour alone
      AND stays readable. The inks are the deep steps: the dark theme's pastels
      (#34D399, #FBBF24, #F87171) sit at 1.9-2.4:1 on white and would vanish. */
-  --kb-color-success:           #166534;
+  --kb-color-success:           #12A76A; /* Positive/success */
   --kb-color-success-soft:      rgba(22, 101, 52, 0.10);
-  --kb-color-warning:           #9A3F08;
+  --kb-color-warning:           #FF8A00; /* Warning/preparing */
   --kb-color-warning-soft:      rgba(154, 63, 8, 0.10);
-  --kb-color-danger:            #B91C1C;
+  --kb-color-danger:            #E11D2E; /* Cancelled/error */
   --kb-color-danger-soft:       rgba(185, 28, 28, 0.07);
   /* A destructive FILL that carries white text (badge, primary danger button).
      On the light canvas the ink and the fill are the same deep red (6.4:1). */
   --kb-color-danger-solid:      #B91C1C;
   --kb-color-danger-solid-hover:#991B1B;
   --kb-color-info:              var(--kb-color-link);
-  --kb-color-info-soft:         var(--kb-color-primary-soft);
+  --kb-color-info-soft:         rgba(74, 33, 166, 0.09);
   /* Aliases for legacy token names still referenced by page components */
   --kb-color-card:              var(--kb-color-surface);
   --kb-color-surface-1:         var(--kb-color-surface);
   --kb-color-on-primary:        #FFFFFF;
-  --kb-color-primary-rgb:       232, 122, 30;
+  --kb-color-primary-rgb:       85, 42, 175;
   /* Channel projections of the two accents, for the alpha tints the accent roles
      need (icon chips, bar glows). Same reason --kb-color-primary-rgb exists:
      an alpha variant is written as rgba(var(--...-rgb), a) and never re-typed. */
-  --kb-brand-orange-rgb:        232, 122, 30;
-  --kb-brand-purple-rgb:        89, 38, 184;
+  --kb-brand-orange-rgb:        236, 140, 23;
+  --kb-brand-purple-rgb:        85, 42, 175;
   --kb-color-success-rgb:       22, 101, 52;
   --kb-color-warning-rgb:       154, 63, 8;
   --kb-color-danger-rgb:        185, 28, 28;
-  --kb-color-info-rgb:          37, 99, 235;
-  --kb-brand-orange:            #E87A1E; /* Accent only: 2.75:1 on #F7F9FC — not for body text */
-  --kb-brand-orange-ink:        var(--kb-accent-money); /* Dark ink step for orange text (5.02:1 on white) */
-  --kb-brand-purple:            #5926B8; /* 8.32:1 on #F7F9FC — passes AA */
+  --kb-color-info-rgb:          74, 33, 166;
+  --kb-brand-orange:            #EC8C17; /* Logo saffron. Accent fill only: 2.9:1 on white — not for text */
+  --kb-brand-orange-ink:        var(--kb-accent-money); /* Dark ink step for saffron text (5.02:1 on white) */
+  --kb-brand-purple:            #552AAF; /* Logo violet, 9.0:1 on white — passes AA */
   --kb-color-error:             var(--kb-color-danger);
   --kb-color-error-soft:        var(--kb-color-danger-soft);
   --kb-easing-fast:             var(--kb-ease-standard);
-  --kb-gradient-hero:           linear-gradient(135deg, #4F46E5 0%, #4338CA 100%);
+  --kb-gradient-hero:           linear-gradient(135deg, #552AAF 0%, #3F1B95 100%);
   --kb-gradient-cream:          linear-gradient(180deg, #FFFFFF 0%, #F1F5F9 100%);
   --kb-font-sans:               "Inter", ui-sans-serif, system-ui, sans-serif;
   --kb-font-display:            "Plus Jakarta Sans", "Inter", sans-serif;
@@ -213,11 +217,11 @@
   --kb-text-3xl: 1.75rem;    /* 28px — KPI figure */
   --kb-text-4xl: 2rem;       /* 32px — hero figure */
 
-  /* Links are the deep blue: the 500 fill is 5.2:1 on white but the 600 step
-     leaves headroom on tinted rows too. Hover deepens rather than lightens —
-     lightening on a white canvas reads as disabled. */
-  --kb-color-link:              #2563EB;
-  --kb-color-link-hover:        #1D4ED8;
+  /* Links are the deep logo violet: the primary step is 9.0:1 on white, and the
+     near-black step beneath it leaves headroom on tinted rows too. Hover deepens
+     rather than lightens — lightening on a white canvas reads as disabled. */
+  --kb-color-link:              #4A21A6; /* Logo violet as ink: 10.2:1 on white */
+  --kb-color-link-hover:        #38157F;
   --kb-space-1: 4px;  --kb-space-2: 8px;  --kb-space-3: 12px;
   --kb-space-4: 16px; --kb-space-5: 20px; --kb-space-6: 24px;
   --kb-space-8: 32px; --kb-space-10: 40px; --kb-space-12: 48px; --kb-space-16: 64px;
@@ -251,7 +255,7 @@
   --kb-z-peek:     140;  /* collapsed-rail hover chip */
   --kb-z-modal:    1000; /* every modal overlay, whichever component owns it */
   --kb-z-toast:    1100; /* every toast, above an open modal */
-  --kb-sidebar-width: 240px; --kb-topbar-height: 56px;
+  --kb-sidebar-width: 232px; --kb-topbar-height: 56px;
   /* One content measure, read by .page-shell and nothing else. 1680px is the
      shipped and chosen width (owner decision 2026-10-25); it preserves the
      data-dense layout at 1920px. DESIGN_SYSTEM_FREEZE.md rule 1 is aligned. The
@@ -259,24 +263,33 @@
   --kb-content-max-width: 1680px;
   --kb-touch-min: 44px; --kb-touch-primary: 48px;
 
-  /* POS Command Center Theme Tokens (60% Primary #1E3A8A from Dashboard.png) */
-  --pos-sidebar-bg:         #1E3A8A;
-  --pos-sidebar-hover:      rgba(255, 255, 255, 0.10);
-  --pos-sidebar-active:     #2563EB;
-  --pos-sidebar-active-rgb: 37, 99, 235;
-  --pos-sidebar-text:       #E2E8F0;
+  /* POS Command Center Theme Tokens — sampled from khanabook_logo.png:
+     violet #3F1B95→#552AAF chevrons, charcoal #1F1F1F cloche, saffron #EC8C17
+     rupee mark. The rail is the logo's deep violet taken one step darker so the
+     white row label keeps its headroom (14.6:1) and the rail reads as the
+     brand's dark plane rather than a generic navy. */
+  --pos-sidebar-bg:         #2E1470;
+  --pos-sidebar-hover:      rgba(255, 255, 255, 0.08);
+  --pos-sidebar-active:     #552AAF; /* Logo violet, light step */
+  --pos-sidebar-active-rgb: 85, 42, 175;
+  --pos-sidebar-text:       #DDD6F3; /* 13.0:1 on the rail */
   --pos-sidebar-ink:        #FFFFFF; /* User name, collapse chevron, drawer close */
-  --pos-sidebar-ink-muted:  #93C5FD; /* User role */
-  --pos-sidebar-border:     rgba(255, 255, 255, 0.12); /* The rail's right edge */
-  --pos-sidebar-peek-bg:    #172554; /* Collapsed-nav hover chip */
+  --pos-sidebar-ink-muted:  #B9A8E8; /* User role, group headings (8.8:1) */
+  --pos-sidebar-border:     rgba(255, 255, 255, 0.10); /* The rail's right edge */
+  --pos-sidebar-peek-bg:    #1F0B52; /* Collapsed-nav hover chip */
   --pos-sidebar-danger:     #DC2626; /* Sign out fill */
   --pos-sidebar-danger-hover: #EF4444;
-  /* Presence dot: vibrant green ~8:1 against #1E3A8A */
-  --pos-sidebar-success:    #22C55E;
+  /* The rail's one highlight: the logo's saffron rupee mark, used for the active
+     row's edge bar and nothing else, so "where am I" is legible without a
+     second colour field. */
+  --pos-sidebar-accent:     #EC8C17;
+  /* Presence dot: vibrant green ~8:1 against the violet rail */
+  --pos-sidebar-success:    #34D399;
   --pos-purple:             var(--kb-color-primary);
   --pos-purple-hover:       var(--kb-color-primary-hover);
   --pos-purple-soft:        var(--kb-color-primary-soft);
-  --pos-purple-gradient:    linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+  /* Logo violet gradient, for the one hero surface that earns it. */
+  --pos-purple-gradient:    linear-gradient(135deg, #552AAF 0%, #3F1B95 100%);
   --pos-bg-body:            var(--kb-color-bg-app);
   --pos-card-bg:            var(--kb-color-surface);
   --pos-card-border:        var(--kb-color-border);
@@ -305,10 +318,10 @@ h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spac
 
 button, input, select, textarea { font: inherit; }
 
-/* Brand blue is the FILL. As text it uses the deeper link tone (7.0:1 on white,
-   6.1:1 on its own tint), so a link and a primary button read as the same brand
-   without either one failing AA. Hover deepens: on a white canvas, lightening
-   would read as disabled. */
+/* Brand violet is the FILL. As text it uses the deeper link tone (10.2:1 on
+   white, 8.4:1 on its own tint), so a link and a primary button read as the same
+   brand without either one failing AA. Hover deepens: on a white canvas,
+   lightening would read as disabled. */
 a { color: var(--kb-color-link); text-decoration: none; }
 a:hover { color: var(--kb-color-link-hover); }
 
@@ -708,12 +721,12 @@ tbody tr[aria-selected="true"] {
 .field-control:focus, .field-select:focus {
   outline: none;
   border-color: var(--kb-color-primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 0 0 3px rgba(var(--kb-color-primary-rgb), 0.22);
 }
 .field-control:focus-visible, .field-select:focus-visible {
   outline: none;
   border-color: var(--kb-color-primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 0 0 3px rgba(var(--kb-color-primary-rgb), 0.22);
 }
 .field-control:disabled,
 .field-control[disabled],
@@ -744,7 +757,7 @@ tbody tr[aria-selected="true"] {
 .field-input:focus {
   outline: none;
   border-color: var(--kb-color-primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 0 0 3px rgba(var(--kb-color-primary-rgb), 0.22);
 }
 .field-input:disabled,
 .field-input[disabled] {

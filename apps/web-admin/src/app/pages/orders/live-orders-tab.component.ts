@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { KpiItem } from '../../shared/kpi-row.component';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -55,6 +56,82 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
         (retry)="load(true)"
       ></app-api-state>
 
+      <!-- KPI Cards Row + Filter Chips -->
+      <div class="kpi-row-and-filters"
+        *ngIf="activeOrders().length && !showReloadSkeleton()"
+        aria-label="KPI and filter controls"
+      >
+        <!-- KPI Cards: four compact cards in a single row at desktop -->
+        <div class="kpi-cards"
+          *ngIf="!showReloadSkeleton()"
+          aria-label="Key order metrics"
+        >
+          <div class="kpi-card"
+            *ngFor="let item of liveKpiItems()"
+            [class.kpi-card--active]="item.accent === 'positive'"
+            [class.kpi-card--flow]="item.accent === 'flow'"
+            [class.kpi-card--activity]="item.accent === 'activity'"
+            [attr.aria-label]="item.label + ': ' + item.value"
+          >
+            <div class="kpi-card__label" [class.kpi-card__label--secondary]="true">{{ item.label }}</div>
+            <div class="kpi-card__value" [class.kpi-card__value--tone]="item.tone"
+              [class.kpi-card__value--accent]="item.accent"
+            >{{ item.value }}</div>
+            <div class="kpi-card__badge" *ngIf="item.badge"
+              [class.kpi-card__badge--tone]="item.badge.tone"
+            >{{ item.badge.text }}</div>
+            <div class="kpi-card__accent"
+              [class.kpi-card__accent--flow]="item.accent === 'flow'"
+              [class.kpi-card__accent--positive]="item.accent === 'positive'"
+              [class.kpi-card__accent--activity]="item.accent === 'activity'"
+            ></div>
+          </div>
+        </div>
+
+        <!-- Order-type filter chips directly below the KPI cards -->
+        <div class="filter-chips"
+          *ngIf="!showReloadSkeleton()"
+          aria-label="Order type filters"
+        >
+          <button
+            type="button"
+            class="filter-chip"
+            *ngFor="let channel of ['All', 'Dine-in', 'Takeaway', 'Delivery']"
+            [class.filter-chip--active]="channel !== 'All' && isTakeawayFilter || channel === 'All'"
+            (click)="filterByChannel(channel)"
+          >{{ channel }}</button>
+        </div>
+      </div>
+
+      <!-- Floor summary: the five numbers a busy counter checks before reading
+           individual cards. It reuses the computeds the board already carries
+           and adds no request of its own. -->
+      <section
+        class="live-summary"
+        *ngIf="activeOrders().length && !showReloadSkeleton()"
+        aria-label="Live floor summary">
+        <div class="live-summary__item">
+          <span class="live-summary__label">Active orders</span>
+          <strong class="live-summary__value">{{ activeOrders().length }}</strong>
+        </div>
+        <div class="live-summary__item">
+          <span class="live-summary__label">Tables in use</span>
+          <strong class="live-summary__value">{{ activeTableCount() }}</strong>
+        </div>
+        <div class="live-summary__item">
+          <span class="live-summary__label">Oldest wait</span>
+          <strong class="live-summary__value">{{ oldestWaitFormatted() }}</strong>
+        </div>
+        <div class="live-summary__item live-summary__item--money">
+          <span class="live-summary__label">On the floor</span>
+          <strong class="live-summary__value">{{ fmt(totalFloorValue()) }}</strong>
+        </div>
+        <div class="live-summary__item live-summary__item--attention" *ngIf="urgentCount() > 0">
+          <span class="live-summary__label">Waiting 25m+</span>
+          <strong class="live-summary__value">{{ urgentCount() }}</strong>
+        </div>
+      </section>
+
       <!-- Bento Cards Grid (bentogrids.com standard) -->
       <div class="active-orders-grid" *ngIf="activeOrders().length && !showReloadSkeleton()">
         <article
@@ -98,8 +175,17 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
           </div>
 
           <div class="card-customer-row">
-            <span class="customer-name">{{ order.customerName || 'Walk-in Guest' }}</span>
+            <span class="customer-name">{{ order.customerName || 'Walk-in guest' }}</span>
             <span class="table-identifier" *ngIf="order.tableNumber">Table {{ order.tableNumber }}</span>
+          </div>
+
+          <!-- Payment is stated in words as well as by the dot: an operator must
+               never have to decode a colour to know whether the bill is settled. -->
+          <div class="card-payment-row">
+            <span class="payment-status" [class.payment-status--pending]="isPendingPayment(order)">
+              <span class="payment-dot" aria-hidden="true"></span>
+              {{ order.paymentMethod || 'Cash' }} · {{ order.paymentStatus || 'Pending' }}
+            </span>
           </div>
 
           <div class="card-bottom-row">
@@ -233,37 +319,85 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     /* Tab body — the routed shell owns the page header and outer geometry. */
     .tab-panel {
       display: grid;
-      gap: var(--kb-space-6);
-    }
-    .tab-toolbar {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.65rem;
-      flex-wrap: wrap;
-    }
-    .tab-toolbar__actions {
-      display: flex;
-      align-items: center;
-      gap: 0.65rem;
-      flex-wrap: wrap;
+      gap: var(--kb-space-5);
     }
 
-    
-    
-    
-    .spinning {
-      animation: spin 800ms linear infinite;
+    /* ── Floor summary strip ── */
+    .live-summary {
+      display: flex;
+      align-items: stretch;
+      flex-wrap: wrap;
+      gap: var(--kb-space-3) 0;
+      padding: var(--kb-space-3) var(--kb-space-4);
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-card);
     }
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+
+    .live-summary__item {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-1);
+      flex: 1 1 0;
+      min-width: 110px;
+      padding: 0 var(--kb-space-4);
+      border-left: 1px solid var(--kb-color-border);
     }
+
+    .live-summary__item:first-child { border-left: 0; padding-left: 0; }
+    .live-summary__item:last-child { padding-right: 0; }
+
+    .live-summary__label {
+      font-size: var(--kb-text-xs);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--kb-color-muted-foreground);
+      white-space: nowrap;
+    }
+
+    .live-summary__value {
+      font-size: var(--kb-text-lg);
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--kb-color-foreground);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .live-summary__item--money .live-summary__value { color: var(--kb-accent-money); }
+    .live-summary__item--attention .live-summary__value,
+    .live-summary__item--attention .live-summary__label { color: var(--kb-color-warning); }
+
+    @media (max-width: 640px) {
+      .live-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--kb-space-3);
+      }
+      .live-summary__item { padding: 0; border-left: 0; }
+      .live-summary__item--money,
+      .live-summary__item--attention { grid-column: span 2; }
+    }
+
+    /* Refresh lives in the page header's shared date-range toolbar, which owns
+       its own spinner, so the tab no longer draws a second one. */
 
     /* ── Bento Active Cards Grid (bentogrids.com standard) ── */
     .active-orders-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-      gap: 1.15rem;
+      gap: var(--kb-space-4);
+    }
+
+    /* A 310px minimum reads as a card, but on a phone it is wider than the
+       column that holds it — which is what pushed the board sideways. The
+       ladder's 640 step is where the app drops every two-up grid to one. */
+    @media (max-width: 640px) {
+      .active-orders-grid,
+      .skeleton-card-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
     }
 
     /* The loading state borrows .bento-tile for its box, and repeats the card
@@ -289,19 +423,31 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
        .bento-tile. This adds only what is local to an order card: the wider
        inner rhythm and the brand-tinted hover lift. */
     .pos-card-tactile {
-      gap: 0.85rem;
+      gap: var(--kb-space-3);
       cursor: pointer;
+      /* The shared .bento-tile carries a drop shadow; on a board of six cards
+         that reads as six floating planes. The order card sits on its border
+         and earns elevation only under the pointer. */
+      box-shadow: var(--kb-shadow-xs);
     }
     .pos-card-tactile:hover {
       transform: translateY(-2px);
-      border-color: var(--kb-color-primary-soft);
-      box-shadow: 0 8px 24px rgba(var(--kb-color-primary-rgb), 0.08);
+      border-color: var(--kb-color-primary);
+      box-shadow: var(--kb-shadow-sm);
     }
     .pos-card-tactile:active {
       transform: scale(0.98);
     }
+    /* An urgent card is marked in its gutter and its border. The inset bar does
+       not change the card's box, so the grid does not reflow when the clock
+       crosses 25 minutes. */
     .pos-card--urgent {
-      border-color: rgba(var(--kb-color-warning-rgb), 0.5);
+      border-color: rgba(var(--kb-color-warning-rgb), 0.45);
+      box-shadow: inset 3px 0 0 var(--kb-color-warning), var(--kb-shadow-xs);
+    }
+    .pos-card--urgent:hover {
+      border-color: var(--kb-color-warning);
+      box-shadow: inset 3px 0 0 var(--kb-color-warning), var(--kb-shadow-sm);
     }
 
     .card-top-row {
@@ -338,7 +484,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       color: var(--kb-color-foreground);
     }
     .channel-tag {
-      font-size: var(--kb-text-2xs);
+      font-size: var(--kb-text-xs);
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       text-transform: uppercase;
@@ -346,20 +492,26 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     }
 
     .status-pill {
-      font-size: var(--kb-text-2xs);
+      flex: none;
+      font-size: var(--kb-text-xs);
       font-weight: 700;
+      line-height: 1.3;
       padding: 0.2rem 0.6rem;
       border-radius: var(--kb-radius-full);
       background: var(--kb-color-surface-2);
       color: var(--kb-color-muted-foreground);
     }
-    .status-pill--warn {
-      background: var(--kb-color-warning-soft);
-      color: var(--kb-color-warning);
-    }
+    /* The pill states the ORDER's state, so the warning tone must win over the
+       payment modifier when both classes are present. Payment already has its
+       own dot and word on the line below, which is why this does not try to say
+       both things in one chip. */
     .status-pill--pending {
       background: var(--kb-color-success-soft);
       color: var(--kb-color-success);
+    }
+    .status-pill--warn {
+      background: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
     }
 
     .card-customer-row {
@@ -372,21 +524,50 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       font-size: var(--kb-text-md);
       font-weight: 600;
       color: var(--kb-color-foreground);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .table-identifier {
+      flex: none;
       font-size: var(--kb-text-sm);
       font-weight: 700;
       color: var(--kb-color-link);
-      background: var(--kb-color-surface);
+      background: var(--kb-color-primary-soft);
       padding: 0.15rem 0.55rem;
       border-radius: var(--kb-radius-md);
     }
+
+    .card-payment-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--kb-space-2);
+    }
+    .payment-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: var(--kb-text-xs);
+      font-weight: 600;
+      color: var(--kb-color-muted-foreground);
+    }
+    .payment-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-color-success);
+      flex: none;
+    }
+    .payment-status--pending { color: var(--kb-color-warning); }
+    .payment-status--pending .payment-dot { background: var(--kb-color-warning); }
 
     .card-bottom-row {
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
-      border-top: 1px solid var(--kb-color-bg-app);
+      gap: var(--kb-space-3);
+      border-top: 1px solid var(--kb-color-border);
       padding-top: 0.75rem;
     }
     .amount-col {
@@ -394,14 +575,16 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       flex-direction: column;
     }
     .amount-label {
-      font-size: var(--kb-text-2xs);
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
       font-weight: 600;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
     }
     .amount-val {
-      font-size: 1.2rem;
+      font-size: var(--kb-text-xl);
       font-weight: 800;
+      line-height: 1.15;
       color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
     }
@@ -411,6 +594,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       font-weight: 600;
       color: var(--kb-color-muted-foreground);
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
     .elapsed-pill--urgent {
       color: var(--kb-color-warning);
@@ -424,44 +608,50 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     /* ── Card Actions Row ── */
     .card-actions-row {
       display: flex;
+      flex-wrap: wrap;
       gap: var(--kb-space-2);
       border-top: 1px solid var(--kb-color-border);
-      padding-top: 0.75rem;
-      margin-top: 0.25rem;
+      padding-top: var(--kb-space-3);
+      margin-top: var(--kb-space-1);
     }
     .card-action-btn {
-      flex: 1;
+      flex: 1 1 auto;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 0.35rem;
       padding: 0.45rem var(--kb-space-2);
       border-radius: var(--kb-radius-lg);
-      font-size: var(--kb-text-xs);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       border: 1px solid var(--kb-color-border);
       background: var(--kb-color-surface);
       color: var(--kb-color-foreground);
       cursor: pointer;
-      min-height: 36px;
-      transition: all 150ms ease;
+      min-height: 38px;
+      transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
     }
     .card-action-btn:hover {
-      background: var(--kb-color-bg-app);
+      background: var(--kb-color-surface-2);
       border-color: var(--kb-color-border-strong);
       color: var(--kb-color-foreground);
     }
     .card-action-btn:active {
       transform: scale(0.97);
     }
+    /* Details is the card's primary action: the one filled brand control. */
     .card-action-btn--primary {
-      background: var(--kb-color-primary-soft);
-      border-color: var(--kb-color-primary-soft);
-      color: var(--kb-color-link);
+      background: var(--kb-color-primary);
+      border-color: var(--kb-color-primary);
+      color: var(--kb-color-primary-foreground);
     }
     .card-action-btn--primary:hover {
-      background: var(--kb-color-primary-soft);
-      border-color: var(--kb-color-primary-soft);
+      background: var(--kb-color-primary-hover);
+      border-color: var(--kb-color-primary-hover);
+      color: var(--kb-color-primary-foreground);
+    }
+    @media (pointer: coarse) {
+      .card-action-btn { min-height: var(--kb-touch-min); }
     }
     /* Solid danger fill, matching the sidebar's Sign out button: the cancel action is
        destructive, so it reads as a filled red button with white content rather than a
@@ -592,6 +782,41 @@ export class LiveOrdersTabComponent implements OnDestroy {
   private pollInterval: ReturnType<typeof setInterval> | null = null;
 
   readonly fmt = formatCurrency;
+
+  readonly liveKpiItems = computed(() => {
+    const orders = this.activeOrders();
+    return [
+      {
+        label: 'Active Orders',
+        value: orders.length.toString(),
+        tone: 'success' as const,
+        accent: 'positive',
+        badge: { text: '+new', tone: 'success' },
+      } as KpiItem,
+      {
+        label: 'Preparing',
+        value: orders.filter(o => (o.orderStatus || '').trim().toLowerCase() === 'draft').length.toString(),
+        tone: 'warning' as const,
+        accent: 'flow',
+      } as KpiItem,
+      {
+        label: 'Completed (Today)',
+        value: orders.filter(o => {
+          const created = o.createdAt ? new Date(o.createdAt) : null;
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          return created && created.toISOString().startsWith(todayStr) && (o.orderStatus || '').trim().toLowerCase() === 'completed';
+        }).length.toString(),
+        tone: 'success' as const,
+      } as KpiItem,
+      {
+        label: 'Payment Due',
+        value: orders.filter(o => (o.paymentStatus || '').trim().toLowerCase() === 'pending').length.toString(),
+        tone: 'danger' as const,
+        accent: 'activity',
+      } as KpiItem,
+    ] as KpiItem[];
+  });
 
   readonly totalFloorValue = computed(() => {
     return this.activeOrders().reduce((sum, o) => sum + (o.totalAmount || 0), 0);
@@ -727,6 +952,12 @@ export class LiveOrdersTabComponent implements OnDestroy {
     if (this.isTakeaway(order)) return 'Takeaway';
     if (this.isDelivery(order)) return 'Delivery';
     return 'Dine-In';
+  }
+
+  readonly isTakeawayFilter = signal('All');
+
+  filterByChannel(channel: string): void {
+    this.isTakeawayFilter.set(channel);
   }
 
   trackByOrderId = (_: number, order: BusinessOrder) => order.orderId;

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnDestroy, Output, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnDestroy, Output, inject, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, debounceTime, distinctUntilChanged, from, of } from 'rxjs';
 import { concatMap, finalize, reduce, switchMap } from 'rxjs/operators';
@@ -8,6 +8,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
+import { KpiItem } from '../../shared/kpi-row.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
@@ -30,6 +31,27 @@ export function formatIsoDate(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+/**
+ * The table prints the date and the time on separate lines. Both are fixed to
+ * the restaurant's timezone, not the viewer's — a bill rung up at 11:50 pm IST
+ * must not read as the next day because the owner opened the page from London.
+ * Built once at module scope rather than per cell: a 10-row table would
+ * otherwise construct 20 formatters on every change-detection pass.
+ */
+const ORDER_DATE_FORMAT = new Intl.DateTimeFormat('en-IN', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'Asia/Kolkata'
+});
+
+const ORDER_TIME_FORMAT = new Intl.DateTimeFormat('en-IN', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: true,
+  timeZone: 'Asia/Kolkata'
+});
 
 export interface BusinessOrderFilters {
   searchTerm: string;
@@ -215,95 +237,221 @@ export function orderStatusLabel(status: string | null | undefined): string {
         (retry)="loadOrders()"
       ></app-api-state>
 
-      <!-- ── Order History Table (no container chrome: bare table only) ── -->
-      <ng-container *ngIf="!ordersError" aria-label="Order history">
-        <!-- Orders Tactile Table -->
-        <div class="table-wrap" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
-          <table class="data-table">
-            <caption class="visually-hidden">Orders in the selected period, with channel, guest, total, status and actions</caption>
-            <thead>
-              <tr>
-                <th scope="col">Order</th>
-                <th scope="col">Channel &amp; Table</th>
-                <th scope="col">Guest &amp; Summary</th>
-                <th scope="col">Total</th>
-                <th scope="col">Status</th>
-                <th scope="col">Time</th>
-                <th scope="col" class="text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                *ngFor="let order of pagedOrders; trackBy: trackByOrderId"
-                class="clickable-row"
-                tabindex="0"
-                [attr.aria-label]="'View order #' + order.orderCode"
-                (click)="openOrderDetail(order)"
-                (keydown.enter)="openOrderDetail(order)">
-                <th scope="row">
-                  <span class="order-hash-code">#{{ order.orderCode }}</span>
-                  <div *ngIf="order.invoiceNumber && order.invoiceNumber !== order.orderCode" class="invoice-sub-badge font-mono">
-                    {{ order.invoiceNumber }}
-                  </div>
-                </th>
-                <td>
-                  <span class="channel-chip channel-chip--{{ isTakeaway(order) ? 'takeaway' : 'dine_in' }}">
-                    {{ isTakeaway(order) ? 'Takeaway' : 'Dine In' }}
-                  </span>
-                </td>
-                <td>
-                  <div class="order-guest-desc">
-                    <span class="guest-title">{{ order.customerName ? 'Guest: ' + order.customerName : (isTakeaway(order) ? 'Takeaway Order' : 'Dine In Order') }}</span>
-                    <span class="guest-meta">{{ isTakeaway(order) ? 'Takeaway' : (order.tableNumber ? 'Table ' + order.tableNumber : 'Dine In') }} · {{ order.paymentMethod || 'Cash' }}</span>
-                  </div>
-                </td>
-                <td>
-                  <strong class="order-table-amount">{{ formatCurrencyValue(order.totalAmount) }}</strong>
-                  <div *ngIf="order.refundAmount && order.refundAmount > 0" class="refund-sub-badge">
-                    -{{ formatCurrencyValue(order.refundAmount) }}
-                  </div>
-                </td>
-                <td>
-                  <span class="status-chip" [ngClass]="getOrderStatusClass(order.orderStatus)">
-                    {{ orderStatusLabel(order.orderStatus) }}
-                  </span>
-                </td>
-                <td>
-                  <span class="time-stamp-label">{{ formatDateValue(order.createdAt) }}</span>
-                </td>
-                <td class="text-right" (click)="$event.stopPropagation()">
-                  <div class="action-btn-group">
-                    <button
-                      type="button"
-                      class="btn-micro btn-micro--primary"
-                      (click)="openOrderDetail(order)"
-                      aria-label="View order details">
-                      View
-                    </button>
-                    <button
-                      *ngIf="order.manualRefundAllowed"
-                      type="button"
-                      class="btn-micro btn-micro--refund"
-                      (click)="openManualRefund(order)"
-                      title="Issue refund"
-                      aria-label="Refund order">
-                      Refund
-                    </button>
-                    <button
-                      type="button"
-                      class="btn-micro"
-                      (click)="shareInvoice(order)"
-                      title="Share invoice"
-                      aria-label="Share invoice">
-                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4m-6.6 7 6.6 4.4"/></svg>
-                      Share
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Order History KPI cards + Filters panel -->
+      <div class="history-kpi-and-filters" *ngIf="!ordersError" aria-label="Order history KPI and filters">
+        <!-- KPI Cards above filters -->
+        <div class="kpi-row history-kpi-row"
+          *ngIf="serverTotalElements && serverTotalElements > 0"
+          aria-label="Order history metrics"
+        >
+          <div class="kpi-card history-kpi-card"
+            *ngFor="let item of historyKpiItems()"
+            [class.kpi-card--default]="item.tone === 'default'"
+            [class.kpi-card--success]="item.tone === 'success'"
+            [class.kpi-card--danger]="item.tone === 'danger'"
+            [attr.aria-label]="item.label + ': ' + item.value"
+          >
+            <div class="kpi-card__label" [class.kpi-card__label--secondary]="true">{{ item.label }}</div>
+            <div class="kpi-card__value" [class.kpi-card__value--tone]="item.tone"
+              [class.kpi-card__value--accent-default]="item.tone === 'default'"
+              [class.kpi-card__value--accent-success]="item.tone === 'success'"
+              [class.kpi-card__value--accent-danger]="item.tone === 'danger'"
+            >{{ item.value }}</div>
+            <div class="kpi-card__unit" *ngIf="item.unit">{{ item.unit }}</div>
+          </div>
         </div>
+
+        <!-- Filter panel with search, clear, and combined filters -->
+        <div class="filter-panel"
+          *ngIf="serverTotalElements && serverTotalElements > 0"
+          aria-label="Order history filters"
+        >
+          <div class="filter-row"
+            *ngIf="serverTotalElements && serverTotalElements > 0"
+          >
+            <div class="filter-item"
+              *ngIf="serverTotalElements && serverTotalElements > 0"
+            >
+              <input
+                type="text"
+                class="field-control"
+                placeholder="Search order #, items, guest..."
+                [(ngModel)]="orderSearchTerm"
+                (ngModelChange)="onSearchChange($event)"
+                aria-label="Search order history"
+              />
+            </div>
+            <div class="filter-item"
+              *ngIf="serverTotalElements && serverTotalElements > 0"
+            >
+              <button
+                type="button"
+                class="btn-clear"
+                (click)="clearFilters()"
+                aria-label="Clear all filters"
+                *ngIf="orderSearchTerm || orderSourceFilter || orderStatusFilter || orderPaymentFilter"
+              >Clear</button>
+            </div>
+          </div>
+
+          <div class="filter-row"
+            *ngIf="serverTotalElements && serverTotalElements > 0"
+          >
+            <div class="filter-item"
+              *ngIf="serverTotalElements && serverTotalElements > 0"
+            >
+              <select
+                class="field-select"
+                [(ngModel)]="orderSourceFilter"
+                (ngModelChange)="setSourceFilter($event)"
+                aria-label="Filter by source"
+              >
+                <option value="ALL">All</option>
+                <option value="DINE_IN">Dine-in</option>
+                <option value="TAKEAWAY">Takeaway</option>
+                <option value="DELIVERY">Delivery</option>
+              </select>
+            </div>
+            <div class="filter-item"
+              *ngIf="serverTotalElements && serverTotalElements > 0"
+            >
+              <select
+                class="field-select"
+                [(ngModel)]="orderStatusFilter"
+                (ngModelChange)="onStatusFilterChange($event)"
+                aria-label="Filter by status"
+              >
+                <option value="ALL">All</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Draft">Draft</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>
+            <div class="filter-item"
+              *ngIf="serverTotalElements && serverTotalElements > 0"
+            >
+              <select
+                class="field-select"
+                [(ngModel)]="orderPaymentFilter"
+                aria-label="Filter by payment"
+              >
+                <option value="ALL">All</option>
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="Card">Card</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Order History table ── -->
+      <ng-container *ngIf="!ordersError" aria-label="Order history">
+        <!-- Order History table. The table, its header and the pagination bar are
+             one .panel, so the page shows one bordered surface rather than a bare
+             table followed by a detached page strip. -->
+        <section class="panel history-card" *ngIf="ordersLoaded && pagedOrders.length > 0; else emptyOrLoadingOrders">
+          <div class="table-wrap">
+            <table class="data-table">
+              <caption class="visually-hidden">Orders in the selected period, with date, channel, guest, total, payment, status and actions</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Order</th>
+                  <th scope="col">Date &amp; time</th>
+                  <th scope="col">Type &amp; table</th>
+                  <th scope="col">Guest</th>
+                  <th scope="col" class="text-right">Total</th>
+                  <th scope="col">Status &amp; payment</th>
+                  <th scope="col" class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let order of pagedOrders; trackBy: trackByOrderId"
+                  class="clickable-row"
+                  tabindex="0"
+                  [attr.aria-label]="'View order #' + order.orderCode"
+                  (click)="openOrderDetail(order)"
+                  (keydown.enter)="openOrderDetail(order)">
+                  <th scope="row">
+                    <span class="order-hash-code">#{{ order.orderCode }}</span>
+                    <div *ngIf="order.invoiceNumber && order.invoiceNumber !== order.orderCode" class="invoice-sub-badge font-mono">
+                      {{ order.invoiceNumber }}
+                    </div>
+                  </th>
+                  <td>
+                    <span class="order-date">{{ formatOrderDate(order.createdAt) }}</span>
+                    <span class="order-time">{{ formatOrderTime(order.createdAt) }}</span>
+                  </td>
+                  <td>
+                    <span class="channel-chip channel-chip--{{ channelClass(order) }}">
+                      {{ formatOrderType(order) }}
+                    </span>
+                    <span class="table-ref" *ngIf="order.tableNumber">Table {{ order.tableNumber }}</span>
+                  </td>
+                  <td>
+                    <div class="order-guest-desc">
+                      <span class="guest-title">{{ order.customerName || (isTakeaway(order) ? 'Takeaway order' : 'Walk-in guest') }}</span>
+                      <span class="guest-meta" *ngIf="order.customerContact">{{ order.customerContact }}</span>
+                    </div>
+                  </td>
+                  <td class="num-cell">
+                    <strong class="order-table-amount">{{ formatCurrencyValue(order.totalAmount) }}</strong>
+                    <div *ngIf="order.refundAmount && order.refundAmount > 0" class="refund-sub-badge">
+                      -{{ formatCurrencyValue(order.refundAmount) }}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="status-chip" [ngClass]="getOrderStatusClass(order.orderStatus)">
+                      {{ orderStatusLabel(order.orderStatus) }}
+                    </span>
+                    <span class="payment-line" [class.payment-line--pending]="isPaymentPending(order)">
+                      {{ order.paymentMethod || 'Cash' }} · {{ order.paymentStatus || 'Unpaid' }}
+                    </span>
+                  </td>
+                  <td class="text-right" (click)="$event.stopPropagation()">
+                    <div class="action-btn-group">
+                      <button
+                        type="button"
+                        class="btn-micro btn-micro--primary"
+                        (click)="openOrderDetail(order)"
+                        aria-label="View order details">
+                        View
+                      </button>
+                      <button
+                        *ngIf="order.manualRefundAllowed"
+                        type="button"
+                        class="btn-micro btn-micro--refund"
+                        (click)="openManualRefund(order)"
+                        title="Issue refund"
+                        aria-label="Refund order">
+                        Refund
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-micro"
+                        (click)="shareInvoice(order)"
+                        title="Share invoice"
+                        aria-label="Share invoice">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.7 10.7 6.6-4.4m-6.6 7 6.6 4.4"/></svg>
+                        Share
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <app-pagination-bar
+            *ngIf="serverTotalElements > 0"
+            [currentPage]="orderCurrentPage"
+            [pageSize]="orderPageSize"
+            [totalItems]="serverTotalElements"
+            (pageChange)="goToOrderPage($event)"
+          />
+        </section>
 
         <ng-template #emptyOrLoadingOrders>
           <div class="panel loading" *ngIf="!ordersLoaded; else emptyOrdersTable" role="status" aria-busy="true">
@@ -329,8 +477,8 @@ export function orderStatusLabel(status: string | null | undefined): string {
                   <path d="m9 14 2 2 4-4"/>
                 </svg>
               </div>
-              <h4>Kitchen &amp; Floor Counter Clear</h4>
-              <p>No orders matching the filter or date window. Transactions generated from POS terminals appear here instantly.</p>
+              <h4>No orders in this period</h4>
+              <p>No orders match the selected date range and search. Try a wider range, or clear the filters to see the full history.</p>
               <div class="empty-actions-row">
                 <button type="button" class="header-action-btn" (click)="clearOrderFilters()">Clear Filters</button>
               </div>
@@ -338,13 +486,6 @@ export function orderStatusLabel(status: string | null | undefined): string {
           </ng-template>
         </ng-template>
 
-        <app-pagination-bar
-          *ngIf="ordersLoaded && serverTotalElements > 0"
-          [currentPage]="orderCurrentPage"
-          [pageSize]="orderPageSize"
-          [totalItems]="serverTotalElements"
-          (pageChange)="goToOrderPage($event)"
-        />
       </ng-container>
     </div>
   `,
@@ -470,100 +611,62 @@ export function orderStatusLabel(status: string | null | undefined): string {
     
 
 
-    .chip--dine-in {
-      background: var(--kb-color-primary-soft);
-      color: var(--kb-color-link);
-      border: 1px solid var(--kb-color-primary-soft);
-    }
-    .chip--takeaway {
-      background: var(--kb-color-warning-soft);
-      color: var(--kb-color-warning);
-      border: 1px solid var(--kb-color-warning-soft);
-    }
-    .chip--delivery {
-      background: var(--kb-color-success-soft);
-      color: var(--kb-color-success);
-      border: 1px solid var(--kb-color-success-soft);
-    }
+    /* The table chrome, channel chips and status badges are defined once in the
+       global stylesheets. This block owns only the history table's layout and
+       its two-line cells; the copies that used to live here had already drifted
+       from the shared ones. */
+    /* The card clips the table's corners; .panel already removes the inner
+       .table-wrap frame, so one border wraps the whole surface. */
+    .history-card { overflow: hidden; }
 
-    /* The table design is defined once in the global stylesheet (see the
-       "Tables" section of styles.css). Column alignment is layout and stays. */
-    /* Numeric total right-aligned, status centered, action right — header and
-       cells share the same alignment so columns read straight. */
-    .data-table th:nth-child(4),
-    .data-table td:nth-child(4) {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-    .data-table th:nth-child(5),
-    .data-table td:nth-child(5) {
-      text-align: center;
-    }
-    .order-hash-code {
-      font-family: var(--kb-font-mono);
-      font-weight: 700;
-      color: var(--kb-color-foreground);
-      background: var(--kb-color-surface-2);
-      padding: 0.2rem 0.45rem;
-      border-radius: var(--kb-radius-md);
-      font-size: var(--kb-text-sm);
-      display: inline-block;
-    }
+    /* Alignment is layout, not chrome: the total and the actions sit right (from
+       the shared .num-cell / .text-right helpers) and the status column stays
+       left so its badge and payment line start together. */
+    .num-cell { font-variant-numeric: tabular-nums; }
+
     .invoice-sub-badge {
       font-size: var(--kb-text-2xs);
       color: var(--kb-color-muted-foreground);
-      margin-top: 0.15rem;
+      margin-top: 2px;
     }
-    .channel-chip {
-      display: inline-block;
-      padding: 0.18rem 0.55rem;
-      border-radius: var(--kb-radius-md);
-      font-size: var(--kb-text-2xs);
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .channel-chip--dine_in { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
-    .channel-chip--takeaway { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .order-guest-desc {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-    }
-    .guest-title {
+
+    .order-date {
+      display: block;
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-foreground);
-      font-size: var(--kb-text-sm);
+      white-space: nowrap;
     }
-    .guest-meta {
+    .order-time {
+      display: block;
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+      font-variant-numeric: tabular-nums;
+    }
+    .table-ref {
+      display: block;
+      margin-top: 2px;
+      font-size: var(--kb-text-xs);
+      font-weight: 600;
+      color: var(--kb-color-muted-foreground);
+    }
+    /* Payment travels with the order status: two short lines in one column read
+       faster than an eighth column of mostly-repeated method names. */
+    .payment-line {
+      display: block;
+      margin-top: 4px;
       font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
     }
-    .order-table-amount {
-      font-weight: 800;
-      color: var(--kb-color-foreground);
-      font-variant-numeric: tabular-nums;
+    .payment-line--pending {
+      color: var(--kb-color-warning);
+      font-weight: 600;
     }
     .refund-sub-badge {
       font-size: var(--kb-text-2xs);
       color: var(--kb-color-danger);
       font-weight: 600;
       margin-top: 0.1rem;
-    }
-    .badge-preparing { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .badge-cooking { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .badge-served { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
-    .badge-completed { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
-    .badge-cancelled { background: var(--kb-color-danger-soft); color: var(--kb-color-danger); }
-    .time-stamp-label {
-      font-size: var(--kb-text-xs);
-      color: var(--kb-color-muted-foreground);
-      font-variant-numeric: tabular-nums;
-    }
-    .action-btn-group {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 0.45rem;
     }
     /* .empty-orders-view / .empty-icon-circle come from bento.css; only the
        spacing this tab needs inside its card is local. */
@@ -608,6 +711,8 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   orderSearchTerm = '';
   orderSourceFilter = 'ALL';
+  orderStatusFilter = 'ALL';
+  orderPaymentFilter = 'ALL';
 
   /**
    * Search text owned by the parent page (the input lives in the page header
@@ -679,9 +784,40 @@ export class OrderHistoryTabComponent implements OnDestroy {
     this.searchSubject.next(this.orderSearchTerm);
   }
 
-  get businessOrderSources(): string[] {
-    return [...new Set(this.orders.map((order) => this.formatOrderType(order)))].sort();
+  onStatusFilterChange(event: any): void {
+    this.orderStatusFilter = event.target ? event.target.value : event;
+    this.loadOrders();
+    this.cdr.markForCheck();
   }
+
+  readonly historyKpiItems = computed(() => {
+    const total = this.serverTotalElements ?? 0;
+    const completed = this.filteredCompletedCount ?? 0;
+    const cancelled = this.filteredOrders.filter(o => (o.orderStatus || '').toLowerCase() === 'cancelled').length ?? 0;
+    const sales = this.filteredTotalRevenue ?? 0;
+    return [
+      {
+        label: 'Total Orders',
+        value: total.toString(),
+        tone: 'default',
+      },
+      {
+        label: 'Total Sales',
+        value: `₹${sales.toLocaleString()}`,
+        tone: 'default',
+      },
+      {
+        label: 'Completed Orders',
+        value: completed.toString(),
+        tone: 'success',
+      },
+      {
+        label: 'Cancelled Orders',
+        value: cancelled.toString(),
+        tone: 'danger',
+      },
+    ] as KpiItem[];
+  });
 
   isDineIn(order: BusinessOrder): boolean {
     const t = (order.orderType || order.sourceType || '').toLowerCase();
@@ -1013,6 +1149,15 @@ export class OrderHistoryTabComponent implements OnDestroy {
     });
   }
 
+  clearFilters(): void {
+    this.orderSearchTerm = '';
+    this.orderSourceFilter = 'ALL';
+    this.orderStatusFilter = 'ALL';
+    this.orderPaymentFilter = 'ALL';
+    this.onSearchChange('');
+    this.cdr.markForCheck();
+  }
+
   // --- Order detail modal ---
 
   openOrderDetail(order: BusinessOrder): void {
@@ -1117,6 +1262,27 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   formatCurrencyValue(value: number | null): string { return formatCurrency(value ?? 0); }
   formatDateValue(value: number | null): string { return formatDate(value); }
+
+  formatOrderDate(value: number | null): string {
+    return value ? ORDER_DATE_FORMAT.format(new Date(value)) : '—';
+  }
+
+  formatOrderTime(value: number | null): string {
+    return value ? ORDER_TIME_FORMAT.format(new Date(value)) : '';
+  }
+
+  /** The channel chip's modifier, including delivery (the old template only knew two). */
+  channelClass(order: BusinessOrder): 'dine_in' | 'takeaway' | 'delivery' {
+    if (this.isDelivery(order)) return 'delivery';
+    if (this.isTakeaway(order)) return 'takeaway';
+    return 'dine_in';
+  }
+
+  /** True while the bill still carries money owed, whichever word the API sends. */
+  isPaymentPending(order: BusinessOrder): boolean {
+    const status = (order.paymentStatus || '').trim().toLowerCase();
+    return status.includes('pending') || status.includes('unpaid') || status.includes('due');
+  }
 
   trackByIndex = (_: number, __: unknown) => _;
   trackByOrderId = (_: number, order: BusinessOrder) => order.orderId;

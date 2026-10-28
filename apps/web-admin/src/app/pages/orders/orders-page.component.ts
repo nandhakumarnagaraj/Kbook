@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PageHeaderComponent } from '../../shared/page-header.component';
@@ -7,6 +7,7 @@ import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { LiveOrdersTabComponent } from './live-orders-tab.component';
 import { OrderHistoryTabComponent } from './order-history-tab.component';
 import { readStoredDateRange } from '../../core/utils/date-range-storage.util';
+import { KpiRowComponent, KpiItem } from '../../shared/kpi-row.component';
 
 export type OrdersTab = 'live' | 'history';
 
@@ -26,12 +27,13 @@ export type OrdersTab = 'live' | 'history';
   selector: 'app-orders-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, PageHeaderComponent, DateRangeToolbarComponent, HeaderSearchComponent, LiveOrdersTabComponent, OrderHistoryTabComponent],
+  imports: [CommonModule, PageHeaderComponent, DateRangeToolbarComponent, HeaderSearchComponent, LiveOrdersTabComponent, OrderHistoryTabComponent, KpiRowComponent],
   template: `
     <div class="page-shell">
       <app-page-header
         title="Orders"
-        subtitle="See live orders and review past orders and settlements.">
+        subtitle="Monitor live floor orders and review past transactions."
+      >
         <app-header-search
           *ngIf="tab() === 'history'"
           [(value)]="historySearch"
@@ -50,11 +52,11 @@ export type OrdersTab = 'live' | 'history';
           [refreshing]="isRefreshing()"
           (rangeChanged)="onHistoryDateRangeChange($event)"
           (download)="orderHistoryTab?.exportCsv()"
-          (refresh)="refreshActiveTab()">
-        </app-date-range-toolbar>
+          (refresh)="refreshActiveTab()"
+        ></app-date-range-toolbar>
       </app-page-header>
 
-      <nav class="orders-tabs" role="tablist" aria-label="Orders views">
+      <nav class="orders-tabs" role="tablist" aria-label="Orders views" (keydown)="onTabKeydown($event)">
         <button
           type="button"
           role="tab"
@@ -62,6 +64,7 @@ export type OrdersTab = 'live' | 'history';
           class="orders-tab"
           [class.orders-tab--active]="tab() === 'live'"
           [attr.aria-selected]="tab() === 'live'"
+          [attr.tabindex]="tab() === 'live' ? 0 : -1"
           aria-controls="orders-panel-live"
           (click)="selectTab('live')">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -77,6 +80,7 @@ export type OrdersTab = 'live' | 'history';
           class="orders-tab"
           [class.orders-tab--active]="tab() === 'history'"
           [attr.aria-selected]="tab() === 'history'"
+          [attr.tabindex]="tab() === 'history' ? 0 : -1"
           aria-controls="orders-panel-history"
           (click)="selectTab('history')">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -88,6 +92,16 @@ export type OrdersTab = 'live' | 'history';
         </button>
       </nav>
 
+      <!-- KPI Row -->
+      <app-kpi-row
+        *ngIf="tab() === 'live'"
+        [items]="liveKpiItems()"
+      />
+
+      <app-kpi-row
+        *ngIf="tab() === 'history'"
+        [items]="historyKpiItems()"
+        />
       <section
         id="orders-panel-live"
         role="tabpanel"
@@ -107,13 +121,17 @@ export type OrdersTab = 'live' | 'history';
   `,
   styles: [
     `
+      /* A segmented control, not a floating card: the recessed track groups the
+         two views and the active pill is the only filled surface. The heavy
+         1px #4B5563 frame this replaces read as a third content card above the
+         board. */
       .orders-tabs {
-        display: flex;
-        gap: var(--kb-space-2);
-        padding: var(--kb-space-3);
-        background: var(--kb-color-surface);
-        border: 1px solid var(--kb-color-border-strong);
-        border-radius: var(--kb-radius-xl);
+        display: inline-flex;
+        gap: var(--kb-space-1);
+        padding: var(--kb-space-1);
+        background: var(--kb-color-surface-2);
+        border: 1px solid var(--kb-color-border);
+        border-radius: var(--kb-radius-full);
         width: fit-content;
         max-width: 100%;
         overflow-x: auto;
@@ -122,36 +140,42 @@ export type OrdersTab = 'live' | 'history';
       .orders-tab {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: var(--kb-space-2);
-        padding: var(--kb-space-2) var(--kb-space-3);
-        border: none;
+        min-height: 36px;
+        padding: var(--kb-space-1) var(--kb-space-4);
+        border: 1px solid transparent;
         background: transparent;
         border-radius: var(--kb-radius-full);
         font-family: inherit;
         font-size: var(--kb-text-sm);
         font-weight: 600;
+        line-height: 1.2;
         color: var(--kb-color-muted-foreground);
         cursor: pointer;
         white-space: nowrap;
-        transition: background 150ms ease, color 150ms ease;
+        transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
       }
 
-      .orders-tab:hover {
+      .orders-tab:hover:not(.orders-tab--active) {
+        background: var(--kb-color-surface);
         color: var(--kb-color-foreground);
       }
 
-      /* The active tab uses the primary soft pill with primary ink, matching the
-         dashboard filter-pill--active pattern. */
       .orders-tab--active {
-        background: var(--kb-color-primary-soft);
-        color: var(--kb-color-primary);
+        background: var(--kb-color-primary);
         border-color: var(--kb-color-primary);
-        box-shadow: none;
+        color: var(--kb-color-primary-foreground);
       }
 
       .orders-tab:focus-visible {
         outline: 2px solid var(--kb-color-primary);
         outline-offset: 2px;
+      }
+
+      @media (max-width: 640px) {
+        .orders-tabs { width: 100%; }
+        .orders-tab { flex: 1 1 0; }
       }
 
       section[role='tabpanel'] {
@@ -194,6 +218,89 @@ export class OrdersPageComponent {
     else this.orderHistoryTab?.loadOrders();
   }
 
+  /** KPI items for the Live Orders view. */
+  readonly liveKpiItems = computed<KpiItem[]>(() => {
+    const orders = this.liveOrdersTab?.activeOrders() ?? [];
+    return [
+      {
+        label: 'Active Orders',
+        value: orders.length.toString(),
+        tone: 'success' as const,
+        accent: 'positive',
+        badge: { text: '+new', tone: 'success' },
+      } as KpiItem,
+      {
+        label: 'Preparing',
+        value: this._preparingCount().toString(),
+        tone: 'warning' as const,
+        accent: 'flow',
+      } as KpiItem,
+      {
+        label: 'Completed (Today)',
+        value: this._completedTodayCount().toString(),
+        tone: 'success' as const,
+        accent: 'positive',
+      } as KpiItem,
+      {
+        label: 'Payment Due',
+        value: this._paymentDueCount().toString(),
+        tone: 'danger' as const,
+        accent: 'activity',
+      } as KpiItem,
+    ] as KpiItem[];
+  });
+
+  /** KPI items for the Order History view. */
+  readonly historyKpiItems = computed<KpiItem[]>(() => {
+    const total = this.orderHistoryTab?.serverTotalElements ?? 0;
+    const completed = this.orderHistoryTab?.filteredCompletedCount ?? 0;
+    const cancelled = this.orderHistoryTab?.filteredOrders.filter(o => (o.orderStatus || '').toLowerCase() === 'cancelled').length ?? 0;
+    const sales = this.orderHistoryTab?.filteredTotalRevenue ?? 0;
+    return [
+      {
+        label: 'Total Orders',
+        value: total.toString(),
+        tone: 'default' as const,
+      } as KpiItem,
+      {
+        label: 'Total Sales',
+        value: `₹${sales.toLocaleString()}`,
+        tone: 'default' as const,
+      } as KpiItem,
+      {
+        label: 'Completed Orders',
+        value: completed.toString(),
+        tone: 'success' as const,
+      } as KpiItem,
+      {
+        label: 'Cancelled Orders',
+        value: cancelled.toString(),
+        tone: 'danger' as const,
+      } as KpiItem,
+    ] as KpiItem[];
+  });
+
+  /** Helper counts for live KPI items. */
+  private _preparingCount = computed(() => {
+    const orders = this.liveOrdersTab?.activeOrders() ?? [];
+    return orders.filter(o => (o.orderStatus || '').trim().toLowerCase() === 'draft').length;
+  });
+
+  private _completedTodayCount = computed(() => {
+    const orders = this.liveOrdersTab?.activeOrders() ?? [];
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return orders.filter(o => {
+      const created = o.createdAt ? new Date(o.createdAt) : null;
+      return created && created.toISOString().startsWith(todayStr) && (o.orderStatus || '').trim().toLowerCase() === 'completed';
+    }).length;
+  });
+
+  private _paymentDueCount = computed(() => {
+    const orders = this.liveOrdersTab?.activeOrders() ?? [];
+    return orders.filter(o => (o.paymentStatus || '').trim().toLowerCase() === 'pending').length;
+  });
+
   constructor() {
     // Keep the tab in sync with browser back/forward and deep links.
     this.route.queryParamMap.subscribe((params) => {
@@ -202,6 +309,21 @@ export class OrdersPageComponent {
         this.requestedTab.set(next);
       }
     });
+  }
+
+  /** Arrow keys move between the two tabs, as the WAI-ARIA tablist pattern expects. Both tabs used to sit in the tab order and arrows did nothing, so a keyboard user had to Tab through the inactive one to reach the toolbar. */
+  onTabKeydown(event: KeyboardEvent): void {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft' && event.key !== 'Home' && event.key !== 'End') {
+      return;
+    }
+    event.preventDefault();
+    const next: OrdersTab = event.key === 'Home'
+      ? 'live'
+      : event.key === 'End'
+        ? 'history'
+        : this.tab() === 'live' ? 'history' : 'live';
+    this.selectTab(next);
+    requestAnimationFrame(() => document.getElementById(`orders-tab-${next}`)?.focus());
   }
 
   selectTab(tab: OrdersTab): void {

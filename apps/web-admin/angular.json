@@ -76,22 +76,33 @@
             }
           },
           "defaultConfiguration": "development"
-        },
-        "test": {
-          "builder": "@angular-devkit/build-angular:karma",
-          "options": {
-            "polyfills": [
-              "zone.js",
-              "zone.js/testing"
-            ],
-            "tsConfig": "tsconfig.spec.json",
-            "browsers": "ChromeHeadless",
-            "styles": [
-              "src/styles.css",
-              "src/styles/bento.css"
-            ]
-          }
-        }
+        },            "test": {
+              "builder": "@angular-devkit/build-angular:karma",
+              "options": {
+                "polyfills": [
+                  "zone.js",
+                  "zone.js/testing"
+                ],
+                "tsConfig": "tsconfig.spec.json",
+                "browsers": "ChromeNoSandbox",              "karmaConfig": "karma.conf.js",
+              "watch": false,
+              "codeCoverage": false,
+              "styles": [
+                  "src/styles.css",
+                  "src/styles/bento.css"
+                ]
+              },
+              "configurations": {
+                "production": {
+                  "fileReplacements": [
+                    {
+                      "replace": "src/environments/environment.ts",
+                      "with": "src/environments/environment.prod.ts"
+                    }
+                  ]
+                }
+              }
+            }
       }
     }
   },

@@ -459,13 +459,12 @@
    clickable row — now takes its design and feedback from the one "Tables"
    section of styles.css. */
 
+/* An order number is data, not a chip: monospace and weight carry it. The tinted
+   box this used to draw was a padded container inside a padded table row. */
 .order-hash-code {
       font-family: var(--kb-font-mono);
       font-weight: 700;
       color: var(--kb-color-foreground);
-      background: var(--kb-color-surface-2);
-      padding: 0.2rem 0.45rem;
-      border-radius: var(--kb-radius-md);
       font-size: var(--kb-text-sm);
     }
 

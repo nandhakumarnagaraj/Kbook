@@ -81,6 +81,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             </div>
             <div class="brand-copy">
               <span class="brand-title">KhanaBook</span>
+              <span class="brand-subtitle">POS Console</span>
             </div>
             <button type="button" class="sidebar-close-btn" aria-label="Close navigation menu" (click)="closeMenu()">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -200,7 +201,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       --rail-width: 64px;
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: var(--kb-sidebar-width) 1fr;
       align-items: start;
     }
     .workspace { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; background: var(--kb-color-bg-app); }
@@ -213,12 +214,12 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     }
     .skip-link:focus { transform: translateY(0); outline: 2px solid var(--kb-color-foreground-contrast); outline-offset: 2px; }
 
-    /* ── Sidebar (POS Command Center Navy) ── */
+    /* ── Sidebar (logo-violet command rail) ── */
     .sidebar {
-      padding: var(--kb-space-6) var(--kb-space-4);
+      padding: var(--kb-space-5) var(--kb-space-3);
       display: flex;
       flex-direction: column;
-      gap: var(--kb-space-3);
+      gap: var(--kb-space-2);
       position: sticky;
       top: 0;
       height: 100vh;
@@ -233,12 +234,12 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
 
     /* The brand and the footer must never be compressed by a short window: the
        nav is the only part of the rail that gives (see the desktop block). */
-    .brand-block { padding: 0 var(--kb-space-2) var(--kb-space-2); flex-shrink: 0; }
-    .brand-row { display: flex; align-items: center; gap: var(--kb-space-3); }
+    .brand-block { padding: 0 var(--kb-space-2) var(--kb-space-5); flex-shrink: 0; }
+    .brand-row { display: flex; align-items: center; gap: var(--kb-space-2); }
     .brand-logo-circle {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--kb-radius-md);
       background: var(--kb-color-surface);
       display: inline-flex;
       align-items: center;
@@ -258,27 +259,39 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       height: 100%;
       object-fit: contain;
     }
+    .brand-copy { display: grid; min-width: 0; line-height: 1.15; }
     .brand-title {
-      font-size: var(--kb-text-xl);
+      font-size: var(--kb-text-lg);
       font-weight: 700;
       color: var(--kb-color-foreground-contrast);
-      letter-spacing: -0.02em;
+      letter-spacing: -0.01em;
+    }
+    /* The wordmark alone does not say which product this console belongs to;
+       one 11px line names the surface without competing with the nav. */
+    .brand-subtitle {
+      font-size: var(--kb-text-2xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--pos-sidebar-ink-muted);
     }
     .sidebar-close-btn { display: none; }
 
-    /* Navigation */
-    .nav-links { display: flex; flex-direction: column; gap: 6px; }
+    /* Navigation. Rows are targets sized for a mouse, not cushions: 34px tall
+       with a 2px inter-row gap groups the destinations while keeping nine of
+       them above the fold on a 768px-tall laptop. */
+    .nav-links { display: flex; flex-direction: column; gap: var(--kb-space-3); }
 
     /* Section headings. 11px uppercase is the one place on the rail where type
        steps below --kb-text-sm: the label is a signpost, not a target, and at
        13px it would compete with the destinations it names. */
-    .nav-group { display: flex; flex-direction: column; gap: 6px; }
-    .nav-group + .nav-group { margin-top: var(--kb-space-3); }
+    .nav-group { display: flex; flex-direction: column; gap: var(--kb-space-1); }
+    .nav-group + .nav-group { margin-top: var(--kb-space-2); }
     .nav-group__heading {
-      margin: 0 0 var(--kb-space-1) var(--kb-space-4);
+      margin: 0 0 var(--kb-space-1) var(--kb-space-3);
       font-size: var(--kb-text-2xs);
       font-weight: 700;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
       color: var(--pos-sidebar-ink-muted);
       white-space: nowrap;
@@ -287,27 +300,70 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .nav-link {
       position: relative;
       display: flex;
-      /* A nav row is a target, not a cushion: when the column runs out of height         the list must scroll, not squeeze nine 44px rows into whatever is left. */      flex-shrink: 0;      align-items: center;      gap: var(--kb-space-3);      padding: var(--kb-space-3) var(--kb-space-4);      border-radius: var(--kb-radius-lg);      color: var(--pos-sidebar-text);      text-decoration: none;      font-weight: 500;      font-size: var(--kb-text-sm);      transition: all 150ms var(--ease-out);    }
+      /* A nav row is a target, not a cushion: when the column runs out of height
+         the list must scroll, not squeeze nine 44px rows into whatever is left. */
+      flex-shrink: 0;
+      align-items: center;
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-2) var(--kb-space-3);
+      border-radius: var(--kb-radius-md);
+      color: var(--pos-sidebar-text);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: var(--kb-text-sm);
+      transition: background 150ms var(--ease-out), color 150ms var(--ease-out);
+    }
     .nav-link__icon { font-size: var(--kb-text-md); display: inline-flex; align-items: center; justify-content: center; width: 24px; color: inherit; }
     .nav-link:hover { background: var(--pos-sidebar-hover); color: var(--pos-sidebar-ink); }
     .nav-link:active { transform: scale(0.97); }
+    /* The current page is stated twice: a violet field for the eye, and the
+       logo's saffron in the rail's left gutter for anyone scanning down it. No
+       glow — a blurred shadow on a dark plane reads as a render artefact. */
     .nav-link.active-link {
       background: var(--pos-sidebar-active);
       color: var(--kb-color-foreground-contrast);
       font-weight: 600;
       border: none;
-      box-shadow: 0 2px 8px rgba(var(--pos-sidebar-active-rgb), 0.35);
+      box-shadow: none;
     }
-    /* The app draws one blue keyboard ring, but on this dark plane it measures
-       ~3.6:1. The rail states focus in white, the way every other control on it
-       does (toggle, sign out, drawer close, skip link). */
+    .nav-link.active-link::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      width: 3px;
+      height: 18px;
+      border-radius: var(--kb-radius-full);
+      background: var(--pos-sidebar-accent);
+      transform: translateY(-50%);
+    }
+    /* The app draws one violet keyboard ring, but on this dark plane it all but
+       disappears. The rail states focus in white, the way every other control
+       on it does (toggle, sign out, drawer close, skip link). */
     .nav-link:focus-visible {
       outline: 2px solid var(--kb-color-foreground-contrast);
       outline-offset: 2px;
-    }.nav-link.active-link .nav-link__icon {
+    }
+    .nav-link.active-link .nav-link__icon {
       color: var(--kb-color-foreground-contrast);
-    }.nav-link__badge {      margin-left: auto;      padding: var(--kb-space-1) var(--kb-space-2);      font-size: var(--kb-text-xs);      font-weight: 600;      text-transform: uppercase;      letter-spacing: 0.04em;      border-radius: var(--kb-radius-full);      background: var(--kb-color-surface-3);      color: var(--kb-color-muted-foreground);      border: 1px solid var(--kb-color-border);
-    }.nav-link.active-link .nav-link__badge {      background: var(--kb-color-primary-soft);      color: var(--kb-color-primary);      border-color: var(--kb-color-primary);
+    }
+    .nav-link__badge {
+      margin-left: auto;
+      padding: 2px var(--kb-space-2);
+      font-size: var(--kb-text-2xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-radius: var(--kb-radius-full);
+      /* A white chip would glare on the violet plane; the rail uses its own tint. */
+      background: rgba(255, 255, 255, 0.14);
+      color: var(--kb-color-foreground-contrast);
+      border: 1px solid transparent;
+    }
+    .nav-link.active-link .nav-link__badge {
+      background: var(--pos-sidebar-accent);
+      color: var(--pos-sidebar-bg);
+      border-color: transparent;
     }
 
     /* Sidebar Footer (footer.design standard) */
@@ -316,9 +372,9 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.65rem;
+      gap: var(--kb-space-2);
       padding-top: var(--kb-space-3);
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-top: 1px solid var(--pos-sidebar-border);
     }
 
 
@@ -326,19 +382,19 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .user-card {
       display: flex;
       align-items: center;
-      gap: var(--kb-space-3);
-      padding: var(--kb-space-2) var(--kb-space-3);
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: var(--kb-radius-card);
+      gap: var(--kb-space-2);
+      padding: var(--kb-space-1) var(--kb-space-2);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--kb-radius-md);
     }
     .user-avatar {
       position: relative;
       width: 32px;
       height: 32px;
       border-radius: var(--kb-radius-full);
-      background: var(--kb-color-primary);
-      color: var(--kb-color-primary-foreground);
+      background: var(--pos-sidebar-active);
+      color: var(--kb-color-foreground-contrast);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -347,7 +403,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       flex-shrink: 0;
       box-shadow: var(--kb-shadow-xs);
     }
-    /* Presence dot: an 8:1 green on the rail's navy, ringed in the rail colour so
+    /* Presence dot: an 8:1 green on the rail's violet, ringed in the rail colour so
        it reads where it overlaps the avatar's edge. Offline is the muted ink, not
        a second red — a dropped heartbeat is not an error state. */
     .presence-dot {
@@ -368,7 +424,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
        (--kb-color-muted), which rendered the signed-in name at 1.2:1 and the
        role at 1.2:1 — present in the DOM, invisible on screen. */
     .user-name { font-weight: 600; font-size: var(--kb-text-sm); color: var(--pos-sidebar-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .user-role { font-size: 0.65rem; color: var(--pos-sidebar-ink-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .user-role { font-size: var(--kb-text-2xs); color: var(--pos-sidebar-ink-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
 
     /* Sign out: subtle restrained danger styling with tactile feedback */
     .logout-btn {
@@ -376,23 +432,22 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       align-items: center;
       justify-content: center;
       gap: var(--kb-space-2);
-      padding: 0.55rem 0.9rem;
-      /* A destructive ACTION is a solid fill with white content — the same pair
-         the order card's Cancel button uses, so "danger" means one thing. */
-      background: var(--pos-sidebar-danger);
-      color: var(--kb-color-foreground-contrast);
-      border: 1px solid var(--pos-sidebar-danger);
-      border-radius: var(--kb-radius-xl);
+      padding: var(--kb-space-2) var(--kb-space-3);
+      /* Signing out is not the rail's job to advertise: it stays a quiet outline
+         and only turns into the danger fill once the pointer is on it. */
+      background: transparent;
+      color: var(--pos-sidebar-text);
+      border: 1px solid var(--pos-sidebar-border);
+      border-radius: var(--kb-radius-md);
       cursor: pointer;
       font-weight: 600;
-      font-size: var(--kb-text-md);
-      transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 150ms ease;
+      font-size: var(--kb-text-sm);
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
     }
     .logout-btn:hover {
-      background: var(--pos-sidebar-danger-hover);
+      background: var(--pos-sidebar-danger);
       color: var(--kb-color-foreground-contrast);
-      border-color: var(--pos-sidebar-danger-hover);
-      transform: translateY(-1px);
+      border-color: var(--pos-sidebar-danger);
     }
     .logout-btn:active {
       transform: scale(0.97);
@@ -450,7 +505,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
          and sign out below the fold; now the nav is the scroller and the footer
          stays put. Mobile keeps its whole-drawer scroll (this is desktop only). */
       .sidebar {
-        width: 240px;
+        width: var(--kb-sidebar-width);
         overflow: hidden;
         transition: width 200ms var(--ease-out);
       }
@@ -626,7 +681,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     }
 
     /* Increased-contrast mode turns every focus ring near-black (#0F172A), which
-       is invisible on the navy plane. The rail keeps its own white ring there. */
+       is invisible on the violet plane. The rail keeps its own white ring there. */
     @media (prefers-contrast: more) {
       .sidebar a:focus-visible,
       .sidebar button:focus-visible {

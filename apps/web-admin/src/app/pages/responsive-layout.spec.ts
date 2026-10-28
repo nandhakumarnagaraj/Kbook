@@ -298,19 +298,20 @@ describe('Responsive layout — order history', () => {
     expect(getComputedStyle(actionCell).textAlign).withContext('cells line up under their header').toBe('right');
   });
 
-  it('aligns the numeric and status columns with their headers on desktop', () => {
+  it('aligns the total and status columns with their headers on desktop', () => {
     setViewport(DESKTOP);
     const host = mountOrderHistory([order()]).nativeElement as HTMLElement;
 
-    const total = host.querySelector('.data-table tbody tr td:nth-child(4)') as HTMLElement;
-    const status = host.querySelector('.data-table tbody tr td:nth-child(5)') as HTMLElement;
-    const totalHeader = host.querySelector('.data-table thead th:nth-child(4)') as HTMLElement;
-    const statusHeader = host.querySelector('.data-table thead th:nth-child(5)') as HTMLElement;
+    // Column order: Order, Date & time, Type & table, Guest, Total, Status, Actions.
+    const total = host.querySelector('.data-table tbody tr td:nth-child(5)') as HTMLElement;
+    const status = host.querySelector('.data-table tbody tr td:nth-child(6)') as HTMLElement;
+    const totalHeader = host.querySelector('.data-table thead th:nth-child(5)') as HTMLElement;
+    const statusHeader = host.querySelector('.data-table thead th:nth-child(6)') as HTMLElement;
 
     expect(getComputedStyle(total).textAlign).toBe('right');
     expect(getComputedStyle(totalHeader).textAlign).toBe('right');
-    expect(getComputedStyle(status).textAlign).toBe('center');
-    expect(getComputedStyle(statusHeader).textAlign).toBe('center');
+    expect(getComputedStyle(status).textAlign).toBe('left');
+    expect(getComputedStyle(statusHeader).textAlign).toBe('left');
   });
 
   it('keeps the refund review label and amount on one row on a phone', () => {

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IconComponent } from './icon.component';
 
@@ -72,12 +72,12 @@ export interface KpiItem {
    * The tile's accent **role**, never a palette pick — the same role must mean the
    * same thing on every page:
    *
-   *   activity — sales, money in, order volume   (orange accent)
-   *   flow     — occupancy, kitchen queue, tables (purple accent)
+   *   activity — sales, money in, order volume   (saffron accent)
+   *   flow     — occupancy, kitchen queue, tables (violet accent)
    *   positive — settled, collected, connected    (green accent)
    *
    * The accent tints the icon chip only. It never colours the value, because the
-   * orange (#E87A1E) is 2.9:1 on white and fails AA as text; the value keeps the
+   * saffron (#EC8C17) is 2.9:1 on white and fails AA as text; the value keeps the
    * ordinary ink and stays readable. Pages that pass no accent render exactly as
    * before, which is why this landed on the dashboard first.
    */
@@ -207,15 +207,36 @@ export interface KpiItem {
         background: rgba(var(--kb-color-warning-rgb), 0.05);
       }
 
-      /* The page's primary figure: same cell, same anatomy, more weight. */
+      /* The page's primary figure: same cell, same anatomy, more weight. It is
+         the one filled brand surface in the row — the logo violet, carrying
+         white ink (9.0:1) — so "the number that matters" is visible before any
+         label is read. Keeping the same grid cell is what stops it becoming a
+         separate card above the row. */
       .kb-kpi--hero {
-        border-color: rgba(var(--kb-color-primary-rgb), 0.28);
-        background: linear-gradient(
-          180deg,
-          rgba(var(--kb-color-primary-rgb), 0.06),
-          var(--kb-color-surface) 60%
-        );
+        border-color: transparent;
+        background: var(--pos-purple-gradient);
       }
+
+      .kb-kpi--hero .kb-kpi__label { color: rgba(255, 255, 255, 0.8); }
+      .kb-kpi--hero .kb-kpi__value { color: var(--kb-color-foreground-contrast); }
+      .kb-kpi--hero .kb-kpi__value small { color: rgba(255, 255, 255, 0.8); }
+      .kb-kpi--hero .kb-kpi__caption { color: rgba(255, 255, 255, 0.8); }
+      .kb-kpi--hero .kb-kpi__icon {
+        background: rgba(255, 255, 255, 0.16);
+        color: var(--kb-color-foreground-contrast);
+      }
+      .kb-kpi--hero .kb-kpi__badge {
+        background: rgba(255, 255, 255, 0.16);
+        border-color: rgba(255, 255, 255, 0.24);
+        color: var(--kb-color-foreground-contrast);
+      }
+      .kb-kpi--hero .kb-kpi__segment-bar { background: rgba(255, 255, 255, 0.22); }
+      .kb-kpi--hero .kb-kpi__segment-label { color: rgba(255, 255, 255, 0.8); }
+      .kb-kpi--hero .kb-kpi__segment-value { color: var(--kb-color-foreground-contrast); }
+      .kb-kpi--hero .kb-kpi__segment-value small { color: rgba(255, 255, 255, 0.72); }
+      .kb-kpi--hero .kb-kpi__segment-fill--neutral { background: rgba(255, 255, 255, 0.9); }
+      .kb-kpi--hero .kb-kpi__segment-fill--success { background: var(--pos-sidebar-success); }
+      .kb-kpi--hero .kb-kpi__segment-fill--brand { background: var(--kb-brand-orange); }
 
       .kb-kpi__icon {
         display: inline-flex;
@@ -229,7 +250,7 @@ export interface KpiItem {
         color: var(--kb-color-muted-foreground);
       }
 
-      /* Accent roles tint the chip and nothing else. An orange value would be
+      /* Accent roles tint the chip and nothing else. A saffron value would be
          2.9:1 on white; the ink is what carries the colour, not the numeral. */
       .kb-kpi--accent-activity .kb-kpi__icon {
         background: rgba(var(--kb-brand-orange-rgb), 0.12);
@@ -475,4 +496,21 @@ export class KpiRowComponent {
   emitAction(item: KpiItem): void {
     this.action.emit(item);
   }
+
+  /** Compute which accent role each item should use, based on label text. */
+  readonly computedAccents = computed(() => {
+    return this.items.map(item => {
+      const label = item.label.toLowerCase();
+      if (label.includes('active') || label.includes('today')) {
+        return { ...item, accent: 'positive' };
+      }
+      if (label.includes('preparing')) {
+        return { ...item, accent: 'flow' };
+      }
+      if (label.includes('payment') || label.includes('due')) {
+        return { ...item, accent: 'activity' };
+      }
+      return item;
+    });
+  });
 }
