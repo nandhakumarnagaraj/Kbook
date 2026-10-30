@@ -269,6 +269,9 @@ dependencies {
     implementation("androidx.security:security-crypto:1.1.0")
     implementation("androidx.biometric:biometric:1.1.0")
 
+    // Logging
+    implementation(libs.timber)
+
     // Firebase Cloud Messaging (push notifications)
     implementation(libs.firebase.messaging)
     // Firebase Crashlytics (crash reporting)
@@ -300,6 +303,7 @@ dependencies {
     implementation(libs.lottie.compose)
 
     testImplementation(libs.junit)
+    testImplementation(libs.turbine)
     testImplementation(libs.mockk)
     testImplementation(libs.mockk.agent)
     // Real org.json on the unit-test classpath: KitchenTicketFormatter parses KOT

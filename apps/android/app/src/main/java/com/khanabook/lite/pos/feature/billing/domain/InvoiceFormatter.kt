@@ -160,18 +160,7 @@ object InvoiceFormatter {
         val billNo = "Bill: ${bill.bill.dailyOrderId}"
         val dateStr = DateUtils.formatDateOnly(bill.bill.createdAt)
         
-        // Customer Masking
-        val rawCust = bill.bill.customerName?.takeIf { it.isNotBlank() } ?: "Guest"
-        val rawPhone = bill.bill.customerWhatsapp?.takeIf { it.isNotBlank() } ?: ""
-        val shouldMask = profile?.maskCustomerPhone ?: true
-        val displayPhone = if (shouldMask && rawPhone.length >= 10) {
-            rawPhone.take(2) + "XXXXXX" + rawPhone.takeLast(2)
-        } else {
-            rawPhone
-        }
-        
         add(leftPad + formatRow(billNo, "Date: $dateStr", width))
-        add(leftPad + formatRow("Cust: $rawCust", displayPhone, width))
         add("$line\n")
 
         // 4. Itemized Table (80mm optimization)

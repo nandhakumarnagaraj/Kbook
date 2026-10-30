@@ -29,6 +29,8 @@ androidxCamera = "1.4.1"
 
 coil = "2.6.0"
 lottie = "6.4.0"
+timber = "5.0.1"
+turbine = "1.2.0"
 coreSplashscreen = "1.0.1"
 material = "1.12.0"
 firebaseMessaging = "24.1.1"
@@ -36,6 +38,8 @@ firebaseCrashlytics = "19.4.0"
 firebaseCrashlyticsPlugin = "3.0.3"
 
 [libraries]
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

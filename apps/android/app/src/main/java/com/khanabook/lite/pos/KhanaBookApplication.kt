@@ -4,9 +4,11 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.feature.billing.data.BillRepository
 import com.khanabook.lite.pos.core.util.AppAssetStore
 import com.khanabook.lite.pos.core.util.GlobalCrashHandler
+import timber.log.Timber
 import com.khanabook.lite.pos.feature.sync.worker.MasterSyncWorker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -44,6 +46,11 @@ class KhanaBookApplication : Application(), Configuration.Provider {
             Log.w("KhanaBookApp", "SQLCipher not available — app may crash on DB access")
         }
         super.onCreate()
+
+        // Debug logging only; release keeps Crashlytics + GlobalCrashHandler.
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
 
         GlobalCrashHandler.initialize(this)
         AppAssetStore.initialize(this)
