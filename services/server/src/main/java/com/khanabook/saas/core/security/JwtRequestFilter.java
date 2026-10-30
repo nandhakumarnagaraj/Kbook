@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -107,9 +108,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 							}
 							if (restaurantId != null) {
 								TenantContext.setCurrentTenant(restaurantId);
+								// Tenant-scoped log context: lets ops filter every log line by
+								// restaurant. Only ids — never tenant content.
+								MDC.put("restaurantId", String.valueOf(restaurantId));
 							}
 
 							TenantContext.setCurrentUserId(user.getId());
+							MDC.put("userId", String.valueOf(user.getId()));
 
 							String role = user.getRole().name();
 							TenantContext.setCurrentRole(role);
@@ -171,6 +176,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 			chain.doFilter(request, response);
 		} finally {
 			TenantContext.clear();
+			MDC.remove("restaurantId");
+			MDC.remove("userId");
 			// SecurityContext lifecycle is managed by Spring's SecurityContextHolderFilter.
 			// Clearing it here breaks @Async authentication and Spring's built-in mechanisms.
 		}

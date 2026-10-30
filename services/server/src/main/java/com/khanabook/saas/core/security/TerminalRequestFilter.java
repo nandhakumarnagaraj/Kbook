@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -135,12 +136,18 @@ public class TerminalRequestFilter extends OncePerRequestFilter {
 				TenantContext.setCurrentTerminalSeries(terminalSeries);
 				TenantContext.setCurrentTerminalDevice(jwtUtility.extractDeviceId(terminalToken));
 				TenantContext.setCurrentTerminalActive(Boolean.TRUE);
+				// Structured log context for multi-terminal debugging.
+				MDC.put("terminalId", terminalId);
 			} catch (Exception e) {
 				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid terminal token");
 				return;
 			}
 		}
 
-		filterChain.doFilter(request, response);
+		try {
+			filterChain.doFilter(request, response);
+		} finally {
+			MDC.remove("terminalId");
+		}
 	}
 }
