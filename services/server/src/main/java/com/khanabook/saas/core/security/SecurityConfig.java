@@ -146,6 +146,13 @@ public class SecurityConfig {
 						// Actuator: health/readiness open, everything else authenticated
 						.requestMatchers("/actuator/health", "/actuator/health/**")
 						.permitAll()
+						// Prometheus cannot present a JWT, so the scrape endpoint must be
+						// reachable without a role or every alert stays silent. The network
+						// control lives at the reverse proxy: ops/apache-kbook.conf restricts
+						// /api/v1/actuator/prometheus to the monitoring host. Do not widen
+						// this matcher without an equivalent network restriction.
+						.requestMatchers("/actuator/prometheus")
+						.permitAll()
 						.requestMatchers("/actuator/**")
 						.hasRole("KBOOK_ADMIN")
 						.requestMatchers("/admin/**").hasRole("KBOOK_ADMIN")

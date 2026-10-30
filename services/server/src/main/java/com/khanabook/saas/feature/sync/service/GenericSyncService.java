@@ -1180,10 +1180,11 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		log.info("Push sync completed tenantId={} success={} failed={} saved={}",
 				tenantId, successfulLocalIds.size(), failedLocalIds.size(), allRecordsToSave.size());
 
-		// Money-path visibility: these two counters answer \"is sync healthy for this
-		// restaurant\" without reading logs. recordSyncPush never throws by contract,
-		// so a metrics failure can never abort a sync batch.
-		recordSyncPush(successfulLocalIds.size(), failedLocalIds.size(), failedReasons);
+		// Money-path visibility: counts accepted/rejected records and a bounded reason
+		// category. Recording is after-commit because this method is @Transactional:
+		// counting before the proxy commits would report success for a batch whose
+		// commit later failed (optimistic lock, deferred constraint).
+		recordPushMetricsAfterCommit(successfulLocalIds.size(), failedLocalIds.size(), failedReasons);
 
 		PushSyncResponse response = new PushSyncResponse(successfulLocalIds, failedLocalIds);
 		response.setLocalToServerIdMap(localToServerIdMap);
@@ -1192,56 +1193,34 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 	}
 
 	// ── Metrics ──────────────────────────────────────────────────────────────
-	// Field injection with required=false keeps this service constructible in the
-	// existing unit tests (which build it by hand) while still wiring the registry
-	// in the running application. A metrics failure must never fail a sync.
+	// Optional field injection keeps this service constructible in the existing
+	// hand-built unit tests while wiring the component in the running application.
 	@org.springframework.beans.factory.annotation.Autowired(required = false)
-	private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+	private com.khanabook.saas.core.metrics.SyncPushMetrics syncPushMetrics;
 
-	private void recordSyncPush(int success, int failed, java.util.Map<Long, String> failedReasons) {
-		if (meterRegistry == null) return;
+	/**
+	 * Record push outcomes once the surrounding transaction is safely committed.
+	 * If no transaction is active (unit tests, direct calls) record immediately.
+	 */
+	private void recordPushMetricsAfterCommit(int success, int failed, java.util.Map<Long, String> failedReasons) {
+		var metrics = syncPushMetrics;
+		if (metrics == null) return;
 		try {
-			io.micrometer.core.instrument.Counter.builder("sync.push.batch")
-					.description("Push sync batches accepted by the server")
-					.register(meterRegistry)
-					.increment();
-			io.micrometer.core.instrument.Counter.builder("sync.push.records")
-					.description("Pushed records by outcome")
-					.tag("outcome", "success")
-					.register(meterRegistry)
-					.increment(success);
-			if (failed > 0) {
-				io.micrometer.core.instrument.Counter.builder("sync.push.records")
-						.description("Pushed records by outcome")
-						.tag("outcome", "failed")
-						.register(meterRegistry)
-						.increment(failed);
+			if (org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive()) {
+				org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+						new org.springframework.transaction.support.TransactionSynchronization() {
+							@Override
+							public void afterCommit() {
+								metrics.recordPush(success, failed, failedReasons);
+							}
+						});
+			} else {
+				metrics.recordPush(success, failed, failedReasons);
 			}
-			// Bounded reason categories: the leading ALL_CAPS token of the message
-			// (STALE_PUSH_CONFLICT: …, CROSS_TERMINAL …) or OTHER. Never tag with the
-			// full message — unbounded cardinality would blow up the scrape.
-			failedReasons.values().forEach(reason -> {
-				String category = syncFailureCategory(reason);
-				io.micrometer.core.instrument.Counter.builder("sync.push.failed")
-						.description("Rejected pushed records by reason category")
-						.tag("reason", category)
-						.register(meterRegistry)
-						.increment();
-			});
 		} catch (Exception e) {
+			// Metrics must never fail a sync. If registration itself fails, drop the sample.
 			log.debug("Sync metric recording failed: {}", e.getMessage());
 		}
-	}
-
-	private static String syncFailureCategory(String reason) {
-		if (reason == null || reason.isBlank()) return "OTHER";
-		String head = reason.trim().split("\\s*[:\\-]\\s*", 2)[0];
-		if (!head.isEmpty() && head.length() <= 40
-				&& head.equals(head.toUpperCase(java.util.Locale.ROOT))
-				&& head.chars().anyMatch(Character::isLetter)) {
-			return head.replace(' ', '_');
-		}
-		return "OTHER";
 	}
 
 	// Methods moved to BillSyncService: isExactPaymentMatch, validateBillNumberConflicts, isTransactionalIdempotentRetry

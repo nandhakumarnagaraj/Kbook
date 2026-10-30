@@ -51,25 +51,12 @@ public class EasebuzzWebhookService {
     private EasebuzzWireApiClient wireApiClient;
 
     @org.springframework.beans.factory.annotation.Autowired(required = false)
-    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+    private com.khanabook.saas.core.metrics.WebhookMetrics webhookMetrics;
 
-    /**
-     * Count a webhook that did NOT settle a bill, tagged by why. This is the signal that
-     * separates "nobody bought anything" from "payments broke" — the silence gauge in
-     * {@code StuckPaymentSweepService} only says nothing arrived, not that arrivals are
-     * being rejected. Never throws: a metrics failure must not fail a webhook ack.
-     */
+    /** Count a webhook that did not settle a bill. Best-effort; never fails the ack. */
     private void recordWebhookDropped(String reason) {
-        if (meterRegistry == null) return;
-        try {
-            io.micrometer.core.instrument.Counter.builder("payments.webhook.dropped")
-                    .description("Easebuzz webhooks received but not applied to a bill")
-                    .tag("reason", reason)
-                    .register(meterRegistry)
-                    .increment();
-        } catch (Exception ignored) {
-            // metrics are best-effort
-        }
+        if (webhookMetrics == null) return;
+        webhookMetrics.dropped(reason);
     }
 
     @Transactional

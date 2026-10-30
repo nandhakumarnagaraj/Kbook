@@ -50,22 +50,56 @@ groups:
             infinite-409 shape). Identify the tenant from sync_push_failed_total
             logs and clear the record on that terminal.
 
-      # Webhooks that arrive but never settle a bill. Hash mismatches mean a
-      # configuration/key problem; amount mismatches mean a data problem; both
-      # leave a customer paid-but-unmarked.
-      - alert: KhanaBookPaymentWebhookDropped
+      # Amount mismatch is the one that loses money: the gateway reports success
+      # but the amount does not match the bill, so the bill stays unpaid while the
+      # customer believes they paid. Always worth a human.
+      - alert: KhanaBookPaymentAmountMismatch
         expr: |
-          sum by (reason) (rate(payments_webhook_dropped_total{reason!="duplicate"}[10m])) > 0
+          sum(rate(payments_webhook_dropped_total{reason="amount_mismatch"}[10m])) > 0
         for: 10m
         labels:
           severity: critical
         annotations:
-          summary: "Easebuzz webhooks dropped ({{ $labels.reason }})"
+          summary: "Easebuzz webhook amount does not match the bill"
           description: >-
-            Webhooks are arriving but not marking bills paid. reason=hash_mismatch
-            usually means the salt/key changed; reason=amount_mismatch means the
-            bill total and the gateway amount disagree. Bills stay unpaid while
-            customers believe they paid.
+            A payment succeeded at the gateway but the bill was not settled. Find
+            the affected tenant with the bill id in the webhook log line
+            ("Payment webhook amount mismatch billId=..."), then log queries
+            filtered by restaurantId.
+
+      # Hash mismatch means the signature failed: a rotated salt/secret, or simply
+      # a spoofed request hitting the public webhook endpoint. It is common enough
+      # from bots that it must not page anyone on its own — only a sustained,
+      # unexplained rate over a long window is a configuration signal.
+      - alert: KhanaBookPaymentWebhookHashMismatch
+        expr: |
+          sum(rate(payments_webhook_dropped_total{reason="hash_mismatch"}[30m])) > 0.05
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sustained Easebuzz webhook hash mismatches"
+          description: >-
+            More than 0.05 rejected signature/sec for an hour. Check the Easebuzz
+            salt/key configuration first; if it is correct, check for spoofed
+            traffic against /payments/easebuzz/webhook.
+
+      # already_paid is a healthy idempotent no-op (bill settled by manual verify
+      # or a different txnid, then the webhook replays). It is recorded for
+      # observability, never as an incident — alerting on it produced false
+      # criticals for ordinary replay traffic.
+      - alert: KhanaBookPaymentWebhookReplayVolume
+        expr: |
+          sum(rate(payments_webhook_dropped_total{reason="already_paid"}[30m])) > 1
+        for: 2h
+        labels:
+          severity: info
+        annotations:
+          summary: "High volume of already-paid webhook replays"
+          description: >-
+            Over 1 replay/sec for two hours. Usually harmless, but a sustained rate
+            suggests a merchant is retrying a stale transaction id or the gateway
+            is re-delivering after a settlement mismatch — worth a look, not a page.
 
       # No webhook at all. Silence is indistinguishable from a quiet evening
       # unless it is measured — a busy restaurant settling nothing for an hour
