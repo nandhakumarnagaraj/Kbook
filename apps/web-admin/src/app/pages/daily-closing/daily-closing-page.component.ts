@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { EMPTY, expand, reduce } from 'rxjs';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { BusinessOrder } from '../../core/models/api.models';
+import { BusinessOrder, HourlySalesRow } from '../../core/models/api.models';
 import { formatCurrency } from '../../shared/formatters';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
@@ -36,7 +36,13 @@ interface DailyClosingData {
   netRevenue: number;
   paymentSplits: PaymentSplit[];
   expectedCash: number;
-  topItems: { name: string; qty: number }[];
+  topItems: { name: string; qty: number; amount?: number | null }[];
+}
+
+interface TerminalSalesRow {
+  terminal: string;
+  orders: number;
+  amount: number;
 }
 
 @Component({
@@ -132,8 +138,122 @@ interface DailyClosingData {
 
         <ng-container *ngIf="d.totalOrders > 0">
 
-        <!-- Shared KPI row: same anatomy as every other page's summary strip. -->
+        <!-- Reference composition: KPI strip, then summary tables + closing rail -->
         <app-kpi-row [items]="closingKpis()" ariaLabel="Closing summary" />
+
+        <!-- Reference: summary tables on the left, closing status rail on the right -->
+        <div class="closing-main-grid">
+          <div class="closing-summary-col">
+            <section class="panel soft-section">
+              <h3 class="intel-card__title">Payment Summary</h3>
+              <p class="panel-sub">Breakdown of revenue by payment mode.</p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <caption class="visually-hidden">Payment summary for the closing day</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Payment Mode</th>
+                      <th scope="col" class="num-cell">Orders</th>
+                      <th scope="col" class="num-cell">Amount (₹)</th>
+                      <th scope="col" class="num-cell">% of Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of paymentRows(); trackBy: trackByIndex">
+                      <th scope="row" class="font-semibold">{{ row.label }}</th>
+                      <td class="num-cell tabular-num">{{ row.count }}</td>
+                      <td class="num-cell tabular-num">{{ fmt(row.total) }}</td>
+                      <td class="num-cell tabular-num">{{ row.pct }}</td>
+                    </tr>
+                    <tr *ngIf="!paymentRows().length">
+                      <td colspan="4" class="muted">No settled payments recorded.</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-totals-row">
+                      <td colspan="2"><strong>Total</strong></td>
+                      <td class="num-cell tabular-num font-bold">{{ fmt(d.totalRevenue) }}</td>
+                      <td class="num-cell tabular-num font-bold">100%</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel soft-section">
+              <h3 class="intel-card__title">Order Status Summary</h3>
+              <p class="panel-sub">Status-wise order count and value.</p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <caption class="visually-hidden">Order status summary for the closing day</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Status</th>
+                      <th scope="col" class="num-cell">Orders</th>
+                      <th scope="col" class="num-cell">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of statusRows(); trackBy: trackByIndex">
+                      <th scope="row" class="font-semibold"><span class="kpi-tag" [ngClass]="row.tagClass">{{ row.label }}</span></th>
+                      <td class="num-cell tabular-num">{{ row.count }}</td>
+                      <td class="num-cell tabular-num">{{ fmt(row.amount) }}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-totals-row">
+                      <td><strong>Total</strong></td>
+                      <td class="num-cell tabular-num font-bold">{{ d.totalOrders }}</td>
+                      <td class="num-cell tabular-num font-bold">{{ fmt(d.totalRevenue) }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <!-- Closing Status rail: mirrors the reconciliation state below it -->
+          <aside class="panel soft-section closing-rail" aria-label="Closing status">
+            <div class="closing-rail__head">
+              <h3 class="intel-card__title">Closing Status</h3>
+              <span class="kpi-tag" [ngClass]="countsCounted() ? 'kpi-tag--green' : 'kpi-tag--amber'">
+                {{ countsCounted() ? 'Reconciled' : 'Open' }}
+              </span>
+            </div>
+            <p class="closing-rail__note" [ngClass]="countsCounted() ? 'closing-rail__note--ok' : 'closing-rail__note--todo'">
+              {{ countsCounted()
+                ? 'Cash reconciled. Generate the final report when you are ready to close the day.'
+                : 'Complete cash reconciliation — count the drawer below — to generate the final report.' }}
+            </p>
+            <ol class="closing-steps">
+              <li class="closing-step closing-step--done">
+                <span class="closing-step__dot" aria-hidden="true">1</span>
+                <div class="closing-step__copy"><strong>Review Sales Summary</strong><span>Verify total sales and orders</span></div>
+              </li>
+              <li class="closing-step" [ngClass]="{ 'closing-step--done': countsCounted() }">
+                <span class="closing-step__dot" aria-hidden="true">2</span>
+                <div class="closing-step__copy"><strong>Count Physical Cash</strong><span>{{ countedCash() == null ? 'Enter actual cash collected' : 'Counted ' + fmt(countedCash()!) }}</span></div>
+              </li>
+              <li class="closing-step" [ngClass]="{ 'closing-step--done': countsCounted() }">
+                <span class="closing-step__dot" aria-hidden="true">3</span>
+                <div class="closing-step__copy"><strong>Review Variance</strong><span>{{ countedCash() == null ? 'Pending cash count' : 'Difference: ' + getVarianceFormatted(d.expectedCash) }}</span></div>
+              </li>
+              <li class="closing-step" [ngClass]="{ 'closing-step--done': reportGenerated() }">
+                <span class="closing-step__dot" aria-hidden="true">4</span>
+                <div class="closing-step__copy"><strong>Close Business Day</strong><span>{{ reportGenerated() ? 'Final report generated' : 'Generate the final report' }}</span></div>
+              </li>
+            </ol>
+            <button
+              type="button"
+              class="header-action-btn header-action-btn--primary closing-rail__cta"
+              [disabled]="!countsCounted()"
+              (click)="closeBusinessDay()"
+              aria-label="Proceed to close day and generate the final closing report">
+              Proceed to Close Day
+            </button>
+            <span class="closing-rail__hint">Closing generates the final report on this device; the cash count stays in this browser.</span>
+          </aside>
+        </div>
 
         <!-- Physical Cash Drawer Reconciliation (Tactile Benchmark) -->
         <section class="panel soft-section reconciliation-panel">
@@ -187,61 +307,88 @@ interface DailyClosingData {
           </div>
         </section>
 
-        <!-- Payment Mode Breakdown Cards -->
-        <section class="panel soft-section payment-splits-panel">
-          <h3 class="intel-card__title">Payment Channel Breakdown</h3>
-          <p class="panel-sub">Digital collections are auto-settled via payment gateway. Cash requires manual bank deposit.</p>
-
-          <div class="payment-splits-grid">
-            <article class="split-card" *ngFor="let split of d.paymentSplits; trackBy: trackByIndex">
-              <div class="split-icon-box" [ngClass]="'split-icon--' + split.mode">
-                <svg *ngIf="split.mode.includes('cash')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect width="20" height="12" x="2" y="6" rx="2"/>
-                  <circle cx="12" cy="12" r="2"/>
-                  <path d="M6 12h.01M18 12h.01"/>
-                </svg>
-                <svg *ngIf="split.mode.includes('upi')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
-                  <path d="M12 18h.01"/>
-                </svg>
-                <svg *ngIf="!split.mode.includes('cash') && !split.mode.includes('upi')" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect width="20" height="14" x="2" y="5" rx="2"/>
-                  <line x1="2" x2="22" y1="10" y2="10"/>
-                </svg>
+        <!-- Reference bottom strip: hourly curve and best sellers, printed on the slip -->
+        <div class="closing-bottom-grid">
+          <section class="panel soft-section">
+            <h3 class="intel-card__title">Hourly Sales</h3>
+            <div class="hourly-chart" *ngIf="hourlyRows().length; else hourlyEmpty">
+              <div class="hourly-chart__area">
+                <div class="hourly-bar" *ngFor="let h of hourlyRows(); trackBy: trackByIndex"
+                  [ngClass]="{ 'hourly-bar--peak': h.itemsSold === hourlyPeak() }"
+                  [style.height.%]="hourlyBarHeight(h)">
+                  <span class="hourly-bar__tip" *ngIf="h.itemsSold === hourlyPeak()">{{ h.itemsSold }} sold</span>
+                </div>
               </div>
-
-              <div class="split-meta">
-                <span class="split-label">{{ split.label }}</span>
-                <strong class="split-amount">{{ fmt(split.total) }}</strong>
-                <span class="split-count">{{ split.count }} transactions</span>
+              <div class="hourly-chart__axis" aria-hidden="true">
+                <span *ngFor="let h of hourlyRows(); let i = index" [class.hourly-chart__tick--edge]="i % 3 === 0">{{ hourLabel(h) }}</span>
               </div>
-            </article>
+            </div>
+            <ng-template #hourlyEmpty>
+              <p class="muted">No hourly sales recorded to plot for this day.</p>
+            </ng-template>
+          </section>
+
+          <section class="panel soft-section">
+            <div class="closing-rail__head">
+              <h3 class="intel-card__title">Top Selling Items</h3>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <caption class="visually-hidden">Top selling items for the closing day</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="num-cell">#</th>
+                    <th scope="col">Item Name</th>
+                    <th scope="col" class="num-cell">Qty</th>
+                    <th scope="col" class="num-cell">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of d.topItems; let rank = index; trackBy: trackByIndex">
+                    <th scope="row" class="num-cell tabular-num">{{ rank + 1 }}</th>
+                    <td>{{ item.name }}</td>
+                    <td class="num-cell tabular-num">{{ item.qty }}</td>
+                    <td class="num-cell tabular-num">{{ item.amount == null ? '—' : fmt(item.amount) }}</td>
+                  </tr>
+                  <tr *ngIf="!d.topItems.length">
+                    <td colspan="4" class="muted">No item-level sales recorded.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- Terminal-wise sales appear only when the closing source reports them -->
+        <section class="panel soft-section" *ngIf="terminalSales().length">
+          <h3 class="intel-card__title">Terminal-wise Sales</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <caption class="visually-hidden">Sales split by terminal for the closing day</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Terminal</th>
+                  <th scope="col" class="num-cell">Orders</th>
+                  <th scope="col" class="num-cell">Amount (₹)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of terminalSales(); trackBy: trackByIndex">
+                  <th scope="row" class="font-semibold">{{ row.terminal }}</th>
+                  <td class="num-cell tabular-num">{{ row.orders }}</td>
+                  <td class="num-cell tabular-num">{{ fmt(row.amount) }}</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="table-totals-row">
+                  <td><strong>Total</strong></td>
+                  <td class="num-cell tabular-num font-bold">{{ terminalSalesTotal().orders }}</td>
+                  <td class="num-cell tabular-num font-bold">{{ fmt(terminalSalesTotal().amount) }}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </section>
-
-        <!-- Order Volume Summary -->
-        <section class="panel soft-section order-dist-panel">
-          <h3 class="intel-card__title">Ticket Status Audit</h3>
-          <div class="audit-row-grid">
-            <div class="audit-stat">
-              <span class="stat-name">Total Tickets Minted</span>
-              <strong class="stat-digit">{{ d.totalOrders }}</strong>
-            </div>
-            <div class="audit-stat stat--success">
-              <span class="stat-name">Settled &amp; Paid</span>
-              <strong class="stat-digit">{{ d.completedOrders }}</strong>
-            </div>
-            <div class="audit-stat stat--danger">
-              <span class="stat-name">Cancelled / Voided</span>
-              <strong class="stat-digit">{{ d.cancelledOrders }}</strong>
-            </div>
-            <div class="audit-stat stat--warn">
-              <span class="stat-name">Unsettled / Draft</span>
-              <strong class="stat-digit">{{ d.draftOrders }}</strong>
-            </div>
-          </div>
-        </section>
-
         </ng-container>
       </ng-container>
     </div>
@@ -472,6 +619,164 @@ interface DailyClosingData {
     .stat--success .stat-digit { color: var(--kb-color-success); }
     .stat--danger .stat-digit { color: var(--kb-color-danger); }
     .stat--warn .stat-digit { color: var(--kb-color-warning); }
+
+    /* ── Reference layout: summary tables + closing rail ─────────── */
+    .closing-main-grid {
+      display: grid;
+      grid-template-columns: 2.1fr 1fr;
+      gap: var(--kb-space-4);
+      margin-bottom: var(--kb-space-4);
+    }
+    .closing-summary-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-4);
+      min-width: 0;
+    }
+    .closing-rail__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-2);
+    }
+    .closing-rail__note {
+      margin: 0 0 var(--kb-space-4);
+      padding: var(--kb-space-3) var(--kb-space-4);
+      border-radius: var(--kb-radius-md);
+      font-size: var(--kb-text-sm);
+      line-height: 1.45;
+    }
+    .closing-rail__note--todo {
+      background: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
+    }
+    .closing-rail__note--ok {
+      background: var(--kb-color-success-soft);
+      color: var(--kb-color-success);
+    }
+    .closing-steps {
+      list-style: none;
+      margin: 0 0 var(--kb-space-4);
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-3);
+    }
+    .closing-step {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--kb-space-3);
+    }
+    .closing-step__dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      flex: none;
+      border-radius: var(--kb-radius-full);
+      border: 2px solid var(--kb-color-border);
+      color: var(--kb-color-muted-foreground);
+      font-size: var(--kb-text-sm);
+      font-weight: 700;
+    }
+    .closing-step--done .closing-step__dot {
+      border-color: var(--kb-color-primary);
+      background: var(--kb-color-primary);
+      color: var(--kb-color-on-primary);
+    }
+    .closing-step__copy {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .closing-step__copy strong {
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-foreground);
+    }
+    .closing-step__copy span {
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+    }
+    .closing-rail__cta {
+      width: 100%;
+      justify-content: center;
+    }
+    .closing-rail__cta:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .closing-rail__hint {
+      display: block;
+      margin-top: var(--kb-space-2);
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+      line-height: 1.45;
+    }
+
+    /* ── Reference bottom strip: hourly bars + top sellers ───────── */
+    .closing-bottom-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: var(--kb-space-4);
+      margin-top: var(--kb-space-5);
+    }
+    .hourly-chart {
+      margin-top: var(--kb-space-4);
+    }
+    .hourly-chart__area {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 180px;
+      padding: var(--kb-space-4) var(--kb-space-2) 0;
+      border-bottom: 1px solid var(--kb-color-border);
+    }
+    .hourly-bar {
+      flex: 1 1 0;
+      min-height: 3px;
+      border-radius: var(--kb-radius-sm) var(--kb-radius-sm) 0 0;
+      background: var(--kb-color-primary-soft);
+      position: relative;
+    }
+    .hourly-bar--peak {
+      background: var(--kb-color-primary);
+    }
+    .hourly-bar__tip {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      padding: 2px 8px;
+      border-radius: var(--kb-radius-sm);
+      background: var(--kb-color-foreground);
+      color: var(--kb-color-foreground-contrast);
+      font-size: var(--kb-text-xs);
+      font-weight: 600;
+    }
+    .hourly-chart__axis {
+      display: flex;
+      gap: 6px;
+      padding: var(--kb-space-2) var(--kb-space-2) 0;
+    }
+    .hourly-chart__axis span {
+      flex: 1 1 0;
+      text-align: center;
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+    }
+    .hourly-chart__axis span.hourly-chart__tick--edge {
+      visibility: visible;
+    }
+
+    @media (max-width: 1024px) {
+      .closing-main-grid,
+      .closing-bottom-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   `]
 })
 export class DailyClosingPageComponent {
@@ -481,6 +786,9 @@ export class DailyClosingPageComponent {
   loading = signal(false);
   error = signal('');
   data = signal<DailyClosingData | null>(null);
+  hourlyRows = signal<HourlySalesRow[]>([]);
+  terminalSales = signal<TerminalSalesRow[]>([]);
+  reportGenerated = signal(false);
 
   /**
    * The closing figures are withheld while a reload is in flight so the
@@ -489,31 +797,66 @@ export class DailyClosingPageComponent {
    */
   readonly viewData = computed(() => (this.loading() ? null : this.data()));
 
-  /** The closing strip, in the shared KPI anatomy used by every page. */
+  /** Reference strip: Total Sales · Expected Cash · Total Digital · AOV. */
   readonly closingKpis = computed<KpiItem[]>(() => {
     const d = this.viewData();
     if (!d) {
       return [];
     }
+    const digital = d.paymentSplits
+      .filter((s) => !s.mode.toLowerCase().includes('cash'))
+      .reduce((sum, s) => sum + s.total, 0);
     return [
-      { label: 'Net realized revenue', value: this.fmt(d.netRevenue), caption: 'Gross billed minus refunds' },
-      { label: 'Gross billed', value: this.fmt(d.totalRevenue), caption: `${d.completedOrders} orders completed` },
+      { label: 'Total Sales', value: this.fmt(d.totalRevenue), caption: `${d.totalOrders} orders` },
+      { label: 'Expected Cash', value: this.fmt(d.expectedCash), caption: 'From cash payments' },
+      { label: 'Total Digital', value: this.fmt(digital), caption: 'UPI, Card, Wallet' },
       {
-        label: 'Refunds & cancellations',
-        value: this.fmt(d.refundedAmount),
-        tone: d.refundedAmount > 0 ? 'danger' : 'default',
-        alert: d.refundedAmount > 0,
-        caption: `${d.cancelledOrders} orders cancelled`,
-      },
-      {
-        label: 'Open tables / drafts',
-        value: d.draftOrders,
-        tone: d.draftOrders > 0 ? 'warning' : 'default',
-        alert: d.draftOrders > 0,
-        caption: 'Must settle before closing day',
+        label: 'Average Order Value',
+        value: this.fmt(d.totalOrders > 0 ? d.totalRevenue / d.totalOrders : 0),
+        caption: "Today's tickets",
       },
     ];
   });
+
+  /** Reference: Payment Summary table with the share of each channel. */
+  readonly paymentRows = computed<Array<PaymentSplit & { pct: string }>>(() => {
+    const d = this.viewData();
+    if (!d) {
+      return [];
+    }
+    const total = d.paymentSplits.reduce((sum, s) => sum + s.total, 0);
+    return d.paymentSplits.map((s) => ({
+      ...s,
+      pct: total > 0 ? ((s.total / total) * 100).toFixed(1) + '%' : '0.0%',
+    }));
+  });
+
+  /** Reference: Order Status Summary — Completed · Cancelled · Draft. */
+  readonly statusRows = computed<Array<{ label: string; count: number; amount: number; tagClass: string }>>(() => {
+    const d = this.viewData();
+    if (!d) {
+      return [];
+    }
+    return [
+      { label: 'Completed', count: d.completedOrders, amount: d.netRevenue, tagClass: 'kpi-tag--green' },
+      { label: 'Cancelled', count: d.cancelledOrders, amount: d.refundedAmount, tagClass: 'kpi-tag--warn' },
+      { label: 'Draft', count: d.draftOrders, amount: 0, tagClass: 'kpi-tag--neutral' },
+    ];
+  });
+
+  /** The drawer count is what unblocks the close flow. */
+  readonly countsCounted = computed(() => this.countedCash() != null);
+
+  readonly hourlyPeak = computed(() =>
+    this.hourlyRows().reduce((max, r) => Math.max(max, r.itemsSold), 0)
+  );
+
+  readonly terminalSalesTotal = computed(() =>
+    this.terminalSales().reduce(
+      (acc, r) => ({ orders: acc.orders + r.orders, amount: acc.amount + r.amount }),
+      { orders: 0, amount: 0 }
+    )
+  );
   countedCash = signal<number | null>(null);
   countedCashSavedLocally = signal(false);
 
@@ -599,10 +942,15 @@ export class DailyClosingPageComponent {
   load(): void {
     this.loading.set(true);
     this.error.set('');
+    this.reportGenerated.set(false);
     const d = this.selectedDate();
+    this.loadHourly(d);
     this.api.getDailyClosing(d).subscribe({
       next: (res: any) => {
         this.loading.set(false);
+        this.terminalSales.set(Array.isArray(res.terminalSales)
+          ? res.terminalSales.map((t: any) => ({ terminal: t.terminal, orders: t.orders || 0, amount: t.amount || 0 }))
+          : []);
         this.data.set({
           date: res.date || d,
           totalOrders: res.totalOrders || 0,
@@ -616,7 +964,7 @@ export class DailyClosingPageComponent {
             mode: s.mode, label: this.getModeLabel(s.mode), count: s.count || 0, total: s.total || 0
           })),
           expectedCash: res.expectedCash || 0,
-          topItems: res.topItems || []
+          topItems: (res.topItems || []).map((t: any) => ({ name: t.name, qty: t.qty || 0, amount: t.amount ?? null }))
         });
       },
       error: () => {
@@ -683,6 +1031,39 @@ export class DailyClosingPageComponent {
       expectedCash,
       topItems: []
     };
+  }
+
+  private loadHourly(date: string): void {
+    this.hourlyRows.set([]);
+    this.api.getHourlySales(date)
+      .subscribe({
+        next: (rows) => this.hourlyRows.set(Array.isArray(rows) ? rows : []),
+        error: () => this.hourlyRows.set([]),
+      });
+  }
+
+  /** `13` → `1 PM`: the hourly axis is labelled the way the counter reads it. */
+  hourLabel(row: HourlySalesRow): string {
+    const hour = Number(row.hour);
+    if (!Number.isFinite(hour)) return String(row.hour);
+    const suffix = hour >= 12 ? 'PM' : 'AM';
+    const display = hour % 12 === 0 ? 12 : hour % 12;
+    return `${display} ${suffix}`;
+  }
+
+  /** Bar height is relative to the day's peak so the largest hour always fills the plot. */
+  hourlyBarHeight(row: HourlySalesRow): number {
+    const peak = this.hourlyPeak();
+    if (peak <= 0 || !this.hourlyRows().length) return 0;
+    return Math.max(3, Math.round((row.itemsSold / peak) * 100));
+  }
+
+  /** Step 4 of the reference checklist: generate the final report. The cash count
+   *  and the report stay local — the day itself is closed at the counter. */
+  closeBusinessDay(): void {
+    if (!this.countsCounted()) return;
+    this.exportClosing();
+    this.reportGenerated.set(true);
   }
 
   private getModeLabel(mode: string): string {

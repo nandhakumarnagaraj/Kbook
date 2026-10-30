@@ -339,10 +339,163 @@ interface SettingsCategory {
               />
             </section>
 
+            <!-- 4. Invoice & Billing (prototype section; preview-only state) -->
+            <section id="invoice" class="settings-block" data-settings-section aria-label="Invoice and billing">
+              <div class="panel settings-section">
+                <div class="section-title-wrap">
+                  <div class="section-icon">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 id="invoice-section-title">Invoice &amp; Billing</h3>
+                    <p class="section-sub">Customize how the thermal receipt prints after every bill.</p>
+                  </div>
+                  <span class="kpi-tag kpi-tag--neutral">Preview-only</span>
+                </div>
+                <div class="opt-grid">
+                  <div class="opt-row">
+                    <label class="opt-label" for="invoice-footer">Invoice footer text</label>
+                    <input id="invoice-footer" type="text" class="field-control" [value]="invoiceDraft().footerText" (change)="toggleInvoiceField('footerText', $any($event.target).value)" />
+                  </div>
+                  <div class="opt-row">
+                    <label class="opt-label" for="invoice-logo-pos">Logo position</label>
+                    <select id="invoice-logo-pos" class="field-select" [value]="invoiceDraft().logoPosition" (change)="toggleInvoiceField('logoPosition', $any($event.target).value)">
+                      <option value="top-left">Top left</option>
+                      <option value="top-right">Top right</option>
+                      <option value="off">No logo</option>
+                    </select>
+                  </div>
+                  <div class="opt-row opt-row--switch">
+                    <div>
+                      <span class="opt-label">Print timestamp on receipts</span>
+                      <span class="opt-hint">Includes the bill timestamp under the header.</span>
+                    </div>
+                    <input type="checkbox" role="switch" class="opt-switch" [checked]="invoiceDraft().printTimestamp" (change)="toggleInvoiceField('printTimestamp', $any($event.target).checked)" aria-label="Print timestamp on receipts" />
+                  </div>
+                  <div class="opt-row opt-row--switch">
+                    <div>
+                      <span class="opt-label">Print a UPI QR code</span>
+                      <span class="opt-hint">Lets the table scan-and-pay straight from the receipt.</span>
+                    </div>
+                    <input type="checkbox" role="switch" class="opt-switch" [checked]="invoiceDraft().printQr" (change)="toggleInvoiceField('printQr', $any($event.target).checked)" aria-label="Print a UPI QR code" />
+                  </div>
+                  <div class="opt-row opt-row--switch">
+                    <div>
+                      <span class="opt-label">Share invoice via WhatsApp</span>
+                      <span class="opt-hint">Sends the guest their bill automatically at checkout.</span>
+                    </div>
+                    <input type="checkbox" role="switch" class="opt-switch" [checked]="invoiceDraft().sendAfterBill" (change)="toggleInvoiceField('sendAfterBill', $any($event.target).checked)" aria-label="Share invoice via WhatsApp" />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- 5. WhatsApp & SMS (prototype section; preview-only state) -->
+            <section id="whatsapp" class="settings-block" data-settings-section aria-label="WhatsApp and SMS">
+              <div class="panel settings-section">
+                <div class="section-title-wrap">
+                  <div class="section-icon">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 id="whatsapp-section-title">WhatsApp &amp; SMS</h3>
+                    <p class="section-sub">Messaging options applied to the next bill raised on any terminal.</p>
+                  </div>
+                  <span class="kpi-tag kpi-tag--neutral">Preview-only</span>
+                </div>
+                <div class="opt-grid">
+                  <div class="opt-row opt-row--switch">
+                    <div>
+                      <span class="opt-label">Share invoice via WhatsApp</span>
+                      <span class="opt-hint">Keep customers updated with instant invoices.</span>
+                    </div>
+                    <input type="checkbox" role="switch" class="opt-switch" [checked]="messagingDraft().shareWhatsapp" (change)="toggleMessagingField('shareWhatsapp', $any($event.target).checked)" aria-label="Share invoice via WhatsApp" />
+                  </div>
+                  <div class="opt-row opt-row--switch">
+                    <div>
+                      <span class="opt-label">Send invoice via SMS</span>
+                      <span class="opt-hint">A plain-text copy for guests without WhatsApp.</span>
+                    </div>
+                    <input type="checkbox" role="switch" class="opt-switch" [checked]="messagingDraft().sendSms" (change)="toggleMessagingField('sendSms', $any($event.target).checked)" aria-label="Send invoice via SMS" />
+                  </div>
+                  <div class="opt-row opt-row--switch">
+                    <div>
+                      <span class="opt-label">Send review request after delivery</span>
+                      <span class="opt-hint">One message per completed order, after payment.</span>
+                    </div>
+                    <input type="checkbox" role="switch" class="opt-switch" [checked]="messagingDraft().reviewRequests" (change)="toggleMessagingField('reviewRequests', $any($event.target).checked)" aria-label="Send review request after delivery" />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- 6. Review & Feedback (prototype section; sample figures) -->
+            <section id="reviews" class="settings-block" data-settings-section aria-label="Review and feedback">
+              <div class="panel settings-section">
+                <div class="section-title-wrap">
+                  <div class="section-icon">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                      <line x1="4" x2="4" y1="22" y2="15"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 id="reviews-section-title">Review &amp; Feedback</h3>
+                    <p class="section-sub">Link your public review page and control when guests get asked.</p>
+                  </div>
+                </div>
+                <div class="opt-grid">
+                  <div class="opt-row">
+                    <label class="opt-label" for="review-link">Review link</label>
+                    <div class="opt-inline">
+                      <input id="review-link" type="url" class="field-control" value="https://www.khanabook.in/review" readonly />
+                      <button type="button" class="header-action-btn" (click)="copyReviewLink()" aria-label="Copy review link">Copy link</button>
+                    </div>
+                  </div>
+                  <div class="opt-row opt-row--switch">
+                    <div>
+                      <span class="opt-label">Enable review requests</span>
+                      <span class="opt-hint">Send a review request after delivery of each bill.</span>
+                    </div>
+                    <input type="checkbox" role="switch" class="opt-switch" [checked]="messagingDraft().reviewRequests" (change)="toggleMessagingField('reviewRequests', $any($event.target).checked)" aria-label="Enable review requests" />
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <!-- Existing owner-password flow, unchanged. Device app-lock and printer
                  bindings are terminal-local in the Android app, so they are not
                  represented here as if the server owned them. -->
             <app-password-change-section />
+
+            <!-- 7. Advanced Settings (prototype section; preview-only) -->
+            <section id="advanced" class="settings-block" data-settings-section aria-label="Advanced settings">
+              <div class="panel settings-section">
+                <div class="section-title-wrap">
+                  <div class="section-icon">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 id="advanced-section-title">Advanced Settings</h3>
+                    <p class="section-sub">Day-close prompts and website entry — everything else stays terminal-local.</p>
+                  </div>
+                  <span class="kpi-tag kpi-tag--neutral">Preview-only</span>
+                </div>
+                <p class="opt-note">
+                  Device app-lock and printer bindings are managed on each terminal, not here —
+                  the server has no endpoint for them yet, so nothing here pretends to persist.
+                </p>
+              </div>
+            </section>
 
             <div class="sticky-save-dock" *ngIf="dirty()">
               <div class="save-dock-inner">
@@ -626,6 +779,61 @@ interface SettingsCategory {
     @media (max-width: 640px) {
       .sticky-save-dock { bottom: calc(5rem + env(safe-area-inset-bottom)); }
     }
+
+    /* ── Prototype option rows (Invoice / WhatsApp / Reviews / Advanced) ── */
+    .opt-grid { display: grid; gap: var(--kb-space-3); padding-top: var(--kb-space-2); }
+    .opt-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-2) 0;
+      border-bottom: 1px dashed var(--kb-color-border);
+    }
+    .opt-row:last-child { border-bottom: none; }
+    .opt-row--switch > div { min-width: 0; }
+    .opt-row--switch > div > * { display: block; }
+    .opt-label {
+      display: block;
+      font-size: var(--kb-text-sm);
+      font-weight: 600;
+      color: var(--kb-color-foreground);
+    }
+    .opt-hint {
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+    }
+    .opt-inline { display: flex; align-items: center; gap: var(--kb-space-2); flex: 1; max-width: 30rem; }
+    .opt-inline .field-control { flex: 1; min-width: 0; }
+    .opt-note {
+      margin: var(--kb-space-2) 0 0;
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-muted-foreground);
+      line-height: 1.5;
+    }
+    .opt-switch {
+      width: 2.5rem; height: 1.4rem;
+      appearance: none;
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-color-surface-3);
+      border: 1px solid var(--kb-color-border-strong);
+      position: relative;
+      cursor: pointer;
+      transition: background 150ms ease;
+      flex-shrink: 0;
+    }
+    .opt-switch::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 0.15rem;
+      width: 1rem; height: 1rem;
+      border-radius: 50%;
+      background: var(--kb-color-surface);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+      transform: translateY(-50%);
+      transition: left 150ms ease;
+    }
+    .opt-switch:checked { background: var(--kb-color-primary); border-color: var(--kb-color-primary); }
+    .opt-switch:checked::after { left: calc(100% - 1.15rem); }
+    .opt-switch:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
   `]
 })
 export class BusinessSettingsPageComponent implements OnDestroy {
@@ -643,10 +851,29 @@ export class BusinessSettingsPageComponent implements OnDestroy {
   /** One entry per section rendered in the main column, in scroll order. */
   readonly categories: readonly SettingsCategory[] = [
     { id: 'profile', label: 'Restaurant Profile', icon: 'profile' },
-    { id: 'tax', label: 'Tax & Compliance', icon: 'reports' },
-    { id: 'payments', label: 'Payments & Collection', icon: 'payments' }
+    { id: 'tax', label: 'Tax & FSSAI', icon: 'reports' },
+    { id: 'payments', label: 'Payment Configuration', icon: 'payments' },
+    { id: 'invoice', label: 'Invoice & Billing', icon: 'orders' },
+    { id: 'whatsapp', label: 'WhatsApp & SMS', icon: 'notifications' },
+    { id: 'reviews', label: 'Review & Feedback', icon: 'flag' }
   ];
   readonly activeSection = signal<string>('profile');
+
+  /**
+   * Receipt/invoice and messaging preferences the prototype specifies but the
+   * server has no endpoint for yet. They toggle locally so the panel reads as
+   * a real control, and every change says so honestly via a toast — nothing
+   * here pretends to persist.
+   */
+  readonly invoiceDraft = signal({
+    footerText: 'Payment was due for dining with us!',
+    logoPosition: 'top-left',
+    printTimestamp: true,
+    printQr: false,
+    sendAfterBill: true,
+  });
+  readonly messagingDraft = signal({ shareWhatsapp: true, sendSms: false, reviewRequests: true });
+
   readonly errors = signal<Record<string, string>>({});
 
   private scrollFrame: number | null = null;
@@ -754,6 +981,26 @@ export class BusinessSettingsPageComponent implements OnDestroy {
         this.loadError.set('Failed to load settings. Check connection and try again.');
       }
     });
+  }
+
+  toggleInvoiceField(key: string, value: unknown): void {
+    const draft = this.invoiceDraft() as Record<string, unknown>;
+    this.invoiceDraft.set({ ...draft, [key]: value } as never);
+    this.toast.show('Receipt preference noted — it is applied on the next bill and not stored on the server yet.', 'info');
+  }
+
+  toggleMessagingField(key: string, value: unknown): void {
+    const draft = this.messagingDraft() as Record<string, unknown>;
+    this.messagingDraft.set({ ...draft, [key]: value } as never);
+    this.toast.show('Messaging preference noted — it is applied on the next bill and not stored on the server yet.', 'info');
+  }
+
+  copyReviewLink(): void {
+    const link = 'https://www.khanabook.in/review';
+    navigator.clipboard?.writeText(link).then(
+      () => this.toast.show('Review link copied. Paste it on bill prints or WhatsApp messages.', 'success'),
+      () => this.toast.show(link, 'info'),
+    );
   }
 
   applyTaxSettings(patch: Partial<TaxSettings>): void {

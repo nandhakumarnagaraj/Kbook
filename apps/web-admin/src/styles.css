@@ -129,7 +129,7 @@
   --kb-color-surface-2:         #F1F5F9; /* Table header, hover, nested tiles */
   --kb-color-surface-3:         #FFFFFF; /* Modal, popover, raised controls */
   --kb-color-muted:             #F1F5F9; /* Recessed input / well */
-  --kb-color-muted-foreground:  #657A9C; /* Muted slate blue secondary text */
+  --kb-color-muted-foreground:  #586F94; /* Muted slate blue secondary text */
   --kb-color-border:            #D9E5F2; /* Cool blue-gray borders */
   --kb-color-border-strong:     #4B5563; /* Control borders (3.5:1 on #F7F9FC, >=3:1 UI boundary) */
   --kb-color-input:             #FFFFFF; /* Field background (reads as recessed on canvas) */
@@ -140,28 +140,28 @@
   --kb-accent-flow:             #552AAF;
   --kb-accent-positive:         #166534;
   --kb-accent-neutral:          #334155;
-  --kb-chart-1:                 #F9731A; /* Sales revenue velocity line */
+  --kb-chart-1:                 #E87A1E; /* Sales revenue velocity line */
   --kb-chart-2:                 #2563EB; /* Orders / takeaway */
-  --kb-chart-3:                 #7C3AED; /* Flow / tables */
-  --kb-chart-4:                 #12A76A; /* Delivery / positive */
-  --kb-chart-5:                 #64748B; /* Reference line */
+  --kb-chart-3:                 #5926B8; /* Flow / tables */
+  --kb-chart-4:                 #16A34A; /* Delivery / positive */
+  --kb-chart-5:                 #475569; /* Reference line */
   --kb-color-saffron:           var(--kb-accent-money);
   --kb-color-burnt:             #B91C1C;
   /* Primary is the logo violet: white on #552AAF is 9.0:1, so a filled action
      can carry its own label (the old orange fill measured 3.1:1 with white). */
   --kb-color-primary:           #FF5A0A; /* Primary action orange */
-  --kb-color-primary-foreground:#102B63; /* Orange on dark navy for labels */
+  --kb-color-primary-foreground:#FFFFFF; /* Ink carried on a primary or danger solid fill */
   --kb-color-primary-hover:     #3F1B95;
-  --kb-color-primary-soft:      rgba(85, 42, 175, 0.10);
+  --kb-color-primary-soft:      rgba(255, 90, 10, 0.10);
   /* Semantic status. Each foreground clears 4.5:1 against its own soft tint
      composited on --kb-color-surface, so the pin does not rely on colour alone
      AND stays readable. The inks are the deep steps: the dark theme's pastels
      (#34D399, #FBBF24, #F87171) sit at 1.9-2.4:1 on white and would vanish. */
-  --kb-color-success:           #12A76A; /* Positive/success */
+  --kb-color-success:           #166534; /* Positive/success (deep step, >=6:1 on its chip) */
   --kb-color-success-soft:      rgba(22, 101, 52, 0.10);
-  --kb-color-warning:           #FF8A00; /* Warning/preparing */
+  --kb-color-warning:           #9A3F08; /* Warning/preparing (deep step, >=5:1 on its chip) */
   --kb-color-warning-soft:      rgba(154, 63, 8, 0.10);
-  --kb-color-danger:            #E11D2E; /* Cancelled/error */
+  --kb-color-danger:            #B91C1C; /* Cancelled/error (deep step, >=5:1 on its chip) */
   --kb-color-danger-soft:       rgba(185, 28, 28, 0.07);
   /* A destructive FILL that carries white text (badge, primary danger button).
      On the light canvas the ink and the fill are the same deep red (6.4:1). */
@@ -173,7 +173,7 @@
   --kb-color-card:              var(--kb-color-surface);
   --kb-color-surface-1:         var(--kb-color-surface);
   --kb-color-on-primary:        #FFFFFF;
-  --kb-color-primary-rgb:       85, 42, 175;
+  --kb-color-primary-rgb:       255, 90, 10;
   /* Channel projections of the two accents, for the alpha tints the accent roles
      need (icon chips, bar glows). Same reason --kb-color-primary-rgb exists:
      an alpha variant is written as rgba(var(--...-rgb), a) and never re-typed. */

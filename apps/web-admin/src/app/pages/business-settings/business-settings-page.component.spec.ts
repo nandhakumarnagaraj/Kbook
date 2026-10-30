@@ -90,7 +90,14 @@ describe('BusinessSettingsPageComponent — configuration shell', () => {
   it('lists exactly the sections that exist on the page, in order', () => {
     const links = Array.from(root().querySelectorAll('.settings-nav__list a'));
     expect(links.map((link) => link.textContent?.trim()))
-      .toEqual(['Restaurant Profile', 'Tax & Compliance', 'Payments & Collection']);
+      .toEqual([
+        'Restaurant Profile',
+        'Tax & FSSAI',
+        'Payment Configuration',
+        'Invoice & Billing',
+        'WhatsApp & SMS',
+        'Review & Feedback',
+      ]);
 
     expect(root().querySelector('#profile')).toBeTruthy();
     expect(root().querySelector('#tax')).toBeTruthy();

@@ -1,5 +1,5 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { LiveOrdersTabComponent } from './live-orders-tab.component';
 import { BusinessApiService } from '../../core/services/business-api.service';
@@ -87,6 +87,24 @@ describe('LiveOrdersTabComponent — the card action row', () => {
   it('renders the active order as a card, so the action row exists to assert on', () => {
     mount(apiOrder());
     expect(actionButton('Details')).withContext('the card action row renders').toBeTruthy();
+  });
+
+  it('shows loading and a retryable failure for order-detail requests', () => {
+    const order = apiOrder();
+    mount(order);
+    api.getOrderDetail.and.returnValue(throwError(() => new Error('offline')));
+
+    fixture!.componentInstance.openOrderDetail(order.orderId);
+    fixture!.detectChanges();
+
+    expect(fixture!.nativeElement.textContent).toContain('Unable to load order details');
+    const retry = fixture!.nativeElement.querySelector('.stale-banner .btn-retry') as HTMLButtonElement;
+    expect(retry).toBeTruthy();
+
+    api.getOrderDetail.and.returnValue(of({ order, lineItems: [] } as any));
+    retry.click();
+    fixture!.detectChanges();
+    expect(fixture!.nativeElement.querySelector('app-order-detail-modal')).toBeTruthy();
   });
 
   it('shows the order state as "Preparing", not the payment word', () => {

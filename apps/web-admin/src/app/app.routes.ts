@@ -32,10 +32,76 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/businesses/businesses-page.component').then(m => m.BusinessesPageComponent)
       },
       {
+        path: 'admin/support-tickets',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/support-tickets/support-tickets-page.component').then(m => m.SupportTicketsPageComponent)
+      },
+      {
         path: 'admin/feature-flags',
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'] },
         loadComponent: () => import('./pages/feature-flags/feature-flags-page.component').then(m => m.FeatureFlagsPageComponent)
+      },
+      {
+        path: 'admin/subscriptions',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/subscriptions/subscriptions-page.component').then(m => m.SubscriptionsPageComponent)
+      },
+      {
+        path: 'admin/users',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/users/users-page.component').then(m => m.UsersPageComponent)
+      },
+      {
+        path: 'admin/sales',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/sales-overview/sales-overview-page.component').then(m => m.SalesOverviewPageComponent)
+      },
+      {
+        path: 'admin/reports',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/platform-reports/platform-reports-page.component').then(m => m.PlatformReportsPageComponent)
+      },
+      {
+        path: 'admin/system-health',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/system-health/system-health-page.component').then(m => m.SystemHealthPageComponent)
+      },
+      {
+        path: 'admin/activity-logs',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/activity-logs/activity-logs-page.component').then(m => m.ActivityLogsPageComponent)
+      },
+      {
+        path: 'admin/notifications',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/notifications/notifications-page.component').then(m => m.NotificationsPageComponent)
+      },
+      {
+        path: 'admin/settings',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/platform-settings/platform-settings-page.component').then(m => m.PlatformSettingsPageComponent)
+      },
+      {
+        path: 'admin/backups',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/backups/backups-page.component').then(m => m.BackupsPageComponent)
+      },
+      {
+        path: 'admin/integrations',
+        canActivate: [roleGuard],
+        data: { roles: ['KBOOK_ADMIN'] },
+        loadComponent: () => import('./pages/integrations/integrations-page.component').then(m => m.IntegrationsPageComponent)
       },
       {
         path: 'business/dashboard',

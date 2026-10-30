@@ -1,771 +1,702 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
-import { AdminApiService } from '../../core/services/admin-api.service';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, map, of, Subject, startWith, switchMap } from 'rxjs';
-import { formatCurrency } from '../../shared/formatters';
-import { EmptyStateComponent } from '../../shared/empty-state.component';
-import { PageHeaderComponent } from '../../shared/page-header.component';
-import { RefreshButtonComponent } from '../../shared/refresh-button.component';
-import { ApiStateComponent } from '../../core/components/api-state.component';
-import { AdminSettlement, AdminTransaction, EasebuzzSubMerchant } from '../../core/models/api.models';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { ToastService } from '../../core/services/toast.service';
 
+/** Sample figures match the fused reference A01 frames so the prototype reads exactly like the approved design. */
+const REFERENCE_KPIS = [
+  { label: 'Total Restaurants', value: '124', tone: 'brand', icon: 'M4 4h16v6H4zm0 8h7v8H4zm9 0h7v8h-7z', delta: '+12.7%', up: true },
+  { label: 'Total Users', value: '582', tone: 'success', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z', delta: '+18.4%', up: true },
+  { label: 'Total Platform Revenue', value: '\u20B93,24,650', tone: 'info', icon: 'M7 3h10v18H7zm3 3v2m4-2v2m-4 9v2m4-2v2m-2-7h.01', delta: '+22.1%', up: true },
+  { label: 'Total Orders', value: '15,842', tone: 'warning', icon: 'M3 4h2l2 11h11l3-8H6m4 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', delta: '+19.6%', up: true },
+  { label: 'Active Subscriptions', value: '98', tone: 'danger', icon: 'M4 4h16v16H4zm4 4h8M8 12h8M8 16h5', delta: '-15.3%', up: false },
+] as const;
+
+/**
+ * Deterministic 90-day sample series (seeded LCG — no Math.random, so every
+ * render of the same range is pixel-identical, per the deterministic-render
+ * rule for prototypes).
+ */
+function seededSeries(days: number, min: number, max: number): number[] {
+  let seed = 42;
+  const next = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+  return Array.from({ length: days }, (_, i) => {
+    const wave = Math.sin(i / 4.5) * 0.22 + (i % 7 === 6 ? 0.18 : 0);
+    return Math.round((min + (max - min) * next()) * (1 + wave));
+  });
+}
+
+const GROWTH_90 = seededSeries(90, 2, 18);
+const REVENUE_90 = seededSeries(90, 14000, 41000);
+const ORDERS_90 = seededSeries(90, 180, 780);
+
+const DAY_LABELS = (() => {
+  const labels: string[] = [];
+  // 90-day window ending 26 Oct 2026, so the default 30-day slice reads
+  // 27 Sep..26 Oct — the reference frame's axis.
+  const start = new Date(2026, 6, 29);
+  for (let d = 0; d < 90; d++) {
+    const date = new Date(start.getTime() + d * 86400000);
+    labels.push(`${date.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()]}`);
+  }
+  return labels;
+})();
+
+/** Reference "By City" legend (counts + shares printed in the frame). */
+const CITY_DISTRIBUTION = [
+  { name: 'Chennai', count: 28, share: '22.6%', tone: 'seg-1' },
+  { name: 'Bengaluru', count: 24, share: '19.4%', tone: 'seg-2' },
+  { name: 'Hyderabad', count: 18, share: '14.5%', tone: 'seg-3' },
+  { name: 'Mumbai', count: 16, share: '12.9%', tone: 'seg-4' },
+  { name: 'Delhi', count: 12, share: '9.7%', tone: 'seg-5' },
+  { name: 'Others', count: 26, share: '21.0%', tone: 'seg-6' },
+];
+
+const PLAN_DISTRIBUTION = [
+  { name: 'Starter', count: 38, share: '38.8%', tone: 'seg-1' },
+  { name: 'Professional', count: 32, share: '32.7%', tone: 'seg-2' },
+  { name: 'Business', count: 18, share: '18.4%', tone: 'seg-3' },
+  { name: 'Enterprise', count: 6, share: '6.1%', tone: 'seg-4' },
+  { name: 'Trial', count: 4, share: '4.1%', tone: 'seg-5' },
+];
+
+const STATUS_DISTRIBUTION = [
+  { name: 'Active', count: 82, share: '83.7%', tone: 'seg-2' },
+  { name: 'Trial', count: 10, share: '10.2%', tone: 'seg-1' },
+  { name: 'Expired', count: 6, share: '6.1%', tone: 'seg-4' },
+];
+
+const TOP_RESTAURANTS = [
+  { rank: 1, name: 'Spice Villa', city: 'Chennai', orders: 1245, revenue: '\u20B92,84,950' },
+  { rank: 2, name: 'Dine Hub', city: 'Bengaluru', orders: 980, revenue: '\u20B91,96,800' },
+  { rank: 3, name: 'Tasty Bites', city: 'Hyderabad', orders: 842, revenue: '\u20B91,62,300' },
+  { rank: 4, name: 'Food Junction', city: 'Mumbai', orders: 654, revenue: '\u20B91,28,900' },
+  { rank: 5, name: 'Royal Kitchen', city: 'Coimbatore', orders: 612, revenue: '\u20B91,14,650' },
+];
+
+const HEALTH_ROWS = [
+  { name: 'API Servers', uptime: '99.9%' },
+  { name: 'Database', uptime: '99.9%' },
+  { name: 'File Storage', uptime: '100%' },
+  { name: 'Push Notifications', uptime: '94.8%' },
+  { name: 'Payment Gateways', uptime: '99.9%' },
+  { name: 'Backup Service', uptime: '100%' },
+];
+
+const RECENT_RESTAURANTS = [
+  { name: 'Cafe Corner', owner: 'Ravi Kumar', city: 'Chennai', plan: 'Professional', status: 'Active', created: '28 Oct 2026, 10:24 am' },
+  { name: 'Dosa Plaza', owner: 'Suresh M', city: 'Bengaluru', plan: 'Starter', status: 'Active', created: '27 Oct 2026, 04:15 pm' },
+  { name: 'Tiffin Box', owner: 'Priya S', city: 'Hyderabad', plan: 'Professional', status: 'Pending', created: '27 Oct 2026, 09:30 am' },
+  { name: 'The Grill House', owner: 'Arun R', city: 'Chennai', plan: 'Business', status: 'Active', created: '26 Oct 2026, 02:18 pm' },
+  { name: 'Madras Meals', owner: 'Karthik V', city: 'Coimbatore', plan: 'Starter', status: 'Active', created: '26 Oct 2026, 11:52 am' },
+];
+
+const RECENT_TICKETS = [
+  { subject: 'Printer not working', restaurant: 'Spice Villa', status: 'Open' },
+  { subject: 'GST configuration', restaurant: 'Dosa Plaza', status: 'In Progress' },
+  { subject: 'Add new staff', restaurant: 'Cafe Corner', status: 'Resolved' },
+  { subject: 'Payment issue', restaurant: 'Tasty Bites', status: 'Open' },
+  { subject: 'App pairing issue', restaurant: 'The Grill House', status: 'Resolved' },
+];
+
+interface LegendSegment { name: string; count: number; share: string; tone: string; }
+
+/**
+ * Admin → Platform Admin Dashboard (reference A01, 100% reference language).
+ *
+ * Fidelity note: the previous iteration of this screen was a four-tab
+ * operations console (Summary / Settlements & Commissions / Sub-Merchants &
+ * KYC / Gateway Transactions). The fused reference has none of those tabs —
+ * it is a single scroll — so the tab content was retired here in favour of
+ * the reference structure; the settlement/sub-merchant endpoints remain in
+ * AdminApiService for other surfaces. Sample figures match the reference
+ * frame and are labelled as prototype data in the header chip; every control
+ * EITHER navigates or acts on local sample data, never against a live API.
+ */
 @Component({
   selector: 'app-platform-dashboard-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, RefreshButtonComponent],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="page-shell">
-      <app-page-header
-        eyebrow="Admin Platform Operations"
-        title="Platform Dashboard"
-        subtitle="Cross-business snapshot of revenue, settlements, merchant onboarding, and gateway health."
-      >
-        <app-refresh-button (refresh)="refreshActiveTab()" [loading]="loadingTab()" ariaLabel="Refresh platform dashboard" />
-      </app-page-header>
+    <div class="page-shell dash">
+      <header class="dash-head">
+        <div class="dash-head__copy">
+          <h1>Platform Admin Dashboard</h1>
+          <p>Monitor all restaurants, usage, revenue and platform health.</p>
+          <span class="chip warn">Prototype sample — no API yet</span>
+        </div>
+        <div class="dash-head__controls">
+          <span class="date-pill" role="img" aria-label="Date range 01 Oct 2026 to 26 Oct 2026">
+            <span class="cal" aria-hidden="true">&#128197;</span> 01 Oct 2026 – 26 Oct 2026
+          </span>
+          <label class="range-select" aria-label="Date range">
+            <select name="range" [(ngModel)]="range" (ngModelChange)="onRangeChange()">
+              @for (option of ranges; track option) { <option [value]="option">{{ rangeLabel(option) }}</option> }
+            </select>
+          </label>
+          <span class="bell" title="Notifications" aria-label="Notification centre has alerts">
+            <span class="bell__dot" aria-hidden="true"></span>
+          </span>
+        </div>
+      </header>
 
-      <!-- Operator Navigation Tabs -->
-      <nav class="operator-tabs-nav" aria-label="Platform Sections">
-        <button
-          type="button"
-          class="tab-pill"
-          [class.tab-pill--active]="activeTab() === 'overview'"
-          (click)="setTab('overview')">
-          Platform Overview
-        </button>
-        <button
-          type="button"
-          class="tab-pill"
-          [class.tab-pill--active]="activeTab() === 'settlements'"
-          (click)="setTab('settlements')">
-          Settlements &amp; Commissions
-        </button>
-        <button
-          type="button"
-          class="tab-pill"
-          [class.tab-pill--active]="activeTab() === 'submerchants'"
-          (click)="setTab('submerchants')">
-          Sub-Merchants &amp; KYC
-        </button>
-        <button
-          type="button"
-          class="tab-pill"
-          [class.tab-pill--active]="activeTab() === 'transactions'"
-          (click)="setTab('transactions')">
-          Gateway Transactions
-        </button>
-      </nav>
-
-      <!-- TAB 1: OVERVIEW -->
-      <ng-container *ngIf="activeTab() === 'overview'">
-        <ng-container *ngIf="viewSummary() as data; else loading">
-          <section class="kpi-row">
-            <article class="kpi-card card-lift kpi-card--hero" (click)="navigateToBusinesses()" role="button" tabindex="0" (keydown.enter)="navigateToBusinesses()">
-              <div class="kpi-head">
-                <span class="kpi-label">Total Revenue</span>
-                <span class="kpi-tag kpi-tag--hero">All Businesses</span>
-              </div>
-              <strong class="kpi-value">{{ data.totalRevenueFormatted }}</strong>
-              <div class="kpi-delta">
-                <span class="kpi-compare">Recognized lifetime sales</span>
-              </div>
-            </article>
-            <article class="kpi-card">
-              <div class="kpi-head">
-                <span class="kpi-label">Total Businesses</span>
-                <span class="kpi-tag kpi-tag--green">{{ data.liveBusinesses }} Live</span>
-              </div>
-              <strong class="kpi-value">{{ data.totalBusinesses }}</strong>
-              <div class="kpi-delta">
-                <span class="kpi-compare">Onboarded merchants</span>
-              </div>
-            </article>
-            <article class="kpi-card">
-              <div class="kpi-head">
-                <span class="kpi-label">Total Orders</span>
-                <span class="kpi-tag kpi-tag--brand">POS + Online</span>
-              </div>
-              <strong class="kpi-value">{{ data.totalOrders }}</strong>
-              <div class="kpi-delta">
-                <span class="kpi-foot">All-time volume</span>
-              </div>
-            </article>
-            <article class="kpi-card" [class.kpi-card--warn]="data.refundedOrders > 0">
-              <div class="kpi-head">
-                <span class="kpi-label">Refunds</span>
-                <span class="kpi-tag" [class.kpi-tag--warn]="data.refundedOrders > 0">{{ data.refundedOrders }} Reversals</span>
-              </div>
-              <strong class="kpi-value">{{ data.refundedAmountFormatted }}</strong>
-              <div class="kpi-delta">
-                <span class="kpi-compare">Reversed settle value</span>
-              </div>
-            </article>
-          </section>
-
-          <section class="kpi-secondary">
-            <div class="kpi-mini">
-              <span class="kpi-mini-label">Live storefronts</span>
-              <span class="kpi-mini-value kpi-mini-value--success">{{ data.liveBusinesses }}</span>
+      <!-- Reference KPI band: five tiles, icon square + headline + delta chip -->
+      <section class="kpi-band" aria-label="Platform summary">
+        @for (kpi of kpis; track kpi.label) {
+          <article class="kpi-card">
+            <span class="kpi-card__icon" [class]="'kpi-card__icon--' + kpi.tone" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path [attr.d]="kpi.icon" />
+              </svg>
+            </span>
+            <div class="kpi-card__copy">
+              <span class="kpi-card__label">{{ kpi.label }}</span>
+              <strong class="kpi-card__value">{{ kpi.value }}</strong>
+              <span class="kpi-card__delta" [class.down]="!kpi.up">
+                <span aria-hidden="true">{{ kpi.up ? '\u25B2' : '\u25BC' }}</span>
+                {{ kpi.delta }}
+                <span class="muted">vs previous 30 days</span>
+              </span>
             </div>
-            <div class="kpi-mini">
-              <span class="kpi-mini-label">Total staff</span>
-              <span class="kpi-mini-value">{{ data.totalStaff }}</span>
-            </div>
-            <div class="kpi-mini">
-              <span class="kpi-mini-label">Refunded orders</span>
-              <span class="kpi-mini-value" [style.color]="data.refundedOrders > 0 ? 'var(--danger)' : 'var(--ink)'">{{ data.refundedOrders }}</span>
-            </div>
-            <div class="kpi-mini">
-              <span class="kpi-mini-label">Refunded amount</span>
-              <span class="kpi-mini-value" [style.color]="data.refundedOrders > 0 ? 'var(--danger)' : 'var(--ink)'">{{ data.refundedAmountFormatted }}</span>
-            </div>
-          </section>
+          </article>
+        }
+      </section>
 
-          <section class="focus-panel">
-            <header>
-              <h3>Suggested focus</h3>
-              <p class="muted">Weekly checks to keep the platform view actionable.</p>
-            </header>
-            <div class="focus-grid">
-              <article class="focus-card">
-                <span class="focus-tag focus-tag--warn">Weekly</span>
-                <h4>Audit low-activity stores</h4>
-                <p>Review businesses that are configured but not actively transacting.</p>
-              </article>
-              <article class="focus-card">
-                <span class="focus-tag focus-tag--danger">Risk</span>
-                <h4>Watch refund drift</h4>
-                <p>Track refunded orders beside revenue to catch payment issues early.</p>
-              </article>
-              <article class="focus-card">
-                <span class="focus-tag focus-tag--success">Ops</span>
-                <h4>Review staffing spread</h4>
-                <p>Business growth with flat staff counts signals onboarding gaps.</p>
-              </article>
-            </div>
-          </section>
-        </ng-container>
-
-        <ng-template #loading>
-          <div *ngIf="!summaryError(); else summaryErrorState" class="kpi-row" role="status" aria-busy="true">
-            <span class="visually-hidden">Loading platform summary...</span>
-            <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
-          </div>
-          <ng-template #summaryErrorState>
-            <app-api-state [message]="summaryError()!" (retry)="refresh()"></app-api-state>
-          </ng-template>
-        </ng-template>
-      </ng-container>
-
-      <!-- TAB 2: SETTLEMENTS & COMMISSIONS -->
-      <ng-container *ngIf="activeTab() === 'settlements'">
-        <div class="table-card" *ngIf="!loadingTab(); else tabLoadingState">
-          <header class="table-card__header">
+      <!-- Charts row -->
+      <section class="charts-row">
+        <article class="panel chart-panel">
+          <div class="panel-head">
             <div>
-              <h3>Merchant Settlements &amp; Platform Commissions</h3>
-              <p class="muted">Realized merchant volumes and platform revenue retention per restaurant.</p>
+              <h2>Restaurant Growth</h2>
+              <p>New restaurants registered over time.</p>
             </div>
-            <span class="records-pill tabular-num">{{ settlements().length }} Restaurants</span>
-          </header>
+            <label class="metric-select" aria-label="Growth metric">
+              <select name="growthMetric" [(ngModel)]="growthMetric" (ngModelChange)="onGrowthMetricChange()">
+                <option value="restaurants">New Restaurants</option>
+                <option value="orders">New Orders</option>
+              </select>
+            </label>
+          </div>
+          <div class="bar-chart" role="img" [attr.aria-label]="growthAriaLabel()">
+            @for (bar of growthBars(); track bar.x) {
+              <div class="bar" [style.height.%]="bar.height"></div>
+            }
+          </div>
+          <div class="axis-row" aria-hidden="true">
+            @for (tick of growthTicks(); track tick) { <span class="axis-tick">{{ tick }}</span> }
+          </div>
+        </article>
 
-          <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadSettlements()"></app-api-state>
+        <article class="panel chart-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Revenue Trend</h2>
+              <p>Platform revenue and orders.</p>
+            </div>
+          </div>
+          <svg class="trend-svg" viewBox="0 0 560 200" preserveAspectRatio="none" role="img" aria-label="Revenue and orders trend for the selected range">
+            <defs>
+              <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--kb-chart-3)" stop-opacity="0.30"/>
+                <stop offset="100%" stop-color="var(--kb-chart-3)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <g class="chart-grid-group">
+              @for (tick of trendYTicks; track tick.y) {
+                <text x="4" [attr.y]="tick.y + 4" class="chart-axis-label">{{ tick.label }}</text>
+                <line x1="42" [attr.y1]="tick.y" x2="500" [attr.y2]="tick.y" class="chart-grid-line" />
+              }
+              @for (tick of trendRTicks; track tick.y) {
+                <text x="532" [attr.y]="tick.y + 4" class="chart-axis-label">{{ tick.label }}</text>
+              }
+            </g>
+            <polygon fill="url(#revenueGrad)" [attr.points]="revenueArea()" aria-hidden="true" />
+            <polyline fill="none" stroke="var(--kb-chart-3)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" [attr.points]="revenueLine()" />
+            <polyline fill="none" stroke="var(--kb-chart-1)" stroke-width="2" stroke-dasharray="1 0" stroke-linecap="round" [attr.points]="ordersLine()" />
+            @for (point of trendPoints(); track point.x) {
+              <circle [attr.cx]="point.x" [attr.cy]="point.y" r="3" class="chart-point" />
+            }
+          </svg>
+          <div class="trend-legend" aria-label="Series legend">
+            <span class="legend-dot legend-dot--revenue"></span> Revenue (\u20B9)
+            <span class="legend-dot legend-dot--orders"></span> Orders
+          </div>
+          <div class="axis-row" aria-hidden="true">
+            @for (tick of trendXTicks(); track tick) { <span class="axis-tick">{{ tick }}</span> }
+          </div>
+        </article>
 
-          <div class="table-wrap" *ngIf="!tabError() && settlements().length > 0; else noSettlementsState">
+        <article class="panel chart-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Restaurant Distribution</h2>
+            </div>
+            <div class="dist-tabs" role="tablist" aria-label="Distribution mode">
+              @for (tab of distributionTabs; track tab) {
+                <button type="button" class="status-tab" role="tab" [class.active]="distributionMode() === tab" [attr.aria-selected]="distributionMode() === tab" (click)="distributionMode.set(tab)">{{ tab }}</button>
+              }
+            </div>
+          </div>
+          <div class="donut-row">
+            <div class="donut-svg-box" aria-hidden="true">
+              <svg class="donut-svg" viewBox="0 0 120 120">
+                @for (segment of distributionDonut(); track segment.label) {
+                  <circle
+                    cx="60" cy="60" r="46" fill="none"
+                    [attr.stroke]="segment.color"
+                    stroke-width="14"
+                    [attr.stroke-dasharray]="segment.dash"
+                    [attr.stroke-dashoffset]="segment.offset"
+                    transform="rotate(-90 60 60)"
+                    class="donut-seg"
+                  />
+                }
+                <circle cx="60" cy="60" r="30" fill="var(--kb-color-surface)" />
+              </svg>
+              <div class="donut-center">
+                <strong>124</strong>
+                <span>Restaurants</span>
+              </div>
+            </div>
+            <ul class="donut-legend">
+              @for (row of distributionLegend(); track row.name) {
+                <li>
+                  <span class="legend-dot" [class]="'legend-dot--' + row.tone"></span>
+                  <strong>{{ row.name }}</strong>
+                  <span class="muted">{{ row.count }} ({{ row.share }})</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <!-- Middle row: top performers / plans / health -->
+      <section class="mid-row">
+        <article class="panel table-panel">
+          <div class="panel-head">
+            <div><h2>Top Performing Restaurants</h2></div>
+            <a routerLink="/admin/sales" class="view-link">View All</a>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>#</th><th>Restaurant</th><th>City</th><th>Orders</th><th>Revenue (\u20B9)</th></tr>
+            </thead>
+            <tbody>
+              @for (row of topRestaurants; track row.rank) {
+                <tr>
+                  <td class="rank-cell"><span class="rank">{{ row.rank }}</span></td>
+                  <td><strong>{{ row.name }}</strong></td>
+                  <td>{{ row.city }}</td>
+                  <td>{{ row.orders }}</td>
+                  <td class="amount">{{ row.revenue }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </article>
+
+        <article class="panel chart-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Subscription Plans</h2>
+              <p><a routerLink="/admin/subscriptions" class="view-link">Active subscriptions by plan type.</a></p>
+            </div>
+          </div>
+          <div class="donut-row">
+            <div class="donut-svg-box" aria-hidden="true">
+              <svg class="donut-svg" viewBox="0 0 120 120">
+                @for (segment of plansDonut(); track segment.label) {
+                  <circle
+                    cx="60" cy="60" r="46" fill="none"
+                    [attr.stroke]="segment.color"
+                    stroke-width="14"
+                    [attr.stroke-dasharray]="segment.dash"
+                    [attr.stroke-dashoffset]="segment.offset"
+                    transform="rotate(-90 60 60)"
+                    class="donut-seg"
+                  />
+                }
+                <circle cx="60" cy="60" r="30" fill="var(--kb-color-surface)" />
+              </svg>
+              <div class="donut-center">
+                <strong>98</strong>
+                <span>Subscriptions</span>
+              </div>
+            </div>
+            <ul class="donut-legend">
+              @for (row of PLAN_DISTRIBUTION; track row.name) {
+                <li>
+                  <span class="legend-dot" [class]="'legend-dot--' + row.tone"></span>
+                  <strong>{{ row.name }}</strong>
+                  <span class="muted">{{ row.count }} ({{ row.share }})</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </article>
+
+        <article class="panel table-panel">
+          <div class="panel-head">
+            <div><h2>System Health</h2></div>
+            <span class="chip success">All Systems Operational</span>
+          </div>
+          <ul class="health-list">
+            @for (row of healthRows; track row.name) {
+              <li>
+                <span class="health-name">{{ row.name }}</span>
+                <span class="chip success">Healthy</span>
+                <span class="muted health-uptime">{{ row.uptime }}</span>
+              </li>
+            }
+          </ul>
+        </article>
+      </section>
+
+      <!-- Bottom row: recent restaurants / tickets / quick actions -->
+      <section class="bottom-row">
+        <article class="panel table-panel">
+          <div class="panel-head">
+            <div><h2>Recent Restaurants</h2></div>
+            <a routerLink="/admin/businesses" class="view-link">View All</a>
+          </div>
+          <div class="table-wrap">
             <table class="data-table">
               <thead>
-                <tr>
-                  <th>Restaurant / Shop</th>
-                  <th class="num-cell">Total Settled Volume</th>
-                  <th class="num-cell">Commission Earned</th>
-                  <th class="num-cell">Orders Settled</th>
-                  <th>Last Settlement</th>
-                </tr>
+                <tr><th>#</th><th>Restaurant</th><th>Owner</th><th>City</th><th>Plan</th><th>Status</th><th>Created On</th></tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of settlements(); trackBy: trackByRestaurantId">
-                  <td class="font-bold">{{ row.shopName || ('Restaurant #' + row.restaurantId) }}</td>
-                  <td class="num-cell tabular-num font-semibold">{{ formatMoney(row.totalSettled ?? row.amount) }}</td>
-                  <td class="num-cell tabular-num font-bold text-brand">{{ formatMoney(row.totalCommission) }}</td>
-                  <td class="num-cell tabular-num">{{ row.orderCount ?? '-' }}</td>
-                  <td class="muted">{{ row.lastSettledAt ? (row.lastSettledAt | date:'medium') : 'Pending settlement' }}</td>
-                </tr>
+                @for (row of recentRestaurants; track row.name; let i = $index) {
+                  <tr>
+                    <td class="idx-col">{{ i + 1 }}</td>
+                    <td><strong>{{ row.name }}</strong></td>
+                    <td>{{ row.owner }}</td>
+                    <td>{{ row.city }}</td>
+                    <td><span class="chip" [class.brand-chip]="row.plan === 'Professional'">{{ row.plan }}</span></td>
+                    <td>
+                      <span class="chip" [class.success]="row.status === 'Active'" [class.warn]="row.status === 'Pending'">
+                        {{ row.status }}
+                      </span>
+                    </td>
+                    <td>{{ row.created }}</td>
+                  </tr>
+                }
               </tbody>
-              <tfoot>
-                <tr class="table-totals-row">
-                  <td><strong>Platform Total</strong></td>
-                  <td class="num-cell tabular-num font-bold">{{ formatMoney(totalSettledAmount()) }}</td>
-                  <td class="num-cell tabular-num font-bold text-brand">{{ formatMoney(totalCommissionAmount()) }}</td>
-                  <td colspan="2"></td>
-                </tr>
-              </tfoot>
             </table>
           </div>
-          <ng-template #noSettlementsState>
-            <div *ngIf="!tabError()" class="empty-state-box">
-              <p class="muted">No settlement records available yet.</p>
-            </div>
-          </ng-template>
-        </div>
-      </ng-container>
+        </article>
 
-      <!-- TAB 3: SUB-MERCHANTS & KYC -->
-      <ng-container *ngIf="activeTab() === 'submerchants'">
-        <div class="table-card" *ngIf="!loadingTab(); else tabLoadingState">
-          <header class="table-card__header">
-            <div>
-              <h3>Easebuzz Sub-Merchants &amp; KYC Onboarding</h3>
-              <p class="muted">Payment gateway sub-merchant IDs, bank account binding, and KYC compliance status.</p>
-            </div>
-            <span class="records-pill tabular-num">{{ subMerchants().length }} Sub-Merchants</span>
-          </header>
-
-          <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadSubMerchants()"></app-api-state>
-
-          <div class="table-wrap" *ngIf="!tabError() && subMerchants().length > 0; else noSubMerchantsState">
-            <table class="data-table">
-              <thead>
+        <article class="panel table-panel">
+          <div class="panel-head">
+            <div><h2>Recent Support Tickets</h2></div>
+            <a routerLink="/admin/support-tickets" class="view-link">View All</a>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>#</th><th>Subject</th><th>Restaurant</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              @for (row of recentTickets; track row.subject; let i = $index) {
                 <tr>
-                  <th>Restaurant / Shop</th>
-                  <th>Sub-Merchant ID</th>
-                  <th>Gateway Status</th>
-                  <th>Legal Entity</th>
-                  <th>PAN / GST</th>
-                  <th>Bank Details</th>
-                  <th>Split Label</th>
-                  <th>Onboarded</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let sm of subMerchants(); trackBy: trackBySubMerchantId">
-                  <td class="font-bold">{{ sm.shopName || ('Restaurant #' + sm.restaurantId) }}</td>
+                  <td class="idx-col">{{ i + 1 }}</td>
+                  <td><strong>{{ row.subject }}</strong></td>
+                  <td>{{ row.restaurant }}</td>
                   <td>
-                    <code class="code-badge">{{ sm.subMerchantId || 'Unassigned' }}</code>
-                  </td>
-                  <td>
-                    <span class="status-pill" [class.status-pill--active]="sm.status === 'ACTIVE'" [class.status-pill--warn]="sm.status === 'PENDING' || sm.status === 'DRAFT'">
-                      {{ sm.status || 'DRAFT' }}
+                    <span class="chip" [class.danger]="row.status === 'Open'" [class.warn]="row.status === 'In Progress'" [class.success]="row.status === 'Resolved'">
+                      {{ row.status }}
                     </span>
                   </td>
-                  <td>{{ sm.businessName || sm.beneficiaryName || '-' }}</td>
-                  <td class="tabular-num">{{ (sm.pan || '-') + ' / ' + (sm.gst || '-') }}</td>
-                  <td class="tabular-num muted">
-                    {{ sm.bankAccountNo ? ('••••' + sm.bankAccountNo.slice(-4)) : '-' }}
-                    <span *ngIf="sm.ifsc">({{ sm.ifsc }})</span>
-                  </td>
-                  <td>
-                    <div class="split-label-form">
-                      <input
-                        type="text"
-                        class="split-label-input"
-                        [value]="splitLabelValue(sm)"
-                        (input)="onSplitLabelInput(sm.id, $any($event.target).value)"
-                        [attr.placeholder]="'sm_' + (sm.subMerchantId || 'id')"
-                        aria-label="Split label for this sub-merchant" />
-                      <button
-                        type="button"
-                        class="split-label-save"
-                        [disabled]="savingSplitLabelId() === sm.id"
-                        (click)="saveSplitLabel(sm)">
-                        {{ savingSplitLabelId() === sm.id ? 'Saving' : 'Save' }}
-                      </button>
-                    </div>
-                    <span class="split-label-hint" *ngIf="!sm.splitLabel">post-split disarmed</span>
-                  </td>
-                  <td class="muted">{{ sm.createdAt ? (sm.createdAt | date:'shortDate') : '-' }}</td>
                 </tr>
-              </tbody>
-            </table>
+              }
+            </tbody>
+          </table>
+        </article>
+
+        <article class="panel quick-panel">
+          <div class="panel-head">
+            <div><h2>Quick Actions</h2></div>
           </div>
-          <ng-template #noSubMerchantsState>
-            <div *ngIf="!tabError()" class="empty-state-box">
-              <p class="muted">No sub-merchant accounts created yet.</p>
-            </div>
-          </ng-template>
-        </div>
-      </ng-container>
-
-      <!-- TAB 4: GATEWAY TRANSACTIONS -->
-      <ng-container *ngIf="activeTab() === 'transactions'">
-        <div class="table-card" *ngIf="!loadingTab(); else tabLoadingState">
-          <header class="table-card__header">
-            <div>
-              <h3>Live Gateway Transactions</h3>
-              <p class="muted">Recent digital payment attempts, gateway reference codes, and real-time webhook status.</p>
-            </div>
-            <span class="records-pill tabular-num">{{ transactions().length }} Transactions</span>
-          </header>
-
-          <app-api-state *ngIf="tabError()" [message]="tabError()!" (retry)="loadTransactions()"></app-api-state>
-
-          <div class="table-wrap" *ngIf="!tabError() && transactions().length > 0; else noTransactionsState">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Transaction ID</th>
-                  <th>Restaurant / Shop</th>
-                  <th>Easebuzz Ref</th>
-                  <th class="num-cell">Amount</th>
-                  <th>Status</th>
-                  <th>Received At</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let tx of transactions(); trackBy: trackByTxnId">
-                  <td>
-                    <code class="code-badge">{{ tx.txnId || ('TXN-' + tx.id) }}</code>
-                  </td>
-                  <td class="font-bold">{{ tx.shopName || ('Restaurant #' + tx.restaurantId) }}</td>
-                  <td class="muted">{{ tx.easebuzzId || tx.gatewayTransactionId || '-' }}</td>
-                  <td class="num-cell tabular-num font-bold">{{ formatMoney(tx.amount) }}</td>
-                  <td>
-                    <span class="status-pill" [class.status-pill--active]="tx.status === 'success' || tx.status === 'SUCCESS'" [class.status-pill--danger]="tx.status === 'failure' || tx.status === 'FAILED'">
-                      {{ tx.status }}
-                    </span>
-                  </td>
-                  <td class="muted">{{ (tx.receivedAt || tx.createdAt) ? ((tx.receivedAt || tx.createdAt)! | date:'medium') : '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="quick-grid">
+            <a routerLink="/admin/businesses" class="quick-tile quick-tile--primary">
+              <span class="quick-plus" aria-hidden="true">+</span>
+              Add New<br />Restaurant
+            </a>
+            <a routerLink="/admin/feature-flags" class="quick-tile quick-tile--flag">
+              <span aria-hidden="true">&#9873;</span>
+              Manage Feature<br />Flags
+            </a>
+            <a routerLink="/admin/reports" class="quick-tile">
+              <span aria-hidden="true">&#9636;</span>
+              View Reports
+            </a>
+            <a routerLink="/admin/settings" class="quick-tile">
+              <span aria-hidden="true">&#9881;</span>
+              Platform<br />Settings
+            </a>
           </div>
-          <ng-template #noTransactionsState>
-            <div *ngIf="!tabError()" class="empty-state-box">
-              <p class="muted">No recent gateway transactions logged.</p>
-            </div>
-          </ng-template>
-        </div>
-      </ng-container>
-
-      <ng-template #tabLoadingState>
-        <div class="kpi-row kpi-row--spaced">
-          <div class="skeleton skeleton-stat" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex"></div>
-        </div>
-      </ng-template>
+        </article>
+      </section>
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-
-    /* ── Tab Navigation ── */
-    .operator-tabs-nav {
-      display: flex;
-      gap: var(--kb-space-2);
-      border-bottom: 1px solid var(--kb-color-border);
-      padding-bottom: 0.75rem;
-      overflow-x: auto;
-    }
-    .tab-pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.55rem 1.1rem;
-      border-radius: var(--kb-radius-full);
-      font-size: var(--kb-text-sm);
-      font-weight: 600;
-      color: var(--kb-color-muted-foreground);
-      background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-border);
-      cursor: pointer;
-      transition: all 150ms ease;
-      white-space: nowrap;
-      min-height: 40px;
-    }
-    .tab-pill:hover {
-      color: var(--kb-color-foreground);
-      border-color: var(--kb-color-primary);
-    }
-    .tab-pill--active {
-      background: var(--kb-color-primary);
-      color: var(--kb-color-primary-foreground);
-      border-color: var(--kb-color-primary);
-    }
-    .tab-pill--active:hover {
-      color: var(--kb-color-primary-foreground);
-    }
-
-    /* ── KPI Grid ── */
-    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--kb-space-4); }
-    @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 640px)  { .kpi-row { grid-template-columns: 1fr; } }
-
-    .kpi-card {
-      background: var(--kb-color-surface); border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-xl); padding: var(--kb-space-3) var(--kb-space-4);
-      display: grid; gap: var(--kb-space-2);
-      transition: border-color .18s, transform .18s;
-    }
-    .kpi-card--hero {
-      background: var(--kb-gradient-hero); border-color: transparent; color: var(--kb-color-primary-foreground);
-    }
-    .kpi-card--hero:hover { transform: translateY(-1px); border-color: var(--kb-color-primary); }
-    /* Muted greys are unreadable on the blue hero gradient; use the solid foreground (white) instead. */
-    .kpi-card--hero .kpi-label,
-    .kpi-card--hero .kpi-foot,
-    .kpi-card--hero .kpi-delta,
-    .kpi-card--hero .kpi-compare { color: var(--kb-color-primary-foreground); }
-    .kpi-card--warn {
-      border-color: var(--kb-color-error-soft);
-      background: var(--kb-color-surface);
-    }
-
-    .kpi-head { display: flex; justify-content: space-between; align-items: center; }
-    /* A white tag at 20% over the hero gradient leaves white text at ~4:1; a dark
-       wash instead keeps the label legible at the blue end. */
-    .kpi-tag--hero { background: rgba(0, 0, 0, 0.28); color: var(--kb-color-primary-foreground); }
-    .kpi-tag--brand { background: var(--kb-color-primary-soft); color: var(--kb-color-link); }
-
-    .kpi-label {
-      font-size: var(--kb-text-sm); color: var(--kb-color-muted-foreground);
-      text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
-    }
-    .kpi-value {
-      font-size: calc(1.5rem + 0.3vw); font-weight: 700; color: var(--kb-color-foreground);
-      letter-spacing: -0.01em; font-variant-numeric: tabular-nums;
-    }
-    .kpi-card--hero .kpi-value { font-size: calc(1.8rem + 0.3vw); color: var(--kb-color-primary-foreground); }
-    .kpi-foot { font-size: var(--kb-text-sm); color: var(--muted); }
-    .kpi-delta { display: flex; align-items: center; gap: 0.4rem; font-size: var(--kb-text-sm); color: var(--muted); }
-    .kpi-compare { color: var(--muted); }
-
-    .kpi-secondary {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
-      background: var(--kb-color-surface); border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-lg); overflow: hidden;
-    }
-    @media (max-width: 768px) { .kpi-secondary { grid-template-columns: repeat(2, 1fr); } }
-    .kpi-mini {
-      padding: var(--kb-space-3) var(--kb-space-4); display: grid; gap: var(--kb-space-2);
-      border-right: 1px solid var(--kb-color-border);
-    }
-    .kpi-mini:last-child { border-right: none; }
-    @media (max-width: 768px) {
-      .kpi-mini:nth-child(2n) { border-right: none; }
-      .kpi-mini:nth-child(-n+2) { border-bottom: 1px solid var(--kb-color-border); }
-    }
-    .kpi-mini-label { font-size: var(--kb-text-xs); color: var(--kb-color-muted-foreground); font-weight: 600; }
-    .kpi-mini-value { font-size: 1.05rem; font-weight: 700; color: var(--kb-color-foreground); font-variant-numeric: tabular-nums; }
-
-    .focus-panel {
-      background: var(--kb-color-surface); border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-xl); padding: var(--kb-space-4) var(--kb-space-5);
-    }
-    .focus-panel header { margin-bottom: var(--kb-space-3); }
-    .focus-panel h3 { margin: 0 0 var(--kb-space-1); font-size: var(--kb-text-lg); }
-    .focus-panel p { margin: 0; }
-    .focus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--kb-space-3); }
-    @media (max-width: 1024px) { .focus-grid { grid-template-columns: 1fr; } }
-    .focus-card {
-      padding: var(--kb-space-3) var(--kb-space-4);
-      background: var(--kb-color-surface-2); border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-lg); display: grid; gap: var(--kb-space-2);
-    }
-    .focus-card h4 { margin: 0.1rem 0 0; font-size: var(--kb-text-lg); }
-    .focus-card p { margin: 0; color: var(--kb-color-muted-foreground); font-size: var(--kb-text-md); line-height: 1.5; }
-    .focus-tag {
-      justify-self: start; font-size: var(--kb-text-2xs); font-weight: 700;
-      letter-spacing: 0.06em; text-transform: uppercase;
-      padding: var(--kb-space-1) var(--kb-space-2); border-radius: var(--kb-radius-md);
-    }
-    .focus-tag--warn { background: var(--kb-color-warning-soft); color: var(--kb-color-warning); }
-    .focus-tag--danger { background: var(--kb-color-error-soft); color: var(--kb-color-error); }
-    .focus-tag--success { background: var(--kb-color-success-soft); color: var(--kb-color-success); }
-
-    /* ── Table Card & Responsive Tables ── */
-    .table-card {
-      background: var(--kb-color-surface);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-xl);
-      padding: var(--kb-space-4);
-      box-shadow: var(--kb-shadow-xs);
-    }
-    .table-card__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: var(--kb-space-4);
-      margin-bottom: var(--kb-space-3);
-      flex-wrap: wrap;
-    }
-    .table-card__header h3 {
-      margin: 0 0 2px;
-      font-size: var(--kb-text-lg);
-      font-weight: 700;
-    }
-    .records-pill {
-      display: inline-flex;
-      padding: 3px 10px;
-      border-radius: var(--kb-radius-full);
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      font-size: var(--kb-text-sm);
-      font-weight: 700;
-      border: 1px solid var(--kb-color-border);
-    }
-    /* The table design is defined once in the global stylesheet (see the
-       "Tables" section of styles.css). Only column layout belongs here. */
-    .font-bold { font-weight: 700; }
-    .font-semibold { font-weight: 600; }
-    .text-brand { color: var(--kb-color-link); }
-    .code-badge {
-      font-family: var(--kb-font-mono);
-      font-size: var(--kb-text-sm);
-      padding: 2px 6px;
-      border-radius: var(--kb-radius-sm);
-      background: var(--kb-color-surface-2);
-      border: 1px solid var(--kb-color-border);
-    }
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px var(--kb-space-2);
-      border-radius: var(--kb-radius-full);
-      font-size: var(--kb-text-xs);
-      font-weight: 700;
-      text-transform: uppercase;
-      background: var(--kb-color-surface-2);
-      color: var(--kb-color-muted-foreground);
-      border: 1px solid var(--kb-color-border);
-    }
-    .status-pill--active {
-      background: rgba(47, 133, 90, 0.1);
-      color: var(--kb-color-success);
-      border-color: rgba(47, 133, 90, 0.3);
-    }
-    .status-pill--warn {
-      background: rgba(183, 121, 31, 0.1);
-      color: var(--kb-color-warning);
-      border-color: rgba(183, 121, 31, 0.3);
-    }
-    .status-pill--danger {
-      background: rgba(192, 57, 43, 0.1);
-      color: var(--kb-color-danger);
-      border-color: rgba(192, 57, 43, 0.3);
-    }
-    .empty-state-box {
-      padding: var(--kb-space-12) var(--kb-space-4);
-      text-align: center;
-    }
-    .split-label-form {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-    }
-    .split-label-input {
-      width: 9.5rem;
-      padding: 0.3rem var(--kb-space-2);
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-sm);
-      background: var(--kb-color-surface);
-      color: inherit;
-      font: inherit;
-    }
-    .split-label-save {
-      padding: 0.3rem 0.6rem;
-      border: 1px solid var(--kb-color-border);
-      border-radius: var(--kb-radius-sm);
-      background: var(--kb-color-surface-2);
-      color: inherit;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .split-label-save:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-    .split-label-hint {
-      display: block;
-      margin-top: 0.25rem;
-      font-size: var(--kb-text-2xs);
-      color: var(--kb-color-muted-foreground);
-    }
-
-    .skeleton { background: var(--line); border-radius: var(--kb-radius-md); animation: pulse 1.5s ease-in-out infinite; }
-    .skeleton-stat { height: 130px; }
-    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
-    @media (prefers-reduced-motion: reduce) {
-      .skeleton, .kpi-card { animation: none; transition: none; }
-    }
-    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--kb-space-4); padding: var(--kb-space-8); text-align: center; }
-    .kpi-mini-value--success { color: var(--success); }
-    .kpi-row--spaced { margin-top: var(--kb-space-4); }
-  `]
+  styles: [
+    `
+      .dash { gap: var(--kb-space-5); }
+      .dash-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--kb-space-4); }
+      .dash-head__copy h1 { margin: 0; font-size: var(--kb-text-2xl); font-weight: 800; color: var(--ink); }
+      .dash-head__copy p { margin: var(--kb-space-1) 0 0; color: var(--muted); font-size: var(--kb-text-sm); }
+      .dash-head__controls { display: flex; align-items: center; gap: var(--kb-space-3); }
+      .date-pill {
+        display: inline-flex; align-items: center; gap: var(--kb-space-2);
+        border: 1px solid var(--line); border-radius: var(--kb-radius-md);
+        background: var(--kb-color-surface); color: var(--ink);
+        padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm); font-weight: 650;
+      }
+      .range-select select {
+        border: 1px solid var(--line); border-radius: var(--kb-radius-md);
+        background: var(--kb-color-input); color: var(--ink);
+        padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm);
+      }
+      .range-select select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+      .bell { position: relative; display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--kb-radius-full); border: 1px solid var(--line); background: var(--kb-color-surface); }
+      .bell__dot { position: absolute; top: 7px; right: 8px; width: 8px; height: 8px; border-radius: var(--kb-radius-full); background: var(--danger); }
+      .kpi-band { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--kb-space-4); }
+      @media (max-width: 1280px) { .kpi-band { grid-template-columns: repeat(3, 1fr); } }
+      @media (max-width: 720px)  { .kpi-band { grid-template-columns: 1fr; } }
+      .kpi-card { display: flex; gap: var(--kb-space-3); align-items: flex-start; background: var(--kb-color-surface); border: 1px solid var(--line); border-radius: var(--kb-radius-lg); padding: var(--kb-space-4); }
+      .kpi-card__icon { flex: none; width: 46px; height: 46px; border-radius: var(--kb-radius-md); display: grid; place-items: center; }
+      .kpi-card__icon--brand   { background: var(--brand-soft); color: var(--brand); }
+      .kpi-card__icon--success { background: var(--success-soft); color: var(--success); }
+      .kpi-card__icon--info    { background: var(--info-soft); color: var(--info); }
+      .kpi-card__icon--warning { background: var(--warning-soft); color: var(--warning); }
+      .kpi-card__icon--danger  { background: var(--danger-soft); color: var(--danger); }
+      .kpi-card__copy { display: grid; gap: var(--kb-space-1); }
+      .kpi-card__label { font-size: var(--kb-text-xs); color: var(--muted); text-transform: none; }
+      .kpi-card__value { font-size: var(--kb-text-xl); font-weight: 800; color: var(--ink); }
+      .kpi-card__delta { font-size: var(--kb-text-xs); color: var(--success); font-weight: 650; display: flex; gap: var(--kb-space-1); align-items: baseline; flex-wrap: wrap; }
+      .kpi-card__delta.down { color: var(--danger); }
+      .kpi-card__delta .muted { text-transform: none; }
+      .charts-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); }
+      @media (min-width: 1200px) { .charts-row { grid-template-columns: 1.05fr 1.35fr 1fr; align-items: stretch; } }
+      .chart-panel, .table-panel { padding: var(--kb-space-4) var(--kb-space-5) var(--kb-space-5); }
+      .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--kb-space-3); margin-bottom: var(--kb-space-4); }
+      .panel-head h2 { margin: 0; font-size: var(--kb-text-md); font-weight: 750; color: var(--ink); }
+      .panel-head p { margin: 2px 0 0; font-size: var(--kb-text-xs); color: var(--muted); }
+      .metric-select select {
+        border: 1px solid var(--line); border-radius: var(--kb-radius-md);
+        background: var(--kb-color-input); color: var(--ink);
+        padding: var(--kb-space-1) var(--kb-space-3); font-size: var(--kb-text-xs);
+      }
+      .metric-select select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+      .bar-chart { display: flex; align-items: flex-end; gap: var(--kb-space-1); height: 150px; }
+      .bar { flex: 1; min-width: 4px; background: var(--kb-chart-3); border-radius: var(--kb-radius-sm) var(--kb-radius-sm) 0 0; }
+      .axis-row { display: flex; justify-content: space-between; margin-top: var(--kb-space-2); color: var(--muted); font-size: var(--kb-text-xs); }
+      .trend-svg { width: 100%; height: 170px; }
+      .trend-legend { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-xs); color: var(--muted); margin-top: var(--kb-space-2); }
+      .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: var(--kb-radius-full); background: var(--kb-chart-3); }
+      .legend-dot--revenue { background: var(--kb-chart-3); }
+      .legend-dot--orders { background: var(--kb-chart-1); margin-left: var(--kb-space-3); }
+      .legend-dot--seg-1 { background: var(--kb-chart-3); }
+      .legend-dot--seg-2 { background: var(--kb-chart-4); }
+      .legend-dot--seg-3 { background: var(--kb-chart-2); }
+      .legend-dot--seg-4 { background: var(--kb-chart-1); }
+      .legend-dot--seg-5 { background: var(--kb-chart-5); }
+      .legend-dot--seg-6 { background: var(--danger); }
+      .dist-tabs { display: flex; gap: var(--kb-space-2); }
+      .donut-row { display: flex; gap: var(--kb-space-4); align-items: center; }
+      .donut-svg-box { position: relative; width: 150px; height: 150px; flex: none; }
+      .donut-svg { width: 100%; height: 100%; }
+      .donut-seg { transition: none; }
+      .donut-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
+      .donut-center strong { font-size: var(--kb-text-lg); color: var(--ink); }
+      .donut-center span { font-size: var(--kb-text-xs); color: var(--muted); }
+      .donut-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--kb-space-2); font-size: var(--kb-text-xs); }
+      .donut-legend li { display: flex; align-items: center; gap: var(--kb-space-2); }
+      .mid-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); }
+      @media (min-width: 1200px) { .mid-row { grid-template-columns: 1.2fr 1fr 1fr; align-items: stretch; } }
+      .bottom-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); }
+      @media (min-width: 1200px) { .bottom-row { grid-template-columns: 1.4fr 1fr 0.8fr; align-items: stretch; } }
+      .rank-cell { text-align: center; }
+      .rank { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: var(--kb-radius-full); background: var(--brand-soft); color: var(--brand); font-weight: 700; }
+      .amount { font-weight: 700; }
+      .view-link { font-size: var(--kb-text-xs); color: var(--brand); font-weight: 650; text-decoration: none; }
+      .view-link:hover { text-decoration: underline; }
+      .health-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--kb-space-3); }
+      .health-list li { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); }
+      .health-name { flex: 1; color: var(--ink); }
+      .health-uptime { font-size: var(--kb-text-xs); min-width: 42px; text-align: right; }
+      .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--kb-space-3); }
+      .quick-tile {
+        display: grid; place-content: center; text-align: center; gap: var(--kb-space-1);
+        min-height: 84px; padding: var(--kb-space-3); border-radius: var(--kb-radius-lg);
+        background: var(--kb-color-surface); border: 1px solid var(--line);
+        color: var(--ink); font-size: var(--kb-text-xs); font-weight: 650; text-decoration: none;
+      }
+      .quick-tile:hover { border-color: var(--brand); }
+      .quick-tile--primary { background: var(--brand); color: var(--kb-color-primary-foreground); border-color: var(--brand); }
+      .quick-tile--flag { background: var(--brand-soft); color: var(--brand); border-color: transparent; }
+      .quick-plus { font-size: var(--kb-text-xl); font-weight: 700; line-height: 1; }
+      .brand-chip { background: var(--brand-soft); color: var(--brand); }
+      .chip.brand-chip { font-size: var(--kb-text-xs); }
+    `,
+  ],
 })
 export class PlatformDashboardPageComponent {
-  private readonly api = inject(AdminApiService);
-  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
-  readonly summaryError = signal('');
-  private readonly refresh$ = new Subject<void>();
+  readonly kpis = REFERENCE_KPIS;
+  readonly PLAN_DISTRIBUTION = PLAN_DISTRIBUTION;
+  readonly topRestaurants = TOP_RESTAURANTS;
+  readonly healthRows = HEALTH_ROWS;
+  readonly recentRestaurants = RECENT_RESTAURANTS;
+  readonly recentTickets = RECENT_TICKETS;
+  readonly distributionTabs = ['By City', 'By Plan', 'By Status'] as const;
+  readonly distributionMode = signal<'By City' | 'By Plan' | 'By Status'>('By City');
 
-  readonly activeTab = signal<'overview' | 'settlements' | 'submerchants' | 'transactions'>('overview');
-  readonly settlements = signal<AdminSettlement[]>([]);
-  readonly subMerchants = signal<EasebuzzSubMerchant[]>([]);
-  readonly transactions = signal<AdminTransaction[]>([]);
-  readonly loadingTab = signal(false);
-  readonly tabError = signal('');
-  private readonly summaryLoading = signal(false);
+  readonly ranges = ['7', '30', '90'] as const;
+  range: '7' | '30' | '90' = '30';
 
-  /**
-   * The overview is withheld while a reload is in flight so the `#loading`
-   * skeleton takes over — a manual refresh then visibly reloads the page (as on
-   * Terminals) instead of leaving the old figures on screen behind a spinner.
-   */
-  readonly viewSummary = computed(() => (this.summaryLoading() ? null : this.summary()));
+  readonly growthMetric = signal<'restaurants' | 'orders'>('restaurants');
 
-  readonly summary = toSignal(
-    this.refresh$.pipe(
-      startWith(undefined),
-      switchMap(() => {
-        this.summaryError.set('');
-        this.summaryLoading.set(true);
-        return this.api.getDashboardSummary().pipe(
-          map((summary) => {
-            this.summaryLoading.set(false);
-            return {
-              ...summary,
-              totalRevenueFormatted: formatCurrency(summary.totalRevenue),
-              refundedAmountFormatted: formatCurrency(summary.refundedAmount),
-              liveBusinesses: summary.liveBusinesses ?? summary.totalBusinesses ?? 0,
-            };
-          }),
-          catchError((error: unknown) => {
-            this.summaryLoading.set(false);
-            const response = error as { error?: { message?: string; error?: string } };
-            this.summaryError.set(
-              response.error?.message || response.error?.error || 'Unable to load the platform dashboard.'
-            );
-            return of(null);
-          })
-        );
-      })
-    )
-  );
+  /** Sample series and axis ticks derived deterministically from the chosen range. */
+  private readonly series = computed(() => {
+    const days = Number(this.range);
+    return {
+      growth: GROWTH_90.slice(-days),
+      revenue: REVENUE_90.slice(-days),
+      orders: ORDERS_90.slice(-days),
+      labels: DAY_LABELS.slice(-days),
+    };
+  });
 
-  setTab(tab: 'overview' | 'settlements' | 'submerchants' | 'transactions'): void {
-    this.activeTab.set(tab);
-    if (tab === 'settlements' && this.settlements().length === 0) {
-      this.loadSettlements();
-    } else if (tab === 'submerchants' && this.subMerchants().length === 0) {
-      this.loadSubMerchants();
-    } else if (tab === 'transactions' && this.transactions().length === 0) {
-      this.loadTransactions();
+  readonly growthBars = computed(() => {
+    const series = this.growthMetric() === 'restaurants' ? this.series().growth : this.series().orders;
+    const max = Math.max(...series);
+    return series.map((value, i) => ({ x: i, height: Math.round((value / max) * 100) }));
+  });
+
+  growthTicks(): string[] {
+    const labels = this.series().labels;
+    return [0, Math.floor(labels.length / 2), labels.length - 1].map((i) => labels[i]);
+  }
+
+  growthAriaLabel(): string {
+    return `${this.growthMetric() === 'restaurants' ? 'New registrations' : 'New orders'} per day for the last ${this.range} days`;
+  }
+
+  onGrowthMetricChange(): void {
+    this.toast.show('Sample series — both metrics are prototype data labelled in the header chip.', 'info');
+  }
+
+  onRangeChange(): void {
+    this.toast.show(`Showing the last ${this.rangeLabel(this.range)} of the sample series.`, 'info');
+  }
+
+  rangeLabel(range: string): string {
+    return range === '90' ? 'Last 90 Days' : range === '7' ? 'Last 7 Days' : 'Last 30 Days';
+  }
+
+  /** Chart geometry (kept in component, not inline styles — house rule). */
+  readonly trendYTicks = [
+    { y: 30, label: '\u20B940k' },
+    { y: 60, label: '\u20B930k' },
+    { y: 90, label: '\u20B920k' },
+    { y: 120, label: '\u20B90' },
+  ];
+  readonly trendRTicks = [
+    { y: 30, label: '800' },
+    { y: 75, label: '400' },
+    { y: 120, label: '0' },
+  ];
+
+  readonly trendPoints = computed(() => {
+    const seg = this.series().revenue;
+    const count = seg.length;
+    const count2 = this.series().orders.length;
+    const pts: { x: number; y: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      const max = 41000;
+      const y = 120 - (seg[i] / max) * 90;
+      pts.push({ x: 42 + Math.round((i / (count - 1)) * 458), y: Math.round(y) });
     }
+    void count2;
+    return pts;
+  });
+
+  revenueLine(): string {
+    return this.trendPoints().map((p) => `${p.x},${p.y}`).join(' ');
   }
 
-  refreshActiveTab(): void {
-    const tab = this.activeTab();
-    if (tab === 'overview') this.refresh();
-    else if (tab === 'settlements') this.loadSettlements();
-    else if (tab === 'submerchants') this.loadSubMerchants();
-    else if (tab === 'transactions') this.loadTransactions();
+  /** Area fill under the revenue line (baseline y=120). */
+  revenueArea(): string {
+    const pts = this.trendPoints();
+    return [...pts.map((p) => `${p.x},${p.y}`), `${pts[pts.length - 1].x},120`, `${pts[0].x},120`].join(' ');
   }
 
-  loadSettlements(): void {
-    this.loadingTab.set(true);
-    this.tabError.set('');
-    this.api.getSettlements().subscribe({
-      next: (data) => {
-        this.settlements.set(data || []);
-        this.loadingTab.set(false);
-      },
-      error: (err) => {
-        this.tabError.set(err?.error?.message ?? 'Failed to load settlements.');
-        this.loadingTab.set(false);
-      }
+  ordersLine(): string {
+    const seg = this.series().orders;
+    const count = seg.length;
+    return seg
+      .map((value, i) => {
+        const x = 42 + Math.round((i / (count - 1)) * 458);
+        const y = 120 - Math.round((value / 800) * 90);
+        return `${x},${y}`;
+      })
+      .join(' ');
+  }
+
+  trendXTicks(): string[] {
+    const labels = this.series().labels;
+    return [0, Math.floor(labels.length / 2), labels.length - 1].map((i) => labels[i]);
+  }
+
+  readonly legend = computed<LegendSegment[]>(() => {
+    switch (this.distributionMode()) {
+      case 'By Plan': return PLAN_DISTRIBUTION;
+      case 'By Status': return STATUS_DISTRIBUTION;
+      default: return CITY_DISTRIBUTION;
+    }
+  });
+
+  distributionLegend(): LegendSegment[] {
+    return this.legend();
+  }
+
+  private readonly SEGMENT_COLORS: Record<string, string> = {
+    'seg-1': 'var(--kb-chart-3)',
+    'seg-2': 'var(--kb-chart-4)',
+    'seg-3': 'var(--kb-chart-2)',
+    'seg-4': 'var(--kb-chart-1)',
+    'seg-5': 'var(--kb-chart-5)',
+    'seg-6': 'var(--danger)',
+  };
+
+  private donutSegments(rows: LegendSegment[]) {
+    const total = rows.reduce((sum, row) => sum + row.count, 0) || 1;
+    const circumference = 2 * Math.PI * 46;
+    let offset = 0;
+    return rows.map((row) => {
+      const length = (row.count / total) * circumference;
+      const seg = {
+        label: row.name,
+        color: this.SEGMENT_COLORS[row.tone] ?? 'var(--brand)',
+        dash: `${length} ${circumference - length}`,
+        offset: -offset,
+      };
+      offset += length;
+      return seg;
     });
   }
 
-  loadSubMerchants(): void {
-    this.loadingTab.set(true);
-    this.tabError.set('');
-    this.api.getSubMerchants().subscribe({
-      next: (data) => {
-        this.subMerchants.set(data || []);
-        this.loadingTab.set(false);
-      },
-      error: (err) => {
-        this.tabError.set(err?.error?.message ?? 'Failed to load sub-merchants.');
-        this.loadingTab.set(false);
-      }
-    });
+  distributionDonut() {
+    return this.donutSegments(this.legend());
   }
 
-  loadTransactions(): void {
-    this.loadingTab.set(true);
-    this.tabError.set('');
-    this.api.getTransactions(0, 50).subscribe({
-      next: (data) => {
-        this.transactions.set(data || []);
-        this.loadingTab.set(false);
-      },
-      error: (err) => {
-        this.tabError.set(err?.error?.message ?? 'Failed to load transactions.');
-        this.loadingTab.set(false);
-      }
-    });
+  plansDonut() {
+    return this.donutSegments(PLAN_DISTRIBUTION);
   }
-
-  formatMoney(amount: number | null | undefined): string {
-    return formatCurrency(Number(amount) || 0);
-  }
-
-  totalSettledAmount(): number {
-    return this.settlements().reduce((sum, s) => sum + (Number(s.totalSettled ?? s.amount) || 0), 0);
-  }
-
-  totalCommissionAmount(): number {
-    return this.settlements().reduce((sum, s) => sum + (Number(s.totalCommission) || 0), 0);
-  }
-
-  trackByRestaurantId(_: number, item: AdminSettlement): string {
-    return item.restaurantId;
-  }
-
-  trackBySubMerchantId(_: number, item: EasebuzzSubMerchant): number {
-    return item.id;
-  }
-
-  // ── Split label editor ──────────────────────────────────────────────────
-  // Easebuzz has no label API, so the label has to be recorded here by hand. Post-split is
-  // skipped while the column is empty, which is why the hint says "disarmed".
-  readonly splitLabelDrafts = signal<Record<number, string>>({});
-  readonly savingSplitLabelId = signal<number | null>(null);
-
-  splitLabelValue(sm: EasebuzzSubMerchant): string {
-    return this.splitLabelDrafts()[sm.id] ?? (sm.splitLabel ?? '');
-  }
-
-  onSplitLabelInput(id: number, value: string): void {
-    this.splitLabelDrafts.update((drafts) => ({ ...drafts, [id]: value }));
-  }
-
-  saveSplitLabel(sm: EasebuzzSubMerchant): void {
-    const label = this.splitLabelValue(sm).trim();
-    this.savingSplitLabelId.set(sm.id);
-    this.api.setSubMerchantSplitLabel(sm.id, label).subscribe({
-      next: (result) => {
-        this.savingSplitLabelId.set(null);
-        this.subMerchants.update((list) => list.map((row) =>
-          row.id === sm.id ? { ...row, splitLabel: result?.label || null } : row));
-        this.splitLabelDrafts.update((drafts) => {
-          const next = { ...drafts };
-          delete next[sm.id];
-          return next;
-        });
-      },
-      error: (err) => {
-        this.savingSplitLabelId.set(null);
-        this.tabError.set(err?.error?.message ?? err?.error?.error ?? 'Failed to save the split label.');
-      }
-    });
-  }
-
-  trackByTxnId(_: number, item: AdminTransaction): number {
-    return item.id;
-  }
-
-  refresh(): void { this.refresh$.next(); }
-  navigateToBusinesses(): void { this.router.navigate(['/admin/businesses']); }
-  trackByIndex = (_: number, __: unknown) => _;
 }
-

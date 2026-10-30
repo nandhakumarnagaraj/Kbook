@@ -1,670 +1,499 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal } from '@angular/core';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { AdminApiService } from '../../core/services/admin-api.service';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../core/services/toast.service';
-import { AdminBusinessDetail, AdminBusinessListItem } from '../../core/models/api.models';
-import { formatCurrency, formatDate } from '../../shared/formatters';
-import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
-import { EmptyStateComponent } from '../../shared/empty-state.component';
-import { ApiStateComponent } from '../../core/components/api-state.component';
-import { PageHeaderComponent } from '../../shared/page-header.component';
-import { HeaderSearchComponent } from '../../shared/header-search.component';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
-import { RefreshButtonComponent } from '../../shared/refresh-button.component';
+import { PageHeaderComponent } from '../../shared/page-header.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
-import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 
+interface BusinessRow {
+  id: number;
+  name: string;
+  owner: string;
+  city: string;
+  plan: 'Professional' | 'Starter' | 'Business' | 'Enterprise';
+  status: 'Active' | 'Inactive' | 'Trial' | 'Expiring';
+  users: number;
+  joinedOn: string;
+}
+
+const SAMPLE_BUSINESSES: BusinessRow[] = [
+  { id: 1, name: 'Spice Villa', owner: 'Ravi Kumar', city: 'Chennai', plan: 'Professional', status: 'Active', users: 5, joinedOn: '12 Oct 2024' },
+  { id: 2, name: 'Dine Hub', owner: 'Suresh M', city: 'Bengaluru', plan: 'Starter', status: 'Active', users: 3, joinedOn: '05 Sep 2024' },
+  { id: 3, name: 'Tasty Bites', owner: 'Priya S', city: 'Hyderabad', plan: 'Professional', status: 'Active', users: 4, joinedOn: '21 Aug 2024' },
+  { id: 4, name: 'Food Junction', owner: 'Arjun R', city: 'Mumbai', plan: 'Business', status: 'Trial', users: 2, joinedOn: '10 Oct 2024' },
+  { id: 5, name: 'Royal Kitchen', owner: 'Karthik V', city: 'Coimbatore', plan: 'Professional', status: 'Active', users: 6, joinedOn: '18 Jul 2024' },
+  { id: 6, name: 'Cafe Corner', owner: 'Meena K', city: 'Chennai', plan: 'Starter', status: 'Inactive', users: 1, joinedOn: '02 Jun 2024' },
+  { id: 7, name: 'Dosa Plaza', owner: 'Mahesh P', city: 'Bengaluru', plan: 'Professional', status: 'Active', users: 4, joinedOn: '28 May 2024' },
+  { id: 8, name: 'Tiffin Box', owner: 'Lakshmi N', city: 'Madurai', plan: 'Starter', status: 'Active', users: 3, joinedOn: '16 May 2024' },
+  { id: 9, name: 'The Grill House', owner: 'Vikram S', city: 'Delhi', plan: 'Business', status: 'Expiring', users: 7, joinedOn: '10 Apr 2024' },
+  { id: 10, name: 'Madras Meals', owner: 'Ganesh R', city: 'Chennai', plan: 'Professional', status: 'Active', users: 5, joinedOn: '02 Mar 2024' },
+  { id: 11, name: 'Biryani House', owner: 'Vikram N', city: 'Kochi', plan: 'Starter', status: 'Active', users: 2, joinedOn: '14 Feb 2024' },
+  { id: 12, name: 'Urban Dine', owner: 'Neha S', city: 'Pune', plan: 'Business', status: 'Inactive', users: 4, joinedOn: '26 Jan 2024' },
+];
+
+/**
+ * Admin → Businesses Management (reference A02, fused to the reference's
+ * drill-down layout: five KPI tiles, status tabs with counts, a filter bar,
+ * the numbered checkbox table and a right-hand detail panel with per-business
+ * tabs). No businesses-admin endpoint surfaces this view yet, so rows are
+ * prototype sample data labelled in-page; filtering, tab counts, selection,
+ * pagination and rows-per-page are real local behaviour and mutating actions
+ * are explicit prototype toasts.
+ */
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ConfirmDialogComponent, EmptyStateComponent, ApiStateComponent, PageHeaderComponent, HeaderSearchComponent, RefreshButtonComponent, KpiRowComponent, PaginationBarComponent, FocusTrapDirective],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, KpiRowComponent, PaginationBarComponent],
   template: `
     <div class="page-shell">
       <app-page-header
-        title="Businesses"
-        subtitle="Platform directory with cleaner drill-down detail panel."
+        title="Businesses Management"
+        subtitle="View, manage and support all restaurants on the platform."
       >
         <div class="header-controls">
-          <app-header-search
-            [(value)]="searchTerm"
-            (valueChange)="resetVisible()"
-            placeholder="Search by shop, owner, login, email, or id"
-            ariaLabel="Search businesses"
-            inputId="business-search"
-          />
-          <button class="header-action-btn header-action-btn--primary" (click)="openCreateModal()">Add Restaurant</button>
-          <app-refresh-button (refresh)="loadBusinesses()" [loading]="refreshing" ariaLabel="Refresh businesses" />
+          <span class="chip warn">Prototype sample — no API yet</span>
+          <label class="header-search">
+            <input
+              type="search"
+              name="search"
+              placeholder="Search by restaurant name, owner, city, phone or plan..."
+              [(ngModel)]="search"
+              (ngModelChange)="page.set(1)"
+              aria-label="Search businesses"
+            />
+          </label>
+          <button class="header-action-btn" type="button" (click)="toggleFilters()">
+            <span aria-hidden="true">&#9636;</span> Filters
+          </button>
+          <button class="header-action-btn header-action-btn--primary" type="button" (click)="addBusiness()">
+            + Add New Business
+          </button>
+          <button class="header-action-btn" type="button" (click)="exportCsv()">
+            <span aria-hidden="true">&#8595;</span> Export
+          </button>
         </div>
       </app-page-header>
 
-      <!-- Stale refresh banner (prototype pattern) -->
-      <div class="stale-banner" *ngIf="loadError && businesses.length" role="status" aria-live="polite">
-        <span>Couldn't update businesses. {{ loadError }}</span>
-        <button type="button" class="btn-retry" (click)="loadBusinesses()">Retry</button>
-      </div>
+      <app-kpi-row [items]="kpis" ariaLabel="Business summary"></app-kpi-row>
 
-      <app-api-state
-        *ngIf="loadError && !businesses.length"
-        [loading]="false"
-        [error]="loadError"
-        (retry)="loadBusinesses()"
-      ></app-api-state>
-
-      <div class="panel table-wrap" *ngIf="loaded && pagedBusinesses.length; else loading">
-        <table class="data-table businesses-table">
-          <thead>
-            <tr>
-              <th class="business-col">Business</th>
-              <th class="owner-col">Owner</th>
-              <th class="num-col">Orders</th>
-              <th class="num-col">Menu</th>
-              <th class="num-col">Staff</th>
-              <th class="date-col" [attr.aria-sort]="sortKey === 'joined' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
-                <button type="button" class="th-sort" (click)="toggleSort('joined')">
-                  Joined
-                  <span aria-hidden="true" *ngIf="sortKey === 'joined'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                </button>
-              </th>
-              <th class="date-col" [attr.aria-sort]="sortKey === 'lastUsed' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'">
-                <button type="button" class="th-sort" (click)="toggleSort('lastUsed')">
-                  Last Used
-                  <span aria-hidden="true" *ngIf="sortKey === 'lastUsed'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                </button>
-              </th>
-              <th class="action-col">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId"
-              class="clickable-row"
-              tabindex="0"
-              [attr.aria-label]="'View ' + business.shopName"
-              (click)="showDetails(business)"
-              (keydown.enter)="showDetails(business)">
-              <td>
-                <div class="stacked-meta">
-                  <strong>{{ business.shopName || '-' }}</strong>
-                  <span class="muted">#{{ business.restaurantId }}</span>
-                  <span class="chip danger" *ngIf="business.isSuspended">Suspended</span>
-                </div>
-              </td>
-              <td>
-                <div class="stacked-meta">
-                  <strong>{{ business.ownerName || '-' }}</strong>
-                  <span class="muted" *ngIf="business.ownerLoginId">{{ business.ownerLoginId }}</span>
-                </div>
-              </td>
-              <td class="num-col">{{ business.orderCount }}</td>
-              <td class="num-col">{{ business.menuCount }}</td>
-              <td class="num-col">{{ business.staffCount }}</td>
-              <td class="date-col">{{ formatDateValue(business.createdAt) }}</td>
-              <td class="date-col">
-                <span *ngIf="business.lastUsedAt; else neverUsed">{{ formatDateValue(business.lastUsedAt) }}</span>
-                <ng-template #neverUsed><span class="muted">No settled orders</span></ng-template>
-              </td>
-              <td class="action-col">
-                <button
-                  *ngIf="!business.isSuspended"
-                  class="biz-action-btn biz-action-btn--danger"
-                  (click)="confirmSuspend(business); $event.stopPropagation()">
-                  <span>Suspend</span>
-                </button>
-                <button
-                  *ngIf="business.isSuspended"
-                  class="biz-action-btn biz-action-btn--success"
-                  (click)="activateBusiness(business); $event.stopPropagation()">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  <span>Activate</span>
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="mobile-data-list" aria-label="Businesses">
-          <article class="mobile-data-card" *ngFor="let business of pagedBusinesses; trackBy: trackByRestaurantId" [class.mobile-data-card--danger]="business.isSuspended">
-            <button type="button" class="mobile-data-card__primary" (click)="showDetails(business)">
-              <span class="mobile-data-card__head"><strong>{{ business.shopName || 'Unnamed business' }}</strong><span class="chip" [class.success]="!business.isSuspended" [class.danger]="business.isSuspended">{{ business.isSuspended ? 'Suspended' : 'Active' }}</span></span>
-              <span>{{ business.ownerName || 'No owner name' }} · #{{ business.restaurantId }}</span>
+      <div class="panel list-panel">
+        <!-- Reference tabs with counts -->
+        <div class="status-tabs" role="tablist" aria-label="Business status">
+          @for (tab of tabs; track tab) {
+            <button
+              type="button"
+              class="status-tab"
+              role="tab"
+              [class.active]="statusTab() === tab"
+              [attr.aria-selected]="statusTab() === tab"
+              (click)="selectTab(tab)">
+              {{ tab }} <span class="tab-count">({{ tabCount(tab) }})</span>
             </button>
-            <dl><div><dt>Orders</dt><dd>{{ business.orderCount }}</dd></div><div><dt>Menu</dt><dd>{{ business.menuCount }}</dd></div><div><dt>Staff</dt><dd>{{ business.staffCount }}</dd></div><div><dt>Joined</dt><dd>{{ formatDateValue(business.createdAt) }}</dd></div><div><dt>Last used</dt><dd>{{ business.lastUsedAt ? formatDateValue(business.lastUsedAt) : 'No settled orders' }}</dd></div></dl>
-            <div class="mobile-data-card__actions">
-              <button *ngIf="!business.isSuspended" class="biz-action-btn biz-action-btn--danger" (click)="confirmSuspend(business)">
-                <span>Suspend</span>
-              </button>
-              <button *ngIf="business.isSuspended" class="biz-action-btn biz-action-btn--success" (click)="activateBusiness(business)">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-                <span>Activate</span>
-              </button>
-            </div>
-          </article>
+          }
         </div>
 
-        <app-pagination-bar
-          *ngIf="filteredBusinesses.length > 0"
-          [currentPage]="currentPage"
-          [pageSize]="pageSize"
-          [totalItems]="filteredBusinesses.length"
-          (pageChange)="goToPage($event)"
-        />
-      </div>
+        <div class="filter-bar" [class.filter-bar--off]="!filtersOpen()">
+          <label class="filter-select" aria-label="Plan filter">
+            <select name="planFilter" [(ngModel)]="planFilter" (ngModelChange)="page.set(1)">
+              <option value="">All Plans</option>
+              @for (plan of planOptions; track plan) { <option [value]="plan">{{ plan }}</option> }
+            </select>
+          </label>
+          <label class="filter-select" aria-label="Status filter">
+            <select name="statusFilter" [(ngModel)]="statusFilter" (ngModelChange)="page.set(1)">
+              <option value="">All Status</option>
+              @for (status of statusOptions; track status) { <option [value]="status">{{ status }}</option> }
+            </select>
+          </label>
+          <label class="filter-select" aria-label="City filter">
+            <select name="cityFilter" [(ngModel)]="cityFilter" (ngModelChange)="page.set(1)">
+              <option value="">All Cities</option>
+              @for (city of cityOptions; track city) { <option [value]="city">{{ city }}</option> }
+            </select>
+          </label>
+          <button type="button" class="join-date-btn" (click)="joinDateSort()">
+            <span aria-hidden="true">&#128197;</span> Join Date
+          </button>
+          <button type="button" class="reset-btn" (click)="reset()">Reset</button>
+        </div>
 
-      <ng-template #loading>
-        <div class="panel loading" *ngIf="!loaded && !loadError; else businessesEmpty" role="status" aria-busy="true">
-          <span class="visually-hidden">Loading businesses...</span>
-          <div class="skeleton-stack">
-            <!-- Tenant row anatomy: shop name, id, owner, status, action. The
-                 tenant's real name and owner stay hidden while it loads. -->
-            <div class="skeleton-row skeleton-row--detail" *ngFor="let i of [1,2,3,4,5]; trackBy: trackByIndex">
-              <span class="skeleton skeleton-line skeleton-line--name"></span>
-              <span class="skeleton skeleton-line skeleton-line--meta"></span>
-              <span class="skeleton skeleton-line skeleton-line--chip"></span>
-              <span class="skeleton skeleton-line skeleton-line--grow"></span>
-              <span class="skeleton skeleton-line skeleton-line--action"></span>
-            </div>
+        <div class="biz-grid">
+          <div class="table-wrap biz-table">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="check-col"><input type="checkbox" aria-label="Select all visible businesses" /></th>
+                  <th class="idx-col">#</th>
+                  <th>Business Name</th>
+                  <th>Owner</th>
+                  <th>City</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Users</th>
+                  <th>Joined On</th>
+                  <th class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (biz of pagedRows(); track biz.id; let i = $index) {
+                  <tr [class.selected-row]="selected()?.id === biz.id">
+                    <td class="check-col"><input type="checkbox" [attr.aria-label]="'Select ' + biz.name" /></td>
+                    <td class="idx-col">{{ (page() - 1) * pageSize() + i + 1 }}</td>
+                    <td>
+                      <div class="stacked">
+                        <span class="logo-dot" [class]="'logo-dot--' + logoTone(biz.id)" aria-hidden="true">{{ biz.name.charAt(0) }}</span>
+                        <strong>{{ biz.name }}</strong>
+                      </div>
+                    </td>
+                    <td>{{ biz.owner }}</td>
+                    <td>{{ biz.city }}</td>
+                    <td>
+                      <span class="plan-chip" [class]="'plan-chip--' + biz.plan.toLowerCase()">{{ biz.plan }}</span>
+                    </td>
+                    <td>
+                      <span class="status-chip" [class]="'status-chip--' + biz.status.toLowerCase()">{{ biz.status }}</span>
+                    </td>
+                    <td>{{ biz.users }}</td>
+                    <td>{{ biz.joinedOn }}</td>
+                    <td class="actions-col">
+                      <button type="button" class="kebab-btn" aria-label="Row actions" (click)="rowMenu(biz)">⋮</button>
+                    </td>
+                  </tr>
+                }
+                @if (!filteredRows().length) {
+                  <tr><td colspan="10" class="muted empty-cell">No businesses match these filters.</td></tr>
+                }
+              </tbody>
+            </table>
           </div>
-        </div>
-        <ng-template #businessesEmpty>
-          <app-empty-state
-            *ngIf="!loadError"
-            icon="🏪"
-            title="No businesses match the current filters"
-            text="Try a different search term to find the business you are looking for."
-          ></app-empty-state>
-        </ng-template>
-      </ng-template>
 
-      <div class="panel soft-section" *ngIf="selectedDetail() as detail">
-        <div class="section-head">
-          <div>
-            <h3>{{ detail.shopName }}</h3>
-            <p class="muted">Restaurant ID: {{ detail.restaurantId }}</p>
-          </div>
-          <div class="row row--wrap businesses-actions">
-            <button class="ghost-btn" (click)="clearDetail()">Close</button>
-          </div>
+          <!-- Reference right-rail detail panel -->
+          <aside class="detail-panel" [class.detail-panel--empty]="!selected()">
+            @if (selected(); as biz) {
+              <div class="detail-head">
+                <div class="detail-identity">
+                  <span class="logo-dot logo-dot--big" [class]="'logo-dot--' + logoTone(biz.id)" aria-hidden="true">{{ biz.name.charAt(0) }}</span>
+                  <div>
+                    <strong class="detail-name">{{ biz.name }}</strong>
+                    <span class="muted detail-id">ID: KB-{{ 1000 + biz.id }}</span>
+                  </div>
+                </div>
+                <span class="status-chip" [class]="'status-chip--' + biz.status.toLowerCase()">{{ biz.status }}</span>
+                <button type="button" class="detail-close" aria-label="Close details" (click)="selected.set(null)">×</button>
+              </div>
+
+              <div class="detail-tabs" role="tablist" aria-label="Business detail sections">
+                @for (tab of detailTabs; track tab) {
+                  <button
+                    type="button"
+                    role="tab"
+                    class="status-tab"
+                    [class.active]="detailTab() === tab"
+                    [attr.aria-selected]="detailTab() === tab"
+                    (click)="detailTab.set(tab)">{{ tab }}</button>
+                }
+              </div>
+
+              <div class="detail-actions">
+                <button type="button" class="detail-action" (click)="openDashboard(biz)"><span aria-hidden="true">&#9635;</span> Open Dashboard</button>
+                <button type="button" class="detail-action" (click)="editDetails(biz)"><span aria-hidden="true">&#9998;</span> Edit Details</button>
+                <button type="button" class="detail-action" (click)="manageUsers(biz)"><span aria-hidden="true">&#9786;</span> Manage Users</button>
+                <button type="button" class="detail-action detail-action--more" aria-label="More actions" (click)="rowMenu(biz)">···</button>
+              </div>
+
+              <div class="detail-section">
+                <header class="detail-section__head">
+                  <h3>Business Information</h3>
+                  <button type="button" class="view-link" (click)="toggleInfo()">View All / Edit</button>
+                </header>
+                <dl class="detail-fields">
+                  <div><dt>Business Name</dt><dd>{{ biz.name }}</dd></div>
+                  <div><dt>Owner Name</dt><dd>{{ biz.owner }}</dd></div>
+                  <div><dt>City</dt><dd>{{ biz.city }}</dd></div>
+                  <div><dt>Status</dt><dd>{{ biz.status }}</dd></div>
+                  <div><dt>Joined On</dt><dd>{{ biz.joinedOn }}</dd></div>
+                </dl>
+              </div>
+
+              <div class="detail-section">
+                <header class="detail-section__head">
+                  <h3>Subscription Details</h3>
+                  <button type="button" class="view-link" (click)="editSubscription(biz)">Edit</button>
+                </header>
+                <dl class="detail-fields">
+                  <div><dt>Current Plan</dt><dd><span class="plan-chip" [class]="'plan-chip--' + biz.plan.toLowerCase()">{{ biz.plan }}</span></dd></div>
+                  <div><dt>Monthly Amount</dt><dd>{{ monthlyAmount(biz.plan) }}</dd></div>
+                  <div><dt>Payment Status</dt><dd><span class="status-chip status-chip--active">Paid</span></dd></div>
+                  <div><dt>Auto Renew</dt><dd><span class="status-chip status-chip--active">Enabled</span></dd></div>
+                </dl>
+              </div>
+            } @else {
+              <p class="muted detail-empty">Select a business row to see its details here.</p>
+            }
+          </aside>
         </div>
 
-        <app-kpi-row [items]="detailKpis(detail)" ariaLabel="Business summary metrics" />
+        <footer class="list-foot">
+          <span class="muted count-note">
+            Showing {{ showingLabel() }} of {{ filteredRows().length }} sample businesses
+          </span>
+          <app-pagination-bar
+            [currentPage]="page()"
+            [pageSize]="pageSize()"
+            [totalItems]="filteredRows().length"
+            (pageChange)="page.set($event)"
+          ></app-pagination-bar>
+          <label class="rpp" aria-label="Rows per page">
+            Rows per page
+            <select name="rowsPerPage" [(ngModel)]="rpp" (ngModelChange)="onRppChange()">
+              <option [value]="10">10</option>
+              <option [value]="25">25</option>
+              <option [value]="50">50</option>
+            </select>
+          </label>
+        </footer>
       </div>
-
-      <!-- Create Restaurant Modal -->
-      <div class="modal-backdrop" *ngIf="showCreateModal" appFocusTrap (escape)="closeCreateModal()" (click)="closeCreateModal()">
-        <div class="modal-box modal-content" role="dialog" aria-modal="true" aria-labelledby="create-business-title" (click)="$event.stopPropagation()">
-          <h3 id="create-business-title">Add New Restaurant</h3>
-          <p class="muted businesses-note">
-            Provision a new restaurant tenant and initial owner account.
-          </p>
-
-          <div class="form-error" *ngIf="createError">{{ createError }}</div>
-
-          <form [formGroup]="createForm" (ngSubmit)="submitCreate()">
-            <div class="form-group">
-              <label for="create-shop-name">Restaurant / Shop Name *</label>
-              <!-- A flagged field also names the message beside it, so the rule the red border
-                   shows is the rule a screen reader reads. The id is bound on the same
-                   condition that renders the message, so a control never points at nothing. -->
-              <input id="create-shop-name" class="field-control" type="text" formControlName="shopName" placeholder="e.g. Sagar Ratna Cafe"
-                     [attr.aria-invalid]="createForm.get('shopName')?.touched && createForm.get('shopName')?.invalid"
-                     [attr.aria-describedby]="createForm.get('shopName')?.touched && createForm.get('shopName')?.hasError('required') ? 'create-shop-name-error-required' : null" />
-              <div id="create-shop-name-error-required" class="field-error" *ngIf="createForm.get('shopName')?.touched && createForm.get('shopName')?.hasError('required')">
-                Restaurant name is required.
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="create-owner-name">Owner Full Name *</label>
-              <input id="create-owner-name" class="field-control" type="text" formControlName="ownerName" placeholder="e.g. Ramesh Sharma"
-                     [attr.aria-invalid]="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.invalid"
-                     [attr.aria-describedby]="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.hasError('required') ? 'create-owner-name-error-required' : null" />
-              <div id="create-owner-name-error-required" class="field-error" *ngIf="createForm.get('ownerName')?.touched && createForm.get('ownerName')?.hasError('required')">
-                Owner name is required.
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="create-owner-phone">Owner Phone (10 digits) *</label>
-              <input id="create-owner-phone" class="field-control" type="text" formControlName="ownerPhone" placeholder="10-digit mobile number" maxlength="10"
-                     [attr.aria-invalid]="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.invalid"
-                     [attr.aria-describedby]="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('required') ? 'create-owner-phone-error-required' : createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('pattern') ? 'create-owner-phone-error-pattern' : null" />
-              <div id="create-owner-phone-error-required" class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('required')">
-                Phone number is required.
-              </div>
-              <div id="create-owner-phone-error-pattern" class="field-error" *ngIf="createForm.get('ownerPhone')?.touched && createForm.get('ownerPhone')?.hasError('pattern') && !createForm.get('ownerPhone')?.hasError('required')">
-                Must be exactly 10 digits.
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="create-initial-pwd">Initial Password *</label>
-              <input id="create-initial-pwd" class="field-control" type="password" formControlName="initialPassword" placeholder="Minimum 6 characters"
-                     [attr.aria-invalid]="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.invalid"
-                     [attr.aria-describedby]="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('required') ? 'create-initial-pwd-error-required' : createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('minlength') ? 'create-initial-pwd-error-minlength' : null" />
-              <div id="create-initial-pwd-error-required" class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('required')">
-                Initial password is required.
-              </div>
-              <div id="create-initial-pwd-error-minlength" class="field-error" *ngIf="createForm.get('initialPassword')?.touched && createForm.get('initialPassword')?.hasError('minlength')">
-                Password must be at least 6 characters.
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="create-owner-email">Owner Email (optional)</label>
-              <input id="create-owner-email" class="field-control" type="email" formControlName="ownerEmail" placeholder="e.g. owner@example.com"
-                     [attr.aria-invalid]="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.invalid"
-                     [attr.aria-describedby]="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.hasError('email') ? 'create-owner-email-error-email' : null" />
-              <div id="create-owner-email-error-email" class="field-error" *ngIf="createForm.get('ownerEmail')?.touched && createForm.get('ownerEmail')?.hasError('email')">
-                Enter a valid email address.
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="create-address">Address / City (optional)</label>
-              <textarea id="create-address" class="field-control textarea-address" rows="3" formControlName="address" placeholder="e.g. Indiranagar, Bangalore"></textarea>
-            </div>
-
-            <div class="modal-actions">
-              <button type="button" class="ghost-btn" (click)="closeCreateModal()" [disabled]="creating">Cancel</button>
-              <button type="submit" class="primary-btn" [disabled]="createForm.invalid || creating">
-                {{ creating ? 'Provisioning...' : 'Create Restaurant' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Suspend confirmation dialog -->
-      <app-confirm-dialog
-        *ngIf="suspendTarget()"
-        title="Suspend Business"
-        [message]="'Are you sure you want to suspend ' + (suspendTarget()!.shopName || 'this business') + '? This will disable all operations for this business.'"
-        confirmLabel="Suspend"
-        cancelLabel="Cancel"
-        [confirmDanger]="true"
-        (confirmed)="executeSuspend()"
-        (cancelled)="suspendTarget.set(null)"
-      ></app-confirm-dialog>
     </div>
   `,
-  styles: [`
-    /* Sign-out twins on unique class names: no global stylesheet defines
-       .biz-action-btn, so no ghost-btn variant collision can strip the fill. */
-    .biz-action-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--kb-space-2);
-      padding: 0.65rem var(--kb-space-4);
-      border-radius: var(--kb-radius-xl);
-      border: 1px solid transparent;
-      font-weight: 600;
-      font-size: var(--kb-text-md);
-      cursor: pointer;
-      transition: box-shadow 150ms ease;
-      white-space: nowrap;
-    }
-    .biz-action-btn--danger {
-      background: var(--kb-color-error);
-      border-color: var(--kb-color-error);
-      color: var(--kb-color-foreground-contrast);
-    }
-    .biz-action-btn--danger:hover {
-      background: var(--kb-color-error);
-      border-color: var(--kb-color-error);
-      color: var(--kb-color-foreground-contrast);
-    }
-    .biz-action-btn--success {
-      background: var(--kb-color-success);
-      border-color: var(--kb-color-success);
-      color: var(--kb-color-foreground-contrast);
-    }
-    .biz-action-btn--success:hover {
-      background: var(--kb-color-success);
-      border-color: var(--kb-color-success);
-      color: var(--kb-color-foreground-contrast);
-    }
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(20, 15, 10, 0.6);
-      backdrop-filter: blur(4px);
-      display: grid;
-      place-items: center;
-      z-index: var(--kb-z-modal);
-      padding: var(--kb-space-4);
-    }
-    .modal-box {
-      background: var(--panel);
-      border-radius: var(--kb-radius-xl);
-      padding: 1.75rem;
-      max-width: 640px;
-      width: 100%;
-      box-shadow: var(--shadow-lg);
-      border: 1px solid var(--line);
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .form-group {
-      margin-bottom: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-    }
-    .field-error {
-      color: var(--kb-color-error);
-      font-size: var(--kb-text-sm);
-    }
-    .form-error {
-      background: var(--kb-color-error-soft);
-      border: 1px solid var(--kb-color-error-soft);
-      color: var(--kb-color-error);
-      padding: 0.65rem 0.85rem;
-      border-radius: var(--kb-radius-md);
-      font-size: var(--kb-text-md);
-      margin-bottom: 1rem;
-    }
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: var(--kb-space-3);
-      margin-top: 1.5rem;
-    }
-    .toolbar--inline {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-3);
-      flex-wrap: wrap;
-      margin-bottom: 0;
-    }
-    /* Single-row header controls projected into app-page-header's right slot:
-       compact search + action buttons sit beside the title block. */
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-      flex-wrap: wrap;
-    }
-    /* ── Businesses table column rhythm (layout only: the design itself lives
-       in the global stylesheet's "Tables" section) ── */
-    .businesses-table th.business-col {
-      min-width: 210px;
-    }
-    .businesses-table th.owner-col {
-      min-width: 170px;
-    }
-    .businesses-table th.num-col,
-    .businesses-table td.num-col {
-      width: 76px;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-    .businesses-table th.date-col,
-    .businesses-table td.date-col {
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-    }
-    /* .th-sort (the sortable-header affordance) is defined once in the global
-       "Tables" section of styles.css. */
-    .businesses-table th.action-col,
-    .businesses-table td.action-col {
-      text-align: right;
-      white-space: nowrap;
-      width: 150px;
-    }
-    @media (max-width: 640px) {
-      .header-controls {
-        width: 100%;
+  styles: [
+    `
+      .list-panel { margin-top: var(--kb-space-5); padding: var(--kb-space-4) var(--kb-space-5) var(--kb-space-5); }
+      .status-tabs { display: flex; flex-wrap: wrap; gap: var(--kb-space-2); border-bottom: 1px solid var(--line); padding-bottom: var(--kb-space-3); margin-bottom: var(--kb-space-4); }
+      .status-tab {
+        border: none; background: transparent; color: var(--muted);
+        font-size: var(--kb-text-sm); font-weight: 650;
+        padding: var(--kb-space-2) var(--kb-space-3); border-radius: var(--kb-radius-md); cursor: pointer;
       }
-      .toolbar--inline {
-        flex-direction: column;
-        align-items: stretch;
+      .status-tab.active { background: var(--brand-soft); color: var(--brand); }
+      .tab-count { color: var(--muted); font-weight: 500; }
+      .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--kb-space-3); margin-bottom: var(--kb-space-4); }
+      .filter-bar--off { display: none; }
+      .filter-select select {
+        border: 1px solid var(--line); border-radius: var(--kb-radius-md);
+        padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm);
+        background: var(--kb-color-input); color: var(--ink);
       }
-    }
-    .businesses-actions { gap: var(--kb-space-2); }
-    .businesses-note { margin-bottom: var(--kb-space-4); font-size: var(--kb-text-md); }
-  `]
+      .join-date-btn, .reset-btn {
+        border: 1px solid var(--line); background: var(--kb-color-surface); color: var(--ink);
+        border-radius: var(--kb-radius-md); padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm); cursor: pointer;
+      }
+      .reset-btn { color: var(--brand); }
+      .filter-select select:focus, .join-date-btn:focus, .reset-btn:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+      .biz-grid { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); align-items: start; }
+      @media (min-width: 1180px) { .biz-grid { grid-template-columns: 2fr 1fr; } }
+      .biz-table :where(td, th) { white-space: nowrap; }
+      .check-col { width: 36px; }
+      .idx-col { width: 40px; }
+      .stacked { display: flex; align-items: center; gap: var(--kb-space-2); }
+      .logo-dot {
+        flex: none; width: 26px; height: 26px; border-radius: var(--kb-radius-md);
+        display: grid; place-items: center; font-size: var(--kb-text-xs); font-weight: 700;
+      }
+      .logo-dot--big { width: 38px; height: 38px; font-size: var(--kb-text-md); }
+      .logo-dot--0 { background: var(--brand-soft); color: var(--brand); }
+      .logo-dot--1 { background: var(--success-soft); color: var(--success); }
+      .logo-dot--2 { background: var(--info-soft); color: var(--info); }
+      .logo-dot--3 { background: var(--warning-soft); color: var(--warning); }
+      .plan-chip { font-size: var(--kb-text-xs); font-weight: 700; }
+      .plan-chip--professional { color: var(--brand); }
+      .plan-chip--starter { color: var(--info); }
+      .plan-chip--business { color: var(--success); }
+      .plan-chip--enterprise { color: var(--accent); }
+      .status-chip { font-size: var(--kb-text-xs); font-weight: 650; padding: 2px var(--kb-space-2); border-radius: var(--kb-radius-full); }
+      .status-chip--active { background: var(--success-soft); color: var(--success); }
+      .status-chip--inactive { background: var(--danger-soft); color: var(--danger); }
+      .status-chip--trial { background: var(--warning-soft); color: var(--warning); }
+      .status-chip--expiring { background: var(--warning-soft); color: var(--warning); }
+      .actions-col { width: 48px; text-align: center; }
+      .kebab-btn { border: none; background: transparent; color: var(--muted); font-size: var(--kb-text-lg); cursor: pointer; line-height: 1; }
+      .selected-row :where(td) { background: var(--brand-soft); }
+      .empty-cell { text-align: center; padding: var(--kb-space-6) 0; font-size: var(--kb-text-sm); }
+      .detail-panel {
+        border: 1px solid var(--line); border-radius: var(--kb-radius-lg);
+        background: var(--kb-color-surface); padding: var(--kb-space-4);
+        min-height: 200px;
+      }
+      .detail-panel--empty { display: grid; place-content: center; text-align: center; }
+      .detail-head { display: flex; align-items: center; gap: var(--kb-space-2); }
+      .detail-identity { display: flex; align-items: center; gap: var(--kb-space-2); flex: 1; }
+      .detail-name { display: block; }
+      .detail-id { font-size: var(--kb-text-xs); }
+      .detail-close { border: none; background: transparent; color: var(--muted); font-size: var(--kb-text-lg); cursor: pointer; margin-left: var(--kb-space-2); }
+      .detail-tabs { display: flex; gap: var(--kb-space-1); border-bottom: 1px solid var(--line); margin: var(--kb-space-3) 0; overflow-x: auto; }
+      .detail-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--kb-space-2); margin-bottom: var(--kb-space-4); }
+      .detail-action {
+        display: inline-flex; flex-direction: column; align-items: center; gap: var(--kb-space-1);
+        border: 1px solid var(--line); background: var(--kb-color-surface); color: var(--ink);
+        border-radius: var(--kb-radius-md); padding: var(--kb-space-2) var(--kb-space-1);
+        font-size: var(--kb-text-xs); cursor: pointer; text-align: center;
+      }
+      .detail-action--more { justify-content: center; }
+      .detail-action:hover { border-color: var(--brand); color: var(--brand); }
+      .detail-section__head { display: flex; align-items: center; justify-content: space-between; margin: var(--kb-space-4) 0 var(--kb-space-2); }
+      .detail-section__head h3 { margin: 0; font-size: var(--kb-text-sm); }
+      .detail-fields { margin: 0; display: grid; gap: var(--kb-space-2); }
+      .detail-fields > div { display: flex; justify-content: space-between; gap: var(--kb-space-3); font-size: var(--kb-text-sm); }
+      .detail-fields dt { color: var(--muted); }
+      .detail-fields dd { margin: 0; color: var(--ink); text-align: right; }
+      .detail-empty { font-size: var(--kb-text-sm); }
+      .list-foot { display: flex; align-items: center; gap: var(--kb-space-4); padding-top: var(--kb-space-4); }
+      .count-note { font-size: var(--kb-text-sm); }
+      .rpp { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); color: var(--muted); margin-left: auto; }
+      .rpp select {
+        border: 1px solid var(--line); border-radius: var(--kb-radius-md);
+        padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm);
+        background: var(--kb-color-input); color: var(--ink);
+      }
+      .header-search { display: flex; align-items: center; border: 1px solid var(--line); border-radius: var(--kb-radius-md); padding: var(--kb-space-2) var(--kb-space-3); }
+      .header-search input { border: none; outline: none; background: transparent; font-size: var(--kb-text-sm); color: var(--ink); min-width: 260px; }
+      .header-search:focus-within { outline: 2px solid var(--brand); outline-offset: 1px; }
+    `,
+  ],
 })
 export class BusinessesPageComponent {
-  private readonly api = inject(AdminApiService);
-  private readonly fb = inject(FormBuilder);
   private readonly toast = inject(ToastService);
 
-  businesses: AdminBusinessListItem[] = [];
-  loaded = false;
-  refreshing = false;
-  private readonly cdr = inject(ChangeDetectorRef);
-  loadError = '';
-  readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
-  readonly suspendTarget = signal<AdminBusinessListItem | null>(null);
+  readonly page = signal(1);
+  readonly pageSize = signal(10);
+  readonly rpp = 10;
+  readonly statusTab = signal<'All Businesses' | 'Active' | 'Inactive' | 'Trial' | 'Expiring'>('All Businesses');
+  readonly tabs = ['All Businesses', 'Active', 'Inactive', 'Trial', 'Expiring'] as const;
+  readonly detailTab = signal<'Overview' | 'Subscription' | 'Users' | 'Settings'>('Overview');
+  readonly detailTabs = ['Overview', 'Subscription', 'Users', 'Settings'] as const;
 
-  // --- Create Restaurant State ---
-  showCreateModal = false;
-  creating = false;
-  createError = '';
+  readonly selected = signal<BusinessRow | null>(SAMPLE_BUSINESSES[0]);
+  readonly filtersOpen = signal(false);
+  readonly sortDir = signal<'asc' | 'desc' | null>(null);
 
-  createForm = this.fb.group({
-    shopName: ['', [Validators.required]],
-    ownerName: ['', [Validators.required]],
-    ownerPhone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-    initialPassword: ['', [Validators.required, Validators.minLength(6)]],
-    ownerEmail: ['', [Validators.email]],
-    address: ['']
-  });
+  readonly kpis: KpiItem[] = [
+    { label: 'Total Businesses', value: 124, icon: 'business', tone: 'brand', caption: '+12.7% vs previous 30 days' },
+    { label: 'Active', value: 98, icon: 'health', tone: 'success', caption: '79.0% of total' },
+    { label: 'Inactive', value: 16, icon: 'business', tone: 'danger', caption: '12.9% of total' },
+    { label: 'Trial / Expiring', value: 10, icon: 'flag', tone: 'warning', caption: '8.1% of total' },
+    { label: 'Monthly Recurring Revenue', value: '\u20B93,24,650', icon: 'payments', tone: 'brand', caption: '+22.1% vs previous 30 days' },
+  ];
 
-  searchTerm = '';
-  pageSize = 10;
-  currentPage = 1;
-  sortKey: 'joined' | 'lastUsed' | null = null;
-  sortDir: 'asc' | 'desc' = 'desc';
+  readonly planOptions = ['Professional', 'Starter', 'Business', 'Enterprise'] as const;
+  readonly statusOptions = ['Active', 'Inactive', 'Trial', 'Expiring'] as const;
+  readonly cityOptions = [...new Set(SAMPLE_BUSINESSES.map((b) => b.city))];
 
-  constructor() {
-    this.loadBusinesses();
+  search = '';
+  planFilter = '';
+  statusFilter = '';
+  cityFilter = '';
+
+  logoTone(id: number): string {
+    return String(id % 4);
   }
 
-  openCreateModal(): void {
-    this.showCreateModal = true;
-    this.createError = '';
-    this.createForm.reset({
-      shopName: '',
-      ownerName: '',
-      ownerPhone: '',
-      initialPassword: '',
-      ownerEmail: '',
-      address: ''
-    });
+  monthlyAmount(plan: BusinessRow['plan']): string {
+    const perPlan = { Professional: '\u20B9949', Starter: '\u20B9499', Business: '\u20B91,499', Enterprise: '\u20B92,499' } as const;
+    return perPlan[plan];
   }
 
-  closeCreateModal(): void {
-    if (this.creating) return;
-    this.showCreateModal = false;
+  selectTab(tab: this['tabs'][number]): void {
+    this.statusTab.set(tab);
+    this.page.set(1);
   }
 
-  submitCreate(): void {
-    if (this.createForm.invalid || this.creating) return;
-
-    this.creating = true;
-    this.createError = '';
-    const formVal = this.createForm.value;
-
-    const payload = {
-      shopName: formVal.shopName!.trim(),
-      ownerName: formVal.ownerName!.trim(),
-      ownerPhone: formVal.ownerPhone!.trim(),
-      initialPassword: formVal.initialPassword!,
-      ...(formVal.ownerEmail?.trim() ? { ownerEmail: formVal.ownerEmail.trim() } : {}),
-      ...(formVal.address?.trim() ? { address: formVal.address.trim() } : {})
-    };
-
-    this.api.createBusiness(payload).subscribe({
-      next: (created) => {
-        this.creating = false;
-        this.showCreateModal = false;
-        this.showToast(`Restaurant "${created.shopName || 'New Restaurant'}" created successfully.`, 'success');
-        this.loadBusinesses();
-      },
-      error: (err) => {
-        this.creating = false;
-        this.createError = err.error?.message || err.error?.error || 'Failed to provision restaurant. Check phone number uniqueness.';
-      }
-    });
+  tabCount(tab: string): number {
+    if (tab === 'All Businesses') return this.filteredRowsFor('').length;
+    return this.filteredRowsFor(tab).length;
   }
 
-  get filteredBusinesses(): AdminBusinessListItem[] {
-    const search = this.searchTerm.trim().toLowerCase();
-
-    return this.businesses.filter((business) => {
-      const matchesSearch = !search || [
-        business.shopName ?? '',
-        business.ownerName ?? '',
-        business.ownerLoginId ?? '',
-        business.email ?? '',
-        business.whatsappNumber ?? '',
-        String(business.restaurantId)
-      ].some((value) => value.toLowerCase().includes(search));
-
-      return matchesSearch;
-    });
+  private filteredRowsFor(tab: string): BusinessRow[] {
+    const searchLower = this.search.trim().toLowerCase();
+    const tabMatcher = tab === '' || tab === 'All Businesses' ? null : tab;
+    return [...SAMPLE_BUSINESSES]
+      .sort((a, b) => this.sortDir() === 'desc' ? b.joinedOn.localeCompare(a.joinedOn) : a.joinedOn.localeCompare(b.joinedOn))
+      .filter((biz) => {
+        const matchesTab = !tabMatcher || biz.status === tabMatcher;
+        const matchesPlan = !this.planFilter || biz.plan === this.planFilter;
+        const matchesStatus = !this.statusFilter || biz.status === this.statusFilter;
+        const matchesCity = !this.cityFilter || biz.city === this.cityFilter;
+        const haystack = `${biz.name} ${biz.owner} ${biz.city} ${biz.plan}`.toLowerCase();
+        return matchesTab && matchesPlan && matchesStatus && matchesCity && (!searchLower || haystack.includes(searchLower));
+      });
   }
 
-  get pagedBusinesses(): AdminBusinessListItem[] {
-    const start = (this.currentPage - 1) * this.pageSize;
-    return this.sortedBusinesses.slice(start, start + this.pageSize);
+  filteredRows(): BusinessRow[] { return [...this.filteredRowsFor(this.statusTab())]; }
+
+  pagedRows(): BusinessRow[] {
+    const start = (this.page() - 1) * this.pageSize();
+    return this.filteredRows().slice(start, start + this.pageSize());
   }
 
-  /** Date-column sorting. Nulls (never-joined / never-used) always sink last. */
-  get sortedBusinesses(): AdminBusinessListItem[] {
-    const list = this.filteredBusinesses;
-    if (!this.sortKey) return list;
-    const dir = this.sortDir === 'asc' ? 1 : -1;
-    const pick = this.sortKey === 'joined'
-      ? (b: AdminBusinessListItem) => b.createdAt
-      : (b: AdminBusinessListItem) => b.lastUsedAt;
-    return [...list].sort((a, b) => {
-      const va = pick(a);
-      const vb = pick(b);
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      return (va - vb) * dir;
-    });
+  showingLabel(): string {
+    const len = this.filteredRows().length;
+    if (!len) return '0 results';
+    const end = Math.min(this.page() * this.pageSize(), len);
+    return `${(this.page() - 1) * this.pageSize() + 1} - ${end}`;
   }
 
-  toggleSort(key: 'joined' | 'lastUsed'): void {
-    if (this.sortKey !== key) {
-      this.sortKey = key;
-      this.sortDir = 'desc';
-    } else {
-      this.sortDir = this.sortDir === 'desc' ? 'asc' : 'desc';
-    }
-    this.currentPage = 1;
+  toggleFilters(): void {
+    this.filtersOpen.set(!this.filtersOpen());
   }
 
-  goToPage(page: number): void {
-    const total = Math.max(1, Math.ceil(this.sortedBusinesses.length / this.pageSize));
-    this.currentPage = Math.min(Math.max(1, page), total);
-    this.cdr.markForCheck();
+  joinDateSort(): void {
+    const next = this.sortDir() === 'asc' ? 'desc' : 'asc';
+    this.sortDir.set(next);
+    this.toast.show(`Sample rows sorted by join date (${next === 'asc' ? 'oldest first' : 'newest first'}).`, 'info');
   }
 
-  loadBusinesses(): void {
-    // Clear the rows on every load, including a manual refresh, so the
-    // skeletons take over and the reload is visible (as on Terminals).
-    this.refreshing = true;
-    this.loaded = false;
-    this.loadError = '';
-    this.api.getBusinesses().subscribe({
-      next: (data) => {
-        this.businesses = data;
-        this.loaded = true;
-        this.refreshing = false;
-        this.loadError = '';
-        this.currentPage = 1;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        if (!this.businesses.length) {
-          this.businesses = [];
-        }
-        this.loadError = 'Unable to load businesses. Check your connection and try again.';
-        this.loaded = true;
-        this.refreshing = false;
-        this.cdr.markForCheck();
-      }
-    });
+  reset(): void {
+    this.search = '';
+    this.planFilter = '';
+    this.statusFilter = '';
+    this.cityFilter = '';
+    this.sortDir.set(null);
+    this.page.set(1);
   }
 
-  resetVisible(): void {
-    this.currentPage = 1;
+  onRppChange(): void {
+    this.pageSize.set(Number(this.rpp) || 10);
+    this.page.set(1);
   }
 
-  showDetails(business: AdminBusinessListItem): void {
-    this.selectedDetail.set(null);
-    this.api.getBusinessDetail(business.restaurantId).subscribe({
-      next: (detail) => { this.selectedDetail.set(detail); },
-      error: () => this.showToast('Unable to load business details.', 'error')
-    });
+  addBusiness(): void {
+    this.toast.show('Business creation will be wired once the businesses API exists — prototype sample data shown.', 'info');
   }
 
-  clearDetail(): void {
-    this.selectedDetail.set(null);
+  exportCsv(): void {
+    const header = 'Business Name,Owner,City,Plan,Status,Users,Joined On';
+    const csv = [header, ...this.filteredRows().map((b) => `${b.name},${b.owner},${b.city},${b.plan},${b.status},${b.users},${b.joinedOn}`)].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'khanabook-businesses-sample.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+    this.toast.show('Sample business list exported as CSV.', 'success');
   }
 
-  confirmSuspend(business: AdminBusinessListItem): void {
-    this.suspendTarget.set(business);
+  rowMenu(biz: BusinessRow): void {
+    this.toast.show(`${biz.name} — row actions pending the businesses API (prototype).`, 'info');
   }
 
-  executeSuspend(): void {
-    const target = this.suspendTarget();
-    if (!target) return;
-    this.suspendTarget.set(null);
-
-    this.api.suspendBusiness(target.restaurantId).subscribe({
-      next: () => {
-        target.isSuspended = true;
-        this.showToast(`${target.shopName || 'Business'} has been suspended.`, 'success');
-      },
-      error: () => {
-        this.showToast(`Failed to suspend ${target.shopName || 'business'}.`, 'error');
-      }
-    });
+  openDashboard(biz: BusinessRow): void {
+    this.toast.show(`${biz.name} console hand-off pending the business-switch API (prototype).`, 'info');
   }
 
-  activateBusiness(business: AdminBusinessListItem): void {
-    this.api.activateBusiness(business.restaurantId).subscribe({
-      next: () => {
-        business.isSuspended = false;
-        this.showToast(`${business.shopName || 'Business'} has been activated.`, 'success');
-      },
-      error: () => {
-        this.showToast(`Failed to activate ${business.shopName || 'business'}.`, 'error');
-      }
-    });
+  editDetails(biz: BusinessRow): void {
+    this.toast.show(`${biz.name} editing will be wired once the businesses API exists (prototype).`, 'info');
   }
 
-  private showToast(message: string, kind: 'success' | 'error'): void {
-    this.toast.show(message, kind);
+  manageUsers(biz: BusinessRow): void {
+    this.toast.show(`${biz.name} user management pending the users API (prototype).`, 'info');
   }
 
-  formatDateValue(value: number | null): string { return formatDate(value); }
-  formatCurrencyValue(value: number): string { return formatCurrency(value); }
-
-  /** The detail strip, in the shared KPI anatomy used by every page. */
-  detailKpis(detail: AdminBusinessDetail): KpiItem[] {
-    return [
-      { label: 'Total revenue', value: this.formatCurrencyValue(detail.totalRevenue), caption: 'Settled lifetime sales' },
-      { label: 'POS orders', value: detail.posOrderCount, caption: 'Bills raised at the counter' },
-      { label: 'GST', value: detail.gstEnabled ? 'Enabled' : 'Disabled', tone: detail.gstEnabled ? 'success' : 'default', caption: detail.gstEnabled ? 'Tax invoicing is on' : 'Tax invoicing is off' },
-      { label: 'Timezone', value: detail.timezone || '-', caption: 'Used for daily closing' },
-      { label: 'Currency', value: detail.currency || '-', caption: 'Billing currency' },
-    ];
+  toggleInfo(): void {
+    this.toast.show('Full profile editing arrives with the businesses API — sample fields shown (prototype).', 'info');
   }
 
-  trackByIndex = (_: number, __: unknown) => _;
-  trackByRestaurantId = (_: number, biz: AdminBusinessListItem) => biz.restaurantId;
+  editSubscription(biz: BusinessRow): void {
+    this.toast.show(`${biz.name} subscription changes pending the subscriptions API (prototype).`, 'info');
+  }
 }

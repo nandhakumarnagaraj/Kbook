@@ -1,0 +1,76 @@
+apps\web-admin\src\styles\bento.css
+  FAIL 10a :160 transition: all on .header-pill-btn | fix: List the transitioned properties explicitly
+  FAIL 10a :206 transition: all on .icon-action-btn
+  FAIL 10a :226 transition: all on .header-action-btn
+  FAIL 10a :539 transition: all on .btn-micro
+  FAIL 10a :944 transitioning width on .split-meter-segment | fix: Animate transform or opacity instead
+  FAIL 10a :1026 transitioning height on .bar-pill-fill
+  FAIL 20 :1 no Hallmark stamp on the first non-empty line of any CSS | fix: The stamp comment is line 1 of the CSS; only @charset may precede it
+  FAIL 27 :250 motion present, no prefers-reduced-motion block | fix: Add a prefers-reduced-motion fallback
+  FAIL 48 :41 colour literal rgba(16, 185, 129, 0.2) outside tokens (box-shadow on .pulse-indicator) | fix: Lift the value into the token block
+  FAIL 48 :190 colour literal rgba(16, 185, 129, 0.25) outside tokens (box-shadow on .dot-beacon--active)
+  FAIL 48 :600 colour literal rgba(15, 23, 42, 0.45) outside tokens (background on .tactile-modal-overlay)
+  FAIL 48 :618 colour literal rgba(15, 23, 42, 0.2) outside tokens (box-shadow on .tactile-modal-box)
+  FAIL 48 :695 colour literal rgba(42, 31, 23, 0.04) outside tokens (box-shadow on .state-panel)
+  FAIL 48 :695 colour literal rgba(42, 31, 23, 0.06) outside tokens (box-shadow on .state-panel)
+  FAIL 48 :1050 colour literal rgba(217, 119, 6, 0.6) outside tokens (box-shadow on .current-hour-dot)
+  FAIL 67 :374 .intel-card__eyebrow: uppercase tracked 0.06em in a label role | fix: Labels, captions, table heads, nav links and meta are the body face (or the theme's label face), a step smaller, sentence case, untracked
+  REFLEX 24b :690 padding: 18px (off the 4px scale) on .state-panel | fix: Use the 4px spacing scale
+  REFLEX 24b :712 margin: 0 0 3px (off the 4px scale) on .state-panel h3
+  REFLEX 24b :726 margin-top: 6px (off the 4px scale) on .state-panel__meta
+  REFLEX 24b :753 padding: 9px 18px (off the 4px scale) on .btn-retry
+  REFLEX 24b :796 margin-bottom: 14px (off the 4px scale) on .stale-banner
+  REFLEX 24b :797 padding: var(--kb-space-3) 14px (off the 4px scale) on .stale-banner
+  REFLEX 24b :847 padding: 6px 13px (off the 4px scale) on .ghost-btn
+  REFLEX 24b :894 gap: 7px (off the 4px scale) on .empty-box
+  REFLEX 24b :895 padding: 30px var(--kb-space-5) (off the 4px scale) on .empty-box
+  REFLEX 24b :1006 gap: 6px (off the 4px scale) on .hourly-bar-node
+  WARN F24 :618 a hairline border under a wide soft shadow on .tactile-modal-box | fix: Commit to one: a defined edge, or elevation by shadow
+apps\web-admin\src\styles.css
+  FAIL 15 :672 .field-control, .field-select transitions box-shadow while :focus-visible sets it (the ring fades in) | fix: Rings appear instantly: transition the hover property only, or draw the ring with a property that is not transitioned
+  FAIL 20 :1 no Hallmark stamp on the first non-empty line of any CSS
+  FAIL 34 :1 no overflow-x: clip on html and body | fix: overflow-x: clip on both html and body
+  FAIL 39a :720 focus state via border on .field-control[aria-invalid='true']:focus, .field-select[aria-invalid='true']:focus, .field-i… | fix: Focus ring via outline, not border
+  FAIL 48 :796 colour literal rgba(15, 23, 42, 0.45) outside tokens (background on .modal-backdrop)
+  FAIL 48 :887 colour literal rgba(255,255,255,0.75) outside tokens (background on .skeleton::after)
+  FAIL 48 :957 colour literal rgba(0,0,0,0.15) outside tokens (box-shadow on .toggle-knob)
+  FAIL 48 :1265 colour literal rgba(255, 255, 255, 0.4) outside tokens (border on .btn-spinner)
+  FAIL 48 :1345 colour literal #0F172A outside tokens (outline on button:focus-visible, a:focus…)
+  FAIL 48 :1440 colour literal #D6DCE5 outside tokens (border on .panel, .kb-kpi, .intel-card,…)
+  FAIL 48 :1466 colour literal #E2E8F0 outside tokens (background on .kb-kpi__segment-bar)
+  FAIL 67 :370 .chip, .chip-pill: uppercase at 11px in a label role
+  FAIL 67 :531 th: uppercase tracked 0.06em at 11px in a label role
+  FAIL 67 :735 .filter-group label: uppercase tracked 0.05em at 11px in a label role
+  FAIL 67 :1195 .mobile-data-card dt: uppercase tracked 0.05em at 11px in a label role
+  FAIL 67 :1229 .form-group .field-label, .form-group label: uppercase tracked 0.06em at 11px in a label role
+  REFLEX 7b :325 pure #fff: background: var(--panel) (.panel) | fix: Tint the base toward the anchor hue
+  REFLEX 7b :418 pure #fff: background: var(--panel) (.stat-card)
+  REFLEX 7b :581 pure #fff: color: var(--kb-color-on-primary) (.primary-btn)
+  REFLEX 7b :624 pure #fff: color: var(--kb-color-on-primary) (.refresh-btn)
+  REFLEX 7b :669 pure #fff: background: var(--kb-color-input) (.field-control, .field-select)
+  REFLEX 7b :697 pure #fff: background: var(--kb-color-input) (.field-input)
+  REFLEX 7b :807 pure #fff: background: var(--kb-color-surface-3) (.modal-box)
+  REFLEX 7b :834 pure #fff: background: var(--kb-color-surface-3) (.modal-box .modal-actions)
+  REFLEX 7b :851 pure #fff: background: var(--kb-color-surface-3) (.toast)
+  REFLEX 7b :947 pure #fff: color: var(--kb-color-on-primary) (.toggle-btn.on, .toggle-btn--on)
+  REFLEX 7b :956 pure #fff: background: var(--kb-color-surface) (.toggle-knob)
+  REFLEX 7b :1186 pure #fff: background: var(--panel) (.mobile-data-card)
+  REFLEX 7b :1409 pure #fff: background: var(--kb-color-surface) (html, body)
+  REFLEX 7b :1439 pure #fff: background: var(--kb-color-surface) (.panel, .kb-kpi, .intel-card, .card, .bento-tile, .page-hero, .recon-ca…
+  WARN 3 :1187 side stripe border-left: 4px solid var(--danger) on .mobile-data-card--danger | fix: Hairline all round, none, or an accent square
+  WARN 74 :55 default Tailwind palette #6366F1 on --gradient-primary | fix: Mix the colour for this page in OKLCH; a stock swatch is the AI look
+  WARN 74 :131 default Tailwind palette #0F172A on --kb-color-espresso
+  WARN 74 :132 default Tailwind palette #F8FAFC on --kb-color-espresso-foreground
+  WARN 74 :270 default Tailwind palette #6366F1 on --pos-purple-gradient
+  WARN 74 :1334 default Tailwind palette #64748B on --kb-color-border
+  WARN 74 :1337 default Tailwind palette #64748B on --line
+  WARN F3 :294 no text-wrap: balance on any display head (4 head rule(s), e.g. h1, h2, h3, h4, p) | fix: Add text-wrap: balance to h1/h2-level heads
+  WARN F6 :774 numeric selector .empty-state .empty-icon at display size without tabular figures | fix: Add font-variant-numeric: tabular-nums
+  WARN F7 :1437 same container recipe on 9 selectors (.panel, .kb-kpi, .intel-card, .card...) | fix: Vary weight, radius, or fill by role; not every box is the same box
+  WARN F24 :816 a hairline border under a wide soft shadow on .modal-box
+apps\web-admin\src\app\layout\bottom-action-bar\bottom-action-bar.component.css
+  FAIL 20 :1 no Hallmark stamp on the first non-empty line of any CSS
+apps\web-admin\src\index.html
+  WARN F23 :1 the document lacks a meta description | fix: Name the language, title the page in its own words, and describe it in one sentence for link previews
+sloplint: 33 FAIL, 24 REFLEX, 13 WARN across 4 file(s) and 14 URL(s).
+render tier not run: no puppeteer-core found locally, globally or via HALLMARK_PUPPETEER

@@ -134,12 +134,12 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
           <div class="form-group"><label for="recipe-menu-item">Menu item</label><select id="recipe-menu-item" class="field-select" required #recipeItemRef="ngModel" [(ngModel)]="selectedMenuItemId" [attr.aria-invalid]="recipeItemRef.invalid && recipeItemRef.touched" [attr.aria-describedby]="recipeItemRef.invalid && recipeItemRef.touched ? 'recipe-menu-item-error' : null" (change)="loadRecipes()"><option [ngValue]="null">Choose item…</option><option *ngFor="let item of menuItems" [ngValue]="item.menuItemId">{{ item.name }}</option></select><div class="field-error" id="recipe-menu-item-error" *ngIf="recipeItemRef.invalid && recipeItemRef.touched">Choose the menu item this recipe belongs to.</div></div>
           <div class="form-group"><label for="recipe-material">Ingredient</label><select id="recipe-material" class="field-select" required #recipeMaterialRef="ngModel" [(ngModel)]="recipeForm.rawMaterialId" [attr.aria-invalid]="recipeMaterialRef.invalid && recipeMaterialRef.touched" [attr.aria-describedby]="recipeMaterialRef.invalid && recipeMaterialRef.touched ? 'recipe-material-error' : null"><option [ngValue]="null">Choose material…</option><option *ngFor="let material of materials" [ngValue]="material.id">{{ material.name }} ({{ material.unit }})</option></select><div class="field-error" id="recipe-material-error" *ngIf="recipeMaterialRef.invalid && recipeMaterialRef.touched">Choose the ingredient this recipe uses.</div></div>
           <div class="form-group"><label for="recipe-quantity">Quantity per item</label><input id="recipe-quantity" class="field-control" type="number" min="0.0001" step="0.0001" #recipeQtyRef="ngModel" [(ngModel)]="recipeForm.quantityPerItem" [attr.aria-invalid]="recipeQtyRef.touched && !isPositive(recipeForm.quantityPerItem)" [attr.aria-describedby]="recipeQtyRef.touched && !isPositive(recipeForm.quantityPerItem) ? 'recipe-quantity-error' : null" /><div class="field-error" id="recipe-quantity-error" *ngIf="recipeQtyRef.touched && !isPositive(recipeForm.quantityPerItem)">Enter a quantity greater than zero.</div></div>
-          <button type="button" class="primary-btn" (click)="addRecipe()" [disabled]="!selectedMenuItemId || !recipeForm.rawMaterialId || !isPositive(recipeForm.quantityPerItem) || savingWorkflow">{{ savingWorkflow ? 'Saving…' : 'Add ingredient' }}</button>
+          <button type="button" class="primary-btn" (click)="addRecipe()" [disabled]="!selectedMenuItemId || !recipeForm.rawMaterialId || !isPositive(recipeForm.quantityPerItem) || savingWorkflow">{{ savingWorkflow === 'recipe' ? 'Saving…' : 'Add ingredient' }}</button>
         </div>
         <div *ngIf="!selectedMenuItemId" class="muted">Choose a menu item to view or configure its recipe.</div>
         <div *ngIf="selectedMenuItemId && recipes.length === 0" class="muted">No ingredients configured for this menu item.</div>
         <div class="workflow-list" *ngIf="recipes.length">
-          <div class="workflow-row" *ngFor="let recipe of recipes; trackBy: trackByIndex"><span><strong>{{ recipe.materialName }}</strong> · {{ recipe.quantityPerItem }} {{ recipe.unit }} per item</span><button type="button" class="ghost-btn" (click)="removeRecipe(recipe)">Remove</button></div>
+          <div class="workflow-row" *ngFor="let recipe of recipes; trackBy: trackByIndex"><span><strong>{{ recipe.materialName }}</strong> · {{ recipe.quantityPerItem }} {{ recipe.unit }} per item</span><button type="button" class="ghost-btn" (click)="removeRecipe(recipe)" [disabled]="savingWorkflow || removingRecipeId !== null">{{ removingRecipeId === recipe.id ? 'Removing…' : 'Remove' }}</button></div>
         </div>
       </section>
 
@@ -154,14 +154,14 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
           </div>
           <button type="button" class="ghost-btn" (click)="addPoLine()">+ Add another material</button>
           <div class="form-group"><label for="po-note">Note</label><input id="po-note" class="field-control" [(ngModel)]="poForm.note" placeholder="Optional note" /></div>
-          <button type="button" class="ghost-btn" (click)="createPurchaseOrder(false)" [disabled]="!validPo || savingWorkflow">Save draft</button>
-          <button type="button" class="primary-btn" (click)="createPurchaseOrder(true)" [disabled]="!validPo || savingWorkflow">Send order</button>
+          <button type="button" class="ghost-btn" (click)="createPurchaseOrder(false)" [disabled]="!validPo || savingWorkflow || purchaseOrderAction !== null || removingRecipeId !== null">{{ savingWorkflow === 'create' ? 'Saving…' : 'Save draft' }}</button>
+          <button type="button" class="primary-btn" (click)="createPurchaseOrder(true)" [disabled]="!validPo || savingWorkflow || purchaseOrderAction !== null || removingRecipeId !== null">{{ savingWorkflow === 'create' ? 'Sending…' : 'Send order' }}</button>
         </div>
         <div *ngIf="purchaseOrders.length === 0" class="muted">No purchase orders yet.</div>
         <div class="workflow-list" *ngIf="purchaseOrders.length">
           <div class="workflow-row" *ngFor="let po of purchaseOrders; trackBy: trackByIndex">
             <div><strong>PO #{{ po.id }}</strong> <span class="chip" [class.chip-green]="po.status === 'RECEIVED'">{{ po.status }}</span><div class="muted">{{ vendorName(po.vendorId) }} · {{ po.createdAt | date:'mediumDate' }}<span *ngIf="po.note"> · {{ po.note }}</span></div><div class="muted" *ngFor="let line of po.items">{{ line.materialName }}: {{ line.quantity }} {{ line.unit }}</div></div>
-            <div class="toolbar-actions" *ngIf="po.status === 'DRAFT' || po.status === 'SENT'"><button type="button" class="primary-btn" (click)="receivePurchaseOrder(po)" [disabled]="savingWorkflow">Receive</button><button type="button" class="ghost-btn" (click)="cancelPurchaseOrder(po)" [disabled]="savingWorkflow">Cancel</button></div>
+            <div class="toolbar-actions" *ngIf="po.status === 'DRAFT' || po.status === 'SENT'"><button type="button" class="primary-btn" (click)="receivePurchaseOrder(po)" [disabled]="savingWorkflow || purchaseOrderAction !== null">{{ purchaseOrderAction?.id === po.id && purchaseOrderAction?.action === 'receive' ? 'Receiving…' : 'Receive' }}</button><button type="button" class="ghost-btn" (click)="cancelPurchaseOrder(po)" [disabled]="savingWorkflow || purchaseOrderAction !== null">{{ purchaseOrderAction?.id === po.id && purchaseOrderAction?.action === 'cancel' ? 'Cancelling…' : 'Cancel' }}</button></div>
           </div>
         </div>
       </section>
@@ -503,7 +503,9 @@ export class InventoryPageComponent implements OnInit {
   selectedMenuItemId: number | null = null;
   recipeForm: any = { rawMaterialId: null, quantityPerItem: null };
   poForm: any = { vendorId: null, items: [{ rawMaterialId: null, quantity: null }], note: '' };
-  savingWorkflow = false;
+  savingWorkflow: 'recipe' | 'create' | false = false;
+  removingRecipeId: number | null = null;
+  purchaseOrderAction: { id: number; action: 'receive' | 'cancel' } | null = null;
   vendors: any[] = [];
   searchTerm = '';
   lowStockOnly = false;
@@ -582,7 +584,8 @@ export class InventoryPageComponent implements OnInit {
 
   addRecipe(): void {
     if (!this.selectedMenuItemId || !this.recipeForm.rawMaterialId || !this.isPositive(this.recipeForm.quantityPerItem)) return;
-    this.savingWorkflow = true;
+    if (this.savingWorkflow) return;
+    this.savingWorkflow = 'recipe';
     this.api.addRecipe({ menuItemId: this.selectedMenuItemId, rawMaterialId: Number(this.recipeForm.rawMaterialId), quantityPerItem: Number(this.recipeForm.quantityPerItem) }).subscribe({
       next: () => { this.savingWorkflow = false; this.recipeForm = { rawMaterialId: null, quantityPerItem: null }; this.loadRecipes(); this.toast.show('Recipe ingredient added.', 'success'); this.cdr.markForCheck(); },
       error: err => { this.savingWorkflow = false; this.toast.show(err?.error?.error || 'Could not add recipe ingredient.', 'error'); this.cdr.markForCheck(); }
@@ -590,7 +593,12 @@ export class InventoryPageComponent implements OnInit {
   }
 
   removeRecipe(recipe: any): void {
-    this.api.deleteRecipe(recipe.id).subscribe({ next: () => { this.loadRecipes(); this.toast.show('Recipe ingredient removed.', 'success'); }, error: err => this.toast.show(err?.error?.error || 'Could not remove ingredient.', 'error') });
+    if (this.savingWorkflow || this.removingRecipeId !== null) return;
+    this.removingRecipeId = recipe.id;
+    this.api.deleteRecipe(recipe.id).subscribe({
+      next: () => { this.removingRecipeId = null; this.loadRecipes(); this.toast.show('Recipe ingredient removed.', 'success'); this.cdr.markForCheck(); },
+      error: err => { this.removingRecipeId = null; this.toast.show(err?.error?.error || 'Could not remove ingredient.', 'error'); this.cdr.markForCheck(); }
+    });
   }
 
   loadPurchaseOrders(): void {
@@ -598,8 +606,8 @@ export class InventoryPageComponent implements OnInit {
   }
 
   createPurchaseOrder(sendNow: boolean): void {
-    if (!this.validPo || this.savingWorkflow) return;
-    this.savingWorkflow = true;
+    if (!this.validPo || this.savingWorkflow || this.purchaseOrderAction || this.removingRecipeId !== null) return;
+    this.savingWorkflow = 'create';
     const items = this.poForm.items.map((line: any) => ({ rawMaterialId: Number(line.rawMaterialId), quantity: Number(line.quantity) }));
     this.api.createPurchaseOrder({ vendorId: this.poForm.vendorId || undefined, note: this.poForm.note.trim() || undefined, items, sendNow }).subscribe({
       next: () => { this.savingWorkflow = false; this.poForm = { vendorId: null, items: [{ rawMaterialId: null, quantity: null }], note: '' }; this.loadPurchaseOrders(); this.toast.show(sendNow ? 'Purchase order sent.' : 'Purchase order saved as draft.', 'success'); this.cdr.markForCheck(); },
@@ -612,11 +620,21 @@ export class InventoryPageComponent implements OnInit {
   removePoLine(index: number): void { if (this.poForm.items.length > 1) this.poForm.items.splice(index, 1); }
 
   receivePurchaseOrder(po: any): void {
-    this.api.receivePurchaseOrder(po.id).subscribe({ next: () => { this.loadPurchaseOrders(); this.loadMaterials(); this.toast.show('Purchase order received and stock updated.', 'success'); }, error: err => this.toast.show(err?.error?.error || 'Could not receive purchase order.', 'error') });
+    if (this.savingWorkflow || this.purchaseOrderAction || this.removingRecipeId !== null) return;
+    this.purchaseOrderAction = { id: po.id, action: 'receive' };
+    this.api.receivePurchaseOrder(po.id).subscribe({
+      next: () => { this.purchaseOrderAction = null; this.loadPurchaseOrders(); this.loadMaterials(); this.toast.show('Purchase order received and stock updated.', 'success'); this.cdr.markForCheck(); },
+      error: err => { this.purchaseOrderAction = null; this.toast.show(err?.error?.error || 'Could not receive purchase order.', 'error'); this.cdr.markForCheck(); }
+    });
   }
 
   cancelPurchaseOrder(po: any): void {
-    this.api.cancelPurchaseOrder(po.id).subscribe({ next: () => { this.loadPurchaseOrders(); this.toast.show('Purchase order cancelled.', 'success'); }, error: err => this.toast.show(err?.error?.error || 'Could not cancel purchase order.', 'error') });
+    if (this.savingWorkflow || this.purchaseOrderAction || this.removingRecipeId !== null) return;
+    this.purchaseOrderAction = { id: po.id, action: 'cancel' };
+    this.api.cancelPurchaseOrder(po.id).subscribe({
+      next: () => { this.purchaseOrderAction = null; this.loadPurchaseOrders(); this.toast.show('Purchase order cancelled.', 'success'); this.cdr.markForCheck(); },
+      error: err => { this.purchaseOrderAction = null; this.toast.show(err?.error?.error || 'Could not cancel purchase order.', 'error'); this.cdr.markForCheck(); }
+    });
   }
 
   vendorName(vendorId: number | null): string { return this.vendors.find(v => v.id === vendorId)?.name || 'No supplier'; }
@@ -634,7 +652,7 @@ export class InventoryPageComponent implements OnInit {
     this.loading = true;
     this.error = null;
     this.api.getInventoryMaterials().subscribe({
-      next: (data) => { this.materials = data; this.loading = false; this.cdr.markForCheck(); },
+      next: (data) => { this.materials = Array.isArray(data) ? data : []; this.loading = false; this.cdr.markForCheck(); },
       error: (err) => { this.error = err?.error?.error || 'Failed to load materials'; this.loading = false; this.cdr.markForCheck(); }
     });
   }
@@ -698,7 +716,7 @@ export class InventoryPageComponent implements OnInit {
   }
 
   saveMaterial(): void {
-    if (!this.materialForm.name?.trim()) return;
+    if (this.savingMaterial || !this.materialForm.name?.trim()) return;
     if (!this.isNonNegative(this.materialForm.lowStockThreshold)
         || !this.isNonNegative(this.materialForm.costPerUnit ?? 0)) {
       this.toast.show('Threshold and unit cost must be zero or greater.', 'error');

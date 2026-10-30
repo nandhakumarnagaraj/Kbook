@@ -94,7 +94,7 @@ function getTodayIsoDate(): string {
   imports: [
     CommonModule,
     FormsModule,
-        OrderDetailModalComponent,
+    OrderDetailModalComponent,
     FocusTrapDirective,
     NotificationBellComponent,
     RefreshButtonComponent,
@@ -136,9 +136,11 @@ function getTodayIsoDate(): string {
             class="dash-pill-btn"
             (click)="toggleTerminalsModal()"
             title="Manage POS terminals"
-            [attr.aria-label]="onlineTerminalsCount() + ' active, ' + totalTerminalsCount() + ' registered terminals'">
-            <span class="dot-beacon" [class.dot-beacon--active]="onlineTerminalsCount() > 0"></span>
-            <span class="dash-pill-btn__text"><strong>{{ onlineTerminalsCount() }} active</strong> · {{ totalTerminalsCount() }} registered</span>
+            [disabled]="terminalsStatus() !== 'available'"
+            [attr.aria-label]="terminalsStatus() === 'available' ? onlineTerminalsCount() + ' active, ' + totalTerminalsCount() + ' registered terminals' : 'Terminal status ' + terminalsStatus()">
+            <span class="dot-beacon" [class.dot-beacon--active]="terminalsStatus() === 'available' && onlineTerminalsCount() > 0"></span>
+            <span class="dash-pill-btn__text" *ngIf="terminalsStatus() === 'available'; else terminalsCountUnavailable"><strong>{{ onlineTerminalsCount() }} active</strong> · {{ totalTerminalsCount() }} registered</span>
+            <ng-template #terminalsCountUnavailable><span class="dash-pill-btn__text">Terminals {{ terminalsStatus() }}</span></ng-template>
           </button>
 
           <!-- Low Stock Warning Pill -->
@@ -159,7 +161,12 @@ function getTodayIsoDate(): string {
             [notifications]="notifications()"
             [unreadCount]="unreadNotifsCount()"
             (markRead)="markNotificationAsRead($event)"
-            (markAllRead)="markAllNotificationsRead()">
+            (markAllRead)="markAllNotificationsRead()"
+            [loadError]="notificationsError()"
+            [loading]="notificationsLoading()"
+            [markingReadId]="markingReadId()"
+            [markingAllRead]="markingAllNotificationsRead()"
+            (retry)="loadNotifications()">
           </app-notification-bell>
 
           <!-- Admin Profile Avatar & Role -->
@@ -234,7 +241,12 @@ function getTodayIsoDate(): string {
           <span class="visually-hidden" role="status">{{ hourlySummaryText() }}</span>
 
           <!-- SVG line chart, plotted from the live hourly series -->
-          <div class="sales-line-chart-wrap" *ngIf="hasHourlySales(); else hourlyEmpty">
+          <div class="chart-empty" *ngIf="hourlySalesStatus() === 'loading'" role="status">Loading hourly sales…</div>
+          <div class="chart-empty" *ngIf="hourlySalesStatus() === 'unavailable'" role="alert">
+            <p class="chart-empty__title">Hourly sales unavailable</p>
+            <p class="chart-empty__body">We couldn’t load this chart. Refresh to try again.</p>
+          </div>
+          <div class="sales-line-chart-wrap" *ngIf="hourlySalesStatus() === 'available' && hasHourlySales(); else hourlyEmpty">
             <svg class="sales-line-chart-svg" viewBox="0 0 540 190" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
@@ -304,14 +316,14 @@ function getTodayIsoDate(): string {
           </div>
 
           <ng-template #hourlyEmpty>
-            <div class="chart-empty">
+            <div class="chart-empty" *ngIf="hourlySalesStatus() === 'available'">
               <p class="chart-empty__title">No sales recorded yet today</p>
               <p class="chart-empty__body">The curve appears as soon as your first bill is closed.</p>
             </div>
           </ng-template>
 
           <!-- Bottom Velocity Metrics -->
-          <div class="velocity-summary-strip">
+          <div class="velocity-summary-strip" *ngIf="hourlySalesStatus() !== 'unavailable'">
             <div class="velocity-summary-tile">
               <span class="vel-label">Busiest hour</span>
               <strong class="vel-val">{{ busiestHourText() }}</strong>
@@ -327,7 +339,7 @@ function getTodayIsoDate(): string {
           </div>
 
           <!-- Data table alternative to the chart -->
-          <div class="metric-table-wrap" *ngIf="chartTableOpen()">
+          <div class="metric-table-wrap" *ngIf="chartTableOpen() && hourlySalesStatus() === 'available'">
             <table class="data-table" id="hourly-chart-table">
               <caption class="visually-hidden">Items sold in each opening hour today</caption>
               <thead>
@@ -432,10 +444,11 @@ function getTodayIsoDate(): string {
               </svg>
               <h2 class="dash-card__title">Terminal Status</h2>
             </div>
-            <a (click)="navigateToTerminals()" role="button" tabindex="0" class="dash-view-all-link">View All</a>
+            <button type="button" class="dash-view-all-link" (click)="navigateToTerminals()">View All</button>
           </div>
 
-          <div class="terminal-counter-list">
+          <p class="dash-card__footnote" *ngIf="terminalsStatus() === 'unavailable'" role="status">Terminal status couldn’t be loaded.</p>
+          <div class="terminal-counter-list" *ngIf="terminalsStatus() !== 'loading'">
             <div class="terminal-counter-row" *ngFor="let term of terminalWidgetList()">
               <div class="terminal-counter-left">
                 <div class="terminal-device-icon" aria-hidden="true">
@@ -465,10 +478,16 @@ function getTodayIsoDate(): string {
               </div>
             </div>
 
-            <div class="card-empty" *ngIf="terminalWidgetList().length === 0">
-              <p class="card-empty__title">No terminals registered yet</p>
-              <p class="card-empty__body">Pair a POS counter to see its connection state here.</p>
-              <a (click)="navigateToTerminals()" role="button" tabindex="0" class="dash-view-all-link">Register a terminal</a>
+            <div class="card-empty" *ngIf="terminalWidgetList().length === 0 && terminalsStatus() !== 'loading'">
+              <ng-container *ngIf="terminalsStatus() === 'available'; else terminalsUnavailable">
+                <p class="card-empty__title">No terminals registered yet</p>
+                <p class="card-empty__body">Pair a POS counter to see its connection state here.</p>
+                <button type="button" class="dash-view-all-link" (click)="navigateToTerminals()">Register a terminal</button>
+              </ng-container>
+              <ng-template #terminalsUnavailable>
+                <p class="card-empty__title">Terminal status unavailable</p>
+                <p class="card-empty__body">We couldn’t load the terminal list. Refresh to try again.</p>
+              </ng-template>
             </div>
           </div>
         </article>
@@ -496,7 +515,7 @@ function getTodayIsoDate(): string {
                 (click)="toggleFloorTable()">
                 {{ floorTableOpen() ? 'Hide floor' : 'Live floor' }}
               </button>
-              <a (click)="navigateToOrders()" role="button" tabindex="0" class="dash-view-all-link">View All</a>
+              <button type="button" class="dash-view-all-link" (click)="navigateToOrders()">View All</button>
             </div>
           </div>
 
@@ -527,9 +546,15 @@ function getTodayIsoDate(): string {
               </div>
             </div>
 
-            <div class="card-empty" *ngIf="recentOrdersDisplay().length === 0">
+            <!-- A failed orders feed is not the same fact as a quiet day: the
+                 generic empty state may only speak when the feed resolved. -->
+            <div class="card-empty" *ngIf="recentOrdersDisplay().length === 0 && activeOrdersStatus() !== 'unavailable'">
               <p class="card-empty__title">No orders yet today</p>
               <p class="card-empty__body">Bills appear here as soon as one of your counters rings one up.</p>
+            </div>
+            <div class="card-empty" *ngIf="recentOrdersDisplay().length === 0 && activeOrdersStatus() === 'unavailable'">
+              <p class="card-empty__title">Recent orders unavailable</p>
+              <p class="card-empty__body">We couldn't load today's bills. Tap Refresh to try again.</p>
             </div>
           </div>
 
@@ -598,9 +623,9 @@ function getTodayIsoDate(): string {
               </ul>
 
               <div class="multi-terminal-actions">
-                <a (click)="navigateToTerminals()" role="button" tabindex="0" class="dash-primary-cta-btn">
+                <button type="button" class="dash-primary-cta-btn" (click)="navigateToTerminals()">
                   View Terminals
-                </a>
+                </button>
               </div>
             </div>
 
@@ -627,6 +652,9 @@ function getTodayIsoDate(): string {
           <button type="button" class="icon-btn" (click)="toggleTerminalsModal()">✕</button>
         </div>
         <div class="tactile-modal-body">
+          <div class="panel loading" *ngIf="terminalsStatus() === 'loading'" role="status">Loading terminals…</div>
+          <p class="error-text" *ngIf="terminalsStatus() === 'unavailable'" role="alert">Couldn’t load terminal status. Refresh the dashboard and try again.</p>
+          <ng-container *ngIf="terminalsStatus() === 'available'">
           <div class="terminal-item-row" *ngFor="let t of terminals()">
             <div class="terminal-core-info">
               <span class="dot-beacon" [class.dot-beacon--active]="terminalStatusOf(t).tone === 'active'"></span>
@@ -645,6 +673,7 @@ function getTodayIsoDate(): string {
           <div class="tactile-empty-sub" *ngIf="terminals().length === 0">
             <p>No POS terminals registered yet.</p>
           </div>
+          </ng-container>
         </div>
         <div class="tactile-modal-foot">
           <button type="button" class="header-action-btn header-action-btn--primary" (click)="navigateToTerminals()">Manage terminals</button>
@@ -861,8 +890,13 @@ function getTodayIsoDate(): string {
       transition: background 180ms ease;
     }
 
-    .dash-pill-btn:hover {
+    .dash-pill-btn:hover:not(:disabled) {
       background: var(--kb-color-border);
+    }
+
+    .dash-pill-btn:disabled {
+      cursor: default;
+      opacity: 0.75;
     }
 
     .dash-pill-btn--alert {
@@ -1028,10 +1062,15 @@ function getTodayIsoDate(): string {
     }
 
     .dash-view-all-link {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      font: inherit;
       font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-link);
       text-decoration: none;
+      cursor: pointer;
       transition: color 180ms ease;
     }
 
@@ -1504,51 +1543,37 @@ function getTodayIsoDate(): string {
       border: 1px solid var(--kb-color-border);
     }
 
-    /* ── ⑫ Multi-Terminal POS Promo Card ──
-       The one filled brand surface on the page: the logo's violet gradient,
-       white copy and a white CTA. It is a product panel, not a data card, so it
-       is allowed to be the loudest thing in its row. */
+    /* The terminal promotion is secondary to the operational data, so it uses
+       the same restrained surface as the dashboard cards. */
     .dash-card--multi-terminal {
-      background: var(--pos-purple-gradient);
-      border-color: transparent;
-      padding: var(--kb-space-6);
+      background: var(--kb-color-surface-2);
+      border-color: var(--kb-color-border);
+      padding: var(--kb-space-5);
       overflow: hidden;
     }
 
+    .dash-card--multi-terminal .multi-terminal-watermark { display: none; }
+
     .dash-card--multi-terminal .multi-pos-badge {
-      background: rgba(255, 255, 255, 0.16);
-      color: var(--kb-color-foreground-contrast);
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-primary);
     }
 
-    .dash-card--multi-terminal .multi-terminal-title {
-      color: var(--kb-color-foreground-contrast);
+    .dash-card--multi-terminal .multi-terminal-title,
+    .dash-card--multi-terminal .multi-terminal-checklist li {
+      color: var(--kb-color-foreground);
     }
 
     .dash-card--multi-terminal .multi-terminal-sub {
-      color: rgba(255, 255, 255, 0.8);
-    }
-
-    .dash-card--multi-terminal .multi-terminal-checklist li {
-      color: var(--kb-color-foreground-contrast);
+      color: var(--kb-color-muted-foreground);
     }
 
     .dash-card--multi-terminal .check-icon {
-      color: var(--pos-sidebar-accent);
+      color: var(--kb-color-success);
     }
 
     .dash-card--multi-terminal .multi-terminal-watermark {
-      color: rgba(255, 255, 255, 0.1);
-    }
-
-    .dash-card--multi-terminal .dash-primary-cta-btn {
-      background: var(--kb-color-foreground-contrast);
-      color: var(--kb-color-primary-hover);
-      box-shadow: none;
-    }
-
-    .dash-card--multi-terminal .dash-primary-cta-btn:hover {
-      background: rgba(255, 255, 255, 0.9);
-      color: var(--kb-color-primary-hover);
+      color: var(--kb-color-border);
     }
 
     .multi-terminal-box {
@@ -1556,8 +1581,11 @@ function getTodayIsoDate(): string {
       justify-content: space-between;
       position: relative;
       height: 100%;
-      min-height: 220px;
+      min-height: 0;
     }
+
+    .multi-terminal-left { max-width: none; }
+    .multi-terminal-checklist { display: none; }
 
     .multi-terminal-left {
       display: flex;
@@ -1595,7 +1623,7 @@ function getTodayIsoDate(): string {
     .multi-terminal-checklist {
       list-style: none;
       padding: 0;
-      margin: 0 0 var(--kb-space-4);
+      margin: 0 0 var(--kb-space-3);
       display: flex;
       flex-direction: column;
       gap: var(--kb-space-1);
@@ -1626,6 +1654,9 @@ function getTodayIsoDate(): string {
       font-weight: 700;
       border-radius: var(--kb-radius-md);
       text-decoration: none;
+      font-family: inherit;
+      border: 0;
+      cursor: pointer;
       transition: background 200ms ease, color 200ms ease;
     }
 
@@ -1970,8 +2001,16 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   // Live Data Signals from Swagger
   readonly hourlySalesData = signal<HourlySalesRow[]>([]);
+  readonly hourlySalesStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
+  readonly terminalsStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
+  readonly activeOrdersStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
+  readonly notificationsError = signal('');
+  readonly notificationsLoading = signal(false);
+  readonly markingReadId = signal<number | null>(null);
+  readonly markingAllNotificationsRead = signal(false);
   /** Last seven days of per-day totals, newest last — the source for order deltas. */
   readonly dashboardTrendDays = signal<DashboardTrendDay[]>([]);
+  readonly trendsStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
   readonly topDishesData = signal<ItemSalesRow[]>([]);
   readonly lowStockMaterials = signal<any[]>([]);
   readonly inventoryStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
@@ -2092,6 +2131,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   });
 
   readonly netCollectedFormatted = computed(() => {
+    if (this.dailyClosingStatus() !== 'available') return null;
     const closing = this.dailyClosingData();
     if (!closing || closing.netRevenue == null) return null;
     return formatCurrency(Number(closing.netRevenue) || 0);
@@ -2106,6 +2146,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
    */
   /** Orders rung up today, from the daily trend series (newest entry last). */
   readonly todayOrderCount = computed<number | null>(() => {
+    if (this.trendsStatus() !== 'available') return null;
     const days = this.dashboardTrendDays();
     if (days.length === 0) return null;
     return Number(days[days.length - 1].orderCount) || 0;
@@ -2113,6 +2154,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   /** Today's order volume against yesterday's, mirroring the revenue delta. */
   readonly orderTrend = computed<{ arrow: string; label: string; tone: 'up' | 'down' | 'neutral' } | null>(() => {
+    if (this.trendsStatus() !== 'available') return null;
     const days = this.dashboardTrendDays();
     if (days.length < 2) return null;
 
@@ -2173,7 +2215,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
         badge: orderTrend
           ? { text: `${orderTrend.arrow ? orderTrend.arrow + ' ' : ''}${orderTrend.label}`, tone: orderTrend.tone === 'down' ? 'danger' : orderTrend.tone === 'neutral' ? 'neutral' : 'success' }
           : { text: todayOrders == null ? 'Trend unavailable' : 'No orders yet', tone: 'neutral' },
-        caption: `${invoices} all-time • ${openBills} open now`,
+        caption: `${invoices} all-time • ${this.activeOrdersStatus() === 'available' ? `${openBills} open now` : this.activeOrdersStatus() === 'loading' ? 'Checking active orders…' : 'Active orders unavailable'}`,
         action: { id: 'orders', label: 'View orders' },
       },
       {
@@ -2425,10 +2467,18 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
           this.dashboardError.set('');
         }
 
+        this.trendsStatus.set('loading');
+        this.activeOrdersStatus.set('loading');
         return combineLatest([
           this.api.getDashboard(),
-          this.api.getDashboardTrends().pipe(catchError(() => of({ yesterdayRevenue: 0, todayRevenue: 0 }))),
-          this.api.getOrdersPaginated(0, 50, 'draft').pipe(catchError(() => of({ content: [], totalElements: 0 })))
+          this.api.getDashboardTrends().pipe(catchError(() => {
+            this.trendsStatus.set('unavailable');
+            return of(null);
+          })),
+          this.api.getOrdersPaginated(0, 50, 'draft').pipe(catchError(() => {
+            this.activeOrdersStatus.set('unavailable');
+            return of(null);
+          }))
         ]).pipe(
           map(([dashboardData, trendsData, ordersData]) => {
             this.isRefreshing.set(false);
@@ -2438,9 +2488,14 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
             const data = (dashboardData || {}) as any;
             const trends = (trendsData || {}) as any;
-            const orders = (ordersData || {}) as any;
+            const orders = ordersData as any;
+            const validTrends = trendsData && Array.isArray(trends.last7Days)
+              && Number.isFinite(Number(trends.todayRevenue))
+              && Number.isFinite(Number(trends.yesterdayRevenue));
 
+            this.trendsStatus.set(validTrends ? 'available' : 'unavailable');
             if (orders && Array.isArray(orders.content)) {
+              this.activeOrdersStatus.set('available');
               const liveActive: PosActiveOrder[] = orders.content
                 .filter((o: any) => (o.orderStatus || '').trim().toLowerCase() === 'draft')
                 .slice(0, 50)
@@ -2478,15 +2533,17 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
                 });
 
               this.activeOrders.set(liveActive);
-            } else {
-              this.activeOrders.set([]);
+            } else if (orders !== null) {
+              this.activeOrdersStatus.set('unavailable');
             }
 
-            this.dashboardTrendDays.set(Array.isArray(trends.last7Days) ? trends.last7Days : []);
+            if (validTrends) {
+              this.dashboardTrendDays.set(trends.last7Days);
+            }
             this.lastUpdatedAt.set(Date.now());
 
-            const todayRev = Number(trends.todayRevenue) || Number(data.todayRevenue) || 0;
-            const yestRev = Number(trends.yesterdayRevenue) || 0;
+            const todayRev = Number(validTrends ? trends.todayRevenue : data.todayRevenue) || 0;
+            const yestRev = validTrends ? Number(trends.yesterdayRevenue) || 0 : 0;
             const deltaToday = yestRev > 0
               ? Math.round(((todayRev - yestRev) / yestRev) * 100)
               : 0;
@@ -2551,9 +2608,14 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     const today = getTodayIsoDate();
     this.inventoryStatus.set('loading');
 
-    this.api.getHourlySales(today).pipe(catchError(() => of([]))).subscribe(data => {
-      this.hourlySalesData.set(Array.isArray(data) ? data : []);
-      this.playHourlyBars();
+    this.hourlySalesStatus.set('loading');
+    this.api.getHourlySales(today).subscribe({
+      next: data => {
+        this.hourlySalesData.set(Array.isArray(data) ? data : []);
+        this.hourlySalesStatus.set(Array.isArray(data) ? 'available' : 'unavailable');
+        this.playHourlyBars();
+      },
+      error: () => this.hourlySalesStatus.set('unavailable')
     });
 
     this.api.getItemSales(today, today).pipe(catchError(() => of([]))).subscribe(data => {
@@ -2584,25 +2646,29 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.api.getTerminals().pipe(catchError(() => of([]))).subscribe(terms => {
-      this.terminals.set(Array.isArray(terms) ? terms : []);
+    this.terminalsStatus.set('loading');
+    this.api.getTerminals().subscribe({
+      next: terms => {
+        if (!Array.isArray(terms)) {
+          this.terminalsStatus.set('unavailable');
+          return;
+        }
+        this.terminals.set(terms);
+        this.terminalsStatus.set('available');
+      },
+      error: () => this.terminalsStatus.set('unavailable')
     });
 
-    this.api.getDailyClosing(today).pipe(catchError(() => of(null))).subscribe(closing => {
-      if (closing) {
+    this.dailyClosingStatus.set('loading');
+    this.api.getDailyClosing(today).subscribe({
+      next: closing => {
         this.dailyClosingData.set(closing);
-      }
+        this.dailyClosingStatus.set(closing ? 'available' : 'unavailable');
+      },
+      error: () => this.dailyClosingStatus.set('unavailable')
     });
 
-    this.api.getNotifications(10).pipe(catchError(() => of({ status: 'ok', notifications: [], unreadCount: 0 }))).subscribe(res => {
-      if (res && Array.isArray(res.notifications)) {
-        this.notifications.set(res.notifications);
-        this.unreadNotifsCount.set(res.unreadCount || 0);
-      } else {
-        this.notifications.set([]);
-        this.unreadNotifsCount.set(0);
-      }
-    });
+    this.loadNotifications();
   }
 
   readonly onlineTerminalsCount = computed(() => {
@@ -2643,7 +2709,10 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     return this.terminals().length;
   });
 
+  readonly dailyClosingStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
+
   readonly cashDrawerFormatted = computed(() => {
+    if (this.dailyClosingStatus() !== 'available') return '—';
     const c = this.dailyClosingData();
     if (c && c.expectedCash != null) {
       return formatCurrency(Number(c.expectedCash) || 0);
@@ -2652,6 +2721,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   });
 
   readonly onlineRevenueFormatted = computed(() => {
+    if (this.dailyClosingStatus() !== 'available') return '—';
     const c = this.dailyClosingData();
     if (c && c.netRevenue != null && c.expectedCash != null) {
       const online = Math.max(0, Number(c.netRevenue) - Number(c.expectedCash));
@@ -2661,6 +2731,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   });
 
   readonly cashRatio = computed(() => {
+    if (this.dailyClosingStatus() !== 'available') return null;
     const c = this.dailyClosingData();
     if (!c || !c.netRevenue || Number(c.netRevenue) <= 0) return 0;
     const cash = Number(c.expectedCash) || 0;
@@ -2668,9 +2739,10 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   });
 
   readonly upiRatio = computed(() => {
+    if (this.dailyClosingStatus() !== 'available') return null;
     const c = this.dailyClosingData();
     if (!c || !c.netRevenue || Number(c.netRevenue) <= 0) return 0;
-    return 100 - this.cashRatio();
+    return 100 - (this.cashRatio() ?? 0);
   });
 
   readonly hasHourlySales = computed(() => {
@@ -2755,15 +2827,19 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     };
   });
 
-  readonly itemsSoldToday = computed(() =>
-    this.hourlySalesData().reduce((sum, row) => sum + (row.itemsSold || 0), 0)
+  readonly itemsSoldToday = computed(() => this.hourlySalesStatus() === 'available'
+    ? this.hourlySalesData().reduce((sum, row) => sum + (row.itemsSold || 0), 0)
+    : '—'
   );
 
-  readonly activeHourCount = computed(() =>
-    this.hourlySalesData().filter(row => (row.itemsSold || 0) > 0).length
+  readonly activeHourCount = computed(() => this.hourlySalesStatus() === 'available'
+    ? this.hourlySalesData().filter(row => (row.itemsSold || 0) > 0).length
+    : '—'
   );
 
   readonly hourlySummaryText = computed(() => {
+    if (this.hourlySalesStatus() === 'loading') return 'Loading hourly sales.';
+    if (this.hourlySalesStatus() === 'unavailable') return 'Hourly sales could not be loaded.';
     if (!this.hasHourlySales()) return 'No sales recorded yet today, so there is no hourly curve.';
     const bars = this.displayHourlyBars();
     const peak = bars.reduce((prev, curr) => (curr.itemsSold > prev.itemsSold ? curr : prev), bars[0]);
@@ -2772,6 +2848,8 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   });
 
   readonly busiestHourText = computed(() => {
+    if (this.hourlySalesStatus() === 'loading') return 'Loading…';
+    if (this.hourlySalesStatus() === 'unavailable') return 'Unavailable';
     if (!this.hasHourlySales()) return 'No sales yet';
     const bars = this.displayHourlyBars();
     const peak = bars.reduce((prev, curr) => (curr.itemsSold > prev.itemsSold ? curr : prev), bars[0]);
@@ -2781,7 +2859,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   trackByTable = (_: number, table: FloorTableItem) => table.id;
 
   readonly peakHourText = computed(() => {
-    if (!this.hasHourlySales()) return '';
+    if (this.hourlySalesStatus() !== 'available' || !this.hasHourlySales()) return '';
     const bars = this.displayHourlyBars();
     const peak = bars.reduce((prev, curr) => (curr.itemsSold > prev.itemsSold ? curr : prev), bars[0]);
     if (peak && peak.itemsSold > 0) {
@@ -2827,6 +2905,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   });
 
   readonly revenueTrend = computed<{ arrow: string; label: string; tone: 'up' | 'down' | 'neutral' } | null>(() => {
+    if (this.trendsStatus() !== 'available') return null;
     const data = this.dashboard();
     if (!data) return null;
     const today = Number(data.todayRevenueValue) || 0;
@@ -2857,29 +2936,54 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   }
 
   markNotificationAsRead(item: NotificationItem): void {
-    if (item.isRead) return;
+    if (item.isRead || this.markingReadId() !== null || this.markingAllNotificationsRead()) return;
+    this.markingReadId.set(item.id);
     this.api.markNotificationRead(item.id).subscribe({
       next: () => {
         this.notifications.update(list => list.map(n => n.id === item.id ? { ...n, isRead: true } : n));
         this.unreadNotifsCount.update(c => Math.max(0, c - 1));
+        this.markingReadId.set(null);
       },
       error: () => {
-        item.isRead = true;
-        this.unreadNotifsCount.update(c => Math.max(0, c - 1));
+        this.markingReadId.set(null);
+        this.toast.show('Could not mark this notification as read. Try again.', 'error');
       }
     });
   }
 
   markAllNotificationsRead(): void {
+    if (this.markingAllNotificationsRead() || this.markingReadId() !== null || this.unreadNotifsCount() === 0) return;
+    this.markingAllNotificationsRead.set(true);
     this.api.markAllNotificationsRead().subscribe({
       next: () => {
         this.notifications.update(list => list.map(n => ({ ...n, isRead: true })));
         this.unreadNotifsCount.set(0);
+        this.markingAllNotificationsRead.set(false);
         this.toast.show('All notifications marked as read', 'success');
       },
       error: () => {
-        this.notifications.update(list => list.map(n => ({ ...n, isRead: true })));
-        this.unreadNotifsCount.set(0);
+        this.markingAllNotificationsRead.set(false);
+        this.toast.show('Could not mark notifications as read. Try again.', 'error');
+      }
+    });
+  }
+
+  loadNotifications(): void {
+    this.notificationsError.set('');
+    this.notificationsLoading.set(true);
+    this.api.getNotifications(10).subscribe({
+      next: res => {
+        this.notificationsLoading.set(false);
+        if (!res || !Array.isArray(res.notifications) || !Number.isFinite(Number(res.unreadCount))) {
+          this.notificationsError.set('Notifications could not be loaded.');
+          return;
+        }
+        this.notifications.set(res.notifications);
+        this.unreadNotifsCount.set(res.unreadCount || 0);
+      },
+      error: () => {
+        this.notificationsLoading.set(false);
+        this.notificationsError.set('Notifications could not be loaded.');
       }
     });
   }

@@ -52,6 +52,24 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         </a>
       </app-page-header>
 
+      <!-- Reference banner: an immediate-help lane above the self-serve content -->
+      <div class="help-urgent" role="region" aria-label="Need immediate help">
+        <span class="help-urgent__halo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+        </span>
+        <div class="help-urgent__copy">
+          <strong>Need immediate help?</strong>
+          <span>We're here to assist you with your KhanaBook.</span>
+        </div>
+        <a class="header-action-btn header-action-btn--primary" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">
+          Chat with us
+        </a>
+      </div>
+
       <!-- Section 1: Start here (Core operations) -->
       <section class="panel help-section" aria-labelledby="help-start">
         <div class="help-section__header">
@@ -657,6 +675,128 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         </div>
       </section>
 
+      <!-- Contact lanes + the ticket log (reference sections) -->
+      <section class="help-touch panel help-section" aria-labelledby="help-contact">
+        <div class="help-section__header">
+          <div class="help-section__eyebrow">REACH A HUMAN</div>
+          <h2 class="help-section__title" id="help-contact">Contact Support</h2>
+          <p class="muted help-section__lead">Choose the best way to reach us.</p>
+        </div>
+        <div class="help-touch__grid">
+          <div class="help-touch__row">
+            <span class="help-touch__badge help-touch__badge--chat" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+            </span>
+            <div class="help-touch__meta">
+              <strong>Live Chat
+                <span class="kpi-tag kpi-tag--green"><span class="pulse-indicator" aria-hidden="true"></span>Online</span>
+              </strong>
+              <span>Instant help from our team</span>
+            </div>
+            <a class="header-action-btn" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">Start Chat</a>
+          </div>
+          <div class="help-touch__row">
+            <span class="help-touch__badge help-touch__badge--mail" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><line x1="2" y1="6" x2="12" y2="13" /><line x1="12" y1="6" x2="22" y2="6" transform="translate(0 6)" /></svg>
+            </span>
+            <div class="help-touch__meta">
+              <strong>support&#64;khanabook.in</strong>
+              <span>We usually reply within 24 hours</span>
+            </div>
+          </div>
+          <div class="help-touch__row">
+            <span class="help-touch__badge help-touch__badge--phone" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.34 1.79.66 2.62a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.46-1.23a2 2 0 0 1 2.11-.45c.83.32 1.72.54 2.62.66A2 2 0 0 1 22 16.92z" /></svg>
+            </span>
+            <div class="help-touch__meta">
+              <strong>+91 98765 43210</strong>
+              <span>Mon-Sat, 9 AM - 6 PM</span>
+            </div>
+          </div>
+          <div class="help-touch__row">
+            <span class="help-touch__badge help-touch__badge--whatsapp" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" /></svg>
+            </span>
+            <div class="help-touch__meta">
+              <strong>WhatsApp Support</strong>
+              <span>+91 98765 43210 — quick support on WhatsApp</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sample-labelled ticket log: the ticket API is not wired for owners yet. -->
+      <section class="panel help-section" aria-labelledby="help-tickets">
+        <div class="help-section__header">
+          <div class="help-section__eyebrow">YOUR REQUESTS</div>
+          <h2 class="help-section__title" id="help-tickets">Your Support Tickets</h2>
+          <p class="muted help-section__lead">View subject, support requests. <span class="kpi-tag kpi-tag--neutral">Sample data</span></p>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <caption class="visually-hidden">Sample support tickets listing</caption>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Category</th>
+                <th scope="col">Status</th>
+                <th scope="col">Created On</th>
+                <th scope="col">Last Update</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row" class="font-semibold">1</th>
+                <td>Default printer not working</td>
+                <td>Hardware</td>
+                <td><span class="kpi-tag kpi-tag--green">Solved</span></td>
+                <td class="muted">25 Oct 2026, 10:30 AM</td>
+                <td class="muted">26 Oct 2026, 11:20 AM</td>
+                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
+              </tr>
+              <tr>
+                <th scope="row" class="font-semibold">2</th>
+                <td>GST configuration help</td>
+                <td>Tax &amp; Billing</td>
+                <td><span class="kpi-tag kpi-tag--amber">In Progress</span></td>
+                <td class="muted">22 Oct 2026, 04:15 PM</td>
+                <td class="muted">23 Oct 2026, 09:40 AM</td>
+                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
+              </tr>
+              <tr>
+                <th scope="row" class="font-semibold">3</th>
+                <td>Add new terminal</td>
+                <td>Terminals</td>
+                <td><span class="kpi-tag kpi-tag--green">Solved</span></td>
+                <td class="muted">18 Oct 2026, 11:20 AM</td>
+                <td class="muted">19 Oct 2026, 01:10 PM</td>
+                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
+              </tr>
+              <tr>
+                <th scope="row" class="font-semibold">4</th>
+                <td>Menu import issue</td>
+                <td>Menu</td>
+                <td><span class="kpi-tag kpi-tag--warn">Open</span></td>
+                <td class="muted">16 Oct 2026, 03:45 PM</td>
+                <td class="muted">16 Oct 2026, 03:45 PM</td>
+                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
+              </tr>
+              <tr>
+                <th scope="row" class="font-semibold">5</th>
+                <td>Invoice template customization</td>
+                <td>Invoice</td>
+                <td><span class="kpi-tag kpi-tag--neutral">Closed</span></td>
+                <td class="muted">10 Oct 2026, 09:10 AM</td>
+                <td class="muted">12 Oct 2026, 02:30 PM</td>
+                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Offline Readiness Status Strip -->
       <footer class="help-status-strip">
         <div class="help-status-strip__content">
@@ -1199,6 +1339,104 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         font-size: var(--kb-text-xs);
         color: var(--kb-color-muted-foreground);
         line-height: 1.45;
+      }
+
+      /* ── Reference: urgent-help banner ───────────────────────── */
+      .help-urgent {
+        display: flex;
+        align-items: center;
+        gap: var(--kb-space-4);
+        padding: var(--kb-space-4) var(--kb-space-5);
+        margin-bottom: var(--kb-space-5);
+        border: 1px solid rgba(var(--kb-brand-purple-rgb), 0.25);
+        border-left: 4px solid var(--kb-brand-purple);
+        border-radius: var(--kb-radius-lg);
+        background: rgba(var(--kb-brand-purple-rgb), 0.08);
+      }
+
+      .help-urgent__halo {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        flex: none;
+        border-radius: var(--kb-radius-full);
+        background: var(--kb-color-primary);
+        color: var(--kb-color-primary-foreground);
+      }
+
+      .help-urgent__copy {
+        display: flex;
+        flex-direction: column;
+        gap: var(--kb-space-1);
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .help-urgent__copy strong {
+        color: var(--kb-color-foreground);
+      }
+
+      .help-urgent__copy span {
+        font-size: var(--kb-text-sm);
+        color: var(--kb-color-muted-foreground);
+      }
+
+      /* ── Reference: contact support grid ─────────────────────── */
+      .help-touch__grid {
+        display: flex;
+        flex-direction: column;
+        gap: var(--kb-space-3);
+      }
+
+      .help-touch__row {
+        display: flex;
+        align-items: center;
+        gap: var(--kb-space-4);
+        padding: var(--kb-space-3) var(--kb-space-4);
+        border: 1px solid var(--kb-color-border);
+        border-radius: var(--kb-radius-md);
+        background: var(--kb-color-surface);
+      }
+
+      .help-touch__badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        flex: none;
+        border-radius: var(--kb-radius-md);
+        color: var(--kb-brand-purple);
+        background: rgba(var(--kb-brand-purple-rgb), 0.08);
+      }
+
+      .help-touch__badge--whatsapp {
+        color: var(--kb-color-success);
+        background: var(--kb-color-success-soft);
+      }
+
+      .help-touch__meta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .help-touch__meta strong {
+        color: var(--kb-color-foreground);
+        font-size: var(--kb-text-sm);
+      }
+
+      .help-touch__meta span {
+        font-size: var(--kb-text-xs);
+        color: var(--kb-color-muted-foreground);
+      }
+
+      .help-touch__meta .kpi-tag {
+        margin-left: var(--kb-space-2);
       }
 
       /* ── Responsive Ladder ───────────────────────────────────────── */

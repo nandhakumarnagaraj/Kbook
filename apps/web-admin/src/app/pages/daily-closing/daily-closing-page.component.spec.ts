@@ -27,9 +27,11 @@ describe('DailyClosingPageComponent — the day it opens on', () => {
     api = jasmine.createSpyObj<BusinessApiService>('BusinessApiService', [
       'getDailyClosing',
       'getOrdersPaginated',
+      'getHourlySales',
     ]);
     api.getDailyClosing.and.callFake((date: string) => of({ date, totalOrders: 0 }));
     api.getOrdersPaginated.and.returnValue(of({ content: [], totalElements: 0, totalPages: 1, page: 0, size: 15 }));
+    api.getHourlySales.and.returnValue(of([]));
 
     TestBed.configureTestingModule({
       imports: [DailyClosingPageComponent],

@@ -81,6 +81,70 @@ export class IconComponent implements OnChanges {
 }
 
 const ICONS: Record<string, { viewBox: string; strokeWidth?: number; paths: string[] }> = {
+  // Platform-admin console extensions (prototype). Same stroke style as the
+  // original set so the rail reads as one family.
+  manage_accounts: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>',
+      '<circle cx="9" cy="7" r="4"/>',
+      '<path d="M19 8v6"/>',
+      '<path d="M22 11h-6"/>',
+    ],
+  },
+  monitoring: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<line x1="3" y1="21" x2="21" y2="21"/>',
+      '<line x1="6" y1="17" x2="6" y2="13"/>',
+      '<line x1="11" y1="17" x2="11" y2="8"/>',
+      '<line x1="16" y1="17" x2="16" y2="10"/>',
+      '<polyline points="3 8 8 4 13 7 21 3"/>',
+    ],
+  },
+  health: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    ],
+  },
+  history: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M3 3v6h6"/>',
+      '<path d="M3.05 13a9 9 0 1 0 1.27-4.73L3 9"/>',
+      '<polyline points="12 7 12 12 15 14"/>',
+    ],
+  },
+  notifications: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>',
+      '<path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+    ],
+  },
+  download: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>',
+      '<polyline points="7 10 12 15 17 10"/>',
+      '<line x1="12" y1="3" x2="12" y2="15"/>',
+    ],
+  },
+  backup: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<rect x="2" y="4" width="20" height="16" rx="2"/>',
+      '<line x1="7" y1="10" x2="17" y2="10"/>',
+      '<line x1="7" y1="14" x2="13" y2="14"/>',
+    ],
+  },
+  extension: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/>',
+    ],
+  },
   dashboard: {
     viewBox: '0 0 24 24',
     paths: [

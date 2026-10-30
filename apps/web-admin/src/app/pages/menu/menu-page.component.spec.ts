@@ -290,7 +290,9 @@ describe('MenuPageComponent — summary and filters', () => {
     const tiles = fixture.nativeElement.querySelectorAll('app-kpi-row .kb-kpi');
     expect(tiles.length).withContext('four summary tiles above the filters').toBe(4);
     expect(tiles[0].textContent).toContain('Total Dishes');
-    expect(tiles[3].textContent).toContain('Out of Stock');
+    expect(tiles[1].textContent).toContain('Active Dishes');
+    expect(tiles[2].textContent).toContain('Inactive Dishes');
+    expect(tiles[3].textContent).toContain('Categories');
   });
 
   it('narrows the table by availability without changing the counts', () => {

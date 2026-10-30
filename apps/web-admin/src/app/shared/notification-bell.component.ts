@@ -70,26 +70,35 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
             type="button"
             class="link-btn-text"
             (click)="markAllRead.emit()"
+            [disabled]="markingAllRead || unreadCount === 0"
             *ngIf="notifications.length > 0">
-            Mark all read
+            {{ markingAllRead ? 'Marking…' : 'Mark all read' }}
           </button>
         </div>
+        <p class="notif-error" role="alert" *ngIf="loadError">
+          {{ loadError }} <button type="button" class="link-btn-text" (click)="retry.emit()">Retry</button>
+        </p>
         <div class="notif-flyout__body" *ngIf="notifications.length > 0; else noNotifs">
-          <div
+          <button
+            type="button"
             class="notif-item"
             *ngFor="let n of notifications; trackBy: trackById"
             [class.notif-item--unread]="!n.isRead"
+            [disabled]="n.isRead || markingReadId === n.id"
             (click)="markRead.emit(n)">
-            <div class="notif-unread-dot" *ngIf="!n.isRead"></div>
-            <div class="notif-copy">
+            <span class="notif-unread-dot" *ngIf="!n.isRead" aria-hidden="true"></span>
+            <span class="notif-copy">
               <strong class="notif-title">{{ n.title || 'POS Alert' }}</strong>
-              <p class="notif-msg">{{ n.message }}</p>
-              <span class="notif-time">{{ formatTime(n.createdAt) }}</span>
-            </div>
-          </div>
+              <span class="notif-msg">{{ n.message }}</span>
+              <span class="notif-time">{{ markingReadId === n.id ? 'Marking as read…' : formatTime(n.createdAt) }}</span>
+            </span>
+          </button>
         </div>
         <ng-template #noNotifs>
-          <div class="notif-empty">
+          <div class="notif-empty" *ngIf="loading">
+            <p>Loading notifications…</p>
+          </div>
+          <div class="notif-empty" *ngIf="!loading && !loadError">
             <p>All caught up! No unread notifications.</p>
           </div>
         </ng-template>
@@ -198,17 +207,26 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
 
       .notif-item {
         position: relative;
+        width: 100%;
         padding: var(--kb-space-3) var(--kb-space-4);
+        border: 0;
         border-bottom: 1px solid var(--kb-color-bg-app);
         display: flex;
         align-items: flex-start;
         gap: 0.65rem;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
         cursor: pointer;
         transition: background 150ms ease;
       }
 
-      .notif-item:hover { background: var(--kb-color-bg-app); }
+      .notif-item:hover:not(:disabled) { background: var(--kb-color-bg-app); }
       .notif-item--unread { background: var(--kb-color-primary-soft); }
+      .notif-item:disabled { cursor: default; }
+      .notif-error { margin: 0; padding: var(--kb-space-2) var(--kb-space-4); color: var(--kb-color-danger); font-size: var(--kb-text-sm); }
+      .notif-error .link-btn-text { margin-left: var(--kb-space-1); }
 
       .notif-unread-dot {
         width: 6px;
@@ -229,6 +247,7 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
       }
 
       .notif-msg {
+        display: block;
         margin: 0 0 var(--kb-space-1);
         font-size: var(--kb-text-xs);
         color: var(--kb-color-muted-foreground);
@@ -249,7 +268,12 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
 export class NotificationBellComponent implements OnChanges, OnDestroy {
   @Input() notifications: NotificationItem[] = [];
   @Input() unreadCount = 0;
+  @Input() loadError = '';
+  @Input() loading = false;
+  @Input() markingReadId: number | null = null;
+  @Input() markingAllRead = false;
 
+  @Output() retry = new EventEmitter<void>();
   @Output() markRead = new EventEmitter<NotificationItem>();
   @Output() markAllRead = new EventEmitter<void>();
 

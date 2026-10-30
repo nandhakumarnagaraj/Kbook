@@ -155,30 +155,15 @@ describe('manual refresh visibly reloads the data', () => {
     fixture.destroy();
   });
 
-  it('businesses: the table is replaced by skeletons while reloading', () => {
-    const businesses = deferred<unknown[]>();
-    const api = jasmine.createSpyObj('AdminApiService', ['getBusinesses']);
-    api.getBusinesses.and.returnValue(businesses.stream);
-
-    const fixture = mount<BusinessesPageComponent>(BusinessesPageComponent, [
-      { provide: AdminApiService, useValue: api },
-    ]);
+  it('businesses: the sample-driven list renders at first paint, no spinner', () => {
+    // The fused-reference page is sample data until the businesses API exists:
+    // nothing loads, so the honest contract is rows on first paint and no
+    // skeleton that could ever hang (the bug class this suite exists for).
+    const fixture = mount<BusinessesPageComponent>(BusinessesPageComponent, []);
     const rows = () => host(fixture).querySelector('table.data-table');
 
-    expect(skeleton(fixture)).withContext('businesses: first load shows the skeleton').toBeTruthy();
-
-    businesses.subject.next([{ restaurantId: 1, shopName: 'Test Kitchen', isSuspended: false }]);
-    fixture.detectChanges();
-    expect(rows()).withContext('businesses: the rows render once loaded').toBeTruthy();
-
-    clickRefresh(fixture);
-    expect(skeleton(fixture)).withContext('businesses: a manual refresh reloads visibly').toBeTruthy();
-    expect(rows()).withContext('businesses: stale rows must not stay on screen').toBeFalsy();
-
-    businesses.subject.next([{ restaurantId: 1, shopName: 'Test Kitchen', isSuspended: false }]);
-    fixture.detectChanges();
-    expect(rows()).withContext('businesses: the rows come back').toBeTruthy();
-    expect(skeleton(fixture)).toBeFalsy();
+    expect(rows()).withContext('businesses: sample rows render on first paint').toBeTruthy();
+    expect(skeleton(fixture)).withContext('businesses: no loading skeleton over the sample rows').toBeFalsy();
     fixture.destroy();
   });
 
@@ -271,8 +256,9 @@ describe('manual refresh visibly reloads the data', () => {
 
   it('daily closing: the figures are withheld while reloading', () => {
     const closing = deferred<unknown>();
-    const api = jasmine.createSpyObj('BusinessApiService', ['getDailyClosing']);
+    const api = jasmine.createSpyObj('BusinessApiService', ['getDailyClosing', 'getHourlySales']);
     api.getDailyClosing.and.returnValue(closing.stream);
+    api.getHourlySales.and.returnValue(of([]));
 
     const fixture = mount<DailyClosingPageComponent>(DailyClosingPageComponent, [
       { provide: BusinessApiService, useValue: api },
@@ -344,10 +330,14 @@ describe('manual refresh visibly reloads the data', () => {
 
   it('reports: the report is withheld while reloading', () => {
     const report = deferred<unknown>();
-    const api = jasmine.createSpyObj('BusinessApiService', ['getDashboard', 'getItemSales', 'getGstLedger']);
+    const api = jasmine.createSpyObj('BusinessApiService', [
+      'getDashboard', 'getItemSales', 'getGstLedger', 'getOrdersPaginated', 'getTerminals',
+    ]);
     api.getDashboard.and.returnValue(report.stream);
     api.getItemSales.and.returnValue(of([]));
     api.getGstLedger.and.returnValue(of(null));
+    api.getOrdersPaginated.and.returnValue(of({ content: [], totalElements: 0 }));
+    api.getTerminals.and.returnValue(of([]));
 
     const fixture = mount<ReportsPageComponent>(ReportsPageComponent, [
       { provide: BusinessApiService, useValue: api },

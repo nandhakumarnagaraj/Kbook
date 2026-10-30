@@ -404,45 +404,25 @@ describe('a flagged field names the rule it broke', () => {
     fixture.destroy();
   });
 
-  it('businesses: every field in the create form names its message', () => {
+  it('businesses: the header action answers with the honest prototype toast, not a form', () => {
     const admin = jasmine.createSpyObj('AdminApiService', ['getBusinesses']);
     admin.getBusinesses.and.returnValue(of([]));
 
     const fixture = mount<BusinessesPageComponent>(BusinessesPageComponent, [
       { provide: AdminApiService, useValue: admin },
     ]);
-    // Opened through the real control: this page is OnPush, so assigning the flag does
-    // not mark the view dirty and the modal would never be stamped into the DOM.
+    // Clicked through the real control: this page is OnPush, so only a real click
+    // lets the honest toast land while the screen proves nothing else changed.
     const host = fixture.nativeElement as HTMLElement;
     (host.querySelector('button.header-action-btn--primary') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    const shop = host.querySelector('#create-shop-name') as HTMLInputElement;
-    leave(shop);
-    fixture.detectChanges();
-    expect(messageFor(shop)).toBe('Restaurant name is required.');
-
-    const phone = host.querySelector('#create-owner-phone') as HTMLInputElement;
-    leave(phone);
-    fixture.detectChanges();
-    expect(messageFor(phone)).toBe('Phone number is required.');
-    type(phone, '12345');
-    fixture.detectChanges();
-    expect(messageFor(phone)).toBe('Must be exactly 10 digits.');
-
-    const password = host.querySelector('#create-initial-pwd') as HTMLInputElement;
-    leave(password);
-    fixture.detectChanges();
-    expect(messageFor(password)).toBe('Initial password is required.');
-    type(password, '12345');
-    fixture.detectChanges();
-    expect(messageFor(password)).toBe('Password must be at least 6 characters.');
-
-    const email = host.querySelector('#create-owner-email') as HTMLInputElement;
-    type(email, 'not-an-email');
-    leave(email);
-    fixture.detectChanges();
-    expect(messageFor(email)).toBe('Enter a valid email address.');
+    const toast = TestBed.inject(ToastService) as unknown as { show: jasmine.Spy };
+    expect(toast.show).withContext('the page answers with its prototype toast')
+      .toHaveBeenCalledWith(jasmine.stringMatching(/prototype sample data shown/), 'info');
+    // The fused-reference page promises no create form until the businesses API
+    // exists: nothing stamps a modal or form field into the DOM.
+    expect(host.querySelector('.modal-box')).toBeNull();
 
     expect(danglingReferences(host)).toEqual([]);
     fixture.destroy();

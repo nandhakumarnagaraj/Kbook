@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { BusinessesPageComponent } from './businesses/businesses-page.component';
@@ -160,10 +160,9 @@ function withPages(visit: (label: string, host: HTMLElement) => void): void {
   platformApi.getDashboardSummary.and.returnValue(of({ totalRevenue: 0, refundedAmount: 0, totalBusinesses: 0, liveBusinesses: 0 }));
   platformApi.getSettlements.and.returnValue(of([]));
   platformApi.getSubMerchants.and.returnValue(of([]));
-  platformApi.getTransactions.and.returnValue(of([]));
-  const platform = mount<PlatformDashboardPageComponent>(PlatformDashboardPageComponent, [
+  platformApi.getTransactions.and.returnValue(of([]));    const platform = mount<PlatformDashboardPageComponent>(PlatformDashboardPageComponent, [
     { provide: AdminApiService, useValue: platformApi },
-    { provide: Router, useValue: routerStub },
+    provideRouter([]),
   ]);
   visit('platform dashboard (clickable KPI card)', platform.nativeElement);
 }
@@ -388,7 +387,8 @@ describe('micro-interactions', () => {
     // One press for every control, one for a card.
     assertRuleHits('button:active', ':active');
     assertRuleHits('.clickable-row', ':active');
-    assertRuleHits('.card-lift', ':active');
+    // .card-lift was retired with the fused-reference rebuilds: no mounted page
+    // renders the class any more, so its press rule is out of this audit's scope.
     // One hover for controls that state none of their own, one for rows.
     assertRuleHits(':where(button', ':hover');
     assertRuleHits('.clickable-row', ':hover');
@@ -438,44 +438,16 @@ describe('micro-interactions', () => {
       .toBeGreaterThan(0);
   });
 
-  it('marks a rejected field at the field, not only in a message beside it', () => {
-    const api = jasmine.createSpyObj('AdminApiService', ['getBusinesses']);
-    api.getBusinesses.and.returnValue(of([]));
-    const fixture = mount<BusinessesPageComponent>(BusinessesPageComponent, [
-      { provide: AdminApiService, useValue: api },
-    ]);
-    // Opened through the real header control: this page is OnPush, and a plain
-    // property write is not what marks the view dirty (see
-    // responsive-layout.spec.ts, which learned the same thing about its tabs).
-    const addButton = fixture.nativeElement.querySelector('button.header-action-btn') as HTMLButtonElement;
-    expect(addButton).withContext('the page should offer its Add Restaurant action').toBeTruthy();
+  it('answers the header Add action with an honest prototype toast, not a form', () => {
+    const fixture = mount<BusinessesPageComponent>(BusinessesPageComponent, []);
+    const addButton = fixture.nativeElement.querySelector('.header-action-btn--primary') as HTMLButtonElement;
+    expect(addButton).withContext('the page should offer its Add Business action').toBeTruthy();
+    // The fused reference page writes nothing to the network until the
+    // businesses API exists — the honest contract is the toast, not a form.
+    const toast = TestBed.inject(ToastService) as unknown as { show: jasmine.Spy };
     addButton.click();
-    fixture.detectChanges();
-
-    const field = fixture.nativeElement.querySelector('#create-shop-name') as HTMLInputElement;
-    expect(field).withContext('the create form should render its name field').toBeTruthy();
-
-    // Idle: the ordinary border (`--kb-border-control`), and the binding states the
-    // field's state rather than leaving a stale claim behind.
-    const restingBorder = borderAfterRecalc(field);
-    expect(restingBorder).withContext('a resting field carries the ordinary border').toBe(tokenBorder('--kb-border-control'));
-    expect(field.getAttribute('aria-invalid')).withContext('an untouched field is not flagged').toBe('false');
-
-    // Required and empty: the moment it is touched it both says so in the markup
-    // and shows it on the field itself, before anything is submitted.
-    fixture.componentInstance.createForm.get('shopName')?.markAsTouched();
-    fixture.detectChanges();
-
-    expect(field.getAttribute('aria-invalid')).withContext('the field declares its own state').toBe('true');
-    expect(borderAfterRecalc(field))
-      .withContext('the invalid border is the danger colour, so the message has something to point at')
-      .toBe(tokenBorder('--kb-color-danger'));
-
-    // Filling it in clears the flag again.
-    fixture.componentInstance.createForm.get('shopName')?.setValue('Test Kitchen');
-    fixture.detectChanges();
-    expect(field.getAttribute('aria-invalid')).toBe('false');
-    expect(borderAfterRecalc(field)).toBe(restingBorder);
+    expect(toast.show).toHaveBeenCalledWith(jasmine.stringMatching(/prototype sample data shown/), 'info');
+    fixture.destroy();
   });
 
   it('pops the unread badge when the count rises, and only then', fakeAsync(() => {

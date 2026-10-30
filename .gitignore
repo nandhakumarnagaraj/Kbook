@@ -56,6 +56,11 @@ apps/android/*.aab
 *.py
 !ops/*.py
 
+# Web-admin ephemeral test/build artifacts
+apps/web-admin/playwright-report/
+apps/web-admin/test-results/
+build_output.txt
+
 # Local dev CDN uploads (not for VCS)
 /cdn/
 

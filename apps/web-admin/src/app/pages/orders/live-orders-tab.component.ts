@@ -254,6 +254,13 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       </div>
 
       <!-- Order Detail Modal -->
+      <div class="panel loading" *ngIf="detailLoading()" role="status" aria-live="polite">
+        Loading order details…
+      </div>
+      <div class="stale-banner" *ngIf="detailError()" role="alert">
+        <span>{{ detailError() }}</span>
+        <button type="button" class="btn-retry" (click)="retryOrderDetail()" [disabled]="detailLoading()">Retry</button>
+      </div>
       <app-order-detail-modal
         [order]="selectedOrderDetail()"
         (billUpdated)="load()"
@@ -772,6 +779,9 @@ export class LiveOrdersTabComponent implements OnDestroy {
     () => this.manualLoad() || (this.loading() && !this.activeOrders().length),
   );
   selectedOrderDetail = signal<OrderDetailResponse | null>(null);
+  detailLoading = signal(false);
+  detailError = signal('');
+  private detailOrderId: number | null = null;
 
   // Cancel order modal state
   orderToCancel = signal<BusinessOrder | null>(null);
@@ -890,18 +900,30 @@ export class LiveOrdersTabComponent implements OnDestroy {
   }
 
   openOrderDetail(orderId: number): void {
+    if (this.detailLoading()) return;
+    this.detailOrderId = orderId;
+    this.detailError.set('');
+    this.detailLoading.set(true);
     this.api.getOrderDetail(orderId).subscribe({
       next: (res: OrderDetailResponse) => {
+        this.detailLoading.set(false);
         this.selectedOrderDetail.set(res);
       },
       error: () => {
-        // Fallback
+        this.detailLoading.set(false);
+        this.detailError.set('Unable to load order details. Please try again.');
       }
     });
   }
 
+  retryOrderDetail(): void {
+    if (this.detailOrderId !== null) this.openOrderDetail(this.detailOrderId);
+  }
+
   closeOrderDetail(): void {
     this.selectedOrderDetail.set(null);
+    this.detailError.set('');
+    this.detailOrderId = null;
   }
 
   /**

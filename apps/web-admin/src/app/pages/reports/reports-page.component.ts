@@ -97,6 +97,43 @@ function todayRange(): { from: string; to: string } {
           </svg>
           Item-Wise Sales
         </button>
+        <button
+          type="button"
+          class="tab-pill"
+          [class.tab-pill--active]="activeTab() === 'orders'"
+          (click)="activeTab.set('orders')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"></path>
+            <polyline points="15 2 15 7 20 7"></polyline>
+            <line x1="8" y1="13" x2="16" y2="13"></line>
+            <line x1="8" y1="17" x2="13" y2="17"></line>
+          </svg>
+          Order Report
+        </button>
+        <button
+          type="button"
+          class="tab-pill"
+          [class.tab-pill--active]="activeTab() === 'payments'"
+          (click)="activeTab.set('payments')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+            <line x1="6" y1="15" x2="10" y2="15"></line>
+          </svg>
+          Payment Report
+        </button>
+        <button
+          type="button"
+          class="tab-pill"
+          [class.tab-pill--active]="activeTab() === 'terminals'"
+          (click)="activeTab.set('terminals')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          Terminal Report
+        </button>
       </nav>
 
       <ng-container *ngIf="viewReport() as data; else reportState">
@@ -272,6 +309,162 @@ function todayRange(): { from: string; to: string } {
                   </svg>
                   <h4>No item sales in this date range</h4>
                   <p class="muted">Completed orders appear here ranked by quantity sold. Try a wider date range, or take an order on the POS to start tracking.</p>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- TAB 4: ORDER REPORT -->
+        <ng-container *ngIf="activeTab() === 'orders'">
+          <div class="orders-ledger-shell">
+            <div class="panel soft-section table-section">
+              <header class="section-head">
+                <div>
+                  <h3>Bills Billed In The Selected Period</h3>
+                  <p class="muted">Every bill recorded in range, with its customer, payment mode and settlement status.</p>
+                </div>
+                <span class="kpi-tag tabular-num">{{ data.orderRows.length }} Bills</span>
+              </header>
+
+              <div class="table-wrap" *ngIf="data.orderRows.length > 0; else noOrders">
+                <table class="data-table">
+                  <caption class="visually-hidden">Bills in the selected period, with customer, payment mode, status and total</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Invoice / Order #</th>
+                      <th scope="col">Date &amp; Time</th>
+                      <th scope="col">Customer</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Payment</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" class="num-cell">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of data.orderRows; trackBy: trackByOrderId">
+                      <th scope="row" class="font-bold">{{ row.invoiceNumber || row.orderCode }}</th>
+                      <td class="muted">{{ row.createdAt | date:'short' }}</td>
+                      <td>{{ row.customerName || 'Walk-in' }}</td>
+                      <td>{{ row.orderType || row.sourceType || '—' }}</td>
+                      <td>{{ row.paymentMethod || '—' }}</td>
+                      <td><span class="kpi-tag" [ngClass]="orderStatusTagClass(row.orderStatus)">{{ orderStatusLabel(row.orderStatus) }}</span></td>
+                      <td class="num-cell tabular-num font-bold">{{ formatMoney(row.totalAmount) }}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-totals-row">
+                      <td colspan="6"><strong>Total ({{ data.orderRows.length }} bills)</strong></td>
+                      <td class="num-cell tabular-num font-bold">{{ formatMoney(orderRowsTotal(data.orderRows)) }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <ng-template #noOrders>
+                <div class="empty-table-state">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph" aria-hidden="true">
+                    <path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+                    <polyline points="15 2 15 7 20 7"/>
+                  </svg>
+                  <h4>No bills in this date range</h4>
+                  <p class="muted">Bills appear here the moment they are raised on the POS. Try a wider date range, or take an order to start the ledger.</p>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- TAB 5: PAYMENT REPORT -->
+        <ng-container *ngIf="activeTab() === 'payments'">
+          <div class="payments-ledger-shell">
+            <div class="panel soft-section table-section">
+              <header class="section-head">
+                <div>
+                  <h3>Payment Mode Split</h3>
+                  <p class="muted">How the bills in the selected period were settled, mode by mode.</p>
+                </div>
+              </header>
+
+              <div class="table-wrap" *ngIf="paymentSplits().length > 0; else noPayments">
+                <table class="data-table">
+                  <caption class="visually-hidden">Payment modes for the selected period, with bill count, amount and share of the day</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Payment Mode</th>
+                      <th scope="col" class="num-cell">Bills</th>
+                      <th scope="col" class="num-cell">Amount</th>
+                      <th scope="col" class="num-cell">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let split of paymentSplits()">
+                      <th scope="row" class="font-bold">{{ split.label }}</th>
+                      <td class="num-cell tabular-num">{{ split.count }}</td>
+                      <td class="num-cell tabular-num font-bold text-brand">{{ formatMoney(split.total) }}</td>
+                      <td class="num-cell tabular-num">{{ split.share }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <ng-template #noPayments>
+                <div class="empty-table-state">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph" aria-hidden="true">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/>
+                    <line x1="2" y1="10" x2="22" y2="10"/>
+                  </svg>
+                  <h4>No settled bills in this date range</h4>
+                  <p class="muted">The payment split is written as bills are settled. Try a wider date range, or take an order.</p>
+                </div>
+              </ng-template>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- TAB 6: TERMINAL REPORT -->
+        <ng-container *ngIf="activeTab() === 'terminals'">
+          <div class="terminals-ledger-shell">
+            <div class="panel soft-section table-section">
+              <header class="section-head">
+                <div>
+                  <h3>Terminal Registry</h3>
+                  <p class="muted">The paired billing fleet as it stands — status and last server contact.</p>
+                </div>
+                <span class="kpi-tag tabular-num">{{ data.terminalRows.length }} Terminals</span>
+              </header>
+
+              <div class="table-wrap" *ngIf="data.terminalRows.length > 0; else noTerminals">
+                <table class="data-table">
+                  <caption class="visually-hidden">Registered billing terminals, with device id, type, status and last seen</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Terminal</th>
+                      <th scope="col">Device ID</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Last Seen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of data.terminalRows; trackBy: trackByTerminal">
+                      <th scope="row" class="font-bold">{{ row.terminalName || row.terminalSeries }}<span class="kpi-tag tabular-num" *ngIf="row.isPrimary">Primary</span></th>
+                      <td class="muted">{{ row.deviceId || row.terminalSeries || '—' }}</td>
+                      <td>{{ row.terminalType || '—' }}</td>
+                      <td>
+                        <span class="kpi-tag" [ngClass]="terminalOnlineClass(row.status)">{{ terminalOnlineLabel(row.status) }}</span>
+                      </td>
+                      <td class="muted">{{ row.lastSeenAt ? (row.lastSeenAt | date:'medium') : (row.updatedAt | date:'medium') }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <ng-template #noTerminals>
+                <div class="empty-table-state">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="empty-icon-glyph" aria-hidden="true">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                  </svg>
+                  <h4>No terminals registered yet</h4>
+                  <p class="muted">Pair a device from Terminals &amp; Devices to start the billing fleet.</p>
                 </div>
               </ng-template>
             </div>
@@ -505,7 +698,7 @@ export class ReportsPageComponent {
   private readonly trigger$ = new Subject<void>();
   /** Restored from the range shared with Daily Closing and Orders history. */
   readonly selectedRange = signal<{ from: string; to: string }>(readStoredDateRange() ?? todayRange());
-  readonly activeTab = signal<'overview' | 'gst' | 'items'>('overview');
+  readonly activeTab = signal<'overview' | 'gst' | 'items' | 'orders' | 'payments' | 'terminals'>('overview');
   readonly refreshing = signal(false);
 
   /**
@@ -587,9 +780,14 @@ export class ReportsPageComponent {
     return forkJoin({
       dashboard: this.api.getDashboard(fromDate, toDate),
       itemSales: this.api.getItemSales(fromDate, toDate).pipe(catchError(() => of([]))),
-      gstLedger: this.api.getGstLedger(fromDate, toDate).pipe(catchError(() => of(null)))
+      gstLedger: this.api.getGstLedger(fromDate, toDate).pipe(catchError(() => of(null))),
+      // Report tabs the prototype specifies beyond the first three: the
+      // in-range bills (Order Report), their payment-mode split (Payment
+      // Report) and the terminal registry (Terminal Report).
+      ordersPage: this.api.getOrdersPaginated(0, 100, undefined, fromDate, toDate).pipe(catchError(() => of(null))),
+      terminals: this.api.getTerminals().pipe(catchError(() => of(null)))
     }).pipe(
-      map(({ dashboard, itemSales, gstLedger }) => {
+      map(({ dashboard, itemSales, gstLedger, ordersPage, terminals }) => {
         this.refreshing.set(false);
         const totalRev = Number(dashboard.totalRevenue) || 0;
         const refunded = Number(dashboard.refundedAmount) || 0;
@@ -597,7 +795,10 @@ export class ReportsPageComponent {
         const billCount = Number(dashboard.posOrderCount) || 0;
         const pending = Number(dashboard.pendingPosPayments) || 0;
 
-        const sortedItems = [...(itemSales || [])].sort((a, b) => (Number(b.quantitySold) || 0) - (Number(a.quantitySold) || 0));
+        const sortedItems = [...(Array.isArray(itemSales) ? itemSales : [])].sort((a, b) => (Number(b.quantitySold) || 0) - (Number(a.quantitySold) || 0));
+        const orderRows = (Array.isArray(ordersPage?.content) ? ordersPage.content : [])
+          .filter((o: { orderCode?: string }) => !!o && !!o.orderCode);
+        const terminalRows = Array.isArray(terminals) ? terminals : [];
 
         return {
           revenue: formatCurrency(totalRev),
@@ -612,7 +813,9 @@ export class ReportsPageComponent {
           // No bills is not a 0% refund rate — there is no denominator yet.
           refundRate: billCount ? `${(((dashboard.refundedOrders || 0) / billCount) * 100).toFixed(1)}%` : '—',
           itemSales: sortedItems,
-          gstLedger: gstLedger
+          gstLedger: gstLedger,
+          orderRows,
+          terminalRows
         };
       }),
       catchError((err: unknown) => {
@@ -632,6 +835,65 @@ export class ReportsPageComponent {
 
   refresh(): void { this.trigger$.next(); }
 
+  /**
+   * Payment-mode split of the bills actually billed in range (completed and
+   * draft alike — a draft still carries its chosen payment mode).
+   */
+  readonly paymentSplits = computed(() => {
+    const rows = this.viewReport()?.orderRows ?? [];
+    const billed = rows.filter((o: { orderStatus?: string }) => String(o.orderStatus ?? '').toLowerCase() !== 'cancelled');
+    const totalBilled = billed.reduce((sum: number, o: { totalAmount?: number }) => sum + (Number(o.totalAmount) || 0), 0);
+    const byMode = new Map<string, { count: number; total: number }>();
+    for (const o of billed as Array<{ paymentMethod?: string; totalAmount?: number }>) {
+      const key = String(o.paymentMethod || 'Unknown');
+      const entry = byMode.get(key) ?? { count: 0, total: 0 };
+      entry.count += 1;
+      entry.total += Number(o.totalAmount) || 0;
+      byMode.set(key, entry);
+    }
+    return [...byMode.entries()]
+      .map(([mode, { count, total }]) => ({
+        mode,
+        label: mode.charAt(0) + mode.slice(1).toLowerCase(),
+        count,
+        total,
+        share: totalBilled > 0 ? `${((total / totalBilled) * 100).toFixed(1)}%` : '—',
+      }))
+      .sort((a, b) => b.total - a.total);
+  });
+
+  /** Human order-status label for the Order Report rows. */
+  orderStatusLabel(status: string | null | undefined): string {
+    const s = String(status ?? '').toLowerCase();
+    if (s === 'completed') return 'Completed';
+    if (s === 'cancelled') return 'Cancelled';
+    if (s === 'draft') return 'Draft';
+    if (!s) return '—';
+    return status as string;
+  }
+
+  orderStatusTagClass(status: string | null | undefined): string {
+    const s = String(status ?? '').toLowerCase();
+    if (s === 'completed') return 'kpi-tag--green';
+    if (s === 'cancelled') return 'kpi-tag--warn';
+    return 'kpi-tag--neutral';
+  }
+
+  orderRowsTotal(rows: Array<{ totalAmount?: number | null }> | undefined): number {
+    return (rows || []).reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0);
+  }
+
+  terminalOnlineClass(status: string | null | undefined): 'kpi-tag--green' | 'kpi-tag--warn' {
+    return String(status ?? '').toLowerCase() === 'active' ? 'kpi-tag--green' : 'kpi-tag--warn';
+  }
+
+  terminalOnlineLabel(status: string | null | undefined): string {
+    return String(status ?? '').toLowerCase() === 'active' ? 'Online' : 'Offline';
+  }
+
+  trackByOrderId = (_: number, item: { orderId?: number }) => item.orderId ?? _;
+  trackByTerminal = (_: number, item: { id?: number }) => item.id ?? _;
+
   formatMoney(val: number | null | undefined): string {
     return formatCurrency(Number(val) || 0);
   }
@@ -645,6 +907,7 @@ export class ReportsPageComponent {
   }
 
   trackByIndex = (_: number, __: unknown) => _;
+
 
   totalItemsSold(items: ItemSalesRow[]): number {
     return (items || []).reduce((sum, i) => sum + (Number(i.quantitySold) || 0), 0);

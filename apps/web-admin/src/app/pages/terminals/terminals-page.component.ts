@@ -56,6 +56,44 @@ import { formatDate } from '../../shared/formatters';
           </div>
         </div>
 
+        <!-- Reference filters: status tabs + one search over name and device ID -->
+        <div class="terminal-filters" aria-label="Filter registered terminals">
+          <div class="terminal-filters__tabs" role="group" aria-label="Filter by status">
+            <button
+              type="button"
+              class="filter-chip"
+              [class.filter-chip--active]="terminalTab() === 'all'"
+              [attr.aria-pressed]="terminalTab() === 'all'"
+              (click)="              terminalTab.set('all')">
+              All Terminals <span class="filter-chip__count">{{ terminals().length }}</span>
+            </button>
+            <button
+              type="button"
+              class="filter-chip"
+              [class.filter-chip--active]="terminalTab() === 'active'"
+              [attr.aria-pressed]="terminalTab() === 'active'"
+              (click)="              terminalTab.set('active')">
+              Active <span class="filter-chip__count">{{ activeTerminalsCount }}</span>
+            </button>
+            <button
+              type="button"
+              class="filter-chip"
+              [class.filter-chip--active]="terminalTab() === 'inactive'"
+              [attr.aria-pressed]="terminalTab() === 'inactive'"
+              (click)="              terminalTab.set('inactive')">
+              Inactive <span class="filter-chip__count">{{ inactiveTerminalsCount() }}</span>
+            </button>
+          </div>
+          <input
+            type="search"
+            class="terminal-search"
+            [ngModel]="terminalSearch()"
+            (ngModelChange)="terminalSearch.set($event)"
+            placeholder="Search by terminal name or device ID…"
+            aria-label="Search registered terminals by name or device ID"
+          />
+        </div>
+
         <div class="table-wrap" *ngIf="!terminalsLoading(); else loading">
           <app-api-state
             *ngIf="terminalsError()"
@@ -63,7 +101,7 @@ import { formatDate } from '../../shared/formatters';
             (retry)="loadTerminals()"
           ></app-api-state>
 
-          <table class="data-table" *ngIf="!terminalsError() && terminals().length; else noTerminals">
+          <table class="data-table" *ngIf="!terminalsError() && filteredTerminals().length; else noTerminals">
             <thead>
               <tr>
                 <th>Hardware / Terminal</th>
@@ -75,7 +113,7 @@ import { formatDate } from '../../shared/formatters';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
+              <tr *ngFor="let terminal of filteredTerminals(); trackBy: trackByTerminalId">
                 <td>
                   <ng-container *ngIf="editingId() === terminal.id; else nameCell">
                     <!-- Flags on the rule the save actually applies — a name that
@@ -167,8 +205,8 @@ import { formatDate } from '../../shared/formatters';
             </tbody>
           </table>
 
-          <div class="mobile-data-list" *ngIf="!terminalsError() && terminals().length" aria-label="Registered terminals">
-            <article class="mobile-data-card" *ngFor="let terminal of terminals(); trackBy: trackByTerminalId">
+          <div class="mobile-data-list" *ngIf="!terminalsError() && filteredTerminals().length" aria-label="Registered terminals">
+            <article class="mobile-data-card" *ngFor="let terminal of filteredTerminals(); trackBy: trackByTerminalId">
               <div class="mobile-data-card__head">
                 <div class="terminal-name-cell">
                   <div class="terminal-icon" [class.terminal-icon--active]="terminal.isActive">
@@ -560,6 +598,35 @@ import { formatDate } from '../../shared/formatters';
       color: var(--kb-color-warning);
       border: 1px solid rgba(var(--kb-color-warning-rgb), 0.3);
     }
+    /* Reference: status tabs + search above the registry table */
+    .terminal-filters {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: var(--kb-space-3);
+      margin-bottom: var(--kb-space-4);
+    }
+    .terminal-filters__tabs {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+    }
+    .terminal-search {
+      min-width: 260px;
+      min-height: 38px;
+      padding: 0 var(--kb-space-3);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      background: var(--kb-color-surface);
+      font: inherit;
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-foreground);
+    }
+    .terminal-search::placeholder {
+      color: var(--kb-color-muted-foreground);
+    }
+
     .filter-pills-row {
       display: flex;
       gap: 6px;
@@ -800,12 +867,12 @@ export class TerminalsPageComponent implements OnDestroy {
     const overLimit = this.fleetOverLimit();
     return [
       {
-        label: 'Registered terminals',
+        label: 'Total Terminals',
         value: this.terminals().length,
-        caption: 'Android registers on this shop',
+        caption: 'All registered devices',
       },
       {
-        label: 'Active counter terminals',
+        label: 'Active Terminals',
         value: this.activeTerminalsCount,
         unit: `/ ${this.maxActiveTerminals} max`,
         tone: overLimit ? 'warning' : 'success',
@@ -813,14 +880,42 @@ export class TerminalsPageComponent implements OnDestroy {
         caption: overLimit ? 'Plan limit reached' : 'Currently billing at the counter',
       },
       {
-        label: 'Pairing requests',
+        label: 'Inactive Terminals',
+        value: this.inactiveTerminalsCount(),
+        caption: 'Offline or not used',
+      },
+      {
+        label: 'Pending Requests',
         value: pending,
         unit: pending === 1 ? 'request' : 'requests',
         tone: pending > 0 ? 'warning' : 'default',
         alert: pending > 0,
-        caption: pending > 0 ? 'Waiting for your approval' : 'Nothing waiting',
+        caption: pending > 0 ? 'Awaiting approval' : 'Nothing waiting',
       },
     ];
+  });
+
+  /** Reference registry filters: status tabs plus one name/device-ID search. */
+  readonly terminalSearch = signal('');
+  readonly terminalTab = signal<'all' | 'active' | 'inactive'>('all');
+
+  readonly inactiveTerminalsCount = computed(() =>
+    Math.max(0, this.terminals().length - this.activeTerminalsCount)
+  );
+
+  readonly filteredTerminals = computed(() => {
+    const query = this.terminalSearch().trim().toLowerCase();
+    const status = this.terminalTab();
+    return this.terminals().filter((terminal) => {
+      const active = (terminal.status || '').toLowerCase() === 'active';
+      const matchesStatus = status === 'all' || (status === 'active' ? active : !active);
+      const matchesSearch = !query || [
+        terminal.terminalName,
+        terminal.terminalSeries,
+        terminal.deviceId,
+      ].some((value) => (value || '').toLowerCase().includes(query));
+      return matchesStatus && matchesSearch;
+    });
   });
 
   readonly pendingOrAllRequests = computed(() => {
@@ -853,7 +948,7 @@ export class TerminalsPageComponent implements OnDestroy {
     this.terminalsError.set('');
     this.api.getTerminals().subscribe({
       next: (data) => {
-        this.terminals.set(data);
+        this.terminals.set(Array.isArray(data) ? data : []);
         this.terminalsLoading.set(false);
       },
       error: (err) => {
@@ -868,7 +963,7 @@ export class TerminalsPageComponent implements OnDestroy {
     this.requestsError.set('');
     this.api.getTerminalRequests('ALL').subscribe({
       next: (data) => {
-        this.requests.set(data);
+        this.requests.set(Array.isArray(data) ? data : []);
         this.requestsLoading.set(false);
       },
       error: (err) => {

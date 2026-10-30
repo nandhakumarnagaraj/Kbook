@@ -142,7 +142,37 @@ import { environment } from '../../../environments/environment';
         </p>
       </div>
 
-      <div class="panel table-wrap" *ngIf="loaded && pagedItems.length; else loading">
+      <!-- Reference layout: category rail on the left, the dish table beside it -->
+      <!-- The rail itself is gated on the loaded flag; the column wraps on so the loading
+           skeleton below still renders on first paint. -->
+      <div class="menu-body">
+        <aside class="menu-cat-rail no-print" aria-label="Filter dishes by category" *ngIf="loaded">
+          <h3 class="menu-cat-rail__title">Categories</h3>
+          <button
+            type="button"
+            class="menu-cat-rail__item"
+            [class.menu-cat-rail__item--active]="categoryFilterId === null"
+            [attr.aria-pressed]="categoryFilterId === null"
+            (click)="setCategoryFilter(null)">
+            <span class="menu-cat-rail__emoji" aria-hidden="true">🍽️</span>
+            <span class="menu-cat-rail__name">All Dishes</span>
+            <span class="menu-cat-rail__count">{{ items.length }}</span>
+          </button>
+          <button
+            type="button"
+            class="menu-cat-rail__item"
+            *ngFor="let cat of categories; trackBy: trackByCategoryId"
+            [class.menu-cat-rail__item--active]="categoryFilterId === cat.categoryId"
+            [attr.aria-pressed]="categoryFilterId === cat.categoryId"
+            (click)="setCategoryFilter(cat.categoryId)">
+            <span class="menu-cat-rail__emoji" aria-hidden="true">{{ categoryEmoji(cat.name) }}</span>
+            <span class="menu-cat-rail__name">{{ cat.name }}</span>
+            <span class="menu-cat-rail__count">{{ countByCategory(cat.categoryId) }}</span>
+          </button>
+        </aside>
+
+        <div class="menu-main-col">
+      <div class="panel table-wrap" *ngIf="pagedItems.length; else loading">
         <table class="data-table menu-table">
           <caption class="visually-hidden">
             Menu items with their category, dietary type, every price variant, availability and last update
@@ -294,6 +324,8 @@ import { environment } from '../../../environments/environment';
           [totalItems]="filteredItems.length"
           (pageChange)="goToPage($event)"
         />
+      </div>
+        </div>
       </div>
 
       <ng-template #loading>
@@ -721,6 +753,104 @@ import { environment } from '../../../environments/environment';
       letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--kb-color-muted-foreground);
+    }
+
+    /* Reference layout: the category rail beside the dish table */
+    .menu-body {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: var(--kb-space-4);
+      align-items: start;
+    }
+    .menu-cat-rail {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-1);
+      padding: var(--kb-space-3);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-xl);
+      background: var(--kb-color-surface);
+      position: sticky;
+      top: 88px;
+    }
+    .menu-cat-rail__title {
+      margin: 0 0 var(--kb-space-2) var(--kb-space-2);
+      font-size: var(--kb-text-2xs);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--kb-color-muted-foreground);
+    }
+    .menu-cat-rail__item {
+      display: flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+      min-height: 38px;
+      padding: 0 var(--kb-space-2);
+      border: 1px solid transparent;
+      border-radius: var(--kb-radius-lg);
+      background: transparent;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .menu-cat-rail__item:hover {
+      background: var(--kb-color-primary-soft);
+    }
+    .menu-cat-rail__item--active {
+      background: var(--kb-color-primary-soft);
+      border-color: var(--kb-color-primary);
+    }
+    .menu-cat-rail__emoji {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      flex: none;
+      border-radius: var(--kb-radius-md);
+      background: var(--kb-color-primary-soft);
+      font-size: 0.9rem;
+    }
+    .menu-cat-rail__name {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: var(--kb-text-sm);
+      font-weight: 600;
+      color: var(--kb-color-foreground);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .menu-cat-rail__count {
+      flex: none;
+      min-width: 26px;
+      padding: 2px 6px;
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-color-primary-soft);
+      color: var(--kb-color-muted-foreground);
+      font-size: var(--kb-text-2xs);
+      font-weight: 700;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @media (max-width: 1024px) {
+      /* On a narrow screen the rail becomes a scrolling chip row above the table */
+      .menu-body {
+        grid-template-columns: 1fr;
+      }
+      .menu-cat-rail {
+        position: static;
+        flex-direction: row;
+        overflow-x: auto;
+      }
+      .menu-cat-rail__title {
+        display: none;
+      }
+      .menu-cat-rail__item {
+        flex: none;
+      }
     }
 
     .filter-chip {
@@ -1213,18 +1343,21 @@ export class MenuPageComponent implements OnDestroy {
 
   /** The four summary tiles, in the shared KPI row's anatomy. */
   get menuKpis(): KpiItem[] {
-    const outOfStock = this.outOfStockCount;
+    // Reference strip: Total Dishes · Active Dishes · Inactive Dishes · Categories.
+    // "Inactive" is what the counter cannot sell — toggled off or out of stock —
+    // and "active" is anything still sellable.
+    const inactive = this.items.filter(item => !this.isSellable(item)).length;
     return [
-      { label: 'Total Dishes', value: this.items.length, caption: 'Every dish on the menu' },
-      { label: 'Categories', value: this.categories.length, tone: 'brand', caption: 'Sections dishes are filed under' },
-      { label: 'Available', value: this.availableCount, tone: 'success', caption: 'Sellable at the counter' },
+      { label: 'Total Dishes', value: this.items.length, caption: `Across ${this.categories.length} ${this.categories.length === 1 ? 'category' : 'categories'}` },
+      { label: 'Active Dishes', value: this.availableCount, tone: 'success', caption: 'Currently working' },
       {
-        label: 'Out of Stock',
-        value: outOfStock,
-        tone: outOfStock > 0 ? 'danger' : 'default',
-        alert: outOfStock > 0,
-        caption: outOfStock > 0 ? 'Hidden from the counter' : 'Nothing is out of stock',
+        label: 'Inactive Dishes',
+        value: inactive,
+        tone: inactive > 0 ? 'warning' : 'default',
+        alert: inactive > 0,
+        caption: 'Hidden from menu',
       },
+      { label: 'Categories', value: this.categories.length, tone: 'brand', caption: 'Organized menu items' },
     ];
   }
 
@@ -1248,6 +1381,24 @@ export class MenuPageComponent implements OnDestroy {
         && matchesCategory
         && (!this.favouritesOnly || !!item.favourite);
     });
+  }
+
+  /** Dishes filed under one category, for the rail's counters. */
+  countByCategory(categoryId: number): number {
+    return this.items.filter(item => item.categoryId === categoryId).length;
+  }
+
+  /** A stable emoji per category name, so the rail reads like the reference
+   *  without inventing per-category artwork the backend does not send. */
+  categoryEmoji(name: string | null | undefined): string {
+    const aligning = ['🍛', '🥞', '🍲', '🍢', '🥤', '🍜', '🥘', '🍚', '🥗', '🍕', '🧆', '🍩'];
+    const text = (name || '').trim();
+    if (!text) return aligning[0];
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+    }
+    return aligning[hash % aligning.length];
   }
 
   setStatusFilter(filter: 'all' | 'available' | 'out'): void {
@@ -1312,8 +1463,11 @@ export class MenuPageComponent implements OnDestroy {
       categories: this.api.getMenuCategories()
     }).subscribe({
       next: ({ items, categories }) => {
-        this.items = items;
-        this.categories = categories;
+        // A malformed server payload (e.g. an object instead of the typed
+        // array) must degrade to an honest empty menu, not wedge the page
+        // mid-render when the template iterates over it.
+        this.items = Array.isArray(items) ? items : [];
+        this.categories = Array.isArray(categories) ? categories : [];
         this.sortCategoriesFavouritesFirst();
         this.loaded = true;
         this.refreshing = false;

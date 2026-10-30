@@ -100,7 +100,7 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
   });
 
   it('renders skeleton with accessibility attributes during initial load', () => {
-    // Keep getDashboard pending
+    // Keep getDashboard pending.
     const dashboardSubject = new Subject<any>();
     api.getDashboard.and.returnValue(dashboardSubject.asObservable());
 
@@ -248,6 +248,23 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
     expect(toast.error).toHaveBeenCalledWith('No internet connection. Check your network and try again.');
   });
 
+  it('keeps terminal and active-order failures out of the empty state', () => {
+    api.getDashboard.and.returnValue(of(mockDashboardData));
+    api.getTerminals.and.returnValue(throwError(() => ({ status: 503 })));
+    api.getOrdersPaginated.and.returnValue(throwError(() => ({ status: 503 })));
+
+    fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    expect(component.terminalsStatus()).toBe('unavailable');
+    expect(component.activeOrdersStatus()).toBe('unavailable');
+    expect(fixture.nativeElement.textContent).toContain('Terminal status unavailable');
+    expect(fixture.nativeElement.textContent).toContain('Active orders unavailable');
+    expect(fixture.nativeElement.textContent).not.toContain('No terminals registered yet');
+    expect(fixture.nativeElement.textContent).not.toContain('No orders yet today');
+  });
+
   it('clears stale-banner and updates figures when refresh recovers', () => {
     api.getDashboard.and.returnValue(of(mockDashboardData));
 
@@ -305,6 +322,22 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       expect(trend).not.toBeNull();
       expect(trend!.tone).toBe('up');
       expect(trend!.label).toContain('% vs yest.');
+    });
+
+    it('keeps previous trends on screen when the trends request fails', () => {
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+      api.getDashboardTrends.and.returnValue(throwError(() => ({ status: 503 })));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.trendsStatus()).toBe('unavailable');
+      expect(component.todayOrderCount()).toBeNull();
+      expect(component.revenueTrend()).toBeNull();
+      const totalOrders = component.dashboardKpis().find(item => item.label === 'Total Orders');
+      expect(totalOrders?.value).toBe('—');
+      expect(totalOrders?.badge?.text).toBe('Trend unavailable');
     });
 
     it("counts today's orders from the daily trend series and compares with yesterday", () => {
@@ -442,6 +475,7 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       component = fixture.componentInstance;
       fixture.detectChanges();
 
+      component.trendsStatus.set('available');
       expect(component.avgTicket()).toBeCloseTo(357.08, 2);
       const revenueCaption = fixture.nativeElement.querySelector('.kb-kpi--hero .kb-kpi__caption');
       expect(revenueCaption.textContent).toContain('Avg ticket');
@@ -457,6 +491,7 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       component = fixture.componentInstance;
       fixture.detectChanges();
 
+      component.trendsStatus.set('available');
       expect(component.avgTicket()).toBeNull();
       expect(fixture.nativeElement.textContent).toContain('No invoices yet today');
     });
@@ -563,6 +598,7 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       component = fixture.componentInstance;
       fixture.detectChanges();
 
+      component.trendsStatus.set('available');
       const feed = component.recentLedgerFeed();
       expect(feed.length).toBe(1);
       expect(feed[0].invoiceNo).toBe('INV-9001');
@@ -591,6 +627,19 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       expect(fixture.nativeElement.textContent).not.toContain('9 AM');
     });
 
+    it('distinguishes a failed hourly-sales request from an empty day', () => {
+      api.getHourlySales.and.returnValue(throwError(() => ({ status: 503 })));
+      api.getDashboard.and.returnValue(of(mockDashboardData));
+
+      fixture = TestBed.createComponent(BusinessDashboardPageComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+
+      expect(component.hourlySalesStatus()).toBe('unavailable');
+      expect(fixture.nativeElement.textContent).toContain('Hourly sales unavailable');
+      expect(fixture.nativeElement.textContent).not.toContain('No sales recorded yet today');
+    });
+
     it('draws no curve on a day with no sales', () => {
       api.getHourlySales.and.returnValue(of([]));
       api.getDashboard.and.returnValue(of(mockDashboardData));
@@ -617,6 +666,7 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       component = fixture.componentInstance;
       fixture.detectChanges();
 
+      component.trendsStatus.set('available');
       const split = component.orderTypeBreakdown();
       expect(split.total).toBe(3);
       expect(split.dineIn.count).toBe(2);

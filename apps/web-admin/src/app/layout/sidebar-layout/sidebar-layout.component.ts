@@ -81,7 +81,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             </div>
             <div class="brand-copy">
               <span class="brand-title">KhanaBook</span>
-              <span class="brand-subtitle">POS Console</span>
+              <span class="brand-subtitle">{{ brandSubtitle() }}</span>
             </div>
             <button type="button" class="sidebar-close-btn" aria-label="Close navigation menu" (click)="closeMenu()">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -147,7 +147,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             </div>
             <div class="user-meta">
               <span class="user-name">{{ session()?.userName || 'Operator' }}</span>
-              <span class="user-role">{{ session()?.role }}</span>
+              <span class="user-role">{{ roleLabel() }}</span>
             </div>
           </div>
 
@@ -842,6 +842,16 @@ export class SidebarLayoutComponent implements OnInit, OnDestroy {
 
   readonly session = this.authService.session;
   readonly contextTitle = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'KhanaBook Platform' : 'Restaurant operations');
+  /** Console chrome follows the reference: ADMIN CONSOLE for platform staff, POS Console for restaurant operators. */
+  readonly brandSubtitle = computed(() => this.session()?.role === 'KBOOK_ADMIN' ? 'ADMIN CONSOLE' : 'POS Console');
+  /** Human-readable role for the sidebar footer chip. */
+  readonly roleLabel = computed(() => {
+    switch (this.session()?.role) {
+      case 'KBOOK_ADMIN': return 'Super Admin';
+      case 'OWNER': return 'Owner';
+      default: return this.session()?.role ?? '';
+    }
+  });
   /**
    * Owner navigation, grouped by the job the screen is for. Nine flat rows gave
    * a counter, a catalogue, stock, payroll and the books the same weight; the
@@ -853,16 +863,46 @@ export class SidebarLayoutComponent implements OnInit, OnDestroy {
    */
   readonly navGroups = computed<NavGroup[]>(() => {
     const role = this.session()?.role;
-    // Platform staff see one flat group: three destinations do not earn headings.
+    // Platform staff see the reference's four console sections. Support
+    // Tickets lives under MANAGE — it is a queue for platform staff, not a
+    // settings concern.
     if (role === 'KBOOK_ADMIN') {
-      return [{
-        heading: '',
-        links: [
-          { label: 'Platform Dashboard', path: '/admin/dashboard', icon: '', iconKey: 'dashboard' },
-          { label: 'Businesses', path: '/admin/businesses', icon: '', iconKey: 'business' },
-          { label: 'Feature Flags', path: '/admin/feature-flags', icon: '', iconKey: 'flag' }
-        ]
-      }];
+      return [
+        {
+          heading: 'Overview',
+          links: [
+            { label: 'Dashboard', path: '/admin/dashboard', icon: '', iconKey: 'dashboard' }
+          ]
+        },
+        {
+          heading: 'Manage',
+          links: [
+            { label: 'Businesses', path: '/admin/businesses', icon: '', iconKey: 'business' },
+            { label: 'Feature Flags', path: '/admin/feature-flags', icon: '', iconKey: 'flag' },
+            { label: 'Subscriptions', path: '/admin/subscriptions', icon: '', iconKey: 'payments' },
+            { label: 'Users & Access', path: '/admin/users', icon: '', iconKey: 'manage_accounts' },
+            { label: 'Support Tickets', path: '/admin/support-tickets', icon: '', iconKey: 'help' }
+          ]
+        },
+        {
+          heading: 'Operations',
+          links: [
+            { label: 'Sales Overview', path: '/admin/sales', icon: '', iconKey: 'monitoring' },
+            { label: 'Reports', path: '/admin/reports', icon: '', iconKey: 'reports' },
+            { label: 'System Health', path: '/admin/system-health', icon: '', iconKey: 'health' },
+            { label: 'Activity Logs', path: '/admin/activity-logs', icon: '', iconKey: 'history' }
+          ]
+        },
+        {
+          heading: 'Settings',
+          links: [
+            { label: 'Platform Settings', path: '/admin/settings', icon: '', iconKey: 'settings' },
+            { label: 'Notifications', path: '/admin/notifications', icon: '', iconKey: 'notifications' },
+            { label: 'Backups', path: '/admin/backups', icon: '', iconKey: 'backup' },
+            { label: 'Integrations', path: '/admin/integrations', icon: '', iconKey: 'extension' }
+          ]
+        }
+      ];
     }
     if (role !== 'OWNER') {
       // SHOP_STAFF has no business web access (server /business/** is OWNER-only).

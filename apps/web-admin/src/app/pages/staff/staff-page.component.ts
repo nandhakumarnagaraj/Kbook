@@ -8,6 +8,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { EmptyStateComponent } from '../../shared/empty-state.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { HeaderSearchComponent } from '../../shared/header-search.component';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -20,7 +21,7 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
   selector: 'app-staff-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent, HeaderSearchComponent, RefreshButtonComponent, PaginationBarComponent],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent, EmptyStateComponent, PageHeaderComponent, ApiStateComponent, StaffFormModalComponent, StaffPermissionsModalComponent, HeaderSearchComponent, RefreshButtonComponent, PaginationBarComponent, KpiRowComponent],
   styles: [`
     .danger-btn {
       color: var(--kb-color-danger);
@@ -62,6 +63,47 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
+    /* Reference filters: role and status narrow the same list the search narrows */
+    .staff-filters {
+      display: flex;
+      align-items: flex-end;
+      gap: var(--kb-space-4);
+      margin-bottom: var(--kb-space-4);
+    }
+    .staff-filters__group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-1);
+    }
+    .staff-filters__label {
+      font-size: var(--kb-text-2xs);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--kb-color-muted-foreground);
+    }
+    .staff-filter-select {
+      min-width: 150px;
+      min-height: 38px;
+      padding: 0 var(--kb-space-3);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      background: var(--kb-color-surface);
+      font: inherit;
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-foreground);
+    }
+    .staff-filters__reset {
+      margin-left: auto;
+      border: none;
+      background: none;
+      font: inherit;
+      font-size: var(--kb-text-sm);
+      font-weight: 600;
+      color: var(--kb-color-primary);
+      cursor: pointer;
+    }
+
     .role-pill {
       display: inline-block;
       padding: 2px var(--kb-space-2);
@@ -175,6 +217,40 @@ import { StaffPermissionsModalComponent } from './staff-permissions-modal.compon
         [error]="loadError()"
         (retry)="loadStaff()"
       ></app-api-state>
+
+      <!-- Reference strip: Total · Active · Inactive · Roles, counted from the loaded team -->
+      <app-kpi-row *ngIf="loaded()" [items]="staffKpis" ariaLabel="Staff summary"></app-kpi-row>
+
+      <!-- Reference filters: role and status narrow the same list the search narrows -->
+      <section class="staff-filters" *ngIf="loaded()" aria-label="Filter staff members">
+        <div class="staff-filters__group">
+          <label class="staff-filters__label" for="staff-role-filter">Role Filter</label>
+          <select
+            id="staff-role-filter"
+            class="staff-filter-select"
+            [ngModel]="roleFilter"
+            (ngModelChange)="setRoleFilter($event)">
+            <option value="all">All Roles</option>
+            <option value="OWNER">Owner</option>
+            <option value="SHOP_STAFF">Sales Staff</option>
+          </select>
+        </div>
+        <div class="staff-filters__group">
+          <label class="staff-filters__label" for="staff-status-filter">Status</label>
+          <select
+            id="staff-status-filter"
+            class="staff-filter-select"
+            [ngModel]="statusFilter"
+            (ngModelChange)="setStatusFilter($event)">
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <button type="button" class="staff-filters__reset" *ngIf="roleFilter !== 'all' || statusFilter !== 'all'" (click)="clearStaffFilters()">
+          Clear filters
+        </button>
+      </section>
 
       <!-- Staff Form Modal (Create/Edit) -->
       <app-staff-form-modal
@@ -397,8 +473,47 @@ export class StaffPageComponent {
   pageSize = 10;
   currentPage = 1;
 
+  roleFilter: 'all' | 'OWNER' | 'SHOP_STAFF' = 'all';
+  statusFilter: 'all' | 'active' | 'inactive' = 'all';
+
+  /** Reference strip, counted from the already-loaded team so it cannot drift. */
+  get staffKpis(): KpiItem[] {
+    const total = this.staff().length;
+    const active = this.activeCount;
+    const inactive = total - active;
+    const roles = new Set(this.staff().map((s) => s.role)).size;
+    return [
+      { label: 'Total Staff', value: total, caption: 'All registered users' },
+      { label: 'Active Staff', value: active, tone: 'success', caption: 'Currently working' },
+      {
+        label: 'Inactive Staff',
+        value: inactive,
+        tone: inactive > 0 ? 'warning' : 'default',
+        alert: inactive > 0,
+        caption: 'Disabled accounts',
+      },
+      { label: 'Roles', value: roles, tone: 'brand', caption: 'Unique roles' },
+    ];
+  }
+
   get activeCount(): number {
     return this.staff().filter((s) => s.active).length;
+  }
+
+  setRoleFilter(role: 'all' | 'OWNER' | 'SHOP_STAFF'): void {
+    this.roleFilter = role;
+    this.resetPage();
+  }
+
+  setStatusFilter(status: 'all' | 'active' | 'inactive'): void {
+    this.statusFilter = status;
+    this.resetPage();
+  }
+
+  clearStaffFilters(): void {
+    this.roleFilter = 'all';
+    this.statusFilter = 'all';
+    this.resetPage();
   }
 
   getInitials(name: string | null | undefined): string {
@@ -573,7 +688,11 @@ export class StaffPageComponent {
         item.role
       ].some((value) => value.toLowerCase().includes(search));
 
-      return matchesSearch;
+      const matchesRole = this.roleFilter === 'all' || item.role === this.roleFilter;
+      const matchesStatus = this.statusFilter === 'all'
+        || (this.statusFilter === 'active' ? item.active : !item.active);
+
+      return matchesSearch && matchesRole && matchesStatus;
     });
   }
 
@@ -594,7 +713,7 @@ export class StaffPageComponent {
     this.loadError.set('');
     this.api.getStaff().subscribe({
       next: (data) => {
-        this.staff.set(data);
+        this.staff.set(Array.isArray(data) ? data : []);
         this.loaded.set(true);
         this.refreshing.set(false);
         this.currentPage = 1;

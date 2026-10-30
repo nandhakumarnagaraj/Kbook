@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { BusinessesPageComponent } from './businesses/businesses-page.component';
@@ -199,27 +199,21 @@ function measureAll(): { label: string; design: TableDesign }[] {
   results.push({ label: 'orders history (was .orders-tactile-table, locally overridden)', design: designOf(orders.nativeElement, 'orders history') });
   orders.destroy();
 
-  const platformApi = jasmine.createSpyObj('AdminApiService', [
-    'getDashboardSummary', 'getSettlements', 'getSubMerchants', 'getTransactions',
-  ]);
-  platformApi.getDashboardSummary.and.returnValue(of({ totalRevenue: 0, refundedAmount: 0, totalBusinesses: 0, liveBusinesses: 0 }));
-  platformApi.getSettlements.and.returnValue(of([
-    { id: 1, restaurantName: 'Test Kitchen', totalSettled: 100, totalCommission: 2, orderCount: 3 },
-    { id: 2, restaurantName: 'Second Kitchen', totalSettled: 250, totalCommission: 5, orderCount: 4 },
-  ]));
-  platformApi.getSubMerchants.and.returnValue(of([]));
-  platformApi.getTransactions.and.returnValue(of([]));
+  // The fused-reference dashboard is a single scroll (no settlements tab),
+  // so the design audit now covers its recent-orders and top-performers tables.
   const platform = mount<PlatformDashboardPageComponent>(PlatformDashboardPageComponent, [
-    { provide: AdminApiService, useValue: platformApi },
-    { provide: Router, useValue: routerStub },
+    provideRouter([]),
   ]);
-  platform.componentInstance.setTab('settlements');
   platform.detectChanges();
-  results.push({ label: 'platform settlements (was .admin-table)', design: designOf(platform.nativeElement, 'platform') });
+  results.push({ label: 'platform dashboard tables (was .admin-table)', design: designOf(platform.nativeElement, 'platform') });
   platform.destroy();
 
-  const reportsApi = jasmine.createSpyObj('BusinessApiService', ['getDashboard', 'getItemSales', 'getGstLedger']);
+  const reportsApi = jasmine.createSpyObj('BusinessApiService', [
+    'getDashboard', 'getItemSales', 'getGstLedger', 'getOrdersPaginated', 'getTerminals',
+  ]);
   reportsApi.getDashboard.and.returnValue(of({ totalRevenue: 100, refundedAmount: 0, posOrderCount: 2, pendingPosPayments: 0 }));
+  reportsApi.getOrdersPaginated.and.returnValue(of({ content: [], totalElements: 0 }));
+  reportsApi.getTerminals.and.returnValue(of([]));
   reportsApi.getItemSales.and.returnValue(of([]));
   reportsApi.getGstLedger.and.returnValue(of({
     entries: [
