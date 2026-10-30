@@ -97,6 +97,13 @@ public class TerminalOwnershipService {
 
     /**
      * Checks if a child record (BillItem/BillPayment) may be written against its parent bill.
+     *
+     * <p>A null {@code serverBillId} means the record still references its bill by device-local
+     * id; {@code RelationalIdResolver} maps those to a server id inside the caller's own tenant,
+     * so they are allowed here. Sending a <em>server</em> id is different: it names a row that
+     * already exists, and the caller must own it. A missing parent or a parent belonging to
+     * another restaurant is rejected — earlier this was allowed, which let one tenant attach
+     * items and payments to another tenant's bill and to garbage ids.
      */
     public boolean isChildOwnershipAllowed(BaseSyncEntity record, Long tenantId,
                                             String trustedTerminalId, String trustedDeviceId,
@@ -104,11 +111,23 @@ public class TerminalOwnershipService {
         Long serverBillId = resolveParentBillId(record);
         if (serverBillId == null) return true;
 
-        Optional<Bill> parent = billRepository.findById(serverBillId)
-                .filter(b -> b.getRestaurantId().equals(tenantId));
-        if (parent.isEmpty()) return true;
+        Optional<Bill> parent = billRepository.findById(serverBillId);
+        if (parent.isEmpty()) {
+            log.warn("Rejecting {} localId={}: parent bill id={} does not exist",
+                    record.getClass().getSimpleName(), record.getLocalId(), serverBillId);
+            return false;
+        }
 
         Bill parentBill = parent.get();
+        if (tenantId == null || !tenantId.equals(parentBill.getRestaurantId())) {
+            log.warn("Rejecting {} localId={}: parent bill id={} belongs to restaurant {}, caller tenant is {}",
+                    record.getClass().getSimpleName(), record.getLocalId(), serverBillId,
+                    parentBill.getRestaurantId(), tenantId);
+            securityAuditService.record("SYNC_PUSH", "CHILD_CROSS_TENANT",
+                    parentBill.getPublicToken() != null ? parentBill.getPublicToken().toString() : null,
+                    String.valueOf(tenantId));
+            return false;
+        }
         if (BillTerminalUtil.isFinalized(parentBill)) {
             return isOwnerTerminalOrAdmin(parentBill, trustedTerminalId, trustedDeviceId, isAdmin);
         }

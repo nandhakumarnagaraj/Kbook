@@ -30,6 +30,14 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
 	private static final Logger logger = LoggerFactory.getLogger(JwtRequestFilter.class);
 
+	/**
+	 * Device ids minted for browser clients. The web console never sends
+	 * {@code X-Device-Id}, so these tokens are not device-bound and must not be
+	 * required to present the header. Every other non-blank device id belongs to a
+	 * physical device and must be proven on each request.
+	 */
+	private static final List<String> BROWSER_DEVICE_IDS = List.of("web-admin", "web_admin");
+
 	@Value("${admin.allowed-ips:}")
 	private String adminAllowedIpsRaw;
 
@@ -128,22 +136,29 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 								return;
 							}
 
-							// Device binding: a token is bound to the device it was issued for.
-							// Both sides must be present to compare — the Android client always
-							// sends X-Device-Id (AuthInterceptor), while browser clients such as
-							// web admin send none, so the console is unaffected. Enforcing this
-							// is what makes a copied token useless off its own device; without it
-							// a lifted token works anywhere until it expires.
+							// Device binding: a token issued for a device is only valid on that
+							// device. The Android client always sends X-Device-Id
+							// (AuthInterceptor); browser tokens carry a null or web-admin device
+							// id and are exempt. A missing header is a mismatch, not a pass —
+							// otherwise a lifted token works anywhere by simply omitting it.
 							String jwtDeviceId = jwtUtility.extractDeviceId(jwt);
-							String headerDeviceId = request.getHeader("X-Device-Id");
 							if (jwtDeviceId != null && !jwtDeviceId.isBlank()
-									&& headerDeviceId != null && !headerDeviceId.isBlank()
-									&& !jwtDeviceId.equals(headerDeviceId)) {
-								logger.warn("Device binding mismatch — jwtDevice={} headerDevice={} user={} — rejecting",
-										jwtDeviceId, headerDeviceId, username);
-								response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-										"Token is bound to a different device");
-								return;
+									&& !BROWSER_DEVICE_IDS.contains(jwtDeviceId.trim().toLowerCase(java.util.Locale.ROOT))) {
+								String headerDeviceId = request.getHeader("X-Device-Id");
+								if (headerDeviceId == null || headerDeviceId.isBlank()) {
+									logger.warn("Device-bound token presented without X-Device-Id — jwtDevice={} user={} — rejecting",
+											jwtDeviceId, username);
+									response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+											"Token is bound to a device; send X-Device-Id");
+									return;
+								}
+								if (!jwtDeviceId.equals(headerDeviceId)) {
+									logger.warn("Device binding mismatch — jwtDevice={} headerDevice={} user={} — rejecting",
+											jwtDeviceId, headerDeviceId, username);
+									response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+											"Token is bound to a different device");
+									return;
+								}
 							}
 
 							// Admin IP allowlist — block admin from unauthorized IPs

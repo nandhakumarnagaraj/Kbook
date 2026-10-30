@@ -193,9 +193,9 @@ class JwtRequestFilterTest {
     }
 
     @Test
-    void noDeviceHeader_allowsToken() throws Exception {
-        // Browser clients (web admin) send no X-Device-Id, so binding must not apply
-        // to them or the console would be locked out.
+    void deviceBoundTokenWithoutHeader_isRejected() throws Exception {
+        // Omitting X-Device-Id must not be a way around binding: otherwise a token
+        // lifted off tablet-A works anywhere by simply not sending the header.
         String token = "valid.jwt.token";
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer " + token);
@@ -204,6 +204,43 @@ class JwtRequestFilterTest {
 
         stubValidToken(token, "jti-6", "owner@example.com");
         when(jwtUtility.extractDeviceId(token)).thenReturn("tablet-A");
+
+        filter.doFilterInternal(request, response, chain);
+
+        assertThat(response.getStatus()).isEqualTo(401);
+        verifyNoInteractions(chain);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
+    void browserTokenWithoutHeader_stillAllowed() throws Exception {
+        // Web-admin tokens are minted with a browser device id (or none at all) and
+        // the console never sends X-Device-Id, so binding must not lock it out.
+        String token = "valid.jwt.token";
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = mock(MockFilterChain.class);
+
+        stubValidToken(token, "jti-8", "owner@example.com");
+        when(jwtUtility.extractDeviceId(token)).thenReturn("WEB_ADMIN");
+
+        filter.doFilterInternal(request, response, chain);
+
+        verify(chain).doFilter(request, response);
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    void tokenWithoutDeviceClaim_allowsToken() throws Exception {
+        String token = "valid.jwt.token";
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        MockFilterChain chain = mock(MockFilterChain.class);
+
+        stubValidToken(token, "jti-9", "owner@example.com");
+        when(jwtUtility.extractDeviceId(token)).thenReturn(null);
 
         filter.doFilterInternal(request, response, chain);
 

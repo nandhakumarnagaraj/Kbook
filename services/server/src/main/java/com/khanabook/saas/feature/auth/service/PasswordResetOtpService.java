@@ -36,6 +36,22 @@ public class PasswordResetOtpService {
 	 *  to today's behaviour instead of failing. */
 	private static final String LEGACY_TEMPLATE_NAME = "verify_code";
 
+	/**
+	 * Cryptographically strong source for OTP digits. ThreadLocalRandom is seeded
+	 * predictably enough that an attacker who observes a few codes can narrow the next
+	 * one, and a 6-digit OTP is only 20 bits wide to begin with.
+	 */
+	private static final java.security.SecureRandom OTP_RANDOM = new java.security.SecureRandom();
+
+	/**
+	 * Local-development escape hatch: when WhatsApp delivery is not configured, log the
+	 * generated code so a developer can finish the flow. Must stay false everywhere a real
+	 * user's account is at stake — an OTP in the logs is an OTP for whoever can read them.
+	 * When false, an unconfigured sender fails the request instead of pretending to send.
+	 */
+	@Value("${otp.dev-log-fallback:false}")
+	private boolean devLogFallback;
+
 	private final OtpRequestRepository otpRequestRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final HttpClient httpClient = HttpClient.newHttpClient();
@@ -139,8 +155,7 @@ public class PasswordResetOtpService {
 
 		int upperBound = digits == 4 ? 10_000 : 1_000_000;
 		String format = digits == 4 ? "%04d" : "%06d";
-		String otp = String.format(format,
-				java.util.concurrent.ThreadLocalRandom.current().nextInt(0, upperBound));
+		String otp = String.format(format, OTP_RANDOM.nextInt(0, upperBound));
 
 		long now = System.currentTimeMillis();
 		OtpRequest request = existing != null ? existing
@@ -231,9 +246,18 @@ public class PasswordResetOtpService {
 private void sendOtp(String challengeKey, String phoneNumber, String otp) {
 		String templateName = templateFor(challengeKey);
 		if (!isWhatsappConfigured(templateName)) {
-			log.warn("WhatsApp OTP config missing for challengeType={} phone={}. Generated OTP for local testing: {}",
-					describeChallenge(challengeKey), phoneNumber, otp);
-			return;
+			if (devLogFallback) {
+				log.warn("WhatsApp OTP config missing for challengeType={} phone={}. "
+						+ "Generated OTP (otp.dev-log-fallback enabled — development only): {}",
+						describeChallenge(challengeKey), maskPhone(phoneNumber), otp);
+				return;
+			}
+			// Fail closed: without a sender the code cannot reach the user, and silently
+			// reporting success would leave them waiting for a message that never comes.
+			// The code itself is never logged — only the fact that delivery is unconfigured.
+			log.error("WhatsApp OTP config missing for challengeType={} phone={}: refusing to issue an undeliverable code",
+					describeChallenge(challengeKey), maskPhone(phoneNumber));
+			throw new IllegalStateException("Could not send the verification code. Please try again later.");
 		}
 
 		try {

@@ -259,6 +259,7 @@ class SystemTest extends BaseIntegrationTest {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
+        headers.set("X-Device-Id", jwtUtility.extractDeviceId(token));
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> req = new HttpEntity<>("[]", headers);
 
@@ -295,6 +296,7 @@ class SystemTest extends BaseIntegrationTest {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
+        headers.set("X-Device-Id", jwtUtility.extractDeviceId(token));
         headers.set("X-Terminal-Token", terminalToken);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -356,6 +358,12 @@ class SystemTest extends BaseIntegrationTest {
     private HttpEntity<Void> bearerRequest(String token) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
+        // Tokens minted for a device are only accepted alongside X-Device-Id; the real
+        // clients always send it (AuthInterceptor), so the tests have to as well.
+        String deviceId = jwtUtility.extractDeviceId(token);
+        if (deviceId != null && !deviceId.isBlank()) {
+            headers.set("X-Device-Id", deviceId);
+        }
         return new HttpEntity<>(headers);
     }
 
