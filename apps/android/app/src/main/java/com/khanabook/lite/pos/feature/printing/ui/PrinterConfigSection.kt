@@ -98,6 +98,8 @@ import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
 import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
 import com.khanabook.lite.pos.feature.printing.domain.connectionTargetKey
 import com.khanabook.lite.pos.feature.printing.domain.connectionTypeValue
+import com.khanabook.lite.pos.feature.printing.domain.PrinterMode
+import com.khanabook.lite.pos.feature.printing.domain.printerModeValue
 import com.khanabook.lite.pos.core.designsystem.KhanaButtonRow
 import com.khanabook.lite.pos.core.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.core.designsystem.KhanaBookDialog
@@ -151,6 +153,7 @@ fun PrinterConfigView(
     var maskPhone by remember { mutableStateOf(profile?.maskCustomerPhone ?: true) }
     var kitchenEnabled by remember(kitchenPrinter?.id, kitchenPrinter?.enabled) { mutableStateOf(kitchenPrinter?.enabled ?: false) }
     var kitchenPaper58 by remember(kitchenPrinter?.id, kitchenPrinter?.paperSize) { mutableStateOf((kitchenPrinter?.paperSize ?: "58mm") == "58mm") }
+    var onePrinterMode by remember(profile?.printerMode) { mutableStateOf(profile?.printerModeValue() ?: PrinterMode.DUAL) }
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     // Re-probe Wi-Fi printers every time this screen is shown so the status dot
@@ -311,10 +314,24 @@ fun PrinterConfigView(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Receipt and Kitchen Printers", color = TextGold, style = MaterialTheme.typography.titleMedium)
+                    Text("Use one printer for bills and KOT", color = TextGold, style = MaterialTheme.typography.bodyLarge)
+                    KhanaBookSwitch(
+                        checked = onePrinterMode == PrinterMode.SINGLE,
+                        onCheckedChange = { on ->
+                            onePrinterMode = if (on) PrinterMode.SINGLE else PrinterMode.DUAL
+                        }
+                    )
                 }
-                Spacer(modifier = Modifier.height(spacing.medium))
-                PrinterTargetCard(
+                Spacer(modifier = Modifier.height(spacing.small))
+                Text(
+                    if (onePrinterMode == PrinterMode.SINGLE) "Prints bills and KOT on the same printer."
+                    else "Uses separate printers for bills and KOT.",
+                    color = TextGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (onePrinterMode == PrinterMode.DUAL) {
+                    Spacer(modifier = Modifier.height(spacing.medium))
+PrinterTargetCard(
                     title = "Customer Receipt Printer",
                     printerName = customerPrinter?.name ?: "No Printer",
                     connectionDescription = customerPrinter?.let { printer ->
@@ -481,6 +498,91 @@ PrinterTargetCard(
                         }
                     }
                 )
+                } else {
+                    Spacer(modifier = Modifier.height(spacing.medium))
+PrinterTargetCard(
+                    title = "Main Printer",
+                    printerName = customerPrinter?.name ?: "No Printer",
+                    connectionDescription = customerPrinter?.let { printer ->
+                        when (printer.connectionTypeValue()) {
+                            PrinterConnectionType.BLUETOOTH -> printer.macAddress
+                                .takeIf { it.isNotBlank() }
+                                ?.let { "Bluetooth · $it" }
+                            PrinterConnectionType.WIFI -> printer.host
+                                ?.takeIf { it.isNotBlank() }
+                                ?.let { "Wi-Fi · $it:${printer.port}" }
+                            PrinterConnectionType.USB -> printer.macAddress
+                                .takeIf { it.startsWith("usb:") }
+                                ?.let { "USB · ${it.removePrefix("usb:")}" }
+                        }
+                    },
+                    enabled = enabled,
+                    autoPrint = autoPrint,
+                    showAutoPrintToggle = true,
+                    paper58 = paper58,
+                    includeLogo = includeLogo,
+                    showLogoToggle = true,
+                    isConnected = printerStatusRoles.contains(PrinterRole.CUSTOMER.name),
+                    health = customerPrinter?.let { printerHealthMap[it.connectionTargetKey()] },
+                    networkMismatch = customerPrinter?.let {
+                        it.connectionTypeValue() == PrinterConnectionType.WIFI &&
+                        wifiPrinterNetworkMismatch[it.connectionTargetKey()] == true
+                    } ?: false,
+                    onEnabledChange = { enabled = it },
+                    onAutoPrintChange = { autoPrint = it },
+                    onPaperSizeChange = { paper58 = it },
+                    onIncludeLogoChange = { includeLogo = it },
+                    helperText = null,
+                    onConfigureWifi = {
+                        pendingRole = PrinterRole.CUSTOMER
+                        wifiPrinterName = customerPrinter?.name ?: "Main Wi-Fi Printer"
+                        wifiHost = customerPrinter
+                            ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.WIFI }
+                            ?.host
+                            .orEmpty()
+                        wifiPort = customerPrinter
+                            ?.takeIf { it.connectionTypeValue() == PrinterConnectionType.WIFI }
+                            ?.port
+                            ?.toString()
+                            ?: "9100"
+                        showWifiDialog = true
+                    },
+                    onSelectPrinter = {
+                        pendingRole = PrinterRole.CUSTOMER
+                        if (!viewModel.hasBluetoothPermissions(context)) {
+                            val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+                            } else {
+                                arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
+                            permissionLauncher.launch(perms)
+                        } else if (!viewModel.isBluetoothEnabled(context)) {
+                            bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !viewModel.isDeviceLocationEnabled()) {
+                            showLocationDialog = true
+                        } else {
+                            viewModel.startBluetoothScan(context)
+                            showBtSheet = true
+                        }
+                    },
+                    onTestPrint = { viewModel.testPrint(PrinterRole.CUSTOMER) },
+                    onSelectUsb = {
+                        pendingRole = PrinterRole.CUSTOMER
+                        val found = viewModel.listUsbPrinters()
+                        if (found.isEmpty()) {
+                            usbScope.launch {
+                                KhanaToast.show(
+                                    "No USB printers found. Connect one via OTG cable.",
+                                    ToastKind.Warning
+                                )
+                            }
+                        } else {
+                            usbDevices = found
+                            showUsbSheet = true
+                        }
+                    }
+                )
+                }
             }
             ConfigCard {
                 Text("Print Options", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
@@ -501,6 +603,7 @@ PrinterTargetCard(
                             autoPrintOnSuccess = autoPrint,
                             includeLogoInPrint = includeLogo,
                             maskCustomerPhone = maskPhone,
+                            printerMode = onePrinterMode.name,
                             isSynced = false,
                             updatedAt = System.currentTimeMillis()
                         )?.let { onSave(it) }

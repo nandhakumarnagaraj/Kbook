@@ -82,10 +82,7 @@ class KitchenPrintQueueManager @Inject constructor(
 
         scope.launch {
             kotlinx.coroutines.delay(2000)
-            val kitchen = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
-            if (kitchen?.enabled == true && kitchen.isConnectionConfigured()) {
-                flushPendingForPrinter(kitchen.connectionTargetKey())
-            }
+            flushAllPending()
         }
 
         // Periodic safety net: if a ticket was queued while the kitchen printer
@@ -157,14 +154,33 @@ class KitchenPrintQueueManager @Inject constructor(
     }
 
     suspend fun flushAllPending() {
-        val kitchen = printerProfileRepository.getByRole(PrinterRole.KITCHEN.name)
-        if (kitchen?.enabled == true && kitchen.isConnectionConfigured()) {
+        val kitchen = resolveKitchenPrinterForFlush()
+        if (kitchen != null) {
             flushPendingForPrinter(kitchen.connectionTargetKey())
+            return
+        }
+        val mac = printerManager.connectedDeviceMac.value
+        if (!mac.isNullOrBlank()) {
+            flushPendingForPrinter(mac)
+        }
+    }
+
+    /**
+     * Which device queued kitchen tickets should be retried on.
+     *
+     * Two-printer layout: the stored kitchen printer, if configured — unchanged.
+     * One-printer layout: the same device that prints the receipts, because that is
+     * where the failed kitchen ticket was queued from (both roles share one
+     * [connectionTargetKey]). Without this branch the retry loop would look only at
+     * the (deliberately unused) kitchen row and the queued ticket would never print.
+     */
+    private suspend fun resolveKitchenPrinterForFlush(): PrinterProfileEntity? {
+        val stored = printerProfileRepository.getProfiles()
+            .filter { it.enabled && it.isConnectionConfigured() }
+        return if (restaurantRepository.getProfile()?.printerModeValue() == PrinterMode.SINGLE) {
+            mainPrinterOf(stored)?.forRole(PrinterRole.KITCHEN, includeLogo = false)
         } else {
-            val mac = printerManager.connectedDeviceMac.value
-            if (!mac.isNullOrBlank()) {
-                flushPendingForPrinter(mac)
-            }
+            stored.firstOrNull { it.role == PrinterRole.KITCHEN.name }
         }
     }
 
@@ -291,11 +307,18 @@ class KitchenPrintQueueManager @Inject constructor(
 
     private suspend fun resolveKitchenPrinter(printerMac: String): PrinterProfileEntity? {
         val stored = printerProfileRepository.getProfiles()
-        return stored.firstOrNull {
-            it.role == PrinterRole.KITCHEN.name &&
-                it.enabled &&
+        val match = stored.firstOrNull {
+            it.enabled &&
                 it.isConnectionConfigured() &&
                 it.connectionTargetKey() == printerMac
+        } ?: return null
+
+        // One-printer layout: the receipt printer is also the kitchen printer, so a
+        // queued kitchen ticket bound to its key is legitimately a kitchen job.
+        if (restaurantRepository.getProfile()?.printerModeValue() == PrinterMode.SINGLE) {
+            return match.forRole(PrinterRole.KITCHEN, includeLogo = false)
         }
+
+        return match.takeIf { it.role == PrinterRole.KITCHEN.name }
     }
 }

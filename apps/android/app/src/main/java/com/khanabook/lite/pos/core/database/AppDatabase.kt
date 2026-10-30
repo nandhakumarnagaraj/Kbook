@@ -49,7 +49,7 @@ import com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 82,
+        version = 83,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -94,7 +94,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_65_66, MIGRATION_66_67, MIGRATION_67_68, MIGRATION_68_69,
             MIGRATION_69_70, MIGRATION_70_71, MIGRATION_71_72, MIGRATION_72_73,
             MIGRATION_73_74, MIGRATION_74_75, MIGRATION_75_76, MIGRATION_76_77,
-            MIGRATION_77_78, MIGRATION_78_79, MIGRATION_79_80, MIGRATION_80_81, MIGRATION_81_82
+            MIGRATION_77_78, MIGRATION_78_79, MIGRATION_79_80, MIGRATION_80_81, MIGRATION_81_82,
+            MIGRATION_82_83
         )
 
             val MIGRATION_52_53 = object : Migration(52, 53) {
@@ -2162,6 +2163,28 @@ android.util.Log.i("AppDatabase", "MIGRATION_57_58 complete")
                         "ON `menu_item_category_repairs` (`restaurant_id`, `item_local_id`)"
                 )
                 android.util.Log.i("AppDatabase", "MIGRATION_80_81 complete: created menu_item_category_repairs")
+            }
+        }
+
+        val MIGRATION_82_83 = object : Migration(82, 83) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // How this till routes its tickets:
+                //   DUAL   = customer receipt and kitchen KOT on separate printers
+                //   SINGLE = one physical printer prints both, KOT first then receipt
+                //
+                // Device-local, exactly like printer_enabled / paper_size /
+                // include_logo_in_print: a terminal owns its own hardware, so this is
+                // absent from the push DTO (SyncDtoContractTest enforces that) and the
+                // value can only ever be written by the settings save path.
+                //
+                // DEFAULT 'DUAL' keeps every existing install on today's two-printer
+                // behaviour — nobody's printing changes until they opt in.
+                if (!db.hasColumn("restaurant_profile", "printer_mode")) {
+                    db.execSQL(
+                        "ALTER TABLE `restaurant_profile` ADD COLUMN `printer_mode` TEXT NOT NULL DEFAULT 'DUAL'"
+                    )
+                }
+                android.util.Log.i("AppDatabase", "MIGRATION_82_83 complete: added printer_mode to restaurant_profile")
             }
         }
 

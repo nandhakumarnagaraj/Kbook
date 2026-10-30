@@ -400,6 +400,152 @@ class PrintRouterTest {
         coVerify(exactly = 1) { kotEventDao.markPrinted("pt-1", "2") }
     }
 
+    // -------------------------------------------------------------------------
+    // Scenario 9: SINGLE mode — one physical printer prints both tickets
+    // -------------------------------------------------------------------------
+
+    private val singleModeProfile = RestaurantProfileEntity(shopName = "TestShop", printerMode = "SINGLE")
+
+    @Test
+    fun `SINGLE AUTO - one printer prints the kitchen ticket first then the receipt`() = runTest {
+        val order = mutableListOf<String>()
+        every { KitchenTicketFormatter.format(any(), any(), any(), any()) } answers {
+            order += "kot"
+            byteArrayOf(0x02)
+        }
+        every { InvoiceFormatter.formatForThermalPrinter(any(), any(), any()) } answers {
+            order += "receipt"
+            byteArrayOf(0x01)
+        }
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(customerPrinter)
+        coEvery { printerManager.connect(customerMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        val result = router.printBill(bill, singleModeProfile, PrintDispatchMode.AUTO)
+
+        assertEquals(2, result.attempted)
+        assertEquals(2, result.succeeded)
+        assertEquals(
+            listOf(PrinterRole.KITCHEN.name, PrinterRole.CUSTOMER.name),
+            result.successTargets
+        )
+        // Both tickets left through the one printer, kitchen slip first.
+        assertEquals(listOf("kot", "receipt"), order)
+        coVerify(exactly = 2) { printerManager.printBytesTo(customerMac, any()) }
+        coVerify(exactly = 0) { kitchenQueueManager.enqueueUnassigned(any(), any()) }
+    }
+
+    @Test
+    fun `SINGLE AUTO - saved kitchen printer is ignored, never connected`() = runTest {
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter, customerPrinter)
+        coEvery { printerManager.connect(customerMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        val result = router.printBill(bill, singleModeProfile, PrintDispatchMode.AUTO)
+
+        assertEquals(2, result.succeeded)
+        coVerify(exactly = 2) { printerManager.printBytesTo(customerMac, any()) }
+        // The kitchen row stays saved but untouched, so DUAL mode restores it as-is.
+        coVerify(exactly = 0) { printerManager.connect(kitchenMac) }
+    }
+
+    @Test
+    fun `SINGLE AUTO - receipt auto-print off prints only the kitchen ticket`() = runTest {
+        val noAutoReceipt = customerPrinter.copy(autoPrint = false)
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(noAutoReceipt)
+        coEvery { printerManager.connect(customerMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        val result = router.printBill(bill, singleModeProfile, PrintDispatchMode.AUTO)
+
+        assertEquals(1, result.attempted)
+        assertEquals(listOf(PrinterRole.KITCHEN.name), result.successTargets)
+        coVerify(exactly = 1) { printerManager.printBytesTo(customerMac, any()) }
+    }
+
+    @Test
+    fun `SINGLE - manual modes each target the one printer once`() = runTest {
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(customerPrinter)
+        coEvery { printerManager.connect(customerMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        val receiptOnly = router.printBill(bill, singleModeProfile, PrintDispatchMode.MANUAL_RECEIPT_ONLY)
+        assertEquals(listOf(PrinterRole.CUSTOMER.name), receiptOnly.successTargets)
+        coVerify(exactly = 1) { printerManager.printBytesTo(customerMac, any()) }
+
+        val kitchenOnly = router.printBill(bill, singleModeProfile, PrintDispatchMode.MANUAL_KITCHEN_ONLY)
+        assertEquals(listOf(PrinterRole.KITCHEN.name), kitchenOnly.successTargets)
+        coVerify(exactly = 2) { printerManager.printBytesTo(customerMac, any()) }
+    }
+
+    @Test
+    fun `SINGLE AUTO - kitchen ticket failure is queued against the one printer`() = runTest {
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(customerPrinter)
+        coEvery { printerManager.connect(customerMac) } returns false
+
+        val result = router.printBill(bill, singleModeProfile, PrintDispatchMode.AUTO)
+
+        assertTrue(result.kitchenQueued)
+        coVerify(exactly = 1) { kitchenQueueManager.enqueue(bill.bill.id, customerMac, any(), true) }
+        coVerify(exactly = 0) { kitchenQueueManager.enqueueUnassigned(any(), any()) }
+    }
+
+    @Test
+    fun `SINGLE AUTO - receipt failure keeps the printed kitchen ticket`() = runTest {
+        var calls = 0
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(customerPrinter)
+        coEvery { printerManager.connect(customerMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } coAnswers { ++calls == 1 }
+
+        val result = router.printBill(bill, singleModeProfile, PrintDispatchMode.AUTO)
+
+        // Kitchen slip made it to paper before the receipt failed, so it is not requeued.
+        assertEquals(listOf(PrinterRole.KITCHEN.name), result.successTargets)
+        assertEquals(1, result.failures.size)
+        assertTrue(result.failures.first().startsWith(PrinterRole.CUSTOMER.name))
+        coVerify(exactly = 0) { kitchenQueueManager.enqueue(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `SINGLE AUTO - kitchen-only configuration serves both tickets on that printer`() = runTest {
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { printerManager.connect(kitchenMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        // A kitchen row's own autoPrint means "fire KOTs", so the receipt follows the
+        // shop's receipt switch instead.
+        val profile = singleModeProfile.copy(autoPrintOnSuccess = true)
+        val result = router.printBill(bill, profile, PrintDispatchMode.AUTO)
+
+        assertEquals(2, result.succeeded)
+        coVerify(exactly = 2) { printerManager.printBytesTo(kitchenMac, any()) }
+        coVerify(exactly = 0) { kitchenQueueManager.enqueueUnassigned(any(), any()) }
+    }
+
+    @Test
+    fun `SINGLE AUTO - kitchen-only configuration with receipt auto-print off prints KOT only`() = runTest {
+        coEvery { printerProfileRepository.getProfiles() } returns listOf(kitchenPrinter)
+        coEvery { printerManager.connect(kitchenMac) } returns true
+        coEvery { printerManager.printBytesTo(any(), any()) } returns true
+
+        val result = router.printBill(bill, singleModeProfile, PrintDispatchMode.AUTO)
+
+        assertEquals(listOf(PrinterRole.KITCHEN.name), result.successTargets)
+        coVerify(exactly = 1) { printerManager.printBytesTo(kitchenMac, any()) }
+    }
+
+    @Test
+    fun `SINGLE AUTO - no printer configured queues nothing unassigned`() = runTest {
+        coEvery { printerProfileRepository.getProfiles() } returns emptyList()
+
+        val result = router.printBill(bill, singleModeProfile, PrintDispatchMode.AUTO)
+
+        assertEquals(0, result.attempted)
+        coVerify(exactly = 0) { printerManager.printBytesTo(any(), any()) }
+        // In one-printer mode there is no "kitchen printer not configured" fallback.
+        coVerify(exactly = 0) { kitchenQueueManager.enqueueUnassigned(any(), any()) }
+    }
+
     private fun kotEvent(
         revision: String,
         eventType: String,

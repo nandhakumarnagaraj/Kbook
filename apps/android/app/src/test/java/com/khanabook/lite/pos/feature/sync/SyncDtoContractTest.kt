@@ -171,6 +171,8 @@ class SyncDtoContractTest {
             "printCustomerWhatsapp",
             "kitchenPrinterEnabled", "kitchenPrinterName", "kitchenPrinterMac",
             "kitchenPrinterPaperSize",
+            // One-printer mode is per-terminal hardware routing, same rule.
+            "printerMode",
             "showBranding", "maskCustomerPhone",
         ),
     )

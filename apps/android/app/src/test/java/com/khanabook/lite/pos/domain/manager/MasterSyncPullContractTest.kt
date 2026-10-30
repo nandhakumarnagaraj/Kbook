@@ -140,6 +140,9 @@ class MasterSyncPullContractTest {
         "paperSize" to "device-local printer binding",
         "autoPrintOnSuccess" to "device-local printer binding",
         "includeLogoInPrint" to "device-local printer binding",
+        // Which layout this till prints with. Same hardware rule: a second terminal may
+        // have two printers while this one has a single combined device.
+        "printerMode" to "device-local printer routing",
         // No server counterpart exists (nothing on the server carries these), and nothing in
         // the app reads them today. Kept out of the assertion so the list stays honest; wire
         // them end to end before giving them a reader, or drop the columns.

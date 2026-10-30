@@ -1032,7 +1032,11 @@ class SettingsViewModel @Inject constructor(
         enabled: Boolean,
         autoPrint: Boolean,
         paperSize: String,
-        includeLogo: Boolean
+        includeLogo: Boolean,
+        // Routing layout, only meaningful for the customer row. Applied here as well as in
+        // savePrinterSettingsLocally because both write the same profile row from separate
+        // coroutines: without it, whichever write landed last could restore the old layout.
+        printerMode: String? = null
     ) {
         // G2: printer configuration is owner-only (see SessionManager doc).
         if (!sessionManager.canWritePrinterConfig()) return
@@ -1068,14 +1072,19 @@ class SettingsViewModel @Inject constructor(
             }
             printerProfileRepository.saveProfile(profileToSave)
             if (role == PrinterRole.CUSTOMER) {
-                restaurantRepository.getProfile()?.copy(
-                    printerEnabled = enabled,
-                    printerName = profileToSave.name,
-                    printerMac = profileToSave.macAddress,
-                    paperSize = paperSize,
-                    includeLogoInPrint = includeLogo,
-                    autoPrintOnSuccess = autoPrint
-                )?.let { restaurantRepository.saveProfileLocally(it) }
+                restaurantRepository.getProfile()?.let { current ->
+                    current.copy(
+                        printerEnabled = enabled,
+                        printerName = profileToSave.name,
+                        printerMac = profileToSave.macAddress,
+                        paperSize = paperSize,
+                        includeLogoInPrint = includeLogo,
+                        autoPrintOnSuccess = autoPrint,
+                        // A layout chosen by this save must not be undone by a concurrent
+                        // full-profile save that read the row before this write.
+                        printerMode = printerMode ?: current.printerMode
+                    )
+                }?.let { restaurantRepository.saveProfileLocally(it) }
             }
         }
     }

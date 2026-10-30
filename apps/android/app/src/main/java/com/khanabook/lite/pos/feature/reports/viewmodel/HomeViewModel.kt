@@ -13,6 +13,9 @@ import com.khanabook.lite.pos.feature.printing.domain.BluetoothPrinterManager
 import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
 import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
+import com.khanabook.lite.pos.feature.printing.domain.PrinterMode
+import com.khanabook.lite.pos.feature.printing.domain.mainPrinterOf
+import com.khanabook.lite.pos.feature.printing.domain.printerModeValue
 import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
 import com.khanabook.lite.pos.feature.printing.domain.connectionTargetKey
 import com.khanabook.lite.pos.feature.printing.domain.connectionTypeValue
@@ -99,16 +102,26 @@ class HomeViewModel @Inject constructor(
         printerProfileRepository.getProfilesFlow(),
         printerManager.connectedDeviceMacs
     ) { profile, profiles, liveMacs ->
-        val customerPrinter = profiles.firstOrNull {
-            it.role == PrinterRole.CUSTOMER.name && it.enabled && it.isConnectionConfigured()
+        // One-printer mode: the shop's single device serves both tickets, so the
+        // "kitchen printer" readiness below has nothing of its own to report.
+        val singlePrinterMode = profile?.printerModeValue() == PrinterMode.SINGLE
+        val configured = profiles.filter { it.enabled && it.isConnectionConfigured() }
+        val singleMain = if (singlePrinterMode) mainPrinterOf(configured) else null
+        val customerPrinter = if (singlePrinterMode) {
+            singleMain
+        } else {
+            configured.firstOrNull { it.role == PrinterRole.CUSTOMER.name }
         }
-        val kitchenPrinter = profiles.firstOrNull {
-            it.role == PrinterRole.KITCHEN.name && it.enabled && it.isConnectionConfigured()
+        val kitchenPrinter = if (singlePrinterMode) {
+            null
+        } else {
+            configured.firstOrNull { it.role == PrinterRole.KITCHEN.name }
         }
         val legacyPrinterEnabled = profile?.printerEnabled == true && !profile.printerMac.isNullOrBlank()
         val legacyPrinterConnected = profile?.printerMac?.let(liveMacs::contains) == true
 
         PrinterReadiness(
+            singlePrinterMode = singlePrinterMode,
             customerConfigured = customerPrinter != null,
             customerConnected = customerPrinter?.let {
                 it.connectionTypeValue() == PrinterConnectionType.BLUETOOTH &&
@@ -434,6 +447,8 @@ class HomeViewModel @Inject constructor(
     )
 
     data class PrinterReadiness(
+        /** One printer carries both tickets; the kitchen fields below are then idle. */
+        val singlePrinterMode: Boolean = false,
         val customerConfigured: Boolean = false,
         val customerConnected: Boolean = false,
         val customerName: String? = null,

@@ -82,6 +82,11 @@ data class RestaurantProfileEntity(
     val autoPrintOnSuccess: Boolean = false,
     @ColumnInfo(name = "include_logo_in_print", defaultValue = "1")
     val includeLogoInPrint: Boolean = true,
+    // DUAL = receipt + KOT on separate printers, SINGLE = one printer prints both.
+    // Device-local like the rest of the printer config: each terminal owns its own
+    // hardware, so this never travels to the server (see SyncDtoContractTest).
+    @ColumnInfo(name = "printer_mode", defaultValue = "'DUAL'")
+    val printerMode: String = "DUAL",
     @ColumnInfo(name = "print_customer_whatsapp", defaultValue = "1")
     val printCustomerWhatsapp: Boolean = true,
 

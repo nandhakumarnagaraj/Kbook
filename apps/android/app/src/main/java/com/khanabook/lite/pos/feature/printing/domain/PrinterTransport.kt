@@ -6,6 +6,7 @@ import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
 import com.khanabook.lite.pos.feature.printing.domain.connectionTypeValue
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -13,6 +14,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 interface PrinterTransport {
@@ -135,10 +138,26 @@ class PrinterTransportDispatcher @Inject constructor(
     private val wifi: WifiPrinterTransport,
     private val usb: UsbPrinterTransport
 ) {
-    suspend fun print(profile: PrinterProfileEntity, bytes: ByteArray): Boolean =
-        when (profile.connectionTypeValue()) {
-            PrinterConnectionType.BLUETOOTH -> bluetooth.print(profile, bytes)
-            PrinterConnectionType.WIFI -> wifi.print(profile, bytes)
-            PrinterConnectionType.USB -> usb.print(profile, bytes)
+    /**
+     * One lock per physical endpoint (see [connectionTargetKey]).
+     *
+     * Two logical print jobs can address the same printer: a shop that saves the
+     * same device for both roles, one-printer mode (receipt + KOT on one device),
+     * the kitchen queue flush racing a direct print, and the settings test print.
+     * ESC/POS has no framing — two payloads written concurrently interleave their
+     * bytes and the paper comes out as garbage, so writes to one endpoint must be
+     * strictly sequential even though writes to *different* endpoints stay parallel.
+     */
+    private val connectionLocks = ConcurrentHashMap<String, Mutex>()
+
+    suspend fun print(profile: PrinterProfileEntity, bytes: ByteArray): Boolean {
+        val lock = connectionLocks.computeIfAbsent(profile.connectionTargetKey()) { Mutex() }
+        return lock.withLock {
+            when (profile.connectionTypeValue()) {
+                PrinterConnectionType.BLUETOOTH -> bluetooth.print(profile, bytes)
+                PrinterConnectionType.WIFI -> wifi.print(profile, bytes)
+                PrinterConnectionType.USB -> usb.print(profile, bytes)
+            }
         }
+    }
 }
