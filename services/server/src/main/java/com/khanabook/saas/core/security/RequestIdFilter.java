@@ -16,6 +16,8 @@ public class RequestIdFilter extends OncePerRequestFilter {
 
 	public static final String HEADER_NAME = "X-Request-Id";
 	private static final String MDC_KEY = "requestId";
+	/** Same value as requestId: lets trace-aware log tooling follow one request end to end. */
+	private static final String MDC_TRACE_KEY = "traceId";
 
 	@Override
 	protected void doFilterInternal(@org.springframework.lang.NonNull HttpServletRequest request,
@@ -27,11 +29,13 @@ public class RequestIdFilter extends OncePerRequestFilter {
 		}
 
 		MDC.put(MDC_KEY, requestId);
+		MDC.put(MDC_TRACE_KEY, requestId);
 		response.setHeader(HEADER_NAME, requestId);
 		try {
 			filterChain.doFilter(request, response);
 		} finally {
 			MDC.remove(MDC_KEY);
+			MDC.remove(MDC_TRACE_KEY);
 		}
 	}
 }

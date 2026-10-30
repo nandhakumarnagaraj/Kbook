@@ -50,6 +50,28 @@ public class EasebuzzWebhookService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private EasebuzzWireApiClient wireApiClient;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+
+    /**
+     * Count a webhook that did NOT settle a bill, tagged by why. This is the signal that
+     * separates "nobody bought anything" from "payments broke" — the silence gauge in
+     * {@code StuckPaymentSweepService} only says nothing arrived, not that arrivals are
+     * being rejected. Never throws: a metrics failure must not fail a webhook ack.
+     */
+    private void recordWebhookDropped(String reason) {
+        if (meterRegistry == null) return;
+        try {
+            io.micrometer.core.instrument.Counter.builder("payments.webhook.dropped")
+                    .description("Easebuzz webhooks received but not applied to a bill")
+                    .tag("reason", reason)
+                    .register(meterRegistry)
+                    .increment();
+        } catch (Exception ignored) {
+            // metrics are best-effort
+        }
+    }
+
     @Transactional
     public Map<String, Object> handlePaymentWebhook(Map<String, String> payload) {
         String txnid = payload.get("txnid");
@@ -60,6 +82,7 @@ public class EasebuzzWebhookService {
         // "hash_mismatch" and so probe which (txnid, status) pairs exist.
         if (!verifyWebhookHash(payload)) {
             log.warn("Payment webhook hash mismatch txnid={}", txnid);
+            recordWebhookDropped("hash_mismatch");
             return Map.of("status", "hash_mismatch");
         }
 
@@ -68,6 +91,7 @@ public class EasebuzzWebhookService {
             boolean alreadyProcessed = webhookEventRepo.existsByTxnIdAndStatus(txnid, status);
             if (alreadyProcessed) {
                 log.info("Duplicate webhook ignored txnid={} status={}", txnid, status);
+                recordWebhookDropped("duplicate");
                 return Map.of("status", "ok", "message", "already processed");
             }
         }
@@ -86,11 +110,13 @@ public class EasebuzzWebhookService {
                         Long billId = bill.getId();
                         if (!paymentAmountMatchesBill(bill, amountStr)) {
                             log.warn("Payment webhook amount mismatch billId={} txnid={} amount={}", billId, txnid, amountStr);
+                            recordWebhookDropped("amount_mismatch");
                             return;
                         }
                         // Idempotency guard: skip if already marked paid
                         if ("paid".equals(bill.getPaymentStatus())) {
                             log.info("Bill {} already paid, skipping duplicate webhook txnid={}", billId, txnid);
+                            recordWebhookDropped("already_paid");
                             return;
                         }
                         bill.setGatewayTxnId(txnid);

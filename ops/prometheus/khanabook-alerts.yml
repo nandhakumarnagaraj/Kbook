@@ -1,0 +1,83 @@
+# KhanaBook — Prometheus alert rules for the money path.
+#
+# Load with:
+#   rule_files:
+#     - /etc/prometheus/khanabook-alerts.yml
+#
+# Metric names are the Actuator/Prometheus rendering of the Micrometer ids used
+# in the code:
+#   sync.push.records          -> sync_push_records_total{outcome="success|failed"}
+#   sync.push.failed           -> sync_push_failed_total{reason="..."}
+#   payments.webhook.dropped   -> payments_webhook_dropped_total{reason="..."}
+#   payments.webhook.silence.seconds -> payments_webhook_silence_seconds
+#
+# Thresholds are deliberately conservative: KhanaBook is offline-first, so a
+# terminal that is simply switched off also stops pushing. An alert must mean
+# "the server is rejecting work", not "a tablet is at lunch".
+
+groups:
+  - name: khanabook-money-path
+    rules:
+      # A tenant whose pushes are being rejected is losing bills silently on the
+      # device. Any sustained rejection rate is worth a look.
+      - alert: KhanaBookSyncPushFailures
+        expr: |
+          sum by (reason) (rate(sync_push_failed_total[10m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sync pushes are failing (reason {{ $labels.reason }})"
+          description: >-
+            More than 0.1 rejected records/sec for 10 minutes with reason
+            {{ $labels.reason }}. Check sync_quarantine_records on the affected
+            terminals and the server log filtered by restaurantId/terminalId.
+
+      # Whole-batch rejection: records succeed elsewhere but one tenant fails
+      # everything. This is the "stale push storm" shape.
+      - alert: KhanaBookSyncBatchRejectionBurst
+        expr: |
+          sum by () (rate(sync_push_failed_total[5m]))
+            / clamp_min(sum by () (rate(sync_push_records_total[5m])), 0.001)
+            > 0.5
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Over half of all pushed records are being rejected"
+          description: >-
+            Likely one terminal stuck re-pushing a quarantined row (the known
+            infinite-409 shape). Identify the tenant from sync_push_failed_total
+            logs and clear the record on that terminal.
+
+      # Webhooks that arrive but never settle a bill. Hash mismatches mean a
+      # configuration/key problem; amount mismatches mean a data problem; both
+      # leave a customer paid-but-unmarked.
+      - alert: KhanaBookPaymentWebhookDropped
+        expr: |
+          sum by (reason) (rate(payments_webhook_dropped_total{reason!="duplicate"}[10m])) > 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Easebuzz webhooks dropped ({{ $labels.reason }})"
+          description: >-
+            Webhooks are arriving but not marking bills paid. reason=hash_mismatch
+            usually means the salt/key changed; reason=amount_mismatch means the
+            bill total and the gateway amount disagree. Bills stay unpaid while
+            customers believe they paid.
+
+      # No webhook at all. Silence is indistinguishable from a quiet evening
+      # unless it is measured — a busy restaurant settling nothing for an hour
+      # is a broken integration, not a slow day.
+      - alert: KhanaBookWebhookSilence
+        expr: |
+          payments_webhook_silence_seconds > 3600
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No Easebuzz webhook for over an hour"
+          description: >-
+            payments_webhook_silence_seconds is {{ $value }}s. Check the Easebuzz
+            dashboard webhook configuration and nginx access to /api/payments/webhook.

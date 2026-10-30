@@ -1180,10 +1180,68 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		log.info("Push sync completed tenantId={} success={} failed={} saved={}",
 				tenantId, successfulLocalIds.size(), failedLocalIds.size(), allRecordsToSave.size());
 
+		// Money-path visibility: these two counters answer \"is sync healthy for this
+		// restaurant\" without reading logs. recordSyncPush never throws by contract,
+		// so a metrics failure can never abort a sync batch.
+		recordSyncPush(successfulLocalIds.size(), failedLocalIds.size(), failedReasons);
+
 		PushSyncResponse response = new PushSyncResponse(successfulLocalIds, failedLocalIds);
 		response.setLocalToServerIdMap(localToServerIdMap);
 		response.setFailedReasons(failedReasons);
 		return response;
+	}
+
+	// ── Metrics ──────────────────────────────────────────────────────────────
+	// Field injection with required=false keeps this service constructible in the
+	// existing unit tests (which build it by hand) while still wiring the registry
+	// in the running application. A metrics failure must never fail a sync.
+	@org.springframework.beans.factory.annotation.Autowired(required = false)
+	private io.micrometer.core.instrument.MeterRegistry meterRegistry;
+
+	private void recordSyncPush(int success, int failed, java.util.Map<Long, String> failedReasons) {
+		if (meterRegistry == null) return;
+		try {
+			io.micrometer.core.instrument.Counter.builder("sync.push.batch")
+					.description("Push sync batches accepted by the server")
+					.register(meterRegistry)
+					.increment();
+			io.micrometer.core.instrument.Counter.builder("sync.push.records")
+					.description("Pushed records by outcome")
+					.tag("outcome", "success")
+					.register(meterRegistry)
+					.increment(success);
+			if (failed > 0) {
+				io.micrometer.core.instrument.Counter.builder("sync.push.records")
+						.description("Pushed records by outcome")
+						.tag("outcome", "failed")
+						.register(meterRegistry)
+						.increment(failed);
+			}
+			// Bounded reason categories: the leading ALL_CAPS token of the message
+			// (STALE_PUSH_CONFLICT: …, CROSS_TERMINAL …) or OTHER. Never tag with the
+			// full message — unbounded cardinality would blow up the scrape.
+			failedReasons.values().forEach(reason -> {
+				String category = syncFailureCategory(reason);
+				io.micrometer.core.instrument.Counter.builder("sync.push.failed")
+						.description("Rejected pushed records by reason category")
+						.tag("reason", category)
+						.register(meterRegistry)
+						.increment();
+			});
+		} catch (Exception e) {
+			log.debug("Sync metric recording failed: {}", e.getMessage());
+		}
+	}
+
+	private static String syncFailureCategory(String reason) {
+		if (reason == null || reason.isBlank()) return "OTHER";
+		String head = reason.trim().split("\\s*[:\\-]\\s*", 2)[0];
+		if (!head.isEmpty() && head.length() <= 40
+				&& head.equals(head.toUpperCase(java.util.Locale.ROOT))
+				&& head.chars().anyMatch(Character::isLetter)) {
+			return head.replace(' ', '_');
+		}
+		return "OTHER";
 	}
 
 	// Methods moved to BillSyncService: isExactPaymentMatch, validateBillNumberConflicts, isTransactionalIdempotentRetry
