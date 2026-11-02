@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.feature.billing.data.BillRepository
 import com.khanabook.lite.pos.feature.reports.domain.ReportGenerator
 import com.khanabook.lite.pos.feature.reports.domain.OrderDetailRow
 import com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow
+import com.khanabook.lite.pos.core.util.AppConstants
 import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -140,7 +141,9 @@ class ReportsViewModel @Inject constructor(
             loadReports(currentFrom, currentTo)
             return
         }
-        val cal = Calendar.getInstance()
+        // Day boundaries use the shop timezone, not the device default, so Orders and Home
+        // agree about which bills belong to "today".
+        val cal = Calendar.getInstance(TimeZone.getTimeZone(AppConstants.DEFAULT_TIMEZONE))
 
         val (from, to) = when (filter) {
             "Yesterday" -> {
@@ -150,13 +153,24 @@ class ReportsViewModel @Inject constructor(
                 from to to
             }
             else -> {
-                // "Today" (legacy "Daily" treated the same)
+                // "Today" (legacy "Daily" treated the same).
+                // The upper bound is the END of the day, not "now": a bill taken after the
+                // screen opened used to fall outside the observed window, so Room emitted
+                // it but the BETWEEN clause filtered it out until the filter was re-applied.
                 val from = startOfDay(cal)
-                val to = System.currentTimeMillis()
+                val to = endOfDay(cal)
                 from to to
             }
         }
         loadReports(from, to)
+    }
+
+    /**
+     * Recomputes the current filter's window. Called when the screen resumes so "Today"
+     * rolls over at midnight and a re-opened screen never keeps a stale day window.
+     */
+    fun refreshCurrentFilter() {
+        updateDateRangeAndLoad(_timeFilter.value)
     }
 
     private fun startOfDay(cal: Calendar): Long {
@@ -222,7 +236,7 @@ class ReportsViewModel @Inject constructor(
     }
 
     private fun normalizeEndOfDay(timestamp: Long): Long {
-        val cal = Calendar.getInstance()
+        val cal = Calendar.getInstance(TimeZone.getTimeZone(AppConstants.DEFAULT_TIMEZONE))
         cal.timeInMillis = timestamp
         cal.set(Calendar.HOUR_OF_DAY, 23)
         cal.set(Calendar.MINUTE, 59)
@@ -232,7 +246,7 @@ class ReportsViewModel @Inject constructor(
     }
 
     private fun normalizeStartOfDay(timestamp: Long): Long {
-        val cal = Calendar.getInstance()
+        val cal = Calendar.getInstance(TimeZone.getTimeZone(AppConstants.DEFAULT_TIMEZONE))
         cal.timeInMillis = timestamp
         cal.set(Calendar.HOUR_OF_DAY, 0)
         cal.set(Calendar.MINUTE, 0)

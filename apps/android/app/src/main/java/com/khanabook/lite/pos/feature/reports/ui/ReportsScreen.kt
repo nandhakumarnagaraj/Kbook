@@ -23,6 +23,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import com.khanabook.lite.pos.core.theme.*
@@ -95,6 +97,12 @@ fun ReportsScreen(
 
     var isExporting by remember { mutableStateOf(false) }
     val hasLoadedOnce by viewModel.hasLoadedOnce.collectAsStateWithLifecycle()
+
+    // The day window is computed per filter change. Refreshing it on resume keeps "Today"
+    // correct when the screen is restored after midnight instead of showing yesterday's range.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.refreshCurrentFilter()
+    }
 
     Box(
         modifier = Modifier
