@@ -41,6 +41,9 @@
     }
   ],
   "navigationUrls": [
-    "/**"
+    "/**",
+    "!/pgadmin4/**",
+    "!/pgadmin4",
+    "!/api/**"
   ]
 }
