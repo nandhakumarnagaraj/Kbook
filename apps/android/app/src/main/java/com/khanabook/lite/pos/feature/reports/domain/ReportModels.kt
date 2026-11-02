@@ -37,21 +37,6 @@ data class OrderDetailRow(
     val cancelReason: String = ""
 )
 
-data class DailySalesReport(
-    val totalSales: String,
-    val totalOrders: Int,
-    val cashCollected: String,
-    val upiCollected: String,
-    val otherCollected: String
-)
-
-data class MonthlySalesReport(
-    val month: Int,
-    val year: Int,
-    val totalSales: String,
-    val totalOrders: Int
-)
-
 data class TopSellingItem(
     val itemName: String,
     val quantitySold: Int,

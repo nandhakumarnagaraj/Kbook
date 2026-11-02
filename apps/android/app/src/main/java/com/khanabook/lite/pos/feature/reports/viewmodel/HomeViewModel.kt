@@ -251,43 +251,9 @@ class HomeViewModel @Inject constructor(
             ) { bills, kdsPendingCount ->
                     val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
                     val totalRevenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 }
-                    var cashRev = 0.0
-                    var upiRev = 0.0
-                    for (b in completedBills) {
-                        val mode = com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue(b.paymentMode)
-                        when (mode) {
-                            com.khanabook.lite.pos.domain.model.PaymentMode.CASH -> {
-                                cashRev += b.totalAmount.toDoubleOrNull() ?: 0.0
-                            }
-                            com.khanabook.lite.pos.domain.model.PaymentMode.UPI -> {
-                                upiRev += b.totalAmount.toDoubleOrNull() ?: 0.0
-                            }
-                            com.khanabook.lite.pos.domain.model.PaymentMode.PART_CASH_UPI -> {
-                                cashRev += b.partAmount1.toDoubleOrNull() ?: 0.0
-                                upiRev += b.partAmount2.toDoubleOrNull() ?: 0.0
-                            }
-                            com.khanabook.lite.pos.domain.model.PaymentMode.PART_CASH_POS -> {
-                                cashRev += b.partAmount1.toDoubleOrNull() ?: 0.0
-                            }
-                            com.khanabook.lite.pos.domain.model.PaymentMode.PART_UPI_POS -> {
-                                upiRev += b.partAmount1.toDoubleOrNull() ?: 0.0
-                            }
-                            else -> {}
-                        }
-                    }
-                    val cancelledCount = bills.count { it.orderStatus == "cancelled" }
-                    val billedCustomers = bills
-                        .filterNot { it.isDeleted }
-                        .mapNotNull { it.customerWhatsapp?.takeIf(String::isNotBlank) }
-                        .distinct()
                     HomeStats(
                         orderCount = bills.size,
-                        revenue = totalRevenue,
-                        cashRevenue = cashRev,
-                        upiRevenue = upiRev,
-                        customerCount = billedCustomers.size,
                         avgOrderValue = if (completedBills.isNotEmpty()) totalRevenue / completedBills.size else 0.0,
-                        cancelledCount = cancelledCount,
                         kdsPendingCount = kdsPendingCount
                     )
                 }
@@ -437,12 +403,7 @@ class HomeViewModel @Inject constructor(
     @Immutable
     data class HomeStats(
         val orderCount: Int = 0,
-        val revenue: Double = 0.0,
-        val cashRevenue: Double = 0.0,
-        val upiRevenue: Double = 0.0,
-        val customerCount: Int = 0,
         val avgOrderValue: Double = 0.0,
-        val cancelledCount: Int = 0,
         val kdsPendingCount: Int = 0
     )
 
