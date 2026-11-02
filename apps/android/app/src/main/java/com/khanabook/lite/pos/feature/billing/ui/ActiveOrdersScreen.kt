@@ -73,15 +73,13 @@ import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrderSummaryRow
 import com.khanabook.lite.pos.feature.billing.viewmodel.ActiveOrdersViewModel
-import com.khanabook.lite.pos.feature.reports.viewmodel.ReportsViewModel
 
 @Composable
 fun ActiveOrdersScreen(
     onBack: () -> Unit,
     onOpenActiveOrder: (Long) -> Unit,
     onCollectPayment: (Long) -> Unit,
-    viewModel: ActiveOrdersViewModel = hiltViewModel(),
-    reportsViewModel: ReportsViewModel = hiltViewModel()
+    viewModel: ActiveOrdersViewModel = hiltViewModel()
 ) {
     val activeRows by viewModel.rows.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing

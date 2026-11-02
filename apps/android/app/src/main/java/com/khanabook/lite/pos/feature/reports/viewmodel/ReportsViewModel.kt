@@ -11,7 +11,6 @@ import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
@@ -64,11 +63,26 @@ class ReportsViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    /**
+     * False only until the first [loadReports] finishes for this instance.
+     * The UI shows the full-screen skeleton on that first load only; refreshes keep the
+     * existing table composed so its LazyListState (and the user's scroll position) survives.
+     */
+    private val _hasLoadedOnce = MutableStateFlow(false)
+    val hasLoadedOnce: StateFlow<Boolean> = _hasLoadedOnce
+
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
     private var currentFrom: Long = System.currentTimeMillis() - 86400000L
     private var currentTo: Long = System.currentTimeMillis()
+
+    init {
+        // Load the opening range once here. Doing it from ReportsScreen via
+        // LaunchedEffect(Unit) re-ran on every tab re-entry and silently reset the
+        // user's chosen filter back to "Today".
+        setTimeFilter("Today")
+    }
 
     fun setReportType(type: String) {
         _reportType.value = type
@@ -81,7 +95,9 @@ class ReportsViewModel @Inject constructor(
 
     fun loadBillDetails(billId: Long) {
         viewModelScope.launch {
-            _isLoading.value = true
+            // Clear the previously opened order first: the dialog renders whatever is in
+            // this flow, so holding the old value shows order A's items while order B loads.
+            _selectedBillDetails.value = null
             try {
                 _selectedBillDetails.value = reportGenerator.getOrderDetail(billId)
             } catch (e: Exception) {
@@ -89,9 +105,12 @@ class ReportsViewModel @Inject constructor(
                     e,
                     "Failed to load order details."
                 )
-            } finally {
-                _isLoading.value = false
+                // Leave the dialog on its own shimmer rather than a stale bill.
+                _selectedBillDetails.value = null
             }
+            // Deliberately does NOT touch _isLoading: that flag swaps the orders table for
+            // the full-screen skeleton, which disposes the LazyColumn and resets its scroll
+            // position to the top. The dialog shows its own shimmer while loading.
         }
     }
 
@@ -149,23 +168,42 @@ class ReportsViewModel @Inject constructor(
         loadReports(normalizeStartOfDay(from), normalizeEndOfDay(to))
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+    private var loadSequence = 0
+
     fun loadReports(from: Long, to: Long) {
         currentFrom = from
         currentTo = to
-        viewModelScope.launch {
+        // Rapid filter switches used to race: each call launched its own coroutine, so an
+        // older range could finish last and paint its rows under the newer filter.
+        // Cancel the previous load and tag this one so a late result is dropped.
+        val sequence = ++loadSequence
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
-                _paymentBreakdown.value = reportGenerator.getPaymentBreakdown(from, to)
-                _orderLevelRows.value = reportGenerator.getOrderLevelRows(from, to)
-                _orderDetailsTable.value = reportGenerator.getOrderDetailsTable(from, to)
+                val breakdown = reportGenerator.getPaymentBreakdown(from, to)
+                val rows = reportGenerator.getOrderLevelRows(from, to)
+                val details = reportGenerator.getOrderDetailsTable(from, to)
+                if (sequence != loadSequence) return@launch
+                _paymentBreakdown.value = breakdown
+                _orderLevelRows.value = rows
+                _orderDetailsTable.value = details
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _error.value = UserMessageSanitizer.sanitize(
-                    e,
-                    "Failed to load reports."
-                )
+                if (sequence == loadSequence) {
+                    _error.value = UserMessageSanitizer.sanitize(
+                        e,
+                        "Failed to load reports."
+                    )
+                }
             } finally {
-                _isLoading.value = false
+                if (sequence == loadSequence) {
+                    _isLoading.value = false
+                    _hasLoadedOnce.value = true
+                }
             }
         }
     }
@@ -231,24 +269,9 @@ class ReportsViewModel @Inject constructor(
     fun updatePaymentMode(billId: Long, newMode: String, partAmount1: String = "0.0", partAmount2: String = "0.0") {
         viewModelScope.launch {
             try {
-                val modeEnum = com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue(newMode)
-                _orderDetailsTable.update { rows ->
-                    rows.map { row ->
-                        if (row.billId == billId)
-                            row.copy(
-                                payMode = modeEnum,
-                                currentStatus = "Order ${row.orderStatus.displayLabel} [${modeEnum.displayLabel}]"
-                            )
-                        else row
-                    }
-                }
-                _orderLevelRows.update { rows ->
-                    rows.map { row ->
-                        if (row.billId == billId)
-                            row.copy(paymentMode = modeEnum)
-                        else row
-                    }
-                }
+                // Persist first, then re-read. Patching the rows before the write meant a
+                // failed repository call left the tables showing a payment mode that was
+                // never saved, while the toast claimed the edit failed.
                 billRepository.updatePaymentMode(billId, newMode, partAmount1, partAmount2)
                 if (currentFrom != 0L && currentTo != 0L) {
                     loadReports(currentFrom, currentTo)

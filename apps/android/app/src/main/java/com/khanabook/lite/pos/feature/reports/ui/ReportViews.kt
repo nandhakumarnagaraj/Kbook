@@ -147,7 +147,7 @@ fun PaymentLevelView(
         if (partModes.isNotEmpty()) {
             item {
                 Text(
-                    "Part-Payment",
+                    "Part-Payment (already counted in the modes above)",
                     color = TextGold,
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(top = spacing.small, bottom = spacing.extraSmall)
@@ -155,12 +155,19 @@ fun PaymentLevelView(
             }
 
             // One part-payment card per full row — same rhythm as the
-            // Cash/UPI/POS cards above.
+            // Cash/UPI/POS cards above. The card shows the split per side rather than a
+            // combined total: each half is already included in its mode's row above, so a
+            // combined figure here read as extra revenue and double-counted the bill.
             items(partModes) { mode ->
+                val labels = com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager
+                    .getPartLabels(mode)
                 PartPaymentCard(
                     label = mode.displayLabel,
                     mode = mode,
-                    totalAmount = breakdown[mode.displayLabel]?.toDoubleOrNull() ?: 0.0,
+                    firstLabel = labels.first,
+                    firstAmount = breakdown["${mode.displayLabel}_part1"]?.toDoubleOrNull() ?: 0.0,
+                    secondLabel = labels.second,
+                    secondAmount = breakdown["${mode.displayLabel}_part2"]?.toDoubleOrNull() ?: 0.0,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -241,7 +248,10 @@ fun PaymentModeItem(mode: PaymentMode, amount: Double) {
 fun PartPaymentCard(
     label: String,
     mode: PaymentMode,
-    totalAmount: Double,
+    firstLabel: String,
+    firstAmount: Double,
+    secondLabel: String,
+    secondAmount: Double,
     modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -272,12 +282,15 @@ fun PartPaymentCard(
                     )
                 }
                 Spacer(modifier = Modifier.width(spacing.medium))
-                Text(label, color = TextLight, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                Text(
-                    CurrencyUtils.formatPrice(totalAmount),
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(label, color = TextLight, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        "$firstLabel ${CurrencyUtils.formatPrice(firstAmount)}  ·  " +
+                            "$secondLabel ${CurrencyUtils.formatPrice(secondAmount)}",
+                        color = TextGold,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
     }

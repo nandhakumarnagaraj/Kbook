@@ -94,10 +94,7 @@ fun ReportsScreen(
     var showDateRangePicker by remember { mutableStateOf(false) }
 
     var isExporting by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        viewModel.setTimeFilter("Today")
-    }
+    val hasLoadedOnce by viewModel.hasLoadedOnce.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -217,7 +214,10 @@ fun ReportsScreen(
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                if (isLoading) {
+                // Skeleton only on the first load. A refresh (cancel, status/payment-mode
+                // change, filter change) must keep the table composed, otherwise the
+                // LazyColumn is disposed and the orders list jumps back to the top.
+                if (isLoading && !hasLoadedOnce) {
                     SkeletonReportScreen(
                         modifier = Modifier.fillMaxSize()
                     )
@@ -255,7 +255,9 @@ fun ReportsScreen(
                 }
             }
 
-            if (canExportReports && reportType == "Payment") {
+            // Both report types export: ReportExporter already writes an "Orders Report"
+            // header and an order-details table in the PDF/CSV paths.
+            if (canExportReports) {
                 ReportDownloadBottomBar(
                     onDownloadClick = {
                         scope.launch {
