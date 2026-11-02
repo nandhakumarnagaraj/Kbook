@@ -81,6 +81,13 @@ class ReportsViewModel @Inject constructor(
     private var currentFrom: Long = System.currentTimeMillis() - 86400000L
     private var currentTo: Long = System.currentTimeMillis()
 
+    /** Window currently observed; Room re-emits it whenever the bills table changes.
+     *
+     * Declared above [init] on purpose: Kotlin runs initializers and init blocks in
+     * declaration order, and the init block calls [loadReports] which reads this field.
+     * Placed below the init block it was still null at construction time. */
+    private val rangeFlow = MutableStateFlow(DateRange(0L, 0L))
+
     init {
         // Load the opening range once here. Doing it from ReportsScreen via
         // LaunchedEffect(Unit) re-ran on every tab re-entry and silently reset the
@@ -174,9 +181,6 @@ class ReportsViewModel @Inject constructor(
     }
 
     private data class DateRange(val from: Long, val to: Long)
-
-    /** Window currently observed; Room re-emits it whenever the bills table changes. */
-    private val rangeFlow = MutableStateFlow(DateRange(0L, 0L))
 
     /**
      * Reports are a live projection of the bills table, not a snapshot. A bill saved in
