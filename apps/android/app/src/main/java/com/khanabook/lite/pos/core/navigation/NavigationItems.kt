@@ -25,7 +25,7 @@ object NavigationTabs {
 object NavigationUtils {
     private val allTabs = listOf(
         TabItem("Home", Icons.Default.Home, NavigationTabs.TAB_HOME),
-        TabItem("Reports", Icons.Default.Assessment, NavigationTabs.TAB_REPORTS),
+        TabItem("Orders", Icons.Default.Assessment, NavigationTabs.TAB_REPORTS),
         TabItem("Settings", Icons.Default.Settings, NavigationTabs.TAB_SETTINGS)
     )
 

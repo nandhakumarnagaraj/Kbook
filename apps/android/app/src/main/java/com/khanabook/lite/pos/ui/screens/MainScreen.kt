@@ -154,7 +154,9 @@ fun MainScreen(
                     onCallCustomer = onCallCustomer,
                     onOpenNotifications = onOpenNotifications
                 )
-                "Reports" -> ReportsScreen(onBack = backToHome)
+                // Dispatched on the tab's display label, which NavigationItems now
+                // names "Orders"; it still hosts the reports screen.
+                "Orders" -> ReportsScreen(onBack = backToHome)
                 "Settings", "Profile" -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
