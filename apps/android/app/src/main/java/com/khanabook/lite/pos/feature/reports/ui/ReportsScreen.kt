@@ -255,9 +255,9 @@ fun ReportsScreen(
                 }
             }
 
-            // Both report types export: ReportExporter already writes an "Orders Report"
-            // header and an order-details table in the PDF/CSV paths.
-            if (canExportReports) {
+            // Download/share is a Payments Report affordance only. The exporter still
+            // supports the Orders report internally, but the button must not appear on it.
+            if (canExportReports && reportType == "Payment") {
                 ReportDownloadBottomBar(
                     onDownloadClick = {
                         scope.launch {
