@@ -130,7 +130,7 @@ fun ReportsScreen(
                         )
                     }
                     Text(
-                        text = "Report Details",
+                        text = "Order Details",
                         modifier = Modifier.align(Alignment.Center),
                         color = PrimaryGold,
                         style = MaterialTheme.typography.headlineMedium
