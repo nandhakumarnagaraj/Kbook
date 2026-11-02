@@ -30,8 +30,18 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return gross.subtract(refund).max(BigDecimal.ZERO)
     }
 
-    suspend fun getPaymentBreakdown(from: Long, to: Long): Map<String, String> {
-        val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
+    suspend fun getPaymentBreakdown(from: Long, to: Long): Map<String, String> =
+        buildPaymentBreakdown(
+            billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
+        )
+
+    /**
+     * Pure projection of an already-loaded bill list.
+     *
+     * Reports are rendered from a live Room query, so the ViewModel recomputes this on every
+     * emission instead of running its own one-shot query.
+     */
+    fun buildPaymentBreakdown(bills: List<BillEntity>): Map<String, String> {
         val breakdown = mutableMapOf<String, BigDecimal>()
         
         for (bill in bills) {
@@ -63,8 +73,12 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return breakdown.mapValues { it.value.setScale(2, RoundingMode.HALF_UP).toString() }
     }
 
-    suspend fun getOrderLevelRows(from: Long, to: Long): List<OrderLevelRow> {
-        val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
+    suspend fun getOrderLevelRows(from: Long, to: Long): List<OrderLevelRow> =
+        buildOrderLevelRows(
+            billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
+        )
+
+    fun buildOrderLevelRows(bills: List<BillEntity>): List<OrderLevelRow> {
         return bills.map { bill ->
             OrderLevelRow(
                 dailyId = bill.dailyOrderDisplay,
@@ -86,8 +100,12 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return billRepository.getBillWithItemsById(billId)
     }
 
-    suspend fun getOrderDetailsTable(from: Long, to: Long): List<OrderDetailRow> {
-        val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
+    suspend fun getOrderDetailsTable(from: Long, to: Long): List<OrderDetailRow> =
+        buildOrderDetailsTable(
+            billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
+        )
+
+    fun buildOrderDetailsTable(bills: List<BillEntity>): List<OrderDetailRow> {
         return bills.map { bill ->
                 OrderDetailRow(
                     dailyNo = bill.dailyOrderDisplay,

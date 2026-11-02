@@ -11,6 +11,10 @@ import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
@@ -81,6 +85,7 @@ class ReportsViewModel @Inject constructor(
         // Load the opening range once here. Doing it from ReportsScreen via
         // LaunchedEffect(Unit) re-ran on every tab re-entry and silently reset the
         // user's chosen filter back to "Today".
+        observeReports()
         setTimeFilter("Today")
     }
 
@@ -168,44 +173,48 @@ class ReportsViewModel @Inject constructor(
         loadReports(normalizeStartOfDay(from), normalizeEndOfDay(to))
     }
 
-    private var loadJob: kotlinx.coroutines.Job? = null
-    private var loadSequence = 0
+    private data class DateRange(val from: Long, val to: Long)
+
+    /** Window currently observed; Room re-emits it whenever the bills table changes. */
+    private val rangeFlow = MutableStateFlow(DateRange(0L, 0L))
+
+    /**
+     * Reports are a live projection of the bills table, not a snapshot. A bill saved in
+     * Billing appears here immediately: Room re-emits the range query on every insert or
+     * update, and each emission rebuilds all three tables. This replaces the one-shot
+     * `firstOrNull()` query, which only refreshed on a filter change or screen re-entry.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun observeReports() {
+        rangeFlow
+            .flatMapLatest { range ->
+                billRepository.getBillsByDateRange(range.from, range.to)
+            }
+            .onEach { bills ->
+                _paymentBreakdown.value = reportGenerator.buildPaymentBreakdown(bills)
+                _orderLevelRows.value = reportGenerator.buildOrderLevelRows(bills)
+                _orderDetailsTable.value = reportGenerator.buildOrderDetailsTable(bills)
+                _isLoading.value = false
+                _hasLoadedOnce.value = true
+            }
+            .catch { e ->
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                _error.value = UserMessageSanitizer.sanitize(e, "Failed to load reports.")
+                _isLoading.value = false
+            }
+            .launchIn(viewModelScope)
+    }
 
     fun loadReports(from: Long, to: Long) {
         currentFrom = from
         currentTo = to
-        // Rapid filter switches used to race: each call launched its own coroutine, so an
-        // older range could finish last and paint its rows under the newer filter.
-        // Cancel the previous load and tag this one so a late result is dropped.
-        val sequence = ++loadSequence
-        loadJob?.cancel()
-        loadJob = viewModelScope.launch {
-            _isLoading.value = true
-            _error.value = null
-            try {
-                val breakdown = reportGenerator.getPaymentBreakdown(from, to)
-                val rows = reportGenerator.getOrderLevelRows(from, to)
-                val details = reportGenerator.getOrderDetailsTable(from, to)
-                if (sequence != loadSequence) return@launch
-                _paymentBreakdown.value = breakdown
-                _orderLevelRows.value = rows
-                _orderDetailsTable.value = details
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                if (sequence == loadSequence) {
-                    _error.value = UserMessageSanitizer.sanitize(
-                        e,
-                        "Failed to load reports."
-                    )
-                }
-            } finally {
-                if (sequence == loadSequence) {
-                    _isLoading.value = false
-                    _hasLoadedOnce.value = true
-                }
-            }
-        }
+        val next = DateRange(from, to)
+        // Same window: the flow is already observing it and will emit on any data change,
+        // so raising the loading flag here would leave it stuck (no emission to clear it).
+        if (rangeFlow.value == next) return
+        _isLoading.value = true
+        _error.value = null
+        rangeFlow.value = next
     }
 
     private fun normalizeEndOfDay(timestamp: Long): Long {
@@ -231,14 +240,8 @@ class ReportsViewModel @Inject constructor(
     fun cancelOrder(billId: Long, reason: String) {
         viewModelScope.launch {
             try {
-                billRepository.cancelOrder(billId, reason)
-                // Re-read from Room so every table (order details, order level, payment
-                // breakdown) reflects the persisted truth. In-memory row patching used to
-                // leave paymentStatus stale and diverged from what a screen re-entry would
-                // load — the "status flips back after navigation" symptom.
-                if (currentFrom != 0L && currentTo != 0L) {
-                    loadReports(currentFrom, currentTo)
-                }
+                // No manual refresh: the observing flow re-reads Room, so every table
+                // (order details, order level, payment breakdown) reflects persisted truth.
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
                     e,
@@ -251,12 +254,8 @@ class ReportsViewModel @Inject constructor(
     fun updateOrderStatus(billId: Long, newStatus: String) {
         viewModelScope.launch {
             try {
-                billRepository.updateOrderStatus(billId, newStatus)
-                // Persist first, then re-read from Room — the tables must always be a
-                // projection of the database, never an independently patched copy.
-                if (currentFrom != 0L && currentTo != 0L) {
-                    loadReports(currentFrom, currentTo)
-                }
+                // Persist only; the flow above re-projects Room, so the tables stay a
+                // projection of the database rather than an independently patched copy.
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
                     e,
@@ -272,10 +271,9 @@ class ReportsViewModel @Inject constructor(
                 // Persist first, then re-read. Patching the rows before the write meant a
                 // failed repository call left the tables showing a payment mode that was
                 // never saved, while the toast claimed the edit failed.
+                // Persist only; the observing flow re-reads Room. Patching rows here used
+                // to leave a payment mode on screen that had never been written.
                 billRepository.updatePaymentMode(billId, newMode, partAmount1, partAmount2)
-                if (currentFrom != 0L && currentTo != 0L) {
-                    loadReports(currentFrom, currentTo)
-                }
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
                     e,
