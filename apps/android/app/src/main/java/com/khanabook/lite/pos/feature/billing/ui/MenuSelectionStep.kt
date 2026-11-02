@@ -62,7 +62,10 @@ import kotlinx.coroutines.launch
 fun OrderTypeButton(text: String, isSelected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     Box(
             modifier =
-                    modifier.height(40.dp)
+                    // 40dp cracked the 48dp touch-target floor: the button is a primary
+                    // order-type toggle, so it takes the tokenised compact control height
+                    // (48dp on compact phones, taller on bigger tiers) instead.
+                    modifier.heightIn(min = KhanaBookTheme.spacing.buttonHeightCompact)
                             .background(
                                     if (isSelected) PrimaryGold else Color.Transparent,
                                     KhanaRadii.md
@@ -601,10 +604,18 @@ fun MenuSelectionStep(
                                         modifier = Modifier
                                             .background(PrimaryGold, KhanaRadii.sm)
                                             .clip(KhanaRadii.sm)
-                                            .height(28.dp)
+                                            // The stepper used to be a fixed 28dp pill, which left
+                                            // both +/- halves below the 48dp floor. The pill now
+                                            // reserves the compact control height so the touch
+                                            // targets are legal; the digits stay centred.
+                                            .heightIn(min = spacing.buttonHeightCompact)
                                     ) {
                                         Box(
                                             modifier = Modifier
+                                                // minimumInteractiveComponentSize must precede
+                                                // the visual size, otherwise the 28dp size caps
+                                                // the space it is allowed to reserve.
+                                                .minimumInteractiveComponentSize()
                                                 .size(28.dp)
                                                 .clickable { billingViewModel.removeFromCart(cartItem.item, cartItem.variant) },
                                             contentAlignment = Alignment.Center
@@ -620,10 +631,11 @@ fun MenuSelectionStep(
                                             text = "${cartItem.quantity}",
                                             color = DarkBrown1,
                                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                            modifier = Modifier.padding(horizontal = spacing.extraSmall)
                                         )
                                         Box(
                                             modifier = Modifier
+                                                .minimumInteractiveComponentSize()
                                                 .size(28.dp)
                                                 .clickable { billingViewModel.addToCart(cartItem.item, cartItem.variant) },
                                             contentAlignment = Alignment.Center
@@ -641,9 +653,18 @@ fun MenuSelectionStep(
                                         CurrencyUtils.formatPrice((cartItem.variant?.price ?: cartItem.item.basePrice).toDoubleOrNull()?.times(cartItem.quantity) ?: 0.0),
                                         color = TextLight,
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        // Ellipsis instead of silent clipping at 200% font scale.
+                                        overflow = TextOverflow.Ellipsis
                                     )
-                                    IconButton(onClick = { showNoteDialog = true }, modifier = Modifier.size(28.dp)) {
+                                    IconButton(
+                                        onClick = { showNoteDialog = true },
+                                        modifier = Modifier
+                                            // Same rule as the stepper: reserve 48dp first,
+                                            // then draw the 28dp icon button inside it.
+                                            .minimumInteractiveComponentSize()
+                                            .size(28.dp)
+                                    ) {
                                         Icon(
                                             if (cartItem.note.isNotBlank()) Icons.Default.EditNote else Icons.AutoMirrored.Filled.NoteAdd,
                                             contentDescription = "Add note",
@@ -832,8 +853,12 @@ fun VariantPickerDialog(
                                         .background(PrimaryGold.copy(alpha = 0.15f), KhanaRadii.sm)
                                         .border(1.dp, PrimaryGold.copy(alpha = 0.7f), KhanaRadii.sm)
                                         .clip(KhanaRadii.sm)
+                                        // Chip is visually small; the 48dp reservation keeps
+                                        // the tap area legal without a bigger pill. 14/7 were
+                                        // off-grid, now the 12dp/8dp tokens.
+                                        .minimumInteractiveComponentSize()
                                         .clickable { onAddVariant(variant) }
-                                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                                        .padding(horizontal = spacing.smallMedium, vertical = spacing.small),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -848,10 +873,13 @@ fun VariantPickerDialog(
                                     modifier = Modifier
                                         .background(PrimaryGold, KhanaRadii.md)
                                         .clip(KhanaRadii.md)
-                                        .height(34.dp)
+                                        // Was a fixed 34dp pill; both halves were under the
+                                        // 48dp floor. Same treatment as the cart stepper.
+                                        .heightIn(min = spacing.buttonHeightCompact)
                                 ) {
                                     Box(
                                         modifier = Modifier
+                                            .minimumInteractiveComponentSize()
                                             .size(34.dp)
                                             .clickable { onRemoveVariant(variant) },
                                         contentAlignment = Alignment.Center
@@ -867,10 +895,11 @@ fun VariantPickerDialog(
                                         text = "$variantQty",
                                         color = DarkBrown1,
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                        modifier = Modifier.padding(horizontal = 8.dp)
+                                        modifier = Modifier.padding(horizontal = spacing.small)
                                     )
                                     Box(
                                         modifier = Modifier
+                                            .minimumInteractiveComponentSize()
                                             .size(34.dp)
                                             .clickable { onAddVariant(variant) },
                                         contentAlignment = Alignment.Center
@@ -894,7 +923,9 @@ fun VariantPickerDialog(
                 onClick = onDismiss,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp),
+                    // Dialog CTA was 44dp — the last control in the dialog that fell
+                    // below the 48dp minimum.
+                    .heightIn(min = spacing.buttonHeightCompact),
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                 shape = KhanaRadii.md
             ) {
@@ -982,7 +1013,8 @@ private fun SquareMenuItemCard(
                     type = item.foodType,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(6.dp),
+                        // 6dp was off-grid; badge inset now follows the gap scale.
+                        .padding(spacing.small),
                     size = 14.dp
                 )
 
@@ -991,7 +1023,7 @@ private fun SquareMenuItemCard(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(6.dp)
+                            .padding(spacing.small)
                             .size(24.dp)
                             .background(PrimaryGold, CircleShape),
                         contentAlignment = Alignment.Center
@@ -1018,7 +1050,7 @@ private fun SquareMenuItemCard(
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier
                                 .background(DarkBrown1.copy(alpha = 0.85f), KhanaRadii.sm)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .padding(horizontal = spacing.small, vertical = spacing.hairline)
                         )
                     }
                 }
@@ -1057,8 +1089,11 @@ private fun SquareMenuItemCard(
                                         .background(PrimaryGold.copy(alpha = 0.15f), KhanaRadii.sm)
                                         .border(1.dp, PrimaryGold.copy(alpha = 0.7f), KhanaRadii.sm)
                                         .clip(KhanaRadii.sm)
+                                        // Off-grid 10/6 became 12/8 tokens; the 48dp
+                                        // reservation keeps the chip tappable.
+                                        .minimumInteractiveComponentSize()
                                         .clickable { onAdd() }
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        .padding(horizontal = spacing.smallMedium, vertical = spacing.small),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -1073,10 +1108,13 @@ private fun SquareMenuItemCard(
                                     modifier = Modifier
                                         .background(PrimaryGold, KhanaRadii.md)
                                         .clip(KhanaRadii.md)
-                                        .height(34.dp)
+                                        // 34dp halves were under the touch-target floor;
+                                        // the stepper now reserves the compact control height.
+                                        .heightIn(min = spacing.buttonHeightCompact)
                                 ) {
                                     Box(
                                         modifier = Modifier
+                                            .minimumInteractiveComponentSize()
                                             .size(34.dp)
                                             .clickable { onRemove() },
                                         contentAlignment = Alignment.Center
@@ -1092,10 +1130,11 @@ private fun SquareMenuItemCard(
                                         text = "$cartQuantity",
                                         color = DarkBrown1,
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                        modifier = Modifier.padding(horizontal = 6.dp)
+                                        modifier = Modifier.padding(horizontal = spacing.small)
                                     )
                                     Box(
                                         modifier = Modifier
+                                            .minimumInteractiveComponentSize()
                                             .size(34.dp)
                                             .clickable { onAdd() },
                                         contentAlignment = Alignment.Center
@@ -1131,8 +1170,11 @@ private fun SquareMenuItemCard(
                                         .background(PrimaryGold.copy(alpha = 0.15f), KhanaRadii.sm)
                                         .border(1.dp, PrimaryGold.copy(alpha = 0.7f), KhanaRadii.sm)
                                         .clip(KhanaRadii.sm)
+                                        // Off-grid 10/6 became 12/8 tokens; the 48dp
+                                        // reservation keeps the "Options" chip tappable.
+                                        .minimumInteractiveComponentSize()
                                         .clickable { onCardClick() }
-                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        .padding(horizontal = spacing.smallMedium, vertical = spacing.small),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -1148,9 +1190,12 @@ private fun SquareMenuItemCard(
                                     modifier = Modifier
                                         .background(PrimaryGold, KhanaRadii.md)
                                         .clip(KhanaRadii.md)
+                                        // Whole chip is one target, so the 48dp minimum is
+                                        // reserved here rather than on the icon inside.
+                                        .minimumInteractiveComponentSize()
                                         .clickable { onCardClick() }
-                                        .height(34.dp)
-                                        .padding(horizontal = 10.dp)
+                                        .heightIn(min = spacing.buttonHeightCompact)
+                                        .padding(horizontal = spacing.smallMedium)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Tune,
@@ -1158,7 +1203,7 @@ private fun SquareMenuItemCard(
                                         tint = DarkBrown1,
                                         modifier = Modifier.size(14.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Spacer(modifier = Modifier.width(spacing.extraSmall))
                                     Text(
                                         text = "$cartQuantity in cart",
                                         color = DarkBrown1,
