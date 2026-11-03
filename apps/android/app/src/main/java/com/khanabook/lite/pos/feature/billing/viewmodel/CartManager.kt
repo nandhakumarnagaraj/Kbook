@@ -141,7 +141,7 @@ class CartManager(
         var customTax = "0.0"
 
         if (profile?.gstEnabled == true) {
-            val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
+            val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage, profile?.isTaxInclusive == true)
             cgst = gst.cgst
             sgst = gst.sgst
         } else if (profile?.customTaxPercentage != null && profile.customTaxPercentage > 0) {

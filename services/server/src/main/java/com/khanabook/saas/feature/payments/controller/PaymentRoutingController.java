@@ -30,7 +30,11 @@ public class PaymentRoutingController {
     @PostMapping("/select-method")
     public ResponseEntity<Map<String, Object>> selectOptimalMethod(@RequestBody Map<String, Object> request) {
         Long tenantId = TenantContext.getCurrentTenant();
-        BigDecimal amount = new BigDecimal(request.get("amount").toString());
+        Object amountObj = request.get("amount");
+        if (amountObj == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "amount is required"));
+        }
+        BigDecimal amount = new BigDecimal(amountObj.toString());
         String customerVpa = (String) request.getOrDefault("customerVpa", null);
         return ResponseEntity.ok(routingService.selectOptimalPaymentMethod(tenantId, amount, customerVpa));
     }

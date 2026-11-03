@@ -34,8 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.core.util.DateUtils
 import com.khanabook.lite.pos.core.util.CurrencyUtils
-import com.khanabook.lite.pos.core.util.sendInvoiceViaSms
-import com.khanabook.lite.pos.core.util.shareInvoiceViaWhatsAppLink
+import com.khanabook.lite.pos.core.util.shareInvoice
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import com.khanabook.lite.pos.core.components.KhanaDatePickerField
 import com.khanabook.lite.pos.feature.billing.ui.outlinedSearchFieldColors
@@ -472,11 +471,9 @@ fun SearchScreen(
                                         onClick = {
                                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             result?.let {
-                                                if (it.bill.serverId == null) {
-                                                    sendInvoiceViaSms(context, it, profile)
-                                                } else {
-                                                    shareInvoiceViaWhatsAppLink(context, it, profile)
-                                                }
+                                                // Same routing as every other entry point: online ->
+                                                // WhatsApp link, offline -> SMS text, no number -> share sheet.
+                                                shareInvoice(context, it, profile)
                                             }
                                         },
                                         enabled = currentResult.items.isNotEmpty(),

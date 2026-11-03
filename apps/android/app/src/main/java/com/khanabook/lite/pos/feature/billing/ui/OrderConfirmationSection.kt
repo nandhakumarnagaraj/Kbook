@@ -42,8 +42,7 @@ import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.core.util.AppAssetStore
 import com.khanabook.lite.pos.feature.sync.domain.ConnectionStatus
 import com.khanabook.lite.pos.core.util.CurrencyUtils
-import com.khanabook.lite.pos.core.util.sendInvoiceViaSms
-import com.khanabook.lite.pos.core.util.shareInstantInvoiceLink
+import com.khanabook.lite.pos.core.util.shareInvoice
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.feature.billing.viewmodel.BillingViewModel
@@ -59,6 +58,7 @@ fun SuccessStep(
         viewModel: BillingViewModel,
         settingsViewModel: SettingsViewModel,
         onDone: () -> Unit,
+        quickMode: Boolean = false,
         onShowMessage: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -70,7 +70,6 @@ fun SuccessStep(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
-    val hasCustomerWhatsapp = !lastBill?.bill?.customerWhatsapp.isNullOrBlank()
     val scope = rememberCoroutineScope()
     var isSharingInvoice by remember { mutableStateOf(false) }
     var isTtsReady by remember { mutableStateOf(false) }
@@ -128,20 +127,18 @@ fun SuccessStep(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(spacing.small)
             ) {
-                if (hasCustomerWhatsapp) {
+                // Shown for every bill: with a customer number it routes to WhatsApp (online)
+                // or SMS (offline), and a quick bill without a number goes to the share sheet.
+                // Quick bills hide it entirely: there is no customer to send to, so the only
+                // action on the success screen is Print Invoice.
+                if (lastBill != null && !quickMode) {
                     Button(
                         onClick = {
                             val currentBill = lastBill ?: return@Button
                             scope.launch {
                                 isSharingInvoice = true
                                 try {
-                                    if (connectionStatus == ConnectionStatus.Unavailable) {
-                                        onShowMessage("Offline. Sharing invoice text by SMS.")
-                                        sendInvoiceViaSms(context, currentBill, profile)
-                                        return@launch
-                                    }
-
-                                    shareInstantInvoiceLink(context, currentBill, profile)
+                                    shareInvoice(context, currentBill, profile)
                                 } finally {
                                     isSharingInvoice = false
                                 }

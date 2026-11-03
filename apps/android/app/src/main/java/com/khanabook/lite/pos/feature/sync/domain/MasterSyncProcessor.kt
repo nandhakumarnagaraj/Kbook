@@ -1364,6 +1364,18 @@ class MasterSyncProcessor @Inject constructor(
                         printerMac = currentLocalProfile?.printerMac?.takeIf { it.isNotBlank() } ?: remoteProfile.printerMac.orFallback(""),
                         paperSize = currentLocalProfile?.paperSize?.takeIf { it.isNotBlank() } ?: remoteProfile.paperSize.orFallback("58mm"),
                         autoPrintOnSuccess = currentLocalProfile?.autoPrintOnSuccess ?: (remoteProfile.autoPrintOnSuccess ?: false),
+                        // Local-only layout (no field in RestaurantProfileSyncDto), so it must
+                        // be carried over explicitly: this rebuild is a REPLACE, and leaving it
+                        // out sent printer_mode back to its 'DUAL' default on every sync, which
+                        // silently flipped the One Printer / Dual Printer toggle off.
+                        printerMode = currentLocalProfile?.printerMode ?: "DUAL",
+                        // Device-local kitchen-printer bindings (not in RestaurantProfileSyncDto).
+                        // Without these the REPLACE rebuild resets them to defaults on every sync,
+                        // wiping the kitchen printer setup. No remote fallback — server never sends them.
+                        kitchenPrinterEnabled = currentLocalProfile?.kitchenPrinterEnabled ?: false,
+                        kitchenPrinterName = currentLocalProfile?.kitchenPrinterName,
+                        kitchenPrinterMac = currentLocalProfile?.kitchenPrinterMac,
+                        kitchenPrinterPaperSize = currentLocalProfile?.kitchenPrinterPaperSize ?: "58mm",
                         includeLogoInPrint = currentLocalProfile?.includeLogoInPrint ?: (remoteProfile.includeLogoInPrint ?: true),
                         printCustomerWhatsapp = remoteProfile.printCustomerWhatsapp ?: true,
                         dailyOrderCounter = remoteProfile.dailyOrderCounter ?: 0L,

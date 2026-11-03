@@ -612,7 +612,11 @@ PrinterTargetCard(
                             enabled = enabled,
                             autoPrint = autoPrint,
                             paperSize = if (paper58) "58mm" else "80mm",
-                            includeLogo = includeLogo
+                            includeLogo = includeLogo,
+                            // Same reason as the layout comment in updatePrinterProfile: this
+                            // write races the profile save above, and without it the torn
+                            // read/write restored the previous mode.
+                            printerMode = onePrinterMode.name
                         )
                         viewModel.updatePrinterProfile(
                             role = PrinterRole.KITCHEN,

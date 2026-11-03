@@ -285,6 +285,52 @@ fun copyInvoiceLink(context: Context, billWithItems: BillWithItems): String? {
 }
 
 /**
+ * One-shot connectivity check at the moment of the tap.
+ *
+ * Deliberately reads the live network instead of a collected flow: the cashier may have
+ * just lost Wi-Fi behind the counter, and the share action must follow that reality now.
+ */
+fun isOnline(context: Context): Boolean {
+    return try {
+        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            ?: return false
+        val network = manager.activeNetwork ?: return false
+        val caps = manager.getNetworkCapabilities(network) ?: return false
+        caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    } catch (e: Exception) {
+        false
+    }
+}
+
+/**
+ * Single entry point for "Share Invoice" on every screen.
+ *
+ * Online with a customer number  -> WhatsApp with the hosted invoice link.
+ * Offline with a customer number -> SMS with the full invoice text, because a link to a
+ *                                   page cannot be read from a counter with no signal.
+ * No customer number (quick bill) -> Android share sheet with the invoice text, so a
+ *                                   quick bill still reaches the customer without a phone.
+ */
+fun shareInvoice(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
+    val hasCustomerNumber = !billWithItems.bill.customerWhatsapp.isNullOrBlank()
+
+    if (!hasCustomerNumber) {
+        // shareInvoiceTextViaWhatsApp falls through to the share sheet when there is no
+        // number to address, which is exactly what a quick bill needs.
+        shareInvoiceTextViaWhatsApp(context, billWithItems, profile)
+        return
+    }
+
+    if (isOnline(context)) {
+        shareInstantInvoiceLink(context, billWithItems, profile)
+    } else {
+        showAppToast("Offline. Sharing invoice text by SMS.", ToastKind.Info)
+        sendInvoiceViaSms(context, billWithItems, profile)
+    }
+}
+
+/**
  * Shares the invoice on WhatsApp as a LINK only.
  * The link points to the backend's hosted invoice page.
  *

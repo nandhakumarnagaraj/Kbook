@@ -29,7 +29,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import com.khanabook.lite.pos.core.util.openBillToPrint
-import com.khanabook.lite.pos.core.util.shareInvoiceViaWhatsAppLink
+import com.khanabook.lite.pos.core.util.shareInvoice
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.feature.reports.viewmodel.ReportsViewModel
@@ -126,7 +126,7 @@ fun ReportsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(OrdersBg),
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
         contentAlignment = Alignment.TopCenter
     ) {
         Column(
@@ -352,7 +352,8 @@ fun ReportsScreen(
                     openBillToPrint(context, detail, profile)
                 },
                 onShareInvoice = { detail ->
-                    shareInvoiceViaWhatsAppLink(context, detail, profile)
+                    // Online -> WhatsApp link, offline -> SMS text, quick bill -> share sheet.
+                    shareInvoice(context, detail, profile)
                 },
                 onCancelOrder = { detail ->
                     cancelBillId = detail.bill.id

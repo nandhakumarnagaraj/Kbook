@@ -144,7 +144,7 @@ fun CallCustomerScreen(
                         Modifier.padding(padding)
                                 .consumeWindowInsets(padding)
                                 .fillMaxSize()
-                                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
+                                .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
                                 .horizontalNavigationSwipe(onSwipeRight = onBack)
                                 .imePadding(),
                 contentAlignment = Alignment.TopCenter

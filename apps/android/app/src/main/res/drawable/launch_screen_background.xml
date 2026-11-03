@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Window background for the launch theme.
-    Matches the Compose BrandedStartFrame gradient exactly so there is
-    zero visual flash when transitioning from native splash → Compose.
-    
-    Colors: DarkBg (#0D0104) → DarkBgMid (#1A0A0F) → DarkBgWarm (#2D0A10) → DarkBgMid (#1A0A0F) → DarkBg (#0D0104)
+    Uses the exact same gradient every Compose screen paints
+    (DarkBrown1 to DarkBrown2 to RichEspresso), so there is zero visual shift
+    from native splash to Compose BrandedStartFrame to Login.
+
+    Colors: #1A0A0A -> #2D1010 -> #1A0828
 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
             <gradient
                 android:angle="270"
-                android:startColor="#0D0104"
-                android:centerColor="#2D0A10"
-                android:endColor="#0D0104" />
+                android:startColor="#1A0A0A"
+                android:centerColor="#2D1010"
+                android:endColor="#1A0828" />
         </shape>
     </item>
 </layer-list>

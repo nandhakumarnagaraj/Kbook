@@ -1373,7 +1373,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 var customTax = "0.0"
 
                 if (profile.gstEnabled) {
-                    val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
+                    val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage, profile.isTaxInclusive)
                     cgst = gst.cgst
                     sgst = gst.sgst
                 } else if (profile.customTaxPercentage > 0) {

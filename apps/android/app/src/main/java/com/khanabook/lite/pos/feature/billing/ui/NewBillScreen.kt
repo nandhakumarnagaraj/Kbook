@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -363,7 +364,7 @@ fun NewBillScreen(
             .fillMaxSize()
             .padding(paddingValues)
             .consumeWindowInsets(paddingValues)
-            .background(DarkBrown1)
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
         ) {
             AnimatedContent(
                 targetState = step,
@@ -433,6 +434,7 @@ fun NewBillScreen(
                                     billingViewModel,
                                     settingsViewModel,
                                     onDone = navigateToHome,
+                                    quickMode = quickMode,
                                     onShowMessage = { msg ->
                                         coroutineScope.launch {
                                             KhanaToast.show(msg, printFeedbackKind(msg))

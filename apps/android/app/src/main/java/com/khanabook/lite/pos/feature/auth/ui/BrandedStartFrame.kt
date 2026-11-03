@@ -21,14 +21,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.core.theme.DarkBrown1
+import com.khanabook.lite.pos.core.theme.DarkBrown2
+import com.khanabook.lite.pos.core.theme.RichEspresso
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
 // ── Modern Clean Palette ──────────────────────────────────────────────────────
-private val DarkBg = Color(0xFF0D0104)
-private val DarkBgMid = Color(0xFF1A0A0F)
-private val DarkBgWarm = Color(0xFF2D0A10)
 private val GoldPrimary = Color(0xFFC8960C)
 private val TextWhite = Color(0xFFF5F5F5)
 private val TextMuted = Color(0xFFB0B0B0)
@@ -121,17 +121,7 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        DarkBg,
-                        DarkBgMid,
-                        DarkBgWarm,
-                        DarkBgMid,
-                        DarkBg
-                    )
-                )
-            )
+            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
             .statusBarsPadding()
             .navigationBarsPadding(),
         contentAlignment = Alignment.Center

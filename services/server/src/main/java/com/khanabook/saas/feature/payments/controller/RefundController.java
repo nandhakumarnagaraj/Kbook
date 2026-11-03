@@ -31,7 +31,11 @@ public class RefundController {
     public ResponseEntity<Map<String, Object>> initiateRefund(
             @PathVariable Long billId,
             @RequestBody Map<String, Object> body) {
-        BigDecimal amount = new BigDecimal(body.get("refundAmount").toString());
+        Object amountObj = body.get("refundAmount");
+        if (amountObj == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "refundAmount is required"));
+        }
+        BigDecimal amount = new BigDecimal(amountObj.toString());
         String reason = (String) body.getOrDefault("reason", "OTHER");
         Map<String, Object> result = refundService.initiatePartialRefund(billId, requireTenant(), amount, reason);
         if ("failure".equals(result.get("status"))) {

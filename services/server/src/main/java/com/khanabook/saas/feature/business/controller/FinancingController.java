@@ -23,7 +23,11 @@ public class FinancingController {
 
     @PostMapping("/options")
     public ResponseEntity<Map<String, Object>> getLoanOptions(@RequestBody Map<String, Object> body) {
-        BigDecimal amount = new BigDecimal(body.get("amount").toString());
+        Object amountObj = body.get("amount");
+        if (amountObj == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "amount is required"));
+        }
+        BigDecimal amount = new BigDecimal(amountObj.toString());
         return ResponseEntity.ok(financingService.getLoanOptions(requireTenant(), amount));
     }
 

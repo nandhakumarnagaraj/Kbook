@@ -17,9 +17,12 @@ import com.khanabook.lite.pos.feature.billing.ui.NewBillScreen
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,6 +33,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.core.theme.DarkBrown1
+import com.khanabook.lite.pos.core.theme.DarkBrown2
+import com.khanabook.lite.pos.core.theme.RichEspresso
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.feature.auth.ui.SignUpScreen
@@ -341,9 +347,15 @@ internal fun AppNavGraph(
             )
         }
         composable(Routes.COMPLIANCE_DOCUMENTS) {
-            com.khanabook.lite.pos.feature.onboarding.ui.ComplianceDocumentsScreen(
-                onBack = { navController.popBackStack() }
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
+            ) {
+                com.khanabook.lite.pos.feature.onboarding.ui.ComplianceDocumentsScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
