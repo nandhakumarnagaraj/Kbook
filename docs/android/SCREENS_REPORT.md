@@ -67,7 +67,7 @@ Notification payloads are mapped to routes in `feature/notifications/domain/Noti
 
 | Tab | Index | Host screen | Notes |
 |-----|-------|-------------|-------|
-| Home | 0 | `HomeScreen` | Quick bill CTA, active orders, find bill, reprint KOT, call customer, notification bell, warnings (payment/sync/clock drift) |
+| Home | 0 | `HomeScreen` | Quick bill CTA, active orders, reprint KOT, call customer, notification bell, warnings (payment/sync/clock drift); the "Find Bill" tile was removed from the UI (search code kept in codebase) |
 | Reports | 1 | `ReportsScreen` | Payments Report / Orders Report, date-range picker, export |
 | Settings | 3 | `SettingsScreen` | Section host (see §3); the same tab serves "Profile" |
 

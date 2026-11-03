@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
@@ -27,6 +28,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.core.util.UserMessageSanitizer
+import com.khanabook.lite.pos.core.util.openBillToPrint
+import com.khanabook.lite.pos.core.util.shareInvoiceViaWhatsAppLink
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.feature.reports.viewmodel.ReportsViewModel
@@ -92,6 +95,22 @@ fun ReportsScreen(
     var cancelBillId by remember { mutableStateOf<Long?>(null) }
     var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
     var pendingPartBill by remember { mutableStateOf<OrderLevelRow?>(null) }
+
+    // Local search over the already-loaded rows: order number or invoice number.
+    // No extra query hits Room, so typing stays instant and works offline.
+    var searchQuery by remember { mutableStateOf("") }
+    var searchExpanded by remember { mutableStateOf(false) }
+    val filteredRows = remember(orderLevelRows, searchQuery) {
+        val query = searchQuery.trim()
+        if (query.isEmpty()) {
+            orderLevelRows
+        } else {
+            orderLevelRows.filter { row ->
+                row.dailyId.contains(query, ignoreCase = true) ||
+                    row.invoiceDisplay.contains(query, ignoreCase = true)
+            }
+        }
+    }
     
     var showDateRangePicker by remember { mutableStateOf(false) }
 
@@ -107,7 +126,7 @@ fun ReportsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso))),
+            .background(OrdersBg),
         contentAlignment = Alignment.TopCenter
     ) {
         Column(
@@ -138,11 +157,27 @@ fun ReportsScreen(
                         )
                     }
                     Text(
-                        text = "Order Details",
+                        text = "Orders",
                         modifier = Modifier.align(Alignment.Center),
                         color = PrimaryGold,
                         style = MaterialTheme.typography.headlineMedium
                     )
+                    IconButton(
+                        onClick = {
+                            searchExpanded = !searchExpanded
+                            if (!searchExpanded) searchQuery = ""
+                        },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .size(layout.topBarIconButtonSize)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = if (searchExpanded) "Close search" else "Search orders",
+                            modifier = Modifier.size(layout.topBarIconSize),
+                            tint = PrimaryGold
+                        )
+                    }
                 }
             }
 
@@ -192,24 +227,23 @@ fun ReportsScreen(
             }
 
             
-            AnimatedVisibility(visible = contentVisible, enter = enterSpec, exit = exitSpec) {
-                Row(
+            AnimatedVisibility(
+                visible = searchExpanded && contentVisible,
+                enter = enterSpec,
+                exit = exitSpec
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        .padding(horizontal = spacing.medium)
                 ) {
-                    ReportTypeToggle(
-                        label = "Payments Report",
-                        isSelected = reportType == "Payment",
-                        onClick = { viewModel.setReportType("Payment") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    ReportTypeToggle(
-                        label = "Orders Report",
-                        isSelected = reportType == "Order",
-                        onClick = { viewModel.setReportType("Order") },
-                        modifier = Modifier.weight(1f)
+                    KhanaBookInputField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        label = "Search orders",
+                        placeholder = "Order number or invoice number",
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
                 }
             }
@@ -237,7 +271,7 @@ fun ReportsScreen(
                     )
                 } else {
                     OrderLevelView(
-                        rows = orderLevelRows,
+                        rows = filteredRows,
                         profile = profile,
                         enabledModes = enabledModes,
                         compactLayout = !layout.isWideListDetail,
@@ -309,12 +343,27 @@ fun ReportsScreen(
             OrderDetailsDialog(
                 billWithItems = selectedBillDetails,
                 profile = profile,
+                enabledPaymentModes = enabledModes,
                 onDismiss = {
                     selectedBillId = null
                     viewModel.clearBillDetails()
                 },
+                onPrintReceipt = { detail ->
+                    openBillToPrint(context, detail, profile)
+                },
+                onShareInvoice = { detail ->
+                    shareInvoiceViaWhatsAppLink(context, detail, profile)
+                },
                 onCancelOrder = { detail ->
                     cancelBillId = detail.bill.id
+                },
+                onChangePaymentMode = { detail, mode ->
+                    if (PaymentModeManager.isPartPayment(mode)) {
+                        pendingPartBill = orderLevelRows.find { it.billId == detail.bill.id }
+                        pendingPartMode = mode
+                    } else {
+                        viewModel.updatePaymentMode(detail.bill.id, mode.dbValue)
+                    }
                 }
             )
         }

@@ -62,8 +62,8 @@ The Home tab is the hub for everything billing.
 │   [ Create Quick Bill ]             │  ← main button (label
 │                                     │     changes with mode)
 ├─────────────────────────────────────┤
-│  Active Orders   Find Bill          │  ← quick action tiles
-│  Reprint KOT     Call Customer      │
+│  Active Orders   Reprint KOT        │  ← quick action tiles
+│  Call Customer                      │
 └─────────────────────────────────────┘
 ```
 
@@ -78,8 +78,6 @@ The Home tab is the hub for everything billing.
 
 **Quick action tiles:**
 - **Active Orders** — dine-in orders waiting for payment (pay-after-food mode)
-- **Find Bill** — "Search previous invoices" by order or invoice number; reprint
-  or WhatsApp-share
 - **Reprint KOT** — reprint a kitchen ticket by order number
 - **Call Customer** — "Dial from saved customers"
 
@@ -548,8 +546,8 @@ printer."*
 
 - Set **Test Printer** after every change — it's the fastest way to confirm the
   right printer is selected for the right slot.
-- Receipts print from the billing success screen (**Print Invoice**) or from
-  **Find Bill** on Home (**Print Receipt**).
+- Receipts print from the billing success screen (**Print Invoice**) — the
+  Home "Find Bill" tile has been removed from the UI.
 - Kitchen tickets print automatically when you **Send to Kitchen (KOT)** —
   see [11. Active Orders & KOT](#11-active-orders-kot-pay-after-food). Cancellations print a
   "*** ORDER CANCELLED ***" slip automatically.
@@ -830,8 +828,8 @@ balance and confirm. See also [11. Active Orders & KOT](#11-active-orders-kot-pa
 ### Notes
 
 - There is **no discount field** in billing — discounts aren't part of the app.
-- Find an old bill from Home → **Find Bill** (search by Order No, e.g.
-  `A000042`, or invoice no.) to reprint or share it.
+- Old bills stay available in the **Orders** report, where each order's details
+  can be opened to reprint or share its invoice.
 - Cancelled bills: [9. Cancel a Bill](#9-cancel-a-bill).
 
 Next: [9. Cancel a Bill](#9-cancel-a-bill)
@@ -958,8 +956,8 @@ user to change payment mode") and mode selection re-enables.
 
 ### Tips
 
-- Find a bill fast from Home → **Find Bill** (search by Order No), then check
-  its mode in the result.
+- Check an order's payment mode in the **Orders** report (open the order from
+  the table).
 - A cancelled bill's mode can't be changed — *"Cancelled orders can't be
   changed."*
 

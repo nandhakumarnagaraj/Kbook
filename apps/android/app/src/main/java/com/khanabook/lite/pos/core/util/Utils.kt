@@ -268,6 +268,23 @@ fun buildPendingInvoiceShareUrl(billWithItems: BillWithItems): String? {
 }
 
 /**
+ * Copies the hosted invoice link to the clipboard.
+ *
+ * Works for a synced bill (server link) and for a pending, local-only bill, so a
+ * counter with no signal can still hand the customer something to open later.
+ * Returns the copied link, or null when no link can be built yet.
+ */
+fun copyInvoiceLink(context: Context, billWithItems: BillWithItems): String? {
+    val link = buildInvoiceShareUrl(billWithItems)
+        ?: buildPendingInvoiceShareUrl(billWithItems)
+        ?: return null
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
+        as? android.content.ClipboardManager ?: return null
+    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("KhanaBook Invoice", link))
+    return link
+}
+
+/**
  * Shares the invoice on WhatsApp as a LINK only.
  * The link points to the backend's hosted invoice page.
  *

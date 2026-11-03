@@ -6,6 +6,7 @@ import com.khanabook.lite.pos.core.theme.*
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,12 +51,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val containerColor by animateColorAsState(
-        targetValue = if (isSelected) PrimaryGold else Color.Transparent,
+        targetValue = if (isSelected) OrdersGold else Color.Transparent,
         animationSpec = tween(200),
         label = "chip_container"
     )
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) DarkBrown1 else TextLight,
+        targetValue = if (isSelected) OrdersBg else OrdersTextPrimary,
         animationSpec = tween(200),
         label = "chip_content"
     )
@@ -69,7 +71,7 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
         modifier = modifier.heightIn(min = chipMinHeight),
         shape = KhanaRadii.md,
         color = containerColor,
-        border = if (isSelected) null else BorderStroke(1.dp, BorderGold),
+        border = if (isSelected) null else BorderStroke(1.dp, OrdersGold.copy(alpha = 0.45f)),
         contentColor = contentColor
     ) {
         Box(
@@ -296,11 +298,33 @@ fun PartPaymentCard(
     }
 }
 
-private val COL_ORDER   = 0.8f
+private val COL_ORDER   = 0.9f
+private val COL_AMOUNT  = 1.1f
+private val COL_TIME    = 1.0f
 private val COL_DATE    = 1.0f
 private val COL_MODE    = 1.1f
 private val COL_STATUS  = 1.2f
 private val COL_ACTION  = 0.8f
+
+/** Time-of-day for the Orders table "Time" column. */
+private fun formatOrderRowTime(row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow): String {
+    if (row.createdAt > 0L) {
+        return java.time.Instant.ofEpochMilli(row.createdAt)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US))
+    }
+    // Legacy rows: `date` already carries "dd MMM yyyy, hh:mm a"
+    return row.date.substringAfter(", ", row.date)
+}
+
+/**
+ * Amount as the Orders table shows it: no space between the currency symbol and the
+ * number ("\u20b9470.00"). Scoped to this table so receipts, PDFs and invoices keep
+ * the shared CurrencyUtils spacing.
+ */
+private fun formatOrderRowAmount(amount: String?): String =
+    com.khanabook.lite.pos.core.util.CurrencyUtils.formatPrice(amount)
+        .replace("\u20B9 ", "\u20B9")
 
 
 @Composable
@@ -321,23 +345,15 @@ fun OrderLevelView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = spacing.medium)
-                .background(DarkBrown1.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                .background(OrdersCard, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (compactLayout) {
-                // Phone table: OrderNo | Mode | Status | Action
-                HeaderCell("OrderNo", COL_ORDER)
-                HeaderCell("Mode", COL_MODE)
-                HeaderCell("Status", COL_STATUS)
-                HeaderCell("Action", COL_ACTION)
-            } else {
-                HeaderCell("Order No", COL_ORDER)
-                HeaderCell("Date", COL_DATE)
-                HeaderCell("Mode", COL_MODE)
-                HeaderCell("Status", COL_STATUS)
-                HeaderCell("Action", COL_ACTION)
-            }
+            // One column set for both layouts: OrderNo | Amount | Time | Action
+            HeaderCell("OrderNo", COL_ORDER)
+            HeaderCell("Amount", COL_AMOUNT)
+            HeaderCell("Time", COL_TIME)
+            HeaderCell("Action", COL_ACTION)
         }
 
         if (rows.isEmpty()) {
@@ -441,8 +457,10 @@ fun OrderRowItem(
     // Details open ONLY via the View action button — the row itself is not clickable,
     // so stray taps while scrolling never pop the dialog.
     KhanaBookCard(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = DarkBrown1.copy(alpha = 0.3f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, OrdersDivider.copy(alpha = 0.7f), KhanaRadii.sm),
+        colors = CardDefaults.cardColors(containerColor = OrdersCard),
         shape = KhanaRadii.sm
     ) {
         Row(
@@ -451,132 +469,34 @@ fun OrderRowItem(
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TableCell(row.dailyId, COL_ORDER)
-            if (!compactLayout) {
-                TableCell(
-                    row.date,
-                    COL_DATE,
-                    color = if (isCancelled) TextLight.copy(alpha = 0.5f) else TextMuted
-                )
-            }
-
-            // Mode dropdown
-            Box(modifier = Modifier.weight(COL_MODE), contentAlignment = Alignment.Center) {
-                val modeColor = getPayModeColor(row.paymentMode)
-                Surface(
-                    onClick = {
-                        when {
-                            isCancelled || !isSameDayAsTaken -> onEditBlocked()
-                            isPayAfterFoodDraft -> Unit
-                            selectablePayModes.isEmpty() -> Unit
-                            else -> payModeExpanded = true
-                        }
-                    },
-                    color = modeColor,
-                    shape = KhanaRadii.sm,
-                    modifier = Modifier.padding(horizontal = spacing.hairline)
-                ) {
-                    Text(
-                        text = row.paymentMode.displayLabel,
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = layout.tableCellFontSize,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
-                        maxLines = 1
-                    )
-                }
-                DropdownMenu(
-                    expanded = payModeExpanded,
-                    onDismissRequest = { payModeExpanded = false },
-                    modifier = Modifier.background(DarkBrown2)
-                ) {
-                    selectablePayModes.forEach { mode ->
-                        DropdownMenuItem(
-                            text = { Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
-                            onClick = { onPayModeChange(mode); payModeExpanded = false }
-                        )
-                    }
-                }
-            }
-
-            // Status dropdown
-            Box(modifier = Modifier.weight(COL_STATUS), contentAlignment = Alignment.Center) {
-                val statusColor = when (row.orderStatus) {
-                    OrderStatus.COMPLETED -> SuccessGreen
-                    OrderStatus.CANCELLED -> DangerRed
-                    OrderStatus.DRAFT -> PrimaryGold
-                    else -> TextMuted
-                }
-                Surface(
-                    onClick = {
-                        when {
-                            isCancelled || !isSameDayAsTaken -> onEditBlocked()
-                            else -> statusExpanded = true
-                        }
-                    },
-                    color = statusColor,
-                    shape = KhanaRadii.sm,
-                    modifier = Modifier.padding(horizontal = spacing.extraSmall)
-                ) {
-                    Text(
-                        text = row.orderStatus.displayLabel,
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = layout.tableCellFontSize,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
-                        maxLines = 1
-                    )
-                }
-                DropdownMenu(
-                    expanded = statusExpanded,
-                    onDismissRequest = { statusExpanded = false },
-                    modifier = Modifier.background(DarkBrown2)
-                ) {
-                    // Pay-after-food dine-in drafts: no direct "Completed" — settle
-                    // on the billing screen, or cancel here.
-                    if (row.orderStatus != OrderStatus.COMPLETED && !isPayAfterFoodDraft) {
-                        DropdownMenuItem(
-                            text = { Text("Completed", color = TextLight, style = MaterialTheme.typography.bodySmall) },
-                            onClick = { onStatusChange(OrderStatus.COMPLETED.dbValue); statusExpanded = false }
-                        )
-                    }
-                    // Mirror of the guard above: a completed order is settled, so it
-                    // must not be demoted back to the open-bill state. Together the two
-                    // rules mean no row can move backwards through the status flow.
-                    if (row.orderStatus != OrderStatus.COMPLETED && row.orderStatus != OrderStatus.DRAFT) {
-                        DropdownMenuItem(
-                            text = { Text(OrderStatus.DRAFT.displayLabel, color = TextLight, style = MaterialTheme.typography.bodySmall) },
-                            onClick = { onStatusChange(OrderStatus.DRAFT.dbValue); statusExpanded = false }
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Cancel Order", color = DangerRed, style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)) },
-                        onClick = { onRequestCancel(); statusExpanded = false }
-                    )
-                }
-            }
+            TableCell(row.dailyId, COL_ORDER, color = OrdersTextPrimary)
+            TableCell(
+                formatOrderRowAmount(row.totalAmount),
+                COL_AMOUNT,
+                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersBrightGold
+            )
+            TableCell(
+                formatOrderRowTime(row),
+                COL_TIME,
+                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextSecondary
+            )
 
             // Action (View) — the ONLY way to open order details
             Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
                 Surface(
                     onClick = { onViewDetails(row.billId) },
                     color = Color.Transparent,
-                    border = BorderStroke(1.dp, PrimaryGold),
+                    border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.6f)),
                     shape = KhanaRadii.sm
                 ) {
-                    Text(
-                        "View",
-                        color = TextLight,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = layout.tableCellFontSize
-                        ),
-                        modifier = Modifier.padding(horizontal = spacing.small - spacing.hairline, vertical = spacing.hairline)
+                    Icon(
+                        imageVector = Icons.Filled.Visibility,
+                        contentDescription = "View order ${row.dailyId}",
+                        tint = OrdersGold,
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 44.dp, minHeight = 36.dp)
+                            .padding(horizontal = spacing.small, vertical = spacing.hairline)
+                            .size(20.dp)
                     )
                 }
             }

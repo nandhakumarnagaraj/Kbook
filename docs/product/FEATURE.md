@@ -96,7 +96,7 @@ graph in `AppNavGraph`.
 
 **Home** (`apps/android/app/src/main/java/com/khanabook/lite/pos/feature/reports/ui/HomeScreen.kt`)
 — five actions always visible:
-Create New Order, Active Orders, Find Bill, Reprint KOT, Call Customer.
+Create New Order, Active Orders, Reprint KOT, Call Customer. (The "Find Bill" tile was removed from the Home UI; SearchScreen code is retained.)
 
 **Billing** (`feature/billing`):
 - `NewBillScreen` steps: menu selection → cart → payment (tablet split-view at ≥840 dp).

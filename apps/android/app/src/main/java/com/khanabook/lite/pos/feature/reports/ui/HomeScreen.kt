@@ -420,14 +420,6 @@ fun HomeScreen(
                     )
                 }
                 HomeActionCard(
-                    text = "Find Bill",
-                    subtitle = "Search previous invoices",
-                    icon = Icons.Default.Search,
-                    backgroundColor = CardBG,
-                    modifier = Modifier.fillMaxWidth().weight(0.85f),
-                    onClick = onSearchBill
-                )
-                HomeActionCard(
                     text = "Reprint KOT",
                     subtitle = "Kitchen Order Ticket",
                     icon = Icons.Default.Restaurant,
@@ -467,14 +459,6 @@ fun HomeScreen(
                             onClick = onActiveOrder
                         )
                     }
-                    HomeActionCard(
-                        text = "Find Bill",
-                        subtitle = "Search previous invoices",
-                        icon = Icons.Default.Search,
-                        backgroundColor = CardBG,
-                        modifier = actionModifier,
-                        onClick = onSearchBill
-                    )
                     HomeActionCard(
                         text = "Reprint KOT",
                         subtitle = "Kitchen Order Ticket",

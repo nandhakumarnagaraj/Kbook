@@ -46,3 +46,15 @@ val SmsBlue = Color(0xFF1976D2)
 val PartCashUpiTeal = Color(0xFF00A394)
 val PartCashPosOrange = Color(0xFFEF6C00)
 val PartUpiPosSky = Color(0xFF4FA3E3)
+
+// Orders screen + Order Details modal — premium burgundy / champagne gold.
+// Scoped to these two surfaces so the rest of the app keeps its existing palette.
+val OrdersBg = Color(0xFF170809)
+val OrdersCard = Color(0xFF260F10)
+val OrdersGold = Color(0xFFD9A514)
+val OrdersBrightGold = Color(0xFFFFD166)
+val OrdersTextPrimary = Color(0xFFF1DFAF)
+val OrdersTextSecondary = Color(0xFFBBAE9D)
+val OrdersDivider = Color(0xFF493025)
+val OrdersShareGreen = Color(0xFF238B57)
+val OrdersShareGreenPressed = Color(0xFF176B42)
