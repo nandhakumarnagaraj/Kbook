@@ -260,6 +260,7 @@ class ReportsViewModel @Inject constructor(
             try {
                 // No manual refresh: the observing flow re-reads Room, so every table
                 // (order details, order level, payment breakdown) reflects persisted truth.
+                billRepository.cancelOrder(billId, reason)
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
                     e,
@@ -274,6 +275,7 @@ class ReportsViewModel @Inject constructor(
             try {
                 // Persist only; the flow above re-projects Room, so the tables stay a
                 // projection of the database rather than an independently patched copy.
+                billRepository.updateOrderStatus(billId, newStatus)
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
                     e,
