@@ -96,6 +96,8 @@ class WifiPrinterTransport @Inject constructor(
         )
         return try {
             socket.connect(InetSocketAddress(host, port), CONNECT_TIMEOUT_MS)
+            try { socket.tcpNoDelay = true } catch (_: Exception) {}
+            Log.d(TAG, "deliver: connected to $host:$port, writing ${bytes.size} bytes...")
             socket.getOutputStream().use { output ->
                 var offset = 0
                 while (offset < bytes.size) {
@@ -104,7 +106,11 @@ class WifiPrinterTransport @Inject constructor(
                     output.flush()
                     offset = end
                 }
+                output.flush()
             }
+            val drainMs = (300L + (bytes.size / 6L)).coerceIn(500L, 2_500L)
+            Thread.sleep(drainMs)
+            Log.d(TAG, "deliver: successfully flushed ${bytes.size} bytes to $host:$port (drain=${drainMs}ms)")
             true
         } catch (e: Exception) {
             Log.w(
@@ -123,7 +129,7 @@ class WifiPrinterTransport @Inject constructor(
         private const val CONNECT_TIMEOUT_MS = 5_000
         private const val WRITE_DEADLINE_MS = 10_000L
         private const val CHUNK_SIZE = 4_096
-        private const val RETRY_DELAY_MS = 300L
+        private const val RETRY_DELAY_MS = 1_000L
 
         /** Shared daemon watchdog pool — one thread serves all Wi-Fi print attempts. */
         private val writeWatchdog = Executors.newSingleThreadScheduledExecutor { r ->

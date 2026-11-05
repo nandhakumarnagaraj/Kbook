@@ -27,6 +27,7 @@ class WifiPrinterTransportTest {
     @Before
     fun setUp() {
         mockkStatic(android.util.Log::class)
+        every { android.util.Log.d(any(), any<String>()) } returns 0
         every { android.util.Log.w(any(), any<String>()) } returns 0
         every { android.util.Log.w(any(), any<String>(), any()) } returns 0
         // Loopback endpoints are never "same subnet" per NetworkInterface rules —

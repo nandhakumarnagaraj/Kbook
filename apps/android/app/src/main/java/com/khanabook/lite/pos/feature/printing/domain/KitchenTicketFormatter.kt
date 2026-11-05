@@ -60,7 +60,7 @@ object KitchenTicketFormatter {
 
         add("$line\n")
         add("\n\n\n")
-        add(CUT_PAPER)
+        if (is80mm) add(CUT_PAPER)
         return out.toByteArray()
     }
 
@@ -121,7 +121,7 @@ object KitchenTicketFormatter {
 
         add("$line\n")
         add("\n\n\n")
-        add(CUT_PAPER)
+        if (is80mm) add(CUT_PAPER)
         return out.toByteArray()
     }
 
@@ -202,7 +202,7 @@ object KitchenTicketFormatter {
 
         add("$line\n")
         add("\n\n\n")
-        add(CUT_PAPER)
+        if (is80mm) add(CUT_PAPER)
         return out.toByteArray()
     }
 

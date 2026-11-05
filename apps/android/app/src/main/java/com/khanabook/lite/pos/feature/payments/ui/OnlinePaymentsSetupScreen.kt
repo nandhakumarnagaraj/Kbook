@@ -50,7 +50,7 @@ import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingStep
 import com.khanabook.lite.pos.feature.payments.viewmodel.OnboardingUiState
 
 @Composable
-fun EasebuzzOnboardingScreen(
+fun OnlinePaymentsSetupScreen(
     onBack: () -> Unit,
     onOpenComplianceDocs: (() -> Unit)? = null,
     viewModel: EasebuzzOnboardingViewModel = hiltViewModel()

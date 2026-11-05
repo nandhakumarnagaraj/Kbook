@@ -1,5 +1,10 @@
 package com.khanabook.lite.pos.core.designsystem
 
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.MarqueeAnimationMode
+import androidx.compose.foundation.MarqueeSpacing
+import androidx.compose.ui.unit.dp
+
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
@@ -29,6 +34,7 @@ fun KhanaBookInputField(
     label: String,
     modifier: Modifier = Modifier,
     placeholder: String? = null,
+    marqueePlaceholder: Boolean = false,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     supportingText: (@Composable () -> Unit)? = null,
@@ -51,7 +57,26 @@ fun KhanaBookInputField(
             value = value,
             onValueChange = onValueChange,
             label = { Text(label) },
-            placeholder = placeholder?.let { { Text(it, color = TextGold.copy(alpha = 0.7f)) } },
+            placeholder = placeholder?.let {
+                {
+                    Text(
+                        text = it,
+                        color = TextGold.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = if (marqueePlaceholder) {
+                            Modifier.basicMarquee(
+                                iterations = Int.MAX_VALUE,
+                                animationMode = MarqueeAnimationMode.Immediately,
+                                repeatDelayMillis = 800,
+                                spacing = MarqueeSpacing(32.dp)
+                            )
+                        } else {
+                            Modifier
+                        }
+                    )
+                }
+            },
             modifier = modifier,
             leadingIcon = leadingIcon,
             trailingIcon = trailingIcon,

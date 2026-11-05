@@ -3,8 +3,8 @@
 package com.khanabook.lite.pos.core.navigation
 import com.khanabook.lite.pos.feature.notifications.ui.NotificationsScreen
 import com.khanabook.lite.pos.feature.settings.ui.QuickStartScreen
-import com.khanabook.lite.pos.feature.printing.ui.ReprintKdsScreen
-import com.khanabook.lite.pos.feature.sync.ui.InitialSyncScreen
+import com.khanabook.lite.pos.feature.printing.ui.ReprintKotScreen
+import com.khanabook.lite.pos.feature.sync.ui.DeviceSetupScreen
 import com.khanabook.lite.pos.feature.auth.ui.AppLockScreen
 import com.khanabook.lite.pos.feature.auth.ui.RoleAccessScreen
 import com.khanabook.lite.pos.feature.auth.ui.LoginScreen
@@ -114,8 +114,8 @@ internal fun AppNavGraph(
                 }
             )
         }
-        composable(Routes.INITIAL_SYNC) {
-            InitialSyncScreen(
+        composable(Routes.DEVICE_SETUP) {
+            DeviceSetupScreen(
                 onSyncCompleteNavigateToMain = {
                     // If this is a fresh restaurant with no menu, show quick start wizard
                     val destination = if (!sessionManager.isQuickStartCompleted()) {
@@ -124,7 +124,7 @@ internal fun AppNavGraph(
                         authenticatedStartDestination()
                     }
                     navController.navigate(destination) {
-                        popUpTo(Routes.INITIAL_SYNC) { inclusive = true }
+                        popUpTo(Routes.DEVICE_SETUP) { inclusive = true }
                     }
                 },
                 onNavigateToLogin = {
@@ -208,10 +208,10 @@ internal fun AppNavGraph(
                     navController.navigate(Routes.activeOrderDetail(draftBillId))
                 },
                 onResumePendingPayment = { navController.navigate(Routes.newBill(resumePayment = true)) },
-                onOpenSyncCenter = { navController.navigate(Routes.main(NavigationTabs.TAB_PROFILE, section = "sync_center")) },
-                onOpenPrinterSettings = { navController.navigate(Routes.main(NavigationTabs.TAB_PROFILE, section = "printer")) },
+                onOpenSyncCenter = { navController.navigate(Routes.main(NavigationTabs.TAB_SETTINGS, section = "sync_center")) },
+                onOpenPrinterSettings = { navController.navigate(Routes.main(NavigationTabs.TAB_SETTINGS, section = "printer")) },
                 onSearchBill = { navController.navigate(Routes.SEARCH_BILL) },
-                onReprintKds = { navController.navigate(Routes.REPRINT_KDS) },
+                onReprintKot = { navController.navigate(Routes.REPRINT_KOT) },
                 onCallCustomer = { navController.navigate(Routes.CALL_CUSTOMER) },
                 onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                 menuViewModel = menuViewModel,
@@ -285,7 +285,7 @@ internal fun AppNavGraph(
         }
         composable(
             route = Routes.ACTIVE_ORDERS,
-            deepLinks = listOf(navDeepLink { uriPattern = "khanabook://active_orders" })
+            deepLinks = listOf(navDeepLink { uriPattern = Routes.deepLink(Routes.ACTIVE_ORDERS) })
         ) {
             ActiveOrdersScreen(
                 onBack = { navController.popBackStack() },
@@ -300,7 +300,7 @@ internal fun AppNavGraph(
         composable(
             route = Routes.ACTIVE_ORDER_DETAIL_PATTERN,
             arguments = listOf(navArgument("billId") { type = NavType.LongType }),
-            deepLinks = listOf(navDeepLink { uriPattern = "khanabook://bill/{billId}" })
+            deepLinks = listOf(navDeepLink { uriPattern = Routes.deepLink(Routes.DEEP_LINK_BILL_PATTERN) })
         ) {
             ActiveOrderDetailScreen(
                 onBack = { navController.popBackStack() },
@@ -318,13 +318,13 @@ internal fun AppNavGraph(
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable(Routes.REPRINT_KDS) {
-            ReprintKdsScreen(
+        composable(Routes.REPRINT_KOT) {
+            ReprintKotScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
             )
         }
-        composable(Routes.NOTIFICATIONS, deepLinks = listOf(navDeepLink { uriPattern = "khanabook://notifications" })) {
+        composable(Routes.NOTIFICATIONS, deepLinks = listOf(navDeepLink { uriPattern = Routes.deepLink(Routes.NOTIFICATIONS) })) {
             NotificationsScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
@@ -338,10 +338,10 @@ internal fun AppNavGraph(
         }
 
         composable(
-            route = Routes.EASEBUZZ_ONBOARDING,
-            deepLinks = listOf(navDeepLink { uriPattern = "khanabook://easebuzz_onboarding" })
+            route = Routes.ONLINE_PAYMENTS_SETUP,
+            deepLinks = listOf(navDeepLink { uriPattern = Routes.deepLink(Routes.ONLINE_PAYMENTS_SETUP) })
         ) {
-            com.khanabook.lite.pos.feature.payments.ui.EasebuzzOnboardingScreen(
+            com.khanabook.lite.pos.feature.payments.ui.OnlinePaymentsSetupScreen(
                 onBack = { navController.popBackStack() },
                 onOpenComplianceDocs = { navController.navigate(Routes.COMPLIANCE_DOCUMENTS) }
             )

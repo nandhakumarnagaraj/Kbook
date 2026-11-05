@@ -1,6 +1,8 @@
 @file:OptIn(ExperimentalMaterial3Api::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package com.khanabook.lite.pos.feature.printing.ui
+
+import com.khanabook.lite.pos.feature.billing.ui.outlinedSearchFieldColors
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
 
@@ -43,7 +45,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun ReprintKdsScreen(
+fun ReprintKotScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     searchViewModel: SearchViewModel = hiltViewModel(),
@@ -406,13 +408,4 @@ private fun KdsBillCard(
     }
 }
 
-@Composable
-private fun outlinedSearchFieldColors() =
-    OutlinedTextFieldDefaults.colors(
-        focusedTextColor = TextLight,
-        unfocusedTextColor = TextLight,
-        focusedBorderColor = PrimaryGold,
-        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-        focusedLabelColor = PrimaryGold,
-        unfocusedLabelColor = TextGold
-    )
+

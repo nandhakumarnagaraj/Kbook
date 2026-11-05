@@ -15,6 +15,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +33,8 @@ data class ActiveOrderSummaryRow(
     val itemCount: Int,
     val hasNewKitchenItems: Boolean,
     val requiresPaymentRecovery: Boolean,
-    val singleItemName: String? = null
+    val singleItemName: String? = null,
+    val itemNames: List<String> = emptyList()
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,6 +46,18 @@ class ActiveOrdersViewModel @Inject constructor(
 ) : ViewModel() {
     private val _rows = MutableStateFlow<List<ActiveOrderSummaryRow>>(emptyList())
     val rows: StateFlow<List<ActiveOrderSummaryRow>> = _rows.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    /** Rows narrowed by [searchQuery]; filtering lives here so it is testable, not in a composable. */
+    val filteredRows: StateFlow<List<ActiveOrderSummaryRow>> =
+        combine(_rows, _searchQuery) { rows, query -> rows.filter { it.matchesOrderSearch(query) } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
 
     private val _message = MutableSharedFlow<UiMessage>()
     val message: SharedFlow<UiMessage> = _message.asSharedFlow()
@@ -66,7 +82,8 @@ class ActiveOrdersViewModel @Inject constructor(
                             itemCount = qty,
                             hasNewKitchenItems = items.any { !it.sentToKot },
                             requiresPaymentRecovery = detail.payments.any { !it.isDeleted },
-                            singleItemName = singleItemName
+                            singleItemName = singleItemName,
+                            itemNames = items.map { it.itemName }
                         )
                     }
                 }
@@ -93,4 +110,23 @@ class ActiveOrdersViewModel @Inject constructor(
             }
         }
     }
+}
+
+/** Matcher for the active order search: order no, invoice, customer, phone, amount, mode, type, items. */
+internal fun ActiveOrderSummaryRow.matchesOrderSearch(query: String): Boolean {
+    val q = query.trim()
+    if (q.isEmpty()) return true
+    return bill.matchesOrderSearch(q) || itemNames.any { it.contains(q, ignoreCase = true) }
+}
+
+internal fun BillEntity.matchesOrderSearch(query: String): Boolean {
+    val q = query.trim()
+    if (q.isEmpty()) return true
+    return dailyOrderDisplay.contains(q, ignoreCase = true) ||
+        invoiceNumber?.contains(q, ignoreCase = true) == true ||
+        totalAmount.contains(q, ignoreCase = true) ||
+        customerWhatsapp?.contains(q, ignoreCase = true) == true ||
+        paymentMode.contains(q, ignoreCase = true) ||
+        orderType.contains(q, ignoreCase = true) ||
+        customerName?.contains(q, ignoreCase = true) == true
 }

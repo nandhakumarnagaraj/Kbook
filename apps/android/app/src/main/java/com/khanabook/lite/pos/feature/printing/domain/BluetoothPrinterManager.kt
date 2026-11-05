@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import java.io.OutputStream
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -415,16 +416,18 @@ class BluetoothPrinterManager(private val context: Context) {
     @Suppress("MissingPermission")
     private suspend fun connectWithRetry(
         device: BluetoothDevice,
-        attempts: Int = 3
-    ): BluetoothSocket? {
+        attempts: Int = 2
+    ): BluetoothSocket? = withContext(Dispatchers.IO) {
         var lastError: Exception? = null
         repeat(attempts) { attempt ->
-            // Secure RFCOMM first.
+            // Secure RFCOMM first (bounded to 6s so an offline printer fails fast).
             var socket: BluetoothSocket? = null
             try {
                 socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                socket.connect()
-                return socket
+                withTimeout(6_000L) {
+                    socket.connect()
+                }
+                return@withContext socket
             } catch (e: Exception) {
                 lastError = e
                 runCatching { socket?.close() }
@@ -434,21 +437,23 @@ class BluetoothPrinterManager(private val context: Context) {
             var insecure: BluetoothSocket? = null
             try {
                 insecure = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
-                insecure.connect()
-                return insecure
+                withTimeout(6_000L) {
+                    insecure.connect()
+                }
+                return@withContext insecure
             } catch (e: Exception) {
                 lastError = e
                 runCatching { insecure?.close() }
             }
 
             if (attempt < attempts - 1) {
-                val backoffMs = 800L * (attempt + 1)
+                val backoffMs = 600L * (attempt + 1)
                 Log.w(TAG, "RFCOMM connect attempt ${attempt + 1}/$attempts failed, retrying in ${backoffMs}ms", lastError)
                 kotlinx.coroutines.delay(backoffMs)
             }
         }
         Log.e(TAG, "All $attempts RFCOMM connect attempts failed", lastError)
-        return null
+        null
     }
 
     suspend fun connect(address: String): Boolean {

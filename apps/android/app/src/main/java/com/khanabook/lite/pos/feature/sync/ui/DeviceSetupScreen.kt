@@ -41,7 +41,7 @@ import com.khanabook.lite.pos.feature.sync.viewmodel.InitialSyncViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun InitialSyncScreen(
+fun DeviceSetupScreen(
     onSyncCompleteNavigateToMain: () -> Unit,
     onNavigateToLogin: () -> Unit = {},
     viewModel: InitialSyncViewModel = hiltViewModel()

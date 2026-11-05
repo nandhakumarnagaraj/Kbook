@@ -47,6 +47,17 @@ public class EasebuzzWebhookService {
     private final WebhookRetryService webhookRetryService;
     private final ObjectMapper objectMapper;
 
+    /**
+     * F4: the refund completion runs in its own transaction, started here and rolled back here.
+     * The webhook method itself is deliberately NOT transactional: when a persistence failure
+     * marks a participating transaction rollback-only, every later write in that same
+     * transaction is discarded at commit - including the refund retry job enqueued below, which
+     * is exactly how a failed refund used to vanish without a trace. Null only when the service
+     * is constructed directly in unit tests.
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private EasebuzzWireApiClient wireApiClient;
 
@@ -287,7 +298,19 @@ public class EasebuzzWebhookService {
         });
     }
 
-    @Transactional
+    /**
+     * Runs the refund mutation in a transaction of its own. A failure rolls back only that
+     * transaction; the caller stays usable and the retry enqueue is not contaminated.
+     */
+    private void runInOwnTransaction(Runnable work) {
+        if (transactionTemplate == null) {
+            // Unit tests construct this service without a transaction manager.
+            work.run();
+            return;
+        }
+        transactionTemplate.executeWithoutResult(status -> work.run());
+    }
+
     public Map<String, Object> handleRefundWebhook(Map<String, String> payloadIn) {
         Map<String, String> payload = flattenDataEnvelope(payloadIn);
         String txnid = payload.get("txnid");
@@ -320,7 +343,7 @@ public class EasebuzzWebhookService {
         // The refund hash authenticates easepayid, but does not cover txnid.
         // Correlate both identifiers before letting this callback change a bill.
         try {
-            billRepo.findByGatewayTxnId(txnid).ifPresent(bill -> {
+            runInOwnTransaction(() -> billRepo.findByGatewayTxnId(txnid).ifPresent(bill -> {
                 String claimedEasepayid = payload.get("easepayid");
                 if (claimedEasepayid == null || claimedEasepayid.isBlank()) {
                     claimedEasepayid = payload.get("easebuzz_id");
@@ -335,7 +358,7 @@ public class EasebuzzWebhookService {
                     return;
                 }
                 updateBillRefund(bill, refundState, refundId, refundAmount, payload);
-            });
+            }));
         } catch (Exception e) {
             log.error("Failed to process refund webhook for txnid={}, enqueueing for retry: {}", txnid, e.getMessage(), e);
             try {

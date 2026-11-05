@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -134,7 +135,16 @@ class PrintRouter @Inject constructor(
                 async(Dispatchers.IO) {
                     sameDevice
                         .sortedBy { if (it.role == PrinterRole.KITCHEN.name) 0 else 1 }
-                        .map { target -> dispatchToTarget(bill, restaurantProfile, mode, target) }
+                        .mapIndexed { index, target ->
+                        if (index > 0) {
+                            val delayMs = when (target.connectionTypeValue()) {
+                                PrinterConnectionType.BLUETOOTH -> 2_500L
+                                PrinterConnectionType.WIFI, PrinterConnectionType.USB -> 1_500L
+                            }
+                            delay(delayMs)
+                        }
+                        dispatchToTarget(bill, restaurantProfile, mode, target)
+                    }
                 }
             }
 
@@ -311,7 +321,11 @@ class PrintRouter @Inject constructor(
                 if (printerTransport.print(target, bytes)) {
                     success = true
                 } else {
-                    errorMsg = "print failed"
+                    errorMsg = when (target.connectionTypeValue()) {
+                        PrinterConnectionType.WIFI -> "Wi-Fi printer unreachable at ${target.host}:${target.port} (check Wi-Fi or power)"
+                        PrinterConnectionType.BLUETOOTH -> "Bluetooth printer disconnected (${target.macAddress})"
+                        PrinterConnectionType.USB -> "USB printer unavailable (${target.macAddress})"
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed printing to ${target.name}", e)

@@ -1,7 +1,7 @@
 @file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package com.khanabook.lite.pos.ui.screens
-import com.khanabook.lite.pos.feature.reports.ui.ReportsScreen
+import com.khanabook.lite.pos.feature.reports.ui.OrdersScreen
 import com.khanabook.lite.pos.core.theme.*
 
 import androidx.compose.foundation.layout.Box
@@ -63,7 +63,7 @@ fun MainScreen(
     onOpenSyncCenter: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
     onSearchBill: () -> Unit,
-    onReprintKds: () -> Unit,
+    onReprintKot: () -> Unit,
     onCallCustomer: () -> Unit,
     onOpenNotifications: () -> Unit = {},
     menuViewModel: MenuViewModel,
@@ -84,7 +84,7 @@ fun MainScreen(
         val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
             .let { idx ->
                 if (idx != -1) idx
-                else if (initialTab == 4) visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_PROFILE }.takeIf { it != -1 } ?: homeTabIndex
+                else if (initialTab == 4) visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_SETTINGS }.takeIf { it != -1 } ?: homeTabIndex
                 else homeTabIndex
             }
         mutableIntStateOf(initialVisibleIndex) 
@@ -93,7 +93,7 @@ fun MainScreen(
         val targetIdx = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
             .let { idx ->
                 if (idx != -1) idx
-                else if (initialTab == 4) visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_PROFILE }.takeIf { it != -1 } ?: homeTabIndex
+                else if (initialTab == 4) visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_SETTINGS }.takeIf { it != -1 } ?: homeTabIndex
                 else homeTabIndex
             }
         if (selectedTabIndex != targetIdx) {
@@ -141,8 +141,8 @@ fun MainScreen(
                 Box(modifier = Modifier.fillMaxSize())
                 return@AnimatedContent
             }
-            when (currentTab.label) {
-                "Home" -> HomeScreen(
+            when (currentTab.originalIndex) {
+                NavigationTabs.TAB_HOME -> HomeScreen(
                     onNewBill = onNewBill,
                     onActiveOrder = onActiveOrder,
                     onOpenActiveOrder = onOpenActiveOrder,
@@ -150,14 +150,14 @@ fun MainScreen(
                     onOpenSyncCenter = onOpenSyncCenter,
                     onOpenPrinterSettings = onOpenPrinterSettings,
                     onSearchBill = onSearchBill,
-                    onReprintKds = onReprintKds,
+                    onReprintKot = onReprintKot,
                     onCallCustomer = onCallCustomer,
                     onOpenNotifications = onOpenNotifications
                 )
-                // Dispatched on the tab's display label, which NavigationItems now
-                // names "Orders"; it still hosts the reports screen.
-                "Orders" -> ReportsScreen(onBack = backToHome)
-                "Settings", "Profile" -> SettingsScreen(
+                // Dispatch on the tab's stable identity, never its display label, so
+                // renaming a tab can never silently reroute navigation.
+                NavigationTabs.TAB_ORDERS -> OrdersScreen(onBack = backToHome)
+                NavigationTabs.TAB_SETTINGS -> SettingsScreen(
                     onBack = backToHome,
                     navController = navController,
                     initialSection = settingsSection,

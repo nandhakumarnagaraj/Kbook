@@ -37,7 +37,19 @@ public class WebhookRetryService {
         webhookExecutors.put(webhookType, executor);
     }
 
-    @Transactional
+    /**
+     * F4: this is the "the caller's work failed, keep it for later" path, so the row must
+     * commit even when the caller's transaction is already rollback-only. REQUIRES_NEW
+     * suspends the caller and commits this row on its own.
+     *
+     * <p>Only this entry point gets REQUIRES_NEW. {@link #enqueueAt} deliberately stays
+     * REQUIRED: its direct callers need the row to be atomic with their own work - the payment
+     * handler persists {@code POST_SPLIT} inside the payment transaction precisely so the split
+     * worker can never see work for a bill whose payment failed to commit. Because
+     * {@code enqueue} calls {@code enqueueAt} by self-invocation, the inner annotation is not
+     * applied on this path; the row still commits in the transaction started here.
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public WebhookRetryJob enqueue(String webhookType, String payload) {
         return enqueueAt(webhookType, payload, System.currentTimeMillis(), null);
     }

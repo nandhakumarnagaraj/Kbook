@@ -230,3 +230,18 @@ apps/android/app/khanabook-release-key.jks
 
 # Serena MCP local state (symbol cache, per-project config, agent memories)
 .serena/
+
+# Root-level scratch artifacts: uiautomator hierarchy dumps, one-off audit
+# captures (XML/PNG), and Gradle dirs created by running a build from the repo
+# root by mistake. The real Gradle project is apps/android.
+/.gradle/
+/build/
+/.audit_tmp/
+/*.bat
+/.bat
+
+# Uiautomator hierarchy dumps at the repo root. The two tracked audit
+# transcripts below are real documents and stay visible.
+/*.txt
+!/.hallmark-audit.txt
+!/.hallmark-audit-render.txt

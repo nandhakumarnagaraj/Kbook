@@ -318,7 +318,16 @@ fun PrinterConfigView(
                     KhanaBookSwitch(
                         checked = onePrinterMode == PrinterMode.SINGLE,
                         onCheckedChange = { on ->
-                            onePrinterMode = if (on) PrinterMode.SINGLE else PrinterMode.DUAL
+                            val newMode = if (on) PrinterMode.SINGLE else PrinterMode.DUAL
+                            onePrinterMode = newMode
+                            viewModel.updatePrinterProfile(
+                                role = PrinterRole.CUSTOMER,
+                                enabled = enabled,
+                                autoPrint = autoPrint,
+                                paperSize = if (paper58) "58mm" else "80mm",
+                                includeLogo = includeLogo,
+                                printerMode = newMode.name
+                            )
                         }
                     )
                 }
@@ -359,10 +368,50 @@ enabled = enabled,
                         it.connectionTypeValue() == PrinterConnectionType.WIFI &&
                         wifiPrinterNetworkMismatch[it.connectionTargetKey()] == true
                     } ?: false,
-                    onEnabledChange = { enabled = it },
-                    onAutoPrintChange = { autoPrint = it },
-                    onPaperSizeChange = { paper58 = it },
-                    onIncludeLogoChange = { includeLogo = it },
+                    onEnabledChange = {
+                        enabled = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = it,
+                            autoPrint = autoPrint,
+                            paperSize = if (paper58) "58mm" else "80mm",
+                            includeLogo = includeLogo,
+                            printerMode = onePrinterMode.name
+                        )
+                    },
+                    onAutoPrintChange = {
+                        autoPrint = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = enabled,
+                            autoPrint = it,
+                            paperSize = if (paper58) "58mm" else "80mm",
+                            includeLogo = includeLogo,
+                            printerMode = onePrinterMode.name
+                        )
+                    },
+                    onPaperSizeChange = {
+                        paper58 = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = enabled,
+                            autoPrint = autoPrint,
+                            paperSize = if (it) "58mm" else "80mm",
+                            includeLogo = includeLogo,
+                            printerMode = onePrinterMode.name
+                        )
+                    },
+                    onIncludeLogoChange = {
+                        includeLogo = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = enabled,
+                            autoPrint = autoPrint,
+                            paperSize = if (paper58) "58mm" else "80mm",
+                            includeLogo = it,
+                            printerMode = onePrinterMode.name
+                        )
+                    },
                     helperText = null,
                     onConfigureWifi = {
                         pendingRole = PrinterRole.CUSTOMER
@@ -528,10 +577,50 @@ PrinterTargetCard(
                         it.connectionTypeValue() == PrinterConnectionType.WIFI &&
                         wifiPrinterNetworkMismatch[it.connectionTargetKey()] == true
                     } ?: false,
-                    onEnabledChange = { enabled = it },
-                    onAutoPrintChange = { autoPrint = it },
-                    onPaperSizeChange = { paper58 = it },
-                    onIncludeLogoChange = { includeLogo = it },
+                    onEnabledChange = {
+                        enabled = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = it,
+                            autoPrint = autoPrint,
+                            paperSize = if (paper58) "58mm" else "80mm",
+                            includeLogo = includeLogo,
+                            printerMode = onePrinterMode.name
+                        )
+                    },
+                    onAutoPrintChange = {
+                        autoPrint = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = enabled,
+                            autoPrint = it,
+                            paperSize = if (paper58) "58mm" else "80mm",
+                            includeLogo = includeLogo,
+                            printerMode = onePrinterMode.name
+                        )
+                    },
+                    onPaperSizeChange = {
+                        paper58 = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = enabled,
+                            autoPrint = autoPrint,
+                            paperSize = if (it) "58mm" else "80mm",
+                            includeLogo = includeLogo,
+                            printerMode = onePrinterMode.name
+                        )
+                    },
+                    onIncludeLogoChange = {
+                        includeLogo = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.CUSTOMER,
+                            enabled = enabled,
+                            autoPrint = autoPrint,
+                            paperSize = if (paper58) "58mm" else "80mm",
+                            includeLogo = it,
+                            printerMode = onePrinterMode.name
+                        )
+                    },
                     helperText = null,
                     onConfigureWifi = {
                         pendingRole = PrinterRole.CUSTOMER

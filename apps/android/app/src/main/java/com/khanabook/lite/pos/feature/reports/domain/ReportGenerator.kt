@@ -91,7 +91,9 @@ class ReportGenerator(private val billRepository: BillRepository) {
                 date = DateUtils.formatDisplay(bill.createdAt),
                 createdAt = bill.createdAt,
                 cancelReason = bill.cancelReason,
-                totalAmount = bill.totalAmount.toString()
+                totalAmount = bill.totalAmount.toString(),
+                customerName = bill.customerName.orEmpty(),
+                customerPhone = bill.customerWhatsapp.orEmpty()
             )
         }
     }

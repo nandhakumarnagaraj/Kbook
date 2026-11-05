@@ -257,9 +257,9 @@ fun NewBillScreen(
         if (navController != null) {
             val highlightedBillId = billingViewModel.lastBill.value?.bill?.id
             val route = if (highlightedBillId != null) {
-                Routes.main(NavigationTabs.TAB_REPORTS, source = "ALL", highlightBillId = highlightedBillId)
+                Routes.main(NavigationTabs.TAB_ORDERS, source = "ALL", highlightBillId = highlightedBillId)
             } else {
-                Routes.main(NavigationTabs.TAB_REPORTS, source = "ALL")
+                Routes.main(NavigationTabs.TAB_ORDERS, source = "ALL")
             }
             val hasMain = runCatching { navController.getBackStackEntry(Routes.MAIN_PATTERN) }.isSuccess
             navController.navigate(route) {
@@ -417,7 +417,8 @@ fun NewBillScreen(
                                     hideHeader = true,
                                     navController = navController,
                                     onReturnToTableList = returnToNewBillTables,
-                                    onItemAddedFeedback = playMenuItemAddFeedback
+                                    onItemAddedFeedback = playMenuItemAddFeedback,
+                                    quickMode = quickMode
                             )
                     3 ->
                             PaymentStep(

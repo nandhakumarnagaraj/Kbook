@@ -17,7 +17,9 @@ data class OrderLevelRow(
     /** Raw epoch millis the bill was created — enables same-day edit rules in UI. */
     val createdAt: Long = 0L,
     val cancelReason: String = "",
-    val totalAmount: String = "0.0"
+    val totalAmount: String = "0.0",
+    val customerName: String = "",
+    val customerPhone: String = ""
 )
 
 data class OrderDetailRow(

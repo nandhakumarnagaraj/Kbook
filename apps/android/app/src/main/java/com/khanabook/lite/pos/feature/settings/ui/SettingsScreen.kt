@@ -219,7 +219,7 @@ fun SettingsScreen(
                             pendingSaveSection = "payment"
                             viewModel.saveProfile(it, confirmEasebuzzToggle = true)
                         }, onBack = { selectSection("menu") },
-                            onNavigateToOnboarding = { navController.navigate(Routes.EASEBUZZ_ONBOARDING) },
+                            onNavigateToOnboarding = { navController.navigate(Routes.ONLINE_PAYMENTS_SETUP) },
                             onSectionSelected = ::selectSection,
                             readOnly = !isOwner
                         )

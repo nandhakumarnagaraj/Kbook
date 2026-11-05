@@ -11,13 +11,18 @@ package com.khanabook.lite.pos.core.navigation
 object Routes {
 
     // ── Auth shell ─────────────────────────────────────────────────────────────
+    /** Scheme shared by every `navDeepLink`; keeps URIs in sync with the routes below. */
+    const val DEEP_LINK_SCHEME = "khanabook://"
+
+    fun deepLink(route: String): String = DEEP_LINK_SCHEME + route
+
     const val LOGIN = "login"
     const val SIGNUP = "signup"
     const val APP_LOCK = "app_lock"
     const val ROLE_ACCESS = "role_access"
 
     // ── Onboarding ─────────────────────────────────────────────────────────────
-    const val INITIAL_SYNC = "initial_sync"
+    const val DEVICE_SETUP = "device_setup"
     const val QUICK_START = "quick_start"
 
     // ── Main shell (bottom tabs) ───────────────────────────────────────────────
@@ -62,13 +67,19 @@ object Routes {
     const val ACTIVE_ORDERS = "active_orders"
     const val ACTIVE_ORDER_DETAIL_PATTERN = "active_order_detail/{billId}"
 
+    /**
+     * Public deep-link path for a single order. Deliberately `bill/{billId}` rather
+     * than the route name, because links already printed on receipts use that path.
+     */
+    const val DEEP_LINK_BILL_PATTERN = "bill/{billId}"
+
     fun activeOrderDetail(billId: Long): String = "active_order_detail/$billId"
 
     const val SEARCH_BILL = "search_bill"
 
     // ── Tools ──────────────────────────────────────────────────────────────────
     const val CALL_CUSTOMER = "call_customer"
-    const val REPRINT_KDS = "reprint_kds"
+    const val REPRINT_KOT = "reprint_kot"
     const val NOTIFICATIONS = "notifications"
     const val NOTIFICATIONS_PREFERENCES = "notifications_preferences"
 
@@ -80,6 +91,6 @@ object Routes {
     const val OCR_SOURCE_BILLING = "billing"
 
     // ── Payments / compliance ──────────────────────────────────────────────────
-    const val EASEBUZZ_ONBOARDING = "easebuzz_onboarding"
+    const val ONLINE_PAYMENTS_SETUP = "online_payments_setup"
     const val COMPLIANCE_DOCUMENTS = "compliance_documents"
 }

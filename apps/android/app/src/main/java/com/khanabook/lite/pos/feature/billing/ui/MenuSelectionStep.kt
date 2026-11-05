@@ -100,7 +100,8 @@ fun MenuSelectionStep(
         hideHeader: Boolean = false,
         navController: NavController? = null,
         onReturnToTableList: () -> Unit = {},
-        onItemAddedFeedback: () -> Unit = {}
+        onItemAddedFeedback: () -> Unit = {},
+        quickMode: Boolean = false
 ) {
     val categories by menuViewModel.activeCategories.collectAsStateWithLifecycle()
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
@@ -139,12 +140,13 @@ fun MenuSelectionStep(
     // Adaptive split-view: Categories on left, Cart on right for tablets
     val isWideScreen = layout.isWideListDetail
     val scope = rememberCoroutineScope()
-    val quickMode by billingViewModel.quickMode.collectAsStateWithLifecycle()
+    val vmQuickMode by billingViewModel.quickMode.collectAsStateWithLifecycle()
+    val isQuickMode = quickMode || vmQuickMode
     val currentOrderType by billingViewModel.orderType.collectAsStateWithLifecycle()
     val profile by billingViewModel.cachedProfile.collectAsStateWithLifecycle()
     val paymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
-    val canSaveTableOrder = currentOrderType == OrderType.DINE_IN &&
-        (paymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD || billingViewModel.editingBillId != null)
+    val canSaveTableOrder = (billingViewModel.editingBillId != null) ||
+        (currentOrderType == OrderType.DINE_IN && paymentFlowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD)
     val addItemWithFeedback = { addToCart: () -> Unit ->
         performMenuItemAdd(
             addToCart = addToCart,
@@ -191,7 +193,7 @@ fun MenuSelectionStep(
                 }
             }
 
-            if (quickMode) {
+            if (isQuickMode) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

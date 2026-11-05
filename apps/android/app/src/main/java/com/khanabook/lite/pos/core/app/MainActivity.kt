@@ -80,7 +80,7 @@ class MainActivity : FragmentActivity() {
 
     private fun authenticatedStartDestination(): String {
         if (!sessionManager.canUsePos()) return Routes.ROLE_ACCESS
-        if (!sessionManager.isInitialSyncCompleted()) return Routes.INITIAL_SYNC
+        if (!sessionManager.isInitialSyncCompleted()) return Routes.DEVICE_SETUP
         if (!sessionManager.isQuickStartCompleted()) return Routes.QUICK_START
         return Routes.main(NavigationTabs.TAB_HOME)
     }

@@ -123,23 +123,7 @@ object InvoiceFormatter {
         add(RESET)
         add(ALIGN_CENTER)
         
-        // 1. Logo (if enabled)
-        if (profile?.includeLogoInPrint == true && (!profile.logoUrl.isNullOrBlank() || !profile.logoPath.isNullOrBlank())) {
-            try {
-                val targetWidth = if (is80mm) 384 else 256
-                val bitmap = loadLogoBitmap(context, profile, targetWidth)
-                if (bitmap != null) {
-                    try {
-                        add(decodeBitmapToESC_POS(bitmap, targetWidth))
-                        add("\n")
-                    } finally {
-                        bitmap.recycle()
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error printing logo", e)
-            }
-        }
+        // Pure text thermal invoice - logo bitmap suppressed for ESC/POS hardware compatibility
 
         // 2. Header - Center Bold
         add(BOLD_ON)
@@ -227,21 +211,8 @@ object InvoiceFormatter {
         add(leftPad + "Payment Mode : ${bill.bill.paymentMode.uppercase()}\n")
 
         if (profile?.reviewUrl?.isNotBlank() == true) {
-            try {
-                val reviewQrBitmap = com.khanabook.lite.pos.feature.payments.domain.QrCodeManager.generateQr(
-                    profile.reviewUrl ?: "",
-                    256
-                )
-                reviewQrBitmap?.let {
-                    add(ALIGN_CENTER)
-                    add("\n")
-                    add(decodeBitmapToESC_POS(it, 256))
-                    add("\nRATE US / FEEDBACK\n")
-                    it.recycle()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error printing Review QR", e)
-            }
+            add(ALIGN_CENTER)
+            add("RATE US / FEEDBACK:\n${profile.reviewUrl}\n")
         }
 
         // 7. Footer
@@ -252,8 +223,10 @@ object InvoiceFormatter {
             add("Powered by KhanaBook\n")
             add(BOLD_OFF)
         }
-        add("\n\n\n\n") // Line feeds for clean cut
-        add(CUT_PAPER)
+        add("\n\n\n\n") // Line feeds for clean tear/cut
+        if (is80mm) {
+            add(CUT_PAPER)
+        }
 
         return out.toByteArray()
     }
@@ -291,20 +264,22 @@ object InvoiceFormatter {
     }
 
     
-    private fun decodeBitmapToESC_POS(bitmap: Bitmap, maxWidth: Int): ByteArray {
+    private fun decodeBitmapToESC_POS(bitmap: Bitmap, maxWidth: Int, maxHeight: Int = 120): ByteArray {
         var scaledBitmap: Bitmap? = null
         try {
-            
-            val scale = maxWidth.toFloat() / bitmap.width.toFloat()
-            val targetHeight = (bitmap.height * scale).toInt()
-            scaledBitmap = Bitmap.createScaledBitmap(bitmap, maxWidth, targetHeight, true)
+            val scale = minOf(
+                maxWidth.toFloat() / bitmap.width.coerceAtLeast(1).toFloat(),
+                maxHeight.toFloat() / bitmap.height.coerceAtLeast(1).toFloat()
+            )
+            val targetWidth = (bitmap.width * scale).toInt().coerceAtLeast(1)
+            val targetHeight = (bitmap.height * scale).toInt().coerceAtLeast(1)
+            scaledBitmap = Bitmap.createScaledBitmap(bitmap, targetWidth, targetHeight, true)
 
             val width = scaledBitmap!!.width
             val height = scaledBitmap.height
             val bytesWidth = (width + 7) / 8
             
             val data = mutableListOf<Byte>()
-            
             
             data.add(0x1D.toByte())
             data.add(0x76.toByte())
@@ -323,9 +298,16 @@ object InvoiceFormatter {
                         val pixelX = x * 8 + b
                         if (pixelX < width) {
                             val pixel = scaledBitmap.getPixel(pixelX, y)
-                            val gray = (Color.red(pixel) + Color.green(pixel) + Color.blue(pixel)) / 3
-                            if (gray < 128) { 
-                                bite = bite or (0x80 shr b)
+                            val alpha = (pixel shr 24) and 0xFF
+                            // Transparent background (alpha < 128) must remain white paper (0)
+                            if (alpha >= 128) {
+                                val r = (pixel shr 16) and 0xFF
+                                val g = (pixel shr 8) and 0xFF
+                                val bVal = pixel and 0xFF
+                                val gray = (r * 299 + g * 587 + bVal * 114) / 1000
+                                if (gray < 160) {
+                                    bite = bite or (0x80 shr b)
+                                }
                             }
                         }
                     }

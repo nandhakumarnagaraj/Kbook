@@ -51,7 +51,7 @@ fun HomeScreen(
     onOpenSyncCenter: () -> Unit,
     onOpenPrinterSettings: () -> Unit,
     onSearchBill: () -> Unit,
-    onReprintKds: () -> Unit,
+    onReprintKot: () -> Unit,
     onCallCustomer: () -> Unit,
     onOpenNotifications: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel(),
@@ -425,7 +425,7 @@ fun HomeScreen(
                     icon = Icons.Default.Restaurant,
                     backgroundColor = CardBG,
                     modifier = Modifier.fillMaxWidth().weight(0.85f),
-                    onClick = onReprintKds
+                    onClick = onReprintKot
                 )
                 if (!quickModeEnabled) {
                     HomeActionCard(
@@ -465,7 +465,7 @@ fun HomeScreen(
                         icon = Icons.Default.Restaurant,
                         backgroundColor = CardBG,
                         modifier = actionModifier,
-                        onClick = onReprintKds
+                        onClick = onReprintKot
                     )
                     if (!quickModeEnabled) {
                         HomeActionCard(

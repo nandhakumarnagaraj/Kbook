@@ -90,7 +90,7 @@ class ReportsViewModel @Inject constructor(
     private val rangeFlow = MutableStateFlow(DateRange(0L, 0L))
 
     init {
-        // Load the opening range once here. Doing it from ReportsScreen via
+        // Load the opening range once here. Doing it from OrdersScreen via
         // LaunchedEffect(Unit) re-ran on every tab re-entry and silently reset the
         // user's chosen filter back to "Today".
         observeReports()

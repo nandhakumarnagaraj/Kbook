@@ -15,7 +15,7 @@ import com.khanabook.lite.pos.domain.model.PaymentMode
 
 /**
  * Single source of truth for payment mode → color mapping.
- * Used by ReportsScreen, OrdersScreen, NewBillScreen, OrderConfirmationSection.
+ * Used by OrdersScreen, NewBillScreen, OrderConfirmationSection.
  *
  * Visual language: Cash=green, UPI=brown, POS=gold, Online=blue. Each part-payment
  * combination gets its own hue (Cash+UPI=teal, Cash+POS=orange, UPI+POS=sky) so the

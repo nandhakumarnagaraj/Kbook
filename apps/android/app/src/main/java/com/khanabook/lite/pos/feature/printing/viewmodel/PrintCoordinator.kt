@@ -87,8 +87,12 @@ class PrintCoordinator(
                 }
                 result.failures.isEmpty() -> {
                     when {
+                        result.successTargets.contains(PrinterRole.KITCHEN.name) && result.successTargets.contains(PrinterRole.CUSTOMER.name) ->
+                            "Printed KOT & Receipt"
                         result.successTargets.contains(PrinterRole.KITCHEN.name) ->
                             "Printed Kitchen ticket"
+                        result.successTargets.contains(PrinterRole.CUSTOMER.name) ->
+                            "Printed Customer receipt"
                         else -> buildPrintStatusMessage("Printed", result.successTargets)
                     }
                 }

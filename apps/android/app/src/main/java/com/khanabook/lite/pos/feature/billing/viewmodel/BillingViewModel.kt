@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.feature.billing.viewmodel
 import com.khanabook.lite.pos.feature.printing.data.*
 import com.khanabook.lite.pos.feature.payments.domain.PaymentSetValidator
+import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
 import com.khanabook.lite.pos.feature.printing.domain.PrintService
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
@@ -230,12 +231,15 @@ class BillingViewModel @Inject constructor(
     private val _editingBillId = MutableStateFlow<Long?>(null)
     val editingBillId: Long? get() = _editingBillId.value
 
+    private val _isQuickMode = MutableStateFlow(false)
+    val isQuickMode: StateFlow<Boolean> = _isQuickMode.asStateFlow()
+
     private val _orderType = MutableStateFlow(OrderType.DINE_IN)
     val orderType: StateFlow<String> = _orderType
 
-    val quickMode: StateFlow<Boolean> = _cachedProfile
-        .map { it?.isQuickBillingEnabled ?: false }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val quickMode: StateFlow<Boolean> = kotlinx.coroutines.flow.combine(_cachedProfile, _isQuickMode) { profile, explicitQuick ->
+        explicitQuick || (profile?.isQuickBillingEnabled ?: false)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     fun setOrderType(type: String) {
         _orderType.value = type
@@ -455,9 +459,15 @@ class BillingViewModel @Inject constructor(
     fun resetForNewBill(isQuickMode: Boolean) {
         invalidateRestoration()
         cartManager.clear()
+        _isQuickMode.value = isQuickMode
         _customerName.value = if (isQuickMode) "Quick Bill" else ""
         _customerWhatsapp.value = ""
-        _orderType.value = OrderType.DINE_IN
+        val flowMode = OrderPaymentFlowMode.fromDbValue(_cachedProfile.value?.orderPaymentFlowMode)
+        _orderType.value = if (isQuickMode && flowMode != OrderPaymentFlowMode.PAY_AFTER_FOOD) {
+            OrderType.TAKEAWAY
+        } else {
+            OrderType.DINE_IN
+        }
         paymentStateManager.reset()
         _lastBill.value = null
         _error.value = null
@@ -467,7 +477,13 @@ class BillingViewModel @Inject constructor(
 
     fun applyQuickBillDefaultsIfNeeded(isQuickMode: Boolean) {
         if (isQuickMode) {
-            _orderType.value = OrderType.DINE_IN
+            _isQuickMode.value = true
+            val flowMode = OrderPaymentFlowMode.fromDbValue(_cachedProfile.value?.orderPaymentFlowMode)
+            _orderType.value = if (flowMode == OrderPaymentFlowMode.PAY_AFTER_FOOD) {
+                OrderType.DINE_IN
+            } else {
+                OrderType.TAKEAWAY
+            }
             _customerName.value = "Quick Bill"
             _customerWhatsapp.value = ""
         }
@@ -795,6 +811,17 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                     com.khanabook.lite.pos.feature.billing.data.BillFinalizationOutcome.FINALIZED_NOW
                 ) {
                     syncManager.triggerImmediateSync()
+                }
+
+                printCoordinator.clearStatus()
+                try {
+                    com.khanabook.lite.pos.feature.printing.domain.PrintService.startPrintJob(
+                        context = appContext,
+                        billId = localBillId,
+                        mode = PrintDispatchMode.AUTO
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to start PrintService for finalized online bill", e)
                 }
 
                 _isLoading.value = false
@@ -1508,12 +1535,12 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                     syncManager.triggerImmediateSync()
                 }
 
-                // Auto-print on successful settlement
+                // Auto-print on successful settlement - directly dispatch receipt
                 try {
                     com.khanabook.lite.pos.feature.printing.domain.PrintService.startPrintJob(
                         context = appContext,
                         billId = billId,
-                        mode = PrintDispatchMode.AUTO
+                        mode = PrintDispatchMode.MANUAL_RECEIPT_ONLY
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start PrintService for settled draft receipt", e)
@@ -1596,7 +1623,7 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                     com.khanabook.lite.pos.feature.printing.domain.PrintService.startPrintJob(
                         context = appContext,
                         billId = billId,
-                        mode = PrintDispatchMode.AUTO
+                        mode = PrintDispatchMode.MANUAL_RECEIPT_ONLY
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to start PrintService after payment recovery", e)

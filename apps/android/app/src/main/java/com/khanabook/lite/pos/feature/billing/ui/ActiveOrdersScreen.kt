@@ -3,7 +3,16 @@
 package com.khanabook.lite.pos.feature.billing.ui
 
 import com.khanabook.lite.pos.core.theme.KhanaRadii
+import com.khanabook.lite.pos.core.designsystem.KhanaBookInputField
+import com.khanabook.lite.pos.core.util.CurrencyUtils
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +39,9 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.LocalPrintshop
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -41,6 +52,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -81,7 +93,9 @@ fun ActiveOrdersScreen(
     onCollectPayment: (Long) -> Unit,
     viewModel: ActiveOrdersViewModel = hiltViewModel()
 ) {
-    val activeRows by viewModel.rows.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val filteredRows by viewModel.filteredRows.collectAsStateWithLifecycle()
+    var searchExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
 
@@ -111,6 +125,20 @@ fun ActiveOrdersScreen(
                         )
                     }
                 },
+                actions = {
+                    IconButton(
+                        onClick = {
+                            searchExpanded = !searchExpanded
+                            if (!searchExpanded) viewModel.setSearchQuery("")
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = if (searchExpanded) "Close search" else "Search orders",
+                            tint = PrimaryGold
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
             )
         }
@@ -125,7 +153,39 @@ fun ActiveOrdersScreen(
         ) {
             com.khanabook.lite.pos.core.designsystem.ListLayout(
                 modifier = Modifier.fillMaxSize().widthIn(max = layout.maxContentWidth),
-                isEmpty = activeRows.isEmpty(),
+                filterBar = {
+                    AnimatedVisibility(
+                        visible = searchExpanded,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        KhanaBookInputField(
+                            value = searchQuery,
+                            onValueChange = { viewModel.setSearchQuery(it) },
+                            label = "Search active orders",
+                            placeholder = "OrderNo, CustomerName, PhoneNumber, ItemName, BillAmount, OrderType, InvoiceNo",
+                            marqueePlaceholder = true,
+                            leadingIcon = { Icon(Icons.Default.Search, null, tint = PrimaryGold) },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { viewModel.setSearchQuery("") }) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Clear search",
+                                            tint = TextGold
+                                        )
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = spacing.medium)
+                                .padding(top = spacing.small, bottom = spacing.smallMedium),
+                            singleLine = true
+                        )
+                    }
+                },
+                isEmpty = filteredRows.isEmpty(),
                 emptyState = { EmptyActiveOrders() }
             ) {
                 val listState = rememberLazyListState()
@@ -135,14 +195,14 @@ fun ActiveOrdersScreen(
                     contentPadding = PaddingValues(spacing.medium),
                     verticalArrangement = Arrangement.spacedBy(spacing.small)
                 ) {
-                    items(activeRows, key = { it.bill.id }) { row ->
-                            ActiveOrderCard(
-                                row = row,
-                                onOpen = { onOpenActiveOrder(row.bill.id) },
-                                onPayment = { onCollectPayment(row.bill.id) },
-                                onMoreActions = { onOpenActiveOrder(row.bill.id) }
-                            )
-                        }
+                    items(filteredRows, key = { it.bill.id }) { row ->
+                        ActiveOrderCard(
+                            row = row,
+                            onOpen = { onOpenActiveOrder(row.bill.id) },
+                            onPayment = { onCollectPayment(row.bill.id) },
+                            onMoreActions = { onOpenActiveOrder(row.bill.id) }
+                        )
+                    }
                     item {
                         Spacer(modifier = Modifier.height(spacing.bottomListPadding))
                     }
@@ -150,7 +210,6 @@ fun ActiveOrdersScreen(
             }
         }
     }
-
 }
 
 @Composable
@@ -234,6 +293,56 @@ private fun ActiveOrderCard(
                     text = if (row.hasNewKitchenItems) "KOT Pending" else "KOT Sent",
                     kind = if (row.hasNewKitchenItems) KhanaStatusKind.Warning else KhanaStatusKind.Success,
                     filled = true
+                )
+            }
+            Spacer(modifier = Modifier.height(spacing.extraSmall))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f, fill = false)) {
+                    val customerInfo = buildString {
+                        if (!bill.customerName.isNullOrBlank()) {
+                            append(bill.customerName)
+                        }
+                        if (!bill.customerWhatsapp.isNullOrBlank()) {
+                            if (isNotEmpty()) append(" • ")
+                            append(bill.customerWhatsapp)
+                        }
+                        if (isEmpty() && bill.orderType.isNotBlank()) {
+                            append(bill.orderType.replaceFirstChar { it.uppercase() })
+                        }
+                    }
+                    if (customerInfo.isNotEmpty()) {
+                        Text(
+                            text = customerInfo,
+                            color = TextLight.copy(alpha = 0.85f),
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    val itemsSubtitle = when {
+                        row.singleItemName != null -> row.singleItemName
+                        row.itemCount > 0 -> "${row.itemCount} items"
+                        else -> "No items"
+                    }
+                    Text(
+                        text = itemsSubtitle,
+                        color = TextGold.copy(alpha = 0.65f),
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    text = CurrencyUtils.formatPrice(bill.totalAmount),
+                    color = PrimaryGold,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFeatureSettings = "tnum"
+                    )
                 )
             }
             Spacer(modifier = Modifier.height(spacing.small))

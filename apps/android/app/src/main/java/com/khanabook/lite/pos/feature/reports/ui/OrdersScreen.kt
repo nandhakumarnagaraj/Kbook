@@ -8,6 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,7 +48,7 @@ import com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReportsScreen(
+fun OrdersScreen(
     onBack: () -> Unit,
     viewModel: ReportsViewModel = hiltViewModel(),
     settingsViewModel: com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel = hiltViewModel()
@@ -96,7 +97,8 @@ fun ReportsScreen(
     var pendingPartMode by remember { mutableStateOf<PaymentMode?>(null) }
     var pendingPartBill by remember { mutableStateOf<OrderLevelRow?>(null) }
 
-    // Local search over the already-loaded rows: order number or invoice number.
+    // Local search over the already-loaded rows: order number, invoice number,
+    // customer details, bill amount, payment mode, order type, and channel.
     // No extra query hits Room, so typing stays instant and works offline.
     var searchQuery by remember { mutableStateOf("") }
     var searchExpanded by remember { mutableStateOf(false) }
@@ -107,7 +109,15 @@ fun ReportsScreen(
         } else {
             orderLevelRows.filter { row ->
                 row.dailyId.contains(query, ignoreCase = true) ||
-                    row.invoiceDisplay.contains(query, ignoreCase = true)
+                    row.invoiceDisplay.contains(query, ignoreCase = true) ||
+                    row.customerName.contains(query, ignoreCase = true) ||
+                    row.customerPhone.contains(query, ignoreCase = true) ||
+                    row.totalAmount.contains(query, ignoreCase = true) ||
+                    row.paymentMode.displayLabel.contains(query, ignoreCase = true) ||
+                    row.paymentMode.dbValue.contains(query, ignoreCase = true) ||
+                    row.paymentMode.name.contains(query, ignoreCase = true) ||
+                    row.orderType.contains(query, ignoreCase = true) ||
+                    row.sourceChannel.contains(query, ignoreCase = true)
             }
         }
     }
@@ -172,7 +182,7 @@ fun ReportsScreen(
                             .size(layout.topBarIconButtonSize)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            imageVector = if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
                             contentDescription = if (searchExpanded) "Close search" else "Search orders",
                             modifier = Modifier.size(layout.topBarIconSize),
                             tint = PrimaryGold
@@ -215,7 +225,10 @@ fun ReportsScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(spacing.medium))
+            // One gap, not two. The search field used to sit between two unconditional
+            // 16dp spacers, so the table paid for the field's spacing even when it was
+            // collapsed — 32dp of air above the header for a block that wasn't there.
+            Spacer(modifier = Modifier.height(if (searchExpanded) spacing.small else spacing.smallMedium))
 
             
             if (showDateRangePicker) {
@@ -236,19 +249,30 @@ fun ReportsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = spacing.medium)
+                        .padding(bottom = spacing.smallMedium)
                 ) {
                     KhanaBookInputField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         label = "Search orders",
-                        placeholder = "Order number or invoice number",
+                        placeholder = "OrderNo, InvoiceNo, CustomerName, PhoneNumber, BillAmount, PaymentMode, OrderType",
+                        marqueePlaceholder = true,
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear search",
+                                        tint = TextGold
+                                    )
+                                }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(spacing.medium))
 
             // Show skeleton while loading, otherwise show content
             Box(

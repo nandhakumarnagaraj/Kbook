@@ -17,15 +17,15 @@ data class TabItem(
 
 object NavigationTabs {
     const val TAB_HOME = 0
-    const val TAB_REPORTS = 1
+    const val TAB_ORDERS = 1
     const val TAB_SETTINGS = 3
-    const val TAB_PROFILE = 3
+    // Settings and Profile are the same tab: index 3.
 }
 
 object NavigationUtils {
     private val allTabs = listOf(
         TabItem("Home", Icons.Default.Home, NavigationTabs.TAB_HOME),
-        TabItem("Orders", Icons.Default.Assessment, NavigationTabs.TAB_REPORTS),
+        TabItem("Orders", Icons.Default.Assessment, NavigationTabs.TAB_ORDERS),
         TabItem("Settings", Icons.Default.Settings, NavigationTabs.TAB_SETTINGS)
     )
 
