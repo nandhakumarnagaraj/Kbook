@@ -660,8 +660,12 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 }
                 // UPI QR generation and payment capture must work offline. Reserve the bill
                 // number locally, then let background sync reconcile with the server later.
-                val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-                val today = java.time.LocalDate.now(zoneId).toString()
+                // Business day, not calendar day: with a cutoff configured the number
+                // reserved at 01:00 belongs to the previous day's series, and the server
+                // will stamp exactly that date on push. Identical to today's behaviour
+                // while no cutoff is set.
+                val today = com.khanabook.lite.pos.core.util.BusinessDate
+                    .businessDate(System.currentTimeMillis(), profile)
                 val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(
                     terminalIdentity.terminalId,
                     terminalIdentity.terminalSeries,
@@ -892,8 +896,12 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                     return@withLock false
                 }
 
-                val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-                val today = java.time.LocalDate.now(zoneId).toString()
+                // Business day, not calendar day: with a cutoff configured the number
+                // reserved at 01:00 belongs to the previous day's series, and the server
+                // will stamp exactly that date on push. Identical to today's behaviour
+                // while no cutoff is set.
+                val today = com.khanabook.lite.pos.core.util.BusinessDate
+                    .businessDate(System.currentTimeMillis(), profile)
                 val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(
                     terminalIdentity.terminalId,
                     terminalIdentity.terminalSeries,
@@ -1118,8 +1126,12 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 val finalSummary = cartManager.computeSummary(cartManager.currentItems, profile)
                 cartManager.setSummary(finalSummary)
 
-                val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-                val today = java.time.LocalDate.now(zoneId).toString()
+                // Business day, not calendar day: with a cutoff configured the number
+                // reserved at 01:00 belongs to the previous day's series, and the server
+                // will stamp exactly that date on push. Identical to today's behaviour
+                // while no cutoff is set.
+                val today = com.khanabook.lite.pos.core.util.BusinessDate
+                    .businessDate(System.currentTimeMillis(), profile)
                 val dailyCounter = restaurantRepository.incrementAndGetTerminalDailyCounter(
                     terminalIdentity.terminalId,
                     terminalIdentity.terminalSeries,

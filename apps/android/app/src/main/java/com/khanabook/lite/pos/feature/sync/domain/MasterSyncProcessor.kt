@@ -422,12 +422,15 @@ class MasterSyncProcessor @Inject constructor(
         // Ensure terminal_daily_counter is seeded from existing local bills for today.
         // This prevents duplicate daily order numbers after APK update/migration when
         // the counter table is created fresh but the bills table already has today's orders.
-        val timezone = AppConstants.DEFAULT_TIMEZONE
-        val today = java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
-        val startOfDay = java.time.LocalDate.parse(today)
-            .atStartOfDay(java.time.ZoneId.of(timezone)).toInstant().toEpochMilli()
-        val endOfDay = java.time.LocalDate.parse(today).plusDays(1)
-            .atStartOfDay(java.time.ZoneId.of(timezone)).toInstant().toEpochMilli() - 1
+        // The business day and the window that belongs to it — not a calendar day. Under a
+        // cutoff the day starts at the cutoff, so a calendar window would seed the counter
+        // from yesterday's bills and hand out duplicate numbers.
+        val now = System.currentTimeMillis()
+        val profile = restaurantDao.getProfile(restaurantId)
+        val today = com.khanabook.lite.pos.core.util.BusinessDate.businessDate(now, profile)
+        val businessDay = java.time.LocalDate.parse(today)
+        val startOfDay = com.khanabook.lite.pos.core.util.BusinessDate.windowStart(businessDay, profile)
+        val endOfDay = com.khanabook.lite.pos.core.util.BusinessDate.windowEnd(businessDay, profile) - 1
         val maxLocalDaily = billDao.getMaxDailyOrderIdForTerminalToday(restaurantId, terminalId, startOfDay, endOfDay)
         if (maxLocalDaily > 0L) {
             // Atomic create-or-raise keeps this safe against a concurrent bill creation.
@@ -1093,10 +1096,9 @@ class MasterSyncProcessor @Inject constructor(
                 val autoRepaired = runCatching {
                     val bill = billDao.getBillById(billId, restaurantId)
                     if (bill != null && !bill.isSynced && bill.serverId == null) {
-                        val correctedDate = java.time.Instant.ofEpochMilli(bill.createdAt)
-                            .atZone(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
-                            .toLocalDate()
-                            .toString()
+                        val repairProfile = restaurantDao.getProfile(restaurantId)
+                        val correctedDate = com.khanabook.lite.pos.core.util.BusinessDate
+                            .businessDate(bill.createdAt, repairProfile)
                         // Mark failure reason so repairFailedDailyOrderIdentity precondition passes
                         billDao.markBillSyncFailedPermanently(billId, restaurantId, reason, failedAt)
                         val repaired = billDao.repairFailedDailyOrderIdentity(
@@ -1105,7 +1107,8 @@ class MasterSyncProcessor @Inject constructor(
                             correctedDate = correctedDate,
                             updatedAt = System.currentTimeMillis()
                         )
-                        val today = java.time.LocalDate.now(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)).toString()
+                        val today = com.khanabook.lite.pos.core.util.BusinessDate
+                            .businessDate(System.currentTimeMillis(), repairProfile)
                         repaired.createdTerminalId
                             ?.takeIf { correctedDate == today }
                             ?.let { terminalId: String ->
@@ -1994,13 +1997,17 @@ BillEntity(
         // profile's counters can be stale (lagging behind the latest bills).
         val currentProfile = if (restaurantId > 0) restaurantDao.getProfile(restaurantId) else restaurantDao.getProfile()
         if (currentProfile != null && masterData.bills.isNotEmpty()) {
-            val timezone = AppConstants.DEFAULT_TIMEZONE
-            val today = java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
+            val today = com.khanabook.lite.pos.core.util.BusinessDate
+                .businessDate(System.currentTimeMillis(), currentProfile)
             val maxDailyToday = masterData.bills
                 .filter { bill ->
-                    val billDate = java.time.Instant.ofEpochMilli(bill.createdAt ?: 0L)
-                        .atZone(java.time.ZoneId.of(timezone))
-                        .toLocalDate().toString()
+                    // lastResetDate is the server's own business date, which is the authority
+                    // behind the unique order key. Re-deriving it from created_at here (as this
+                    // used to) reintroduces exactly the client/server split the server-side
+                    // stamp exists to remove — four hours a night, once a cutoff exists.
+                    val billDate = bill.lastResetDate?.takeIf { it.isNotBlank() }
+                        ?: com.khanabook.lite.pos.core.util.BusinessDate
+                            .businessDate(bill.createdAt ?: 0L, currentProfile)
                     billDate == today
                 }
                 .maxOfOrNull { it.dailyOrderId ?: 0L } ?: 0L
@@ -2023,9 +2030,9 @@ BillEntity(
             if (terminalId != null) {
                 val maxDailyForTerminal = masterData.bills
                     .filter { bill ->
-                        val billDate = java.time.Instant.ofEpochMilli(bill.createdAt ?: 0L)
-                            .atZone(java.time.ZoneId.of(timezone))
-                            .toLocalDate().toString()
+                        val billDate = bill.lastResetDate?.takeIf { it.isNotBlank() }
+                            ?: com.khanabook.lite.pos.core.util.BusinessDate
+                                .businessDate(bill.createdAt ?: 0L, currentProfile)
                         billDate == today && (bill.createdTerminalId == terminalId || bill.terminalId == terminalId)
                     }
                     .maxOfOrNull { it.dailyOrderId ?: 0L } ?: 0L

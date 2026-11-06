@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.feature.billing.domain
 
 import com.khanabook.lite.pos.core.util.AppConstants
+import com.khanabook.lite.pos.core.util.BusinessDate
 
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 /**
@@ -38,8 +39,21 @@ object OrderIdManager {
 
     /**
      * Returns today's date string in YYYY-MM-DD format.
+     *
+     * The timezone parameter used to be ignored — the body always read IST — so a caller
+     * passing a non-IST zone silently got the Indian date. It is honoured now.
      */
     fun getTodayString(timezone: String = INDIA_TIMEZONE): String {
-        return java.time.LocalDate.now(java.time.ZoneId.of(INDIA_TIMEZONE)).toString()
+        return BusinessDate.businessDate(System.currentTimeMillis(), timezone, null, null)
+    }
+
+    /**
+     * Today's business date for a shop, honouring its configured cutoff.
+     *
+     * Prefer this over [getTodayString] anywhere the shop's own numbering is involved:
+     * the cutoff is what decides whether 01:00 is a new day or the tail of the last one.
+     */
+    fun getTodayString(profile: RestaurantProfileEntity): String {
+        return BusinessDate.businessDate(System.currentTimeMillis(), profile)
     }
 }

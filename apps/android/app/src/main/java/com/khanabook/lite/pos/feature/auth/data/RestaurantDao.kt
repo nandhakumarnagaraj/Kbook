@@ -41,10 +41,13 @@ interface RestaurantDao {
     suspend fun incrementAndGetCounters(restaurantId: Long): Pair<Long, Long> {
         val profile = getProfile(restaurantId) ?: throw Exception("Profile not found")
         
-        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-        val today = java.time.LocalDate.now(zoneId).toString()
-        val isNewDay = profile.lastResetDate != today
+        // Business day, not calendar day. Under a cutoff the first bill after 04:00 must
+        // open a new day's counter while the bills taken at 01:00 still increment the
+        // previous day's. BusinessDate returns the calendar day while the cutoff is unset,
+        // so every tenant using this today sees identical behaviour.
         val now = System.currentTimeMillis()
+        val today = com.khanabook.lite.pos.core.util.BusinessDate.businessDate(now, profile)
+        val isNewDay = profile.lastResetDate != today
 
         if (isNewDay) {
             // Reset to 1 on a new day
@@ -65,10 +68,13 @@ interface RestaurantDao {
     suspend fun incrementAndGetDailyCounter(restaurantId: Long): Long {
         val profile = getProfile(restaurantId) ?: throw Exception("Profile not found")
 
-        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-        val today = java.time.LocalDate.now(zoneId).toString()
-        val isNewDay = profile.lastResetDate != today
+        // Business day, not calendar day. Under a cutoff the first bill after 04:00 must
+        // open a new day's counter while the bills taken at 01:00 still increment the
+        // previous day's. BusinessDate returns the calendar day while the cutoff is unset,
+        // so every tenant using this today sees identical behaviour.
         val now = System.currentTimeMillis()
+        val today = com.khanabook.lite.pos.core.util.BusinessDate.businessDate(now, profile)
+        val isNewDay = profile.lastResetDate != today
 
         return if (isNewDay) {
             val nextDailyCounter = 1L
@@ -90,8 +96,8 @@ interface RestaurantDao {
     @Transaction
     suspend fun updateCounters(restaurantId: Long, daily: Long, lifetime: Long) {
         val current = getProfile(restaurantId) ?: return
-        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-        val today = java.time.LocalDate.now(zoneId).toString()
+        val today = com.khanabook.lite.pos.core.util.BusinessDate
+            .businessDate(System.currentTimeMillis(), current)
         saveProfile(current.copy(
             dailyOrderCounter = daily,
             lifetimeOrderCounter = lifetime,

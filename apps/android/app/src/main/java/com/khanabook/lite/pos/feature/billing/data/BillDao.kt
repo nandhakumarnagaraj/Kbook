@@ -458,11 +458,20 @@ fun getPendingOnlineBillsFlow(restaurantId: Long, terminalId: String): Flow<List
             items: List<BillItemEntity>,
             payments: List<BillPaymentEntity>
     ): Long {
-        val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-        val orderDate = java.time.Instant.ofEpochMilli(bill.createdAt).atZone(zoneId).toLocalDate()
-        val startTime = orderDate.atStartOfDay(zoneId).toInstant().toEpochMilli()
-        val endTime = orderDate.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
-        if (countActiveBillsByDailyIdAndDate(bill.restaurantId, bill.dailyOrderId, startTime, endTime, bill.terminalSeries) > 0) {
+        // Guard on the bill's own business date, not on a calendar-day window over
+        // created_at. The two bases diverge as soon as a cutoff exists: the server's
+        // duplicate key is last_reset_date, so a created_at window would either miss a
+        // collision (which the server then "repairs" by renumbering an already-printed
+        // receipt) or reject a legitimate 01:00 bill against yesterday's numbering.
+        // lastResetDate is stamped on the bill at creation; the calendar day is only the
+        // fallback for a row that somehow has none.
+        val conflictDate = bill.lastResetDate.takeIf { it.isNotBlank() }
+            ?: java.time.Instant.ofEpochMilli(bill.createdAt)
+                .atZone(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
+                .toLocalDate()
+                .toString()
+        // -1 never matches a real row, so the shared "excluding this bill" query works here.
+        if (countDailyOrderIdentityConflicts(bill.restaurantId, -1L, conflictDate, bill.dailyOrderId, bill.terminalSeries) > 0) {
             throw android.database.sqlite.SQLiteConstraintException(
                 "Duplicate order id #${bill.dailyOrderDisplay}. Please repair counters from Sync Center and try again."
             )
