@@ -7,6 +7,7 @@ import com.khanabook.lite.pos.core.theme.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -298,12 +300,9 @@ fun PartPaymentCard(
     }
 }
 
-private val COL_ORDER   = 0.9f
-private val COL_AMOUNT  = 1.1f
+private val COL_ORDER   = 1.0f
+private val COL_AMOUNT  = 1.2f
 private val COL_TIME    = 1.0f
-private val COL_DATE    = 1.0f
-private val COL_MODE    = 1.1f
-private val COL_STATUS  = 1.2f
 private val COL_ACTION  = 0.8f
 
 /** Time-of-day for the Orders table "Time" column. */
@@ -326,6 +325,29 @@ private fun formatOrderRowAmount(amount: String?): String =
     com.khanabook.lite.pos.core.util.CurrencyUtils.formatPrice(amount)
         .replace("\u20B9 ", "\u20B9")
 
+@Composable
+fun RowScope.OrderTableHeaderCell(
+    text: String,
+    weight: Float,
+    align: TextAlign = TextAlign.Center,
+    paddingStart: androidx.compose.ui.unit.Dp = 0.dp,
+    paddingEnd: androidx.compose.ui.unit.Dp = 0.dp
+) {
+    val layout = KhanaBookTheme.layout
+    Text(
+        text = text,
+        modifier = Modifier
+            .weight(weight)
+            .padding(start = paddingStart, end = paddingEnd),
+        color = TextGold,
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontSize = layout.tableHeaderFontSize,
+            fontWeight = FontWeight.Bold
+        ),
+        textAlign = align,
+        maxLines = 1
+    )
+}
 
 @Composable
 fun OrderLevelView(
@@ -349,11 +371,10 @@ fun OrderLevelView(
                 .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // One column set for both layouts: OrderNo | Amount | Time | Action
-            HeaderCell("OrderNo", COL_ORDER)
-            HeaderCell("Amount", COL_AMOUNT)
-            HeaderCell("Time", COL_TIME)
-            HeaderCell("Action", COL_ACTION)
+            OrderTableHeaderCell("OrderNo", COL_ORDER, align = TextAlign.Start, paddingStart = spacing.small)
+            OrderTableHeaderCell("Amount", COL_AMOUNT, align = TextAlign.End, paddingEnd = spacing.small)
+            OrderTableHeaderCell("Time", COL_TIME, align = TextAlign.Center)
+            OrderTableHeaderCell("Action", COL_ACTION, align = TextAlign.Center)
         }
 
         if (rows.isEmpty()) {
@@ -378,8 +399,8 @@ fun OrderLevelView(
                     .fillMaxWidth()
                     .verticalScrollbar(listState)
                     .padding(horizontal = spacing.medium),
-                verticalArrangement = Arrangement.spacedBy(spacing.extraSmall),
-                contentPadding = PaddingValues(bottom = spacing.small)
+                verticalArrangement = Arrangement.spacedBy(spacing.small),
+                contentPadding = PaddingValues(top = spacing.extraSmall, bottom = spacing.medium)
             ) {
                 items(rows) { row ->
                     OrderRowItem(
@@ -409,95 +430,87 @@ fun OrderRowItem(
     onRequestCancel: () -> Unit = {},
     onViewDetails: (Long) -> Unit
 ) {
-    var statusExpanded by remember { mutableStateOf(false) }
-    var payModeExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
-    val layout = KhanaBookTheme.layout
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
-    // Mode/status edits are allowed only on the SAME DAY the bill was taken
-    // (owner request). Unknown timestamps (createdAt == 0, legacy callers) stay
-    // editable so we never over-restrict.
-    val isSameDayAsTaken = row.createdAt <= 0L || run {
-        val taken = java.util.Calendar.getInstance().apply { timeInMillis = row.createdAt }
-        val now = java.util.Calendar.getInstance()
-        taken.get(java.util.Calendar.YEAR) == now.get(java.util.Calendar.YEAR) &&
-            taken.get(java.util.Calendar.DAY_OF_YEAR) == now.get(java.util.Calendar.DAY_OF_YEAR)
-    }
-    val canEdit = !isCancelled && isSameDayAsTaken
 
-    // The dropdown is a "change to…" list, so the mode the bill already has is not a
-    // target: re-picking it ran a real write that returned the same value, which read as
-    // "the tap did nothing". Hide it and make the menu a no-op when nothing else is
-    // offered — otherwise a shop with a single enabled mode gets an empty dropdown and the
-    // chip stops opening anything at all.
-    val selectablePayModes = enabledModes.filter { it != row.paymentMode }
-
-    // A previous-day row used to open nothing and say nothing, so the tap just
-    // looked broken. Say why in plain words — "settled" is billing jargon a
-    // restaurant owner will not parse.
-    val toastScope = rememberCoroutineScope()
-    val onEditBlocked: () -> Unit = {
-        val message = when {
-            isCancelled -> "Cancelled orders can't be changed."
-            row.orderStatus == OrderStatus.COMPLETED -> "Paid orders can't be edited."
-            else -> "Only today's orders can be edited."
-        }
-        toastScope.launch { KhanaToast.show(message, ToastKind.Warning) }
-    }
-    // Dine-in "pay after food" drafts are unsettled bills: their payment mode is
-    // decided at settlement time on the billing screen, and they must never be
-    // marked Completed from the report (that would skip payment capture).
-    // They may only be cancelled from here.
-    val isPayAfterFoodDraft = row.orderStatus == OrderStatus.DRAFT &&
-        row.orderType.trim().lowercase() in OrderType.DINE_IN_ALIASES &&
-        com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
-            .fromDbValue(profile?.orderPaymentFlowMode) ==
-            com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode.PAY_AFTER_FOOD
-
-    // Details open ONLY via the View action button — the row itself is not clickable,
-    // so stray taps while scrolling never pop the dialog.
     KhanaBookCard(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, OrdersDivider.copy(alpha = 0.7f), KhanaRadii.sm),
+            .border(
+                1.dp,
+                if (isCancelled) DangerRed.copy(alpha = 0.35f) else OrdersDivider.copy(alpha = 0.7f),
+                KhanaRadii.md
+            )
+            .clickable { onViewDetails(row.billId) },
         colors = CardDefaults.cardColors(containerColor = OrdersCard),
-        shape = KhanaRadii.sm
+        shape = KhanaRadii.md
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.extraSmall, vertical = spacing.extraSmall),
+                .padding(horizontal = spacing.small, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TableCell(row.dailyId, COL_ORDER, color = OrdersTextPrimary)
-            TableCell(
-                formatOrderRowAmount(row.totalAmount),
-                COL_AMOUNT,
-                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersBrightGold
-            )
-            TableCell(
-                formatOrderRowTime(row),
-                COL_TIME,
-                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextSecondary
+            // 1. OrderNo (Left-aligned)
+            Text(
+                text = if (row.dailyId.startsWith("#")) row.dailyId else "#${row.dailyId}",
+                modifier = Modifier
+                    .weight(COL_ORDER)
+                    .padding(start = spacing.small),
+                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextPrimary,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontFeatureSettings = "tnum"
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
 
-            // Action (View) — the ONLY way to open order details
+            // 2. Amount (Right-aligned, tabular nums, strikethrough if cancelled)
+            Text(
+                text = formatOrderRowAmount(row.totalAmount),
+                modifier = Modifier
+                    .weight(COL_AMOUNT)
+                    .padding(end = spacing.small),
+                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersBrightGold,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontFeatureSettings = "tnum"
+                ),
+                textDecoration = if (isCancelled) TextDecoration.LineThrough else TextDecoration.None,
+                textAlign = TextAlign.End,
+                maxLines = 1
+            )
+
+            // 3. Time (Center-aligned)
+            Text(
+                text = formatOrderRowTime(row),
+                modifier = Modifier.weight(COL_TIME),
+                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextSecondary,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontFeatureSettings = "tnum"
+                ),
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+
+            // 4. Action (View Eye icon button - Circular 36dp)
             Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
                 Surface(
                     onClick = { onViewDetails(row.billId) },
-                    color = Color.Transparent,
-                    border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.6f)),
-                    shape = KhanaRadii.sm
+                    color = OrdersGold.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.55f)),
+                    shape = CircleShape,
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Visibility,
-                        contentDescription = "View order ${row.dailyId}",
-                        tint = OrdersGold,
-                        modifier = Modifier
-                            .defaultMinSize(minWidth = 44.dp, minHeight = 36.dp)
-                            .padding(horizontal = spacing.small, vertical = spacing.hairline)
-                            .size(20.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.Visibility,
+                            contentDescription = "View order ${row.dailyId}",
+                            tint = OrdersGold,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }

@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -28,16 +27,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import com.khanabook.lite.pos.core.util.openBillToPrint
 import com.khanabook.lite.pos.core.util.shareInvoice
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.feature.reports.viewmodel.ReportsViewModel
 import com.khanabook.lite.pos.feature.reports.ui.FilterChip
-import com.khanabook.lite.pos.feature.reports.ui.ReportTypeToggle
 import com.khanabook.lite.pos.feature.reports.ui.PaymentLevelView
-import com.khanabook.lite.pos.feature.reports.ui.ReportDownloadBottomBar
 import com.khanabook.lite.pos.feature.reports.ui.OrderLevelView
 import com.khanabook.lite.pos.feature.reports.ui.OrderDetailsDialog
 import com.khanabook.lite.pos.domain.model.PaymentMode
@@ -64,7 +60,6 @@ fun OrdersScreen(
     val layout = KhanaBookTheme.layout
     val context = LocalContext.current
     val canViewFullReports = remember { viewModel.canViewFullReports() }
-    val canExportReports = remember { viewModel.canExportReports() }
 
     LaunchedEffect(reportError) {
         reportError?.let { message ->
@@ -72,7 +67,6 @@ fun OrdersScreen(
             viewModel.clearError()
         }
     }
-    val scope = rememberCoroutineScope()
 
     // Staggered entry animation — same pattern used across all screens
     var headerVisible by remember { mutableStateOf(false) }
@@ -123,8 +117,6 @@ fun OrdersScreen(
     }
     
     var showDateRangePicker by remember { mutableStateOf(false) }
-
-    var isExporting by remember { mutableStateOf(false) }
     val hasLoadedOnce by viewModel.hasLoadedOnce.collectAsStateWithLifecycle()
 
     // The day window is computed per filter change. Refreshing it on resume keeps "Today"
@@ -319,44 +311,6 @@ fun OrdersScreen(
                         }
                     )
                 }
-            }
-
-            // Download/share is a Payments Report affordance only. The exporter still
-            // supports the Orders report internally, but the button must not appear on it.
-            if (canExportReports && reportType == "Payment") {
-                ReportDownloadBottomBar(
-                    onDownloadClick = {
-                        scope.launch {
-                            try {
-                                isExporting = true
-                                val file = viewModel.exportReport(context, "PDF", profile)
-                                if (!file.exists() || file.length() == 0L) {
-                                    KhanaToast.show("Report export failed - empty file", ToastKind.Error)
-                                    return@launch
-                                }
-                                val pdfUri = androidx.core.content.FileProvider.getUriForFile(
-                                    context,
-                                    "${context.packageName}.provider",
-                                    file
-                                )
-                                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                                    type = "application/pdf"
-                                    putExtra(android.content.Intent.EXTRA_STREAM, pdfUri)
-                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }
-                                context.startActivity(android.content.Intent.createChooser(shareIntent, "Share Report"))
-                            } catch (e: Exception) {
-                                KhanaToast.show(
-                                    UserMessageSanitizer.sanitize(e, "Report export failed. Please try again."),
-                                    ToastKind.Error
-                                )
-                            } finally {
-                                isExporting = false
-                            }
-                        }
-                    },
-                    isExporting = isExporting
-                )
             }
         }
 
