@@ -103,6 +103,18 @@ class BusinessDayConfigServiceTest {
     }
 
     @Test
+    @DisplayName("activation is refused while no app build is trusted")
+    void activationRequiresAConfiguredTrustedBuild() {
+        ReflectionTestUtils.setField(service, "businessDayMinVersion", 0);
+
+        ResponseStatusException failure = assertThrows(ResponseStatusException.class,
+                () -> service.update(TENANT, "04:00", LocalDate.now(ZONE).plusDays(1)));
+
+        assertEquals(HttpStatus.CONFLICT, failure.getStatusCode());
+        assertNull(profile.getCutoffEffectiveFrom());
+    }
+
+    @Test
     @DisplayName("activation is refused while any active terminal cannot compute a business day")
     void activationIsBlockedByAnIncapableTerminal() {
         when(terminals.findByRestaurantIdAndStatus(TENANT, "ACTIVE"))

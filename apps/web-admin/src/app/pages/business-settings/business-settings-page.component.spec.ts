@@ -40,9 +40,24 @@ function profileResponse(overrides: Record<string, unknown> = {}): Record<string
   };
 }
 
+/** Dormant cutoff: the deployed default, so no spec accidentally exercises activation. */
+function businessDayResponse(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    cutoffTime: '00:00',
+    effectiveFrom: null,
+    active: false,
+    timezone: 'Asia/Kolkata',
+    capableFromVersion: 0,
+    terminals: [],
+    ...overrides
+  };
+}
+
 function apiStub(overrides: Record<string, unknown> = {}) {
   return {
     getProfile: jasmine.createSpy('getProfile').and.returnValue(of(profileResponse(overrides))),
+    getBusinessDay: jasmine.createSpy('getBusinessDay').and.returnValue(of(businessDayResponse())),
+    updateBusinessDay: jasmine.createSpy('updateBusinessDay').and.returnValue(of(businessDayResponse())),
     updateProfile: jasmine.createSpy('updateProfile').and.returnValue(of(profileResponse(overrides))),
     uploadLogo: jasmine.createSpy('uploadLogo').and.returnValue(of({ url: '' })),
     deleteLogo: jasmine.createSpy('deleteLogo').and.returnValue(of(undefined)),
@@ -92,6 +107,7 @@ describe('BusinessSettingsPageComponent — configuration shell', () => {
     expect(links.map((link) => link.textContent?.trim()))
       .toEqual([
         'Restaurant Profile',
+        'Business Day',
         'Tax & FSSAI',
         'Payment Configuration',
         'Invoice & Billing',
@@ -100,6 +116,7 @@ describe('BusinessSettingsPageComponent — configuration shell', () => {
       ]);
 
     expect(root().querySelector('#profile')).toBeTruthy();
+    expect(root().querySelector('#businessDay')).toBeTruthy();
     expect(root().querySelector('#tax')).toBeTruthy();
     expect(root().querySelector('#payments')).toBeTruthy();
   });
@@ -112,12 +129,14 @@ describe('BusinessSettingsPageComponent — configuration shell', () => {
 
   it('marks the selected section and scrolls to it', () => {
     const links = Array.from(root().querySelectorAll<HTMLAnchorElement>('.settings-nav__list a'));
-    links[1].click();
+    const taxLink = links.find((link) => link.getAttribute('href') === '#tax');
+    expect(taxLink).withContext('the Tax section keeps a nav row').toBeTruthy();
+    taxLink!.click();
     fixture.detectChanges();
 
     expect(component.activeSection()).toBe('tax');
-    expect(links[1].classList).toContain('settings-nav__link--active');
-    expect(links[1].getAttribute('aria-current')).toBe('true');
+    expect(taxLink!.classList).toContain('settings-nav__link--active');
+    expect(taxLink!.getAttribute('aria-current')).toBe('true');
     expect(links[0].getAttribute('aria-current')).toBeNull();
     expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled();
   });

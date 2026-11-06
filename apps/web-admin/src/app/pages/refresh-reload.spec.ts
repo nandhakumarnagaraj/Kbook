@@ -224,9 +224,13 @@ describe('manual refresh visibly reloads the data', () => {
   it('business settings: the form is withheld while reloading', () => {
     const profile = deferred<unknown>();
     // The payment section child loads its own config on construction.
-    const api = jasmine.createSpyObj('BusinessApiService', ['getProfile', 'getPaymentConfig']);
+    const api = jasmine.createSpyObj('BusinessApiService', ['getProfile', 'getPaymentConfig', 'getBusinessDay']);
     api.getProfile.and.returnValue(profile.stream);
     api.getPaymentConfig.and.returnValue(of({}));
+    api.getBusinessDay.and.returnValue(of({
+      cutoffTime: '00:00', effectiveFrom: null, active: false,
+      timezone: 'Asia/Kolkata', capableFromVersion: 0, terminals: []
+    }));
 
     const fixture = mount<BusinessSettingsPageComponent>(BusinessSettingsPageComponent, [
       { provide: BusinessApiService, useValue: api },

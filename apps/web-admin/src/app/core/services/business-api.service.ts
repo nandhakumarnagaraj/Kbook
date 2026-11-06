@@ -319,6 +319,15 @@ export class BusinessApiService {
     return this.http.put<any>(`${API_BASE_URL}/business/profile`, payload);
   }
 
+  getBusinessDay(): Observable<any> {
+    return this.http.get<any>(`${API_BASE_URL}/business/business-day`);
+  }
+
+  /** `effectiveFrom` is a calendar date (YYYY-MM-DD); null deactivates the cutoff. */
+  updateBusinessDay(payload: { cutoffTime: string; effectiveFrom: string | null }): Observable<any> {
+    return this.http.put<any>(`${API_BASE_URL}/business/business-day`, payload);
+  }
+
   getUserPermissions(userId: number): Observable<any> {
     return this.http.get(`${API_BASE_URL}/permissions/users/${userId}`);
   }

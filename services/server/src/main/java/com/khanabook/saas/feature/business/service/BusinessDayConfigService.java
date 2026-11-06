@@ -125,6 +125,15 @@ public class BusinessDayConfigService {
                     "A 00:00 cutoff is the calendar day. Leave the effective date empty to stay on calendar days.");
         }
 
+        // With no trusted build, no terminal can ever qualify — including the next one to
+        // register. Refusing here keeps a shop from activating while empty and then having
+        // an old build start printing day-local numbers under the new rule.
+        if (businessDayMinVersion <= 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No app build is trusted to compute a business day yet. Set "
+                            + "app.version.business-day-min to the released app version code before activating the cutoff.");
+        }
+
         LocalDate today = LocalDate.now(zone);
         if (effectiveFrom.isBefore(today)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,

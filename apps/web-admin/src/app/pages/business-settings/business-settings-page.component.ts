@@ -40,6 +40,25 @@ interface RestaurantProfile {
   closingTime: string;
 }
 
+interface TerminalCapability {
+  terminalId: number | null;
+  terminalSeries: string | null;
+  terminalName: string | null;
+  active: boolean;
+  cutoffCapable: boolean;
+  lastSeenAt: number | null;
+}
+
+/** Server-owned (GET /business/business-day); the till only reads it. */
+interface BusinessDayConfig {
+  cutoffTime: string;
+  effectiveFrom: number | null;
+  active: boolean;
+  timezone: string;
+  capableFromVersion: number;
+  terminals: TerminalCapability[];
+}
+
 interface SettingsCategory {
   id: string;
   label: string;
@@ -347,7 +366,86 @@ interface SettingsCategory {
               </div>
             </section>
 
-            <!-- 2. Tax & Compliance -->
+            <!-- 2. Business day (server-owned: the cutoff and its activation date) -->
+            <section id="businessDay" class="settings-block" data-settings-section aria-label="Business day">
+              <div class="panel settings-section">
+                <div class="section-title-wrap">
+                  <div class="section-icon">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="9"/>
+                      <polyline points="12 7 12 12 16 14"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 id="businessDay-section-title">Business day</h3>
+                    <p class="section-sub">When the shop's day rolls over. A bill taken after midnight belongs to the previous day until this time.</p>
+                  </div>
+                  <span class="kpi-tag" [class.kpi-tag--green]="businessDay()?.active" [class.kpi-tag--neutral]="!businessDay()?.active">
+                    {{ businessDay()?.active ? 'Cutoff in force' : 'Calendar days' }}
+                  </span>
+                </div>
+
+                <p class="opt-note" *ngIf="!businessDay()">
+                  Could not load the business-day configuration. Reload the page to try again.
+                </p>
+
+                <div class="opt-grid" *ngIf="businessDay() as config">
+                  <div class="opt-row">
+                    <label class="opt-label" for="field-businessDayCutoff">Day rolls at</label>
+                    <input
+                      id="field-businessDayCutoff"
+                      class="field-control"
+                      type="time"
+                      [ngModel]="businessDayDraft().cutoffTime"
+                      (ngModelChange)="businessDayDraft.set({ cutoffTime: $event, effectiveFrom: businessDayDraft().effectiveFrom })" />
+                    <span class="opt-hint">Usually 02:00–06:00. Bills before this time count towards the previous day.</span>
+                  </div>
+                  <div class="opt-row">
+                    <label class="opt-label" for="field-cutoffEffectiveFrom">First business day under the new rule</label>
+                    <input
+                      id="field-cutoffEffectiveFrom"
+                      class="field-control"
+                      type="date"
+                      [ngModel]="businessDayDraft().effectiveFrom"
+                      (ngModelChange)="businessDayDraft.set({ cutoffTime: businessDayDraft().cutoffTime, effectiveFrom: $event })" />
+                    <span class="opt-hint">Cannot be in the past, and cannot be moved once it is in force.</span>
+                  </div>
+                  <div class="opt-row opt-inline">
+                    <button
+                      type="button"
+                      class="header-action-btn header-action-btn--primary"
+                      [disabled]="businessDayBusy() || blockedTerminals().length > 0 || config.capableFromVersion === 0"
+                      (click)="activateBusinessDay()">
+                      {{ businessDayBusy() ? 'Saving...' : (config.active ? 'Change cutoff' : 'Activate cutoff') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="ghost-btn"
+                      *ngIf="config.active"
+                      [disabled]="businessDayBusy()"
+                      (click)="deactivateBusinessDay()">
+                      Return to calendar days
+                    </button>
+                  </div>
+                </div>
+
+                <p class="opt-note" *ngIf="blockedTerminals().length">
+                  <strong>Activation blocked.</strong> These terminals run an app build that computes calendar
+                  days, so their printed order numbers would be renumbered:
+                  <span *ngFor="let terminal of blockedTerminals()">{{ terminal.terminalSeries || terminal.terminalId }} </span>
+                  Update the KhanaBook app on them, then reload this page.
+                </p>
+                <p class="opt-note" *ngIf="businessDay()?.capableFromVersion === 0">
+                  No app build is trusted yet. Activation stays blocked until the released version code is
+                  configured on the server (<code>app.version.business-day-min</code>).
+                </p>
+                <p class="opt-note" *ngIf="businessDay()?.active && businessDay()?.effectiveFrom">
+                  Cutoff in force since {{ businessDay()?.effectiveFrom | date: 'mediumDate' }}.
+                </p>
+              </div>
+            </section>
+
+            <!-- 3. Tax & Compliance -->
             <section id="tax" class="settings-block" data-settings-section aria-label="Tax and compliance">
               <app-tax-settings-section
                 [tax]="{
@@ -884,6 +982,7 @@ export class BusinessSettingsPageComponent implements OnDestroy {
   /** One entry per section rendered in the main column, in scroll order. */
   readonly categories: readonly SettingsCategory[] = [
     { id: 'profile', label: 'Restaurant Profile', icon: 'profile' },
+    { id: 'businessDay', label: 'Business Day', icon: 'reports' },
     { id: 'tax', label: 'Tax & FSSAI', icon: 'reports' },
     { id: 'payments', label: 'Payment Configuration', icon: 'payments' },
     { id: 'invoice', label: 'Invoice & Billing', icon: 'orders' },
@@ -970,6 +1069,72 @@ export class BusinessSettingsPageComponent implements OnDestroy {
     section.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
   }
 
+  // ── Business day (server-owned; the till only reads it) ───────────────────
+  readonly businessDay = signal<BusinessDayConfig | null>(null);
+  readonly businessDayDraft = signal({ cutoffTime: '04:00', effectiveFrom: '' });
+  readonly businessDayBusy = signal(false);
+
+  /** Terminals that would have their printed numbers renumbered, so activation is refused. */
+  readonly blockedTerminals = computed(() => {
+    const config = this.businessDay();
+    return config ? config.terminals.filter((t) => t.active && !t.cutoffCapable) : [];
+  });
+
+  loadBusinessDay(): void {
+    this.businessApi.getBusinessDay().subscribe({
+      next: (config) => {
+        if (!config) return;
+        this.businessDay.set(config);
+        this.businessDayDraft.set({ cutoffTime: config.cutoffTime || '04:00', effectiveFrom: '' });
+      },
+      error: () => {
+        // The profile form above is independent; the panel says so rather than showing zeros.
+        this.businessDay.set(null);
+      }
+    });
+  }
+
+  activateBusinessDay(): void {
+    const effectiveFrom = this.businessDayDraft().effectiveFrom;
+    if (!effectiveFrom) {
+      this.toast.show('Choose the first business day for the cutoff.', 'error');
+      document.getElementById('field-cutoffEffectiveFrom')?.focus();
+      return;
+    }
+    this.submitBusinessDay(effectiveFrom);
+  }
+
+  deactivateBusinessDay(): void {
+    this.submitBusinessDay(null);
+  }
+
+  private submitBusinessDay(effectiveFrom: string | null): void {
+    if (this.businessDayBusy()) return;
+    const draft = this.businessDayDraft();
+    if (effectiveFrom !== null && draft.cutoffTime === '00:00') {
+      this.toast.show('A 00:00 cutoff is the calendar day — use "Return to calendar days" instead.', 'error');
+      return;
+    }
+
+    this.businessDayBusy.set(true);
+    this.businessApi.updateBusinessDay({ cutoffTime: draft.cutoffTime, effectiveFrom }).subscribe({
+      next: (config) => {
+        this.businessDayBusy.set(false);
+        if (!config) return;
+        this.businessDay.set(config);
+        this.businessDayDraft.set({ cutoffTime: config.cutoffTime || '04:00', effectiveFrom: '' });
+        this.toast.show(
+          config.active ? 'Business-day cutoff activated.' : 'Back to calendar days.',
+          'success'
+        );
+      },
+      error: (err) => {
+        this.businessDayBusy.set(false);
+        this.toast.show(err?.error?.message ?? 'Could not change the business day. Try again.', 'error');
+      }
+    });
+  }
+
   refreshSettings(): void {
     if (this.loading()) return;
     if (this.dirty() && !window.confirm('Reload settings from the server? Unsaved changes will be lost.')) return;
@@ -979,6 +1144,7 @@ export class BusinessSettingsPageComponent implements OnDestroy {
   load(): void {
     this.loading.set(true);
     this.loadError.set('');
+    this.loadBusinessDay();
     this.businessApi.getProfile().subscribe({
       next: (p) => {
         const loaded: RestaurantProfile = p ? {
