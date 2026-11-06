@@ -65,7 +65,7 @@ Consequences, all deliberate:
 | **R4** | The server is the authority for a bill's business date (`bills.last_reset_date`); no `bills.business_date` column is added. | **Done** |
 | **R5** | A business date the server already stamped is never moved by a later push. | **Done** |
 | **R6** | Cutoff configuration is server-owned: a till push can never reset or blank it. | **Done** |
-| **R7** | The cutoff cannot be activated until every active terminal is capable (`cutoff_capable`). | **Partial — column exists, no writer or gate** |
+| **R7** | The cutoff cannot be activated until every active terminal is capable (`cutoff_capable`). | **Gate + writer done — no web-admin editor yet** |
 | **R8** | Cashier shifts exist locally and on the server, and a closed shift is append-only. | **Schema + server guard only — nothing creates or closes a shift yet** |
 | **R9** | Only `declared_cash` is device truth; `expected_cash`, variance and totals are server-owned. | **Done (guard); computation pending** |
 | **R10** | Shifts sync: push/pull endpoints, and a `cashierShifts` section on the master-sync pull. | **Server only — Android neither reads nor pushes shifts** |
@@ -144,6 +144,8 @@ dashboard with no single shop context).
 | `POST /sync/shifts/push` | Batch of `CashierShiftDTO`; guarded by the billing permission |
 | `GET /sync/shifts/pull` | Incremental pull by `lastSyncTimestamp` |
 | `GET /sync/master/pull` | Now includes `cashierShifts` (page 0) |
+| `GET /business/business-day` | Cutoff time, activation state, and every terminal's capability |
+| `PUT /business/business-day` | Sets the cutoff, or deactivates it with a null effective date; refused with 409 while any active terminal is not capable |
 
 ## 8. Rollout safety
 
@@ -181,9 +183,13 @@ The Room DDL was matched to the exported `84.json` instead, which is what Room v
 
 ## 10. What remains
 
-1. **Cutoff activation gate (R7).** The web-admin form must refuse an effective date until every active
-   terminal has `cutoff_capable = true`, and `AppVersionFilter` must let terminal registration record
-   it.
+1. **Cutoff editor (the missing half of R7).** The server side is complete: `AppVersionFilter` publishes
+   the parsed `X-App-Version`, terminal registration records `cutoff_capable` from it, and
+   `PUT /business/business-day` owns the rule (deactivation always allowed, activation gated on every
+   active terminal, effective date forward-only, cutoff before noon). What does not exist is the
+   settings screen that calls it, so the cutoff can only be set through the API today.
+   `app.version.business-day-min` defaults to `0`, which trusts **no** build and therefore blocks
+   activation until it is set to the released version code.
 2. **Server-side expected cash (R9).** At seal, compute expected cash from the shift's payments and
    store variance, so the variance figure cannot be influenced by a terminal.
 3. **Android shift client (R10).** Add `cashierShifts` to `MasterSyncResponse`, persist via

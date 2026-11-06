@@ -58,6 +58,13 @@ public class AppVersionFilter extends OncePerRequestFilter {
     /** Response header added for deprecated clients. */
     public static final String HEADER_DEPRECATION  = "X-Deprecation-Warning";
 
+    /**
+     * Request attribute holding the parsed version code, or absent when the client sent no
+     * version (or an unparseable one). Terminal registration reads it to record whether the
+     * build can compute a business day; nothing else should depend on the header directly.
+     */
+    public static final String ATTR_APP_VERSION = "appVersionCode";
+
     @Override
     protected void doFilterInternal(@org.springframework.lang.NonNull HttpServletRequest request,
                                     @org.springframework.lang.NonNull HttpServletResponse response,
@@ -69,6 +76,7 @@ public class AppVersionFilter extends OncePerRequestFilter {
         if (versionStr != null) {
             try {
                 int versionCode = Integer.parseInt(versionStr.trim());
+                request.setAttribute(ATTR_APP_VERSION, versionCode);
                 String path = request.getRequestURI();
 
                 if (minSupportedVersion > 0 && versionCode < minSupportedVersion) {

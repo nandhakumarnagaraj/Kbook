@@ -7,7 +7,9 @@ import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
 import com.khanabook.saas.feature.billing.data.BillRepository;
 import com.khanabook.saas.feature.notifications.data.DeviceRegistrationRequestRepository;
 import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
+import com.khanabook.saas.core.security.AppVersionFilter;
 import com.khanabook.saas.core.security.TenantContext;
+import com.khanabook.saas.feature.business.service.BusinessDayConfigService;
 import com.khanabook.saas.feature.auth.service.SecurityAuditService;
 import com.khanabook.saas.feature.restaurants.service.TerminalManagementService;
 import com.khanabook.saas.core.utility.JwtUtility;
@@ -37,6 +39,7 @@ public class TerminalController {
 	private final JwtUtility jwtUtility;
 	private final SecurityAuditService securityAuditService;
 	private final TerminalManagementService terminalManagementService;
+	private final BusinessDayConfigService businessDayConfigService;
 
 	/**
 	 * Returns all terminals for the authenticated restaurant.
@@ -492,6 +495,10 @@ public class TerminalController {
 	}
 
 	private TerminalActivationResponse toResponse(RestaurantTerminal terminal) {
+		// Rollout gate (R7). Every successful activation path returns through this mapper, so
+		// recording capability here covers first registration, reclaim and complete-activation
+		// without four copies of the same call.
+		businessDayConfigService.recordCapability(terminal, clientAppVersion());
 		String terminalId = terminal.getId() != null ? terminal.getId().toString() : terminal.getTerminalSeries();
 		String role = TenantContext.getCurrentRole() == null ? "OWNER" : TenantContext.getCurrentRole();
 		String token = jwtUtility.generateTerminalToken(terminal.getTerminalSeries(), terminal.getRestaurantId(),
@@ -536,6 +543,20 @@ public class TerminalController {
 	}
 
 	public record TerminalStatusResponse(boolean isPrimary, String terminalSeries, String terminalName) {
+	}
+
+	/**
+	 * The build number the app already sends on every request ({@code X-App-Version}), parsed
+	 * by {@link AppVersionFilter}. Absent for unversioned or legacy calls.
+	 */
+	private Integer clientAppVersion() {
+		var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+		if (attributes == null) {
+			return null;
+		}
+		Object value = attributes.getAttribute(AppVersionFilter.ATTR_APP_VERSION,
+				org.springframework.web.context.request.RequestAttributes.SCOPE_REQUEST);
+		return value instanceof Integer version ? version : null;
 	}
 
 	private String normalizeSeries(String series) {

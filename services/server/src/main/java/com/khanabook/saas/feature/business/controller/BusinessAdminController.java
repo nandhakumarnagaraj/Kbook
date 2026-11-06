@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.khanabook.saas.feature.menu.service.AssetStorageService;
+import com.khanabook.saas.feature.business.service.BusinessDayConfigService;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileDTO;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +31,7 @@ public class BusinessAdminController {
 
     private final BusinessReadService businessReadService;
     private final BusinessWriteService businessWriteService;
+    private final BusinessDayConfigService businessDayConfigService;
     private final BillEditService billEditService;
     private final AssetStorageService assetStorageService;
 
@@ -338,6 +340,31 @@ public class BusinessAdminController {
     @RequireRole(UserRole.OWNER)
     public ResponseEntity<RestaurantProfileDTO> updateProfile(@RequestBody RestaurantProfileDTO dto) {
         return ResponseEntity.ok(businessWriteService.updateProfile(requireTenant(), dto));
+    }
+
+    /**
+     * Current business-day configuration plus every terminal's capability, so the settings
+     * screen can explain why activation is blocked instead of just refusing it.
+     */
+    @GetMapping("/business-day")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessDayConfigService.BusinessDayConfig> getBusinessDay() {
+        return ResponseEntity.ok(businessDayConfigService.get(requireTenant()));
+    }
+
+    /**
+     * Sets the cutoff. A null {@code effectiveFrom} deactivates; anything else activates from
+     * that business day and is refused until every active terminal is capable.
+     */
+    @PutMapping("/business-day")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<BusinessDayConfigService.BusinessDayConfig> updateBusinessDay(
+            @RequestBody BusinessDayUpdateRequest request) {
+        return ResponseEntity.ok(businessDayConfigService.update(
+                requireTenant(), request.cutoffTime(), request.effectiveFrom()));
+    }
+
+    public record BusinessDayUpdateRequest(String cutoffTime, java.time.LocalDate effectiveFrom) {
     }
 
     @PostMapping(value = "/profile/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
