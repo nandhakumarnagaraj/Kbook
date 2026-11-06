@@ -162,7 +162,7 @@ cd apps/android && ./gradlew :app:testDebugUnitTest \
   --tests "*BusinessDateTest*" --tests "*SyncDtoContractTest*" \
   --tests "*DatabaseMigrationListConsistencyTest*" --tests "*OrderIdManagerTest*"
 
-cd services/server && ./mvnw -Dtest='BusinessDayTest,BillSyncServiceBusinessDateTest,CashierShiftAppendOnlyTest' test
+cd services/server && ./mvnw -Dtest='BusinessDayTest,BillSyncServiceBusinessDateTest,CashierShiftAppendOnlyTest,SyncDtoEntityFieldParityTest' test
 ```
 
 Covered by tests:

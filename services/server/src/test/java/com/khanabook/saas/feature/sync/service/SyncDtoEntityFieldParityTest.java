@@ -88,9 +88,18 @@ class SyncDtoEntityFieldParityTest {
 			// Per-field revision map, stamped by stampProfileFieldRevisions from the existing row
 			// on every accepted profile push. The device never sends it.
 			"fieldRevisions",
+			// Business-day configuration (V119): set in web admin, and
+			// applyProfileChangedFieldsMerge restores every one of these unconditionally from the
+			// existing row, for every changedFields mask. They have no DTO property because the
+			// till must never assert them — a push that carried cutoffEffectiveFrom could move the
+			// rule backwards and re-attribute already-numbered bills. Android's
+			// SyncDtoContractTest lists the same names as server-owned.
 			// String on the DTO, LocalDate on the entity, so BeanUtils skips them. SyncMapper
 			// converts and mergeCounterState restores these explicitly instead.
-			"lastResetDateProper", "fssaiExpiryDate", "gstExpiryDate"
+			"lastResetDateProper", "fssaiExpiryDate", "gstExpiryDate",
+			// See the business-day block above.
+			"businessDayCutoffTime", "cutoffEffectiveFrom",
+			"emailDailyClosingReport", "dailyClosingEmailRecipients"
 	);
 
 	/**
