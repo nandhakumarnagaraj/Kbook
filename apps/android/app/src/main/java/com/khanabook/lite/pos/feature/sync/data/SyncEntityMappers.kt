@@ -5,6 +5,7 @@ import com.khanabook.lite.pos.feature.auth.data.UserEntity
 import com.khanabook.lite.pos.feature.billing.data.BillEntity
 import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
+import com.khanabook.lite.pos.feature.billing.data.CashierShiftEntity
 
 
 import com.khanabook.lite.pos.core.util.AppConstants
@@ -229,6 +230,35 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     invoiceFooter           = invoiceFooter,
     reviewUrl               = reviewUrl,
     changedFields           = changedFields,
+)
+
+fun CashierShiftEntity.toSyncDto() = CashierShiftSyncDto(
+    localDbId       = id,
+    restaurantId    = restaurantId,
+    deviceId        = deviceId,
+    localId         = id,
+    serverId        = serverId,
+    terminalId      = terminalId,
+    terminalSeries  = terminalSeries,
+    cashierUserId   = cashierUserId,
+    cashierName     = cashierName,
+    businessDate    = businessDate,
+    openedAt        = openedAt,
+    closedAt        = closedAt,
+    openingFloat    = openingFloat,
+    declaredCash    = declaredCash,
+    expectedCash    = expectedCash,
+    cashVariance    = cashVariance,
+    totalRevenue    = totalRevenue,
+    totalOrders     = totalOrders,
+    status          = status,
+    closeSource     = closeSource,
+    snapshotJson    = snapshotJson,
+    publicToken     = publicToken,
+    updatedAt       = updatedAt,
+    isDeleted       = isDeleted,
+    serverUpdatedAt = serverUpdatedAt,
+    version         = 0L,
 )
 
 fun UserEntity.toSyncDto() = UserSyncDto(

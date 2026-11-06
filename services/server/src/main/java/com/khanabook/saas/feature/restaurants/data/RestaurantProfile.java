@@ -183,6 +183,39 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "timezone")
 	private String timezone = AppConstants.DEFAULT_TIMEZONE;
 
+	// --- Business day (V119) -------------------------------------------------
+	// Admin display only: the cutoff decides attribution, these two never do. They
+	// exist so the closing report can state the shop's hours next to the business day
+	// it actually sealed, which are deliberately allowed to disagree (a shop that
+	// "closes" at 23:00 may still take sales until the 04:00 cutoff).
+	@Column(name = "opening_time", nullable = false)
+	private java.time.LocalTime openingTime = java.time.LocalTime.of(8, 0);
+
+	@Column(name = "closing_time", nullable = false)
+	private java.time.LocalTime closingTime = java.time.LocalTime.of(23, 0);
+
+	/**
+	 * Local time at which the business day rolls. Midnight keeps the legacy calendar-day
+	 * rule; see {@code BusinessDay} and the design doc
+	 * {@code docs/planning/BUSINESS_DAY_CUTOFF_AND_SHIFTS_PLAN_2026-11-06.md}.
+	 */
+	@Column(name = "business_day_cutoff_time", nullable = false)
+	private java.time.LocalTime businessDayCutoffTime = java.time.LocalTime.MIDNIGHT;
+
+	/**
+	 * Epoch ms from which the cutoff applies; {@code null} = never. Forward-only: bills
+	 * created before this instant keep the calendar rule, so no stored business date and
+	 * no printed order number is rewritten by enabling the cutoff.
+	 */
+	@Column(name = "cutoff_effective_from")
+	private Long cutoffEffectiveFrom;
+
+	@Column(name = "email_daily_closing_report", nullable = false)
+	private Boolean emailDailyClosingReport = false;
+
+	@Column(name = "daily_closing_email_recipients", columnDefinition = "TEXT")
+	private String dailyClosingEmailRecipients;
+
 	@Column(name = "review_url")
 	private String reviewUrl;
 

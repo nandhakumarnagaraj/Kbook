@@ -87,4 +87,13 @@ public class RestaurantTerminal {
 
 	@Column(name = "last_seen_at")
 	private Long lastSeenAt;
+
+	/**
+	 * True once this terminal has registered from a build that understands the
+	 * configurable business-day cutoff. The cutoff may only be activated for a restaurant
+	 * whose active terminals are all capable: an old client derives calendar days, and the
+	 * server's duplicate repair would then renumber a receipt it has already printed.
+	 */
+	@Column(name = "cutoff_capable", nullable = false)
+	private Boolean cutoffCapable = false;
 }

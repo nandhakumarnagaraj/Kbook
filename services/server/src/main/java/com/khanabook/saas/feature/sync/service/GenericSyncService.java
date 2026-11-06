@@ -514,8 +514,18 @@ public class GenericSyncService {
 						// created between 00:00–05:29 IST on the previous day and made the
 						// server's duplicate key disagree with the client's createdAt window.
 						// Mirrors the KBOOK_ADMIN tenant fallback used further below.
+						// Forward-only: a bill the server already stamped keeps that date. The
+						// stored row is already in this batch's existing-record map, so this costs
+						// no extra query and — critically — runs BEFORE the number-conflict check
+						// below, which keys on lastResetDate. Recomputing here and repairing the
+						// conflict afterwards would renumber a printed receipt.
+						String storedBusinessDate = null;
+						Object storedRecord = existingRecordMap.get(bill.getLocalId());
+						if (storedRecord instanceof Bill storedBill) {
+							storedBusinessDate = storedBill.getLastResetDate();
+						}
 						billSyncService.applyServerBusinessDate(
-								tenantId != null ? tenantId : bill.getRestaurantId(), bill);
+								tenantId != null ? tenantId : bill.getRestaurantId(), bill, storedBusinessDate);
 						if (bill.getRefundAmount() == null) {
 							bill.setRefundAmount(java.math.BigDecimal.ZERO);
 						}
@@ -1564,6 +1574,19 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		}
 		// Preserve this server-owned switch for every mask, including legacy full-record pushes.
 		incomingP.setEasebuzzEnabled(existingP.getEasebuzzEnabled());
+
+		// Business-day configuration (V119) is web-admin only: the till's profile DTO does
+		// not carry it, and SyncDtoContractTest lists the five fields as server-owned. The
+		// incoming row is bound fresh, so its field initialisers would otherwise rewrite a
+		// configured cutoff to 00:00 and NULL the effective instant on the next profile
+		// push — silently switching the shop back to calendar days and renumbering the
+		// night's receipts. Restore unconditionally, for every mask.
+		incomingP.setOpeningTime(existingP.getOpeningTime());
+		incomingP.setClosingTime(existingP.getClosingTime());
+		incomingP.setBusinessDayCutoffTime(existingP.getBusinessDayCutoffTime());
+		incomingP.setCutoffEffectiveFrom(existingP.getCutoffEffectiveFrom());
+		incomingP.setEmailDailyClosingReport(existingP.getEmailDailyClosingReport());
+		incomingP.setDailyClosingEmailRecipients(existingP.getDailyClosingEmailRecipients());
 		String mask = incomingP.getChangedFields();
 		if (mask == null || mask.isBlank() || "all".equalsIgnoreCase(mask.trim())) {
 			return;

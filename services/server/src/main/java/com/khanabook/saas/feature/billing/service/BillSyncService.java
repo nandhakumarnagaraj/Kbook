@@ -3,6 +3,8 @@ package com.khanabook.saas.feature.billing.service;
 import com.khanabook.saas.feature.billing.data.Bill;
 import com.khanabook.saas.feature.billing.data.BillPayment;
 import com.khanabook.saas.feature.billing.data.BillRepository;
+import com.khanabook.saas.core.utility.BusinessDay;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,45 +29,65 @@ public class BillSyncService {
      * Stamps the bill's business day ({@code lastResetDate}) from its {@code createdAt}
      * in the restaurant's configured timezone.
      *
-     * <p>This is deliberately server-authoritative and unconditional: the client also
-     * computes a day (BillCreationUseCase) but its local duplicate guard uses a
-     * {@code createdAt} timestamp window while the server's guard
-     * ({@link BillRepository#findConflictingDailyOrder}) keys on this string. Two bases
-     * for one fact drift around midnight and under clock skew, producing spurious
-     * "Duplicate order #X already exists" rejections. Deriving it here — exactly as
-     * {@code BillServiceImpl.pushData} already does — means only one side decides.
+     * <p>This is deliberately server-authoritative: the client also computes a day
+     * (BillCreationUseCase) but its local duplicate guard uses a {@code createdAt} timestamp
+     * window while the server's guard ({@link BillRepository#findConflictingDailyOrder})
+     * keys on this string. Two bases for one fact drift around midnight and under clock
+     * skew, producing spurious "Duplicate order #X already exists" rejections. Deriving it
+     * here — exactly as {@code BillServiceImpl.pushData} already does — means only one side
+     * decides.
+     *
+     * <p>Forward-only, per bill: once the server has assigned a business date, a later push
+     * never moves it. Without that, activating a cutoff would re-date the bills of the
+     * night already numbered under the calendar rule, and the conflict repair in
+     * {@link #validateBillNumberConflicts} would hand them new numbers on receipts that are
+     * already printed.
+     *
+     * <p>The rule itself ({@link BusinessDay}) falls back to the calendar day when the
+     * restaurant has no cutoff configured, so behaviour is unchanged for every tenant that
+     * never sets one.
      *
      * <p>Mirrors the existing treatment of {@code terminalSeries} / {@code deviceId},
      * which are likewise overwritten from trusted server-side context.
      */
     public void applyServerBusinessDate(Long tenantId, Bill bill) {
+        applyServerBusinessDate(tenantId, bill, null);
+    }
+
+    /**
+     * @param existingBusinessDate the business date already stored on the server row, or
+     *                             {@code null} for a bill the server has not stamped yet.
+     *                             When present it always wins — see the forward-only note
+     *                             above.
+     */
+    public void applyServerBusinessDate(Long tenantId, Bill bill, String existingBusinessDate) {
         if (bill == null || bill.getCreatedAt() == null) {
             return;
         }
-        java.time.ZoneId zone = restaurantProfileRepository.findByRestaurantId(tenantId)
-                .map(profile -> resolveZoneId(profile.getTimezone()))
-                .orElseGet(() -> java.time.ZoneId.of(com.khanabook.saas.core.utility.AppConstants.DEFAULT_TIMEZONE));
-        String businessDate = java.time.Instant.ofEpochMilli(bill.getCreatedAt())
-                .atZone(zone)
-                .toLocalDate()
-                .toString();
+        if (existingBusinessDate != null && !existingBusinessDate.isBlank()) {
+            if (!existingBusinessDate.equals(bill.getLastResetDate())) {
+                log.info("Business date kept for bill localId={}: server already stamped '{}' "
+                                + "(push claimed '{}')",
+                        bill.getLocalId(), existingBusinessDate, bill.getLastResetDate());
+            }
+            bill.setLastResetDate(existingBusinessDate);
+            return;
+        }
+
+        RestaurantProfile profile = restaurantProfileRepository.findByRestaurantId(tenantId)
+                .orElse(null);
+        java.time.ZoneId zone = BusinessDay.zoneOf(profile != null ? profile.getTimezone() : null);
+        java.time.LocalTime cutoff = profile != null && profile.getBusinessDayCutoffTime() != null
+                ? profile.getBusinessDayCutoffTime()
+                : java.time.LocalTime.MIDNIGHT;
+        Long effectiveFrom = profile != null ? profile.getCutoffEffectiveFrom() : null;
+
+        String businessDate = BusinessDay.businessDate(bill.getCreatedAt(), zone, cutoff, effectiveFrom);
         if (!businessDate.equals(bill.getLastResetDate())) {
-            log.debug("Business date normalised for bill localId={} from '{}' to '{}' (zone={})",
-                    bill.getLocalId(), bill.getLastResetDate(), businessDate, zone);
+            log.debug("Business date normalised for bill localId={} from '{}' to '{}' (zone={}, cutoff={})",
+                    bill.getLocalId(), bill.getLastResetDate(), businessDate, zone, cutoff);
         }
         bill.setLastResetDate(businessDate);
-    }
-
-    /** Falls back to the default timezone when the profile value is absent or invalid. */
-    private java.time.ZoneId resolveZoneId(String timezone) {
-        if (timezone == null || timezone.isBlank()) {
-            return java.time.ZoneId.of(com.khanabook.saas.core.utility.AppConstants.DEFAULT_TIMEZONE);
-        }
-        try {
-            return java.time.ZoneId.of(timezone);
-        } catch (RuntimeException ignored) {
-            return java.time.ZoneId.of(com.khanabook.saas.core.utility.AppConstants.DEFAULT_TIMEZONE);
-        }
     }
 
     /**

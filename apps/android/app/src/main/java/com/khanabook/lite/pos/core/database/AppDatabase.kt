@@ -17,6 +17,8 @@ import com.khanabook.lite.pos.feature.billing.data.BillEntity
 import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
 import com.khanabook.lite.pos.feature.billing.data.TerminalDailyCounterEntity
+import com.khanabook.lite.pos.feature.billing.data.CashierShiftEntity
+import com.khanabook.lite.pos.feature.billing.data.CashierShiftDao
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.auth.data.RestaurantDao
 import com.khanabook.lite.pos.feature.auth.data.UserEntity
@@ -41,6 +43,7 @@ import com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity
                         BillEntity::class,
                         BillItemEntity::class,
                         BillPaymentEntity::class,
+                        CashierShiftEntity::class,
                         SyncQuarantineEntity::class,
                         MenuItemCategoryRepairEntity::class,
                         KotEventEntity::class,
@@ -49,7 +52,7 @@ import com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 83,
+        version = 84,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -60,6 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun printerProfileDao(): PrinterProfileDao
     abstract fun kitchenPrintQueueDao(): KitchenPrintQueueDao
     abstract fun billDao(): BillDao
+    abstract fun cashierShiftDao(): CashierShiftDao
     abstract fun kotEventDao(): KotEventDao
     abstract fun notificationDao(): NotificationDao
     abstract fun permissionCacheDao(): PermissionCacheDao
@@ -95,7 +99,7 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_69_70, MIGRATION_70_71, MIGRATION_71_72, MIGRATION_72_73,
             MIGRATION_73_74, MIGRATION_74_75, MIGRATION_75_76, MIGRATION_76_77,
             MIGRATION_77_78, MIGRATION_78_79, MIGRATION_79_80, MIGRATION_80_81, MIGRATION_81_82,
-            MIGRATION_82_83
+            MIGRATION_82_83, ShiftMigrations.MIGRATION_83_84
         )
 
             val MIGRATION_52_53 = object : Migration(52, 53) {

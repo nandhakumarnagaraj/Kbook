@@ -114,8 +114,8 @@ The printed receipt stays authoritative. Where the existing repair path (`BillSy
 
 | # | Question | Recommendation | Why |
 |---|---|---|---|
-| **D1** | Retroactive or forward-only cutoff? | **Forward-only.** Store `cutoff_effective_from BIGINT`; bills with `created_at < cutoff_effective_from` keep the calendar rule. | Retroactive re-bucketing can move a bill onto an occupied `(restaurant, date, series, order)` slot. `V97` already refused to force that ("choosing a new order number for a bill that already exists on a printed receipt is a business decision, not a migration's call"). |
-| **D2** | The switch day is 28 hours long. | **Accept it**, and show it as such: the first day under the new rule runs 04:00 D → 03:59 D+2. | Any alternative (splitting the overlap) makes two reports both claim the same four hours. |
+| **D1** | Retroactive or forward-only cutoff? | **Forward-only.** Store `cutoff_effective_from BIGINT`, but **read only its date**: that date is the first business day under the new rule, and every earlier day keeps the calendar rule. Comparing instants instead is not equivalent — an activation between midnight and the cutoff would put the same four hours into two different days' windows. | Retroactive re-bucketing can move a bill onto an occupied `(restaurant, date, series, order)` slot. `V97` already refused to force that ("choosing a new order number for a bill that already exists on a printed receipt is a business decision, not a migration's call"). |
+| **D2** | The switch day is 28 hours long. | **Accept it**, and name the right day: the day **before** the effective date runs 00:00 → 04:00 the next morning (28 h); every day from the effective date runs cutoff → cutoff. That one long day absorbs exactly the four hours the calendar rule would have given to the following date, so no hours are counted twice and none are lost. | Any alternative (splitting the overlap) makes two reports both claim the same four hours. |
 | **D3** | Late offline shift after the EOD email | **Fire at cutoff+30 min, then re-send a revision** when a late shift syncs. Outbox key includes a `revision`. | The RFC's `UNIQUE (reference_id, recipient)` would block the correction permanently. |
 | **D4** | `email_daily_closing_report` default | **FALSE.** Opt-in per restaurant. | `khanabook.email.enabled` is false today; emailing financials by default on day one is a support-ticket generator. |
 | **D5** | Where is a shift closed? | **On the device**, then synced. The email is enqueued when the shift row **commits on the server**. | A cashier at 23:30 with no network must still close. This is the one deliberate deviation from the RFC's "closing transaction inserts the outbox row" — the transaction is the sync-apply one, which is still atomic. |
@@ -141,8 +141,10 @@ ALTER TABLE restaurantprofiles
 COMMENT ON COLUMN restaurantprofiles.business_day_cutoff_time IS
     'Local time at which the business day rolls. 00:00 keeps the legacy calendar-day rule.';
 COMMENT ON COLUMN restaurantprofiles.cutoff_effective_from IS
-    'Epoch ms from which the cutoff rule applies; NULL = never. Forward-only: bills created '
-    'before this instant keep the calendar rule, so no stored business date is rewritten.';
+    'Epoch ms whose DATE in the profile timezone is the first business day under the new '
+    'rule; NULL = never. Forward-only: earlier days keep the calendar rule, so no stored '
+    'business date is rewritten. The time of day is not read: keying on the instant would '
+    'let an activation between midnight and the cutoff put the same hours in two windows.';
 
 -- 2. Per-terminal capability gate (see section 8).
 ALTER TABLE restaurant_terminal
@@ -549,7 +551,9 @@ Additional:
 5. **Do not ship the server rule ahead of the client.** §8's capability gate is the only thing standing between a release and renumbered receipts.
 6. **Do not let LWW touch shifts.** A closed shift must be append-only on the server.
 7. **Do not trust `expected_cash` from the device.**
-8. The switch day is 28 hours. Say so in the report, or the owner will read it as a revenue spike.
+8. The day **before** the effective date is 28 hours (midnight → next-day cutoff). Say so in the report, or the owner will read it as a revenue spike.
+9. **Do not re-date a bill the server already stamped.** `applyServerBusinessDate` runs on every push, not just the first. During the activation night a bill already numbered under the calendar rule would otherwise move to the previous day, collide with an occupied `(restaurant, date, series, order)` slot, and be repaired into a new number — on a receipt that is already printed. Implemented in P1: `GenericSyncService` reads the stored row from the batch's existing-record map and passes its date to `applyServerBusinessDate`, which keeps it — and does so **before** `validateBillNumberConflicts`, which is the ordering that matters.
+10. **Restore the cutoff fields on every profile push.** The till's profile DTO does not carry them and the incoming row is bound fresh, so without an explicit restore in `applyProfileChangedFieldsMerge` the next push rewrites a configured cutoff to `00:00` and nulls the effective instant with no error. Already done in P1; do not remove it when adding the web-admin form.
 
 ---
 

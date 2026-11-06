@@ -162,6 +162,42 @@ data class ItemVariantSyncDto(
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
 )
 
+data class CashierShiftSyncDto(
+    val localDbId: Long,
+    @SerializedName("restaurantId") val restaurantId: Long,
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("localId") val localId: Long,
+    @SerializedName("serverId") val serverId: Long?,
+    @SerializedName("terminalId") val terminalId: String,
+    @SerializedName("terminalSeries") val terminalSeries: String?,
+    @SerializedName("cashierUserId") val cashierUserId: Long?,
+    @SerializedName("cashierName") val cashierName: String?,
+    @SerializedName("businessDate") val businessDate: String,
+    @SerializedName("openedAt") val openedAt: Long,
+    @SerializedName("closedAt") val closedAt: Long?,
+    @SerializedName("openingFloat") val openingFloat: String,
+    // declaredCash is the only money field the device owns. expectedCash, cashVariance,
+    // totalRevenue and totalOrders travel because the contract test requires every
+    // entity field on the wire, but the server recomputes all four at seal and ignores
+    // what the terminal sent — a till that could set its own expected figure could
+    // report zero variance forever.
+    @SerializedName("declaredCash") val declaredCash: String?,
+    @SerializedName("expectedCash") val expectedCash: String?,
+    @SerializedName("cashVariance") val cashVariance: String?,
+    @SerializedName("totalRevenue") val totalRevenue: String?,
+    @SerializedName("totalOrders") val totalOrders: Int?,
+    @SerializedName("status") val status: String,
+    @SerializedName("closeSource") val closeSource: String?,
+    @SerializedName("snapshotJson") val snapshotJson: String?,
+    @SerializedName("publicToken") val publicToken: String,
+    @SerializedName("updatedAt") val updatedAt: Long,
+    @SerializedName("isDeleted") val isDeleted: Boolean,
+    @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
+    // Sent as 0 like BillItemSyncDto: the shift table has no local optimistic-lock column,
+    // and the server restores its own version on update (preserveRowIdentity).
+    @SerializedName("version") val version: Long = 0L,
+)
+
 data class RestaurantProfileSyncDto(
     val localDbId: Long,
     @SerializedName("restaurantId") val restaurantId: Long,

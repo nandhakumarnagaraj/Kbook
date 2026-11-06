@@ -44,6 +44,14 @@ class BillSyncServiceBusinessDateTest {
         when(restaurantProfileRepository.findByRestaurantId(TENANT)).thenReturn(Optional.of(profile));
     }
 
+    private void profileWithCutoff(String timezone, java.time.LocalTime cutoff, Long effectiveFrom) {
+        RestaurantProfile profile = new RestaurantProfile();
+        profile.setTimezone(timezone);
+        profile.setBusinessDayCutoffTime(cutoff);
+        profile.setCutoffEffectiveFrom(effectiveFrom);
+        when(restaurantProfileRepository.findByRestaurantId(TENANT)).thenReturn(Optional.of(profile));
+    }
+
     private Bill billCreatedAt(String isoInstant, String clientSuppliedDate) {
         Bill bill = new Bill();
         bill.setLocalId(112L);
@@ -115,5 +123,55 @@ class BillSyncServiceBusinessDateTest {
         service().applyServerBusinessDate(TENANT, bill);
 
         assertThat(bill.getLastResetDate()).isEqualTo("2026-09-12");
+    }
+
+    @Test
+    void aDateTheServerAlreadyStampedIsNeverMoved() {
+        // 2026-11-11T20:00Z == 2026-11-12 01:30 IST, so a recompute would say the 12th.
+        // The bill was already numbered under the 11th; moving it would collide with an
+        // occupied daily order slot and be repaired into a new number on a printed receipt.
+        Bill bill = billCreatedAt("2026-11-11T20:00:00Z", "2026-11-11");
+
+        service().applyServerBusinessDate(TENANT, bill, "2026-11-11");
+
+        assertThat(bill.getLastResetDate()).isEqualTo("2026-11-11");
+    }
+
+    @Test
+    void aCutoffProfileMovesEarlyMorningBillsToThePreviousDay() {
+        // Cutoff takes effect on the 10th; 01:30 on the 10th is still the 9th's business.
+        long effectiveFrom = java.time.LocalDateTime.of(2026, 11, 10, 0, 0)
+                .atZone(java.time.ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli();
+        profileWithCutoff("Asia/Kolkata", java.time.LocalTime.of(4, 0), effectiveFrom);
+        Bill bill = billCreatedAt("2026-11-09T20:00:00Z", null); // 2026-11-10 01:30 IST
+
+        service().applyServerBusinessDate(TENANT, bill);
+
+        assertThat(bill.getLastResetDate()).isEqualTo("2026-11-09");
+    }
+
+    @Test
+    void aCutoffProfileLeavesTheRestOfTheDayAlone() {
+        long effectiveFrom = java.time.LocalDateTime.of(2026, 11, 10, 0, 0)
+                .atZone(java.time.ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli();
+        profileWithCutoff("Asia/Kolkata", java.time.LocalTime.of(4, 0), effectiveFrom);
+        Bill bill = billCreatedAt("2026-11-10T18:29:00Z", null); // 2026-11-10 23:59 IST
+
+        service().applyServerBusinessDate(TENANT, bill);
+
+        assertThat(bill.getLastResetDate()).isEqualTo("2026-11-10");
+    }
+
+    @Test
+    void aCutoffIsIgnoredForDaysBeforeItsEffectiveDate() {
+        // Forward-only: the 9th keeps the calendar rule even though 01:30 reads like the 8th's.
+        long effectiveFrom = java.time.LocalDateTime.of(2026, 11, 10, 0, 0)
+                .atZone(java.time.ZoneId.of("Asia/Kolkata")).toInstant().toEpochMilli();
+        profileWithCutoff("Asia/Kolkata", java.time.LocalTime.of(4, 0), effectiveFrom);
+        Bill bill = billCreatedAt("2026-11-08T20:00:00Z", null); // 2026-11-09 01:30 IST
+
+        service().applyServerBusinessDate(TENANT, bill);
+
+        assertThat(bill.getLastResetDate()).isEqualTo("2026-11-09");
     }
 }

@@ -141,7 +141,31 @@ data class RestaurantProfileEntity(
     val maskCustomerPhone: Boolean = true,
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
     @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L,
-    @ColumnInfo(name = "changed_fields") val changedFields: String? = null
+    @ColumnInfo(name = "changed_fields") val changedFields: String? = null,
+
+    // ── Business day (schema 84, server V119) ─────────────────────────────────
+    // Server-owned configuration, delivered on the pull. Defaults reproduce the legacy
+    // calendar-day rule exactly, so an upgrade alone changes no numbering. The rule
+    // itself lives in core/util/BusinessDate.kt — do not derive a day anywhere else.
+    @SerializedName("openingTime")
+    @ColumnInfo(name = "opening_time", defaultValue = "'08:00'")
+    val openingTime: String = "08:00",
+
+    @SerializedName("closingTime")
+    @ColumnInfo(name = "closing_time", defaultValue = "'23:00'")
+    val closingTime: String = "23:00",
+
+    @SerializedName("businessDayCutoffTime")
+    @ColumnInfo(name = "business_day_cutoff_time", defaultValue = "'00:00'")
+    val businessDayCutoffTime: String = "00:00",
+
+    @SerializedName("cutoffEffectiveFrom")
+    @ColumnInfo(name = "cutoff_effective_from")
+    val cutoffEffectiveFrom: Long? = null,
+
+    @SerializedName("emailDailyClosingReport")
+    @ColumnInfo(name = "email_daily_closing_report", defaultValue = "0")
+    val emailDailyClosingReport: Boolean = false
 ) {
     val isQuickBillingEnabled: Boolean get() = !collectCustomerNumber
 }
