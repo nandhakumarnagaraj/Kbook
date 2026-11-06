@@ -11,6 +11,7 @@ import com.khanabook.saas.feature.inventory.data.StockLogDTO;
 import com.khanabook.saas.feature.billing.data.BillDTO;
 import com.khanabook.saas.feature.billing.data.BillItemDTO;
 import com.khanabook.saas.feature.billing.data.BillPaymentDTO;
+import com.khanabook.saas.feature.shifts.data.CashierShiftDTO;
 import lombok.Data;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,8 @@ public class MasterSyncResponseDTO {
     private List<BillDTO> bills;
     private List<BillItemDTO> billItems;
     private List<BillPaymentDTO> billPayments;
+    /** Cashier shifts of this restaurant; appended so older clients simply ignore it. */
+    private List<CashierShiftDTO> cashierShifts;
     private Boolean hasMore;
     private Integer nextPage;
 

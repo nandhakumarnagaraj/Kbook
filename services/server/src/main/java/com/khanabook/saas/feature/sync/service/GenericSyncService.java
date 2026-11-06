@@ -1356,6 +1356,26 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 	}
 
 	static void preserveServerOwnedState(BaseSyncEntity incoming, BaseSyncEntity existing) {
+		// Shifts are append-only once sealed. Last-write-wins must never reopen a drawer that
+		// has been counted, nor rewrite what the cashier declared or which business day it
+		// belonged to. expectedCash and the totals are server-computed at seal: a terminal
+		// that could set its own expected figure could report zero variance forever.
+		if (incoming instanceof com.khanabook.saas.feature.shifts.data.CashierShift incomingShift
+				&& existing instanceof com.khanabook.saas.feature.shifts.data.CashierShift existingShift) {
+			incomingShift.setExpectedCash(existingShift.getExpectedCash());
+			incomingShift.setCashVariance(existingShift.getCashVariance());
+			incomingShift.setTotalRevenue(existingShift.getTotalRevenue());
+			incomingShift.setTotalOrders(existingShift.getTotalOrders());
+			if (existingShift.isSealed()) {
+				incomingShift.setStatus(existingShift.getStatus());
+				incomingShift.setClosedAt(existingShift.getClosedAt());
+				incomingShift.setDeclaredCash(existingShift.getDeclaredCash());
+				incomingShift.setCloseSource(existingShift.getCloseSource());
+				incomingShift.setSnapshotJson(existingShift.getSnapshotJson());
+				incomingShift.setOpenedAt(existingShift.getOpenedAt());
+				incomingShift.setBusinessDate(existingShift.getBusinessDate());
+			}
+		}
 		if (incoming instanceof User incomingUser && existing instanceof User existingUser) {
 			incomingUser.setIsActive(existingUser.getIsActive() != null ? existingUser.getIsActive() : true);
 			incomingUser.setTokenInvalidatedAt(existingUser.getTokenInvalidatedAt());
