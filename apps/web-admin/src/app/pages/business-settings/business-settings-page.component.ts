@@ -35,6 +35,9 @@ interface RestaurantProfile {
   orderPaymentFlowMode: string;
   invoiceFooter: string;
   reviewUrl: string;
+  /** "HH:mm" for <input type="time">; the server stores a LocalTime. */
+  openingTime: string;
+  closingTime: string;
 }
 
 interface SettingsCategory {
@@ -165,6 +168,36 @@ interface SettingsCategory {
                         [attr.aria-invalid]="errors()['shopName'] ? 'true' : null"
                         [attr.aria-describedby]="errors()['shopName'] ? 'err-shopName' : null" />
                       <p class="field-error" id="err-shopName" role="alert" *ngIf="errors()['shopName']">{{ errors()['shopName'] }}</p>
+                    </div>
+
+                    <div class="field">
+                      <label for="field-openingTime">Opening time</label>
+                      <input
+                        id="field-openingTime"
+                        class="field-control"
+                        type="time"
+                        [(ngModel)]="p.openingTime"
+                        (ngModelChange)="onFieldChange('openingTime')"
+                        autocomplete="off"
+                        [attr.aria-invalid]="errors()['openingTime'] ? 'true' : null"
+                        [attr.aria-describedby]="errors()['openingTime'] ? 'err-openingTime' : null" />
+                      <p class="field-error" id="err-openingTime" role="alert" *ngIf="errors()['openingTime']">{{ errors()['openingTime'] }}</p>
+                      <p class="muted">Local shop time. The business-day cutoff, not this,
+                        decides when the day's numbering rolls over.</p>
+                    </div>
+
+                    <div class="field">
+                      <label for="field-closingTime">Closing time</label>
+                      <input
+                        id="field-closingTime"
+                        class="field-control"
+                        type="time"
+                        [(ngModel)]="p.closingTime"
+                        (ngModelChange)="onFieldChange('closingTime')"
+                        autocomplete="off"
+                        [attr.aria-invalid]="errors()['closingTime'] ? 'true' : null"
+                        [attr.aria-describedby]="errors()['closingTime'] ? 'err-closingTime' : null" />
+                      <p class="field-error" id="err-closingTime" role="alert" *ngIf="errors()['closingTime']">{{ errors()['closingTime'] }}</p>
                     </div>
 
                     <div class="field">
@@ -969,7 +1002,9 @@ export class BusinessSettingsPageComponent implements OnDestroy {
           posEnabled: p.posEnabled ?? false,
           orderPaymentFlowMode: p.orderPaymentFlowMode ?? 'pay_before_food',
           invoiceFooter: p.invoiceFooter ?? '',
-          reviewUrl: p.reviewUrl ?? ''
+          reviewUrl: p.reviewUrl ?? '',
+          openingTime: this.toClock(p.openingTime, '08:00'),
+          closingTime: this.toClock(p.closingTime, '23:00')
         } : this.emptyProfile();
         this.profile.set(loaded);
         this.originalProfile.set({ ...loaded });
@@ -1133,6 +1168,12 @@ export class BusinessSettingsPageComponent implements OnDestroy {
     this.errors.set(next);
   }
 
+  /** "08:00:00" from the server -> the "08:00" an <input type="time"> expects. */
+  private toClock(value: unknown, fallback: string): string {
+    const text = typeof value === 'string' ? value.slice(0, 5) : '';
+    return /^\d{2}:\d{2}$/.test(text) ? text : fallback;
+  }
+
   private validate(p: RestaurantProfile): Record<string, string> {
     const errors: Record<string, string> = {};
 
@@ -1151,6 +1192,14 @@ export class BusinessSettingsPageComponent implements OnDestroy {
     const reviewUrl = p.reviewUrl.trim();
     if (reviewUrl && !this.isWebUrl(reviewUrl)) {
       errors['reviewUrl'] = 'Enter a full link starting with https://.';
+    }
+
+    // Overnight trading is normal, so closing earlier than opening is accepted: a closing
+    // time of "02:00" means the next morning. Only an identical pair is meaningless.
+    if (!p.openingTime || !p.closingTime) {
+      errors['openingTime'] = 'Set both opening and closing time.';
+    } else if (p.openingTime === p.closingTime) {
+      errors['closingTime'] = 'Closing time must differ from opening time.';
     }
 
     return errors;
@@ -1172,7 +1221,7 @@ export class BusinessSettingsPageComponent implements OnDestroy {
       customTaxPercentage: 0, fssaiNumber: '', fssaiExpiryDate: '', gstExpiryDate: '',
       upiEnabled: false, upiHandle: '', upiMobile: '', cashEnabled: true,
       posEnabled: false, orderPaymentFlowMode: 'pay_before_food',
-      invoiceFooter: '', reviewUrl: ''
+      invoiceFooter: '', reviewUrl: '', openingTime: '08:00', closingTime: '23:00'
     };
   }
 }

@@ -203,3 +203,18 @@ The Room DDL was matched to the exported `84.json` instead, which is what Room v
 | `834a5c23` | Server report windows |
 | `ac084ad0` | Server shift entity, endpoints, master-pull section, append-only guard |
 | `fee1c9ad` | Tests for the sealed-shift guard |
+
+## 12. Trading hours (opening / closing time)
+
+Making the day boundary server-owned exposed that the shop's actual trading hours were neither
+editable by an owner nor delivered to a till:
+
+| Layer | Change |
+|---|---|
+| `RestaurantProfileDTO` | Added `openingTime` / `closingTime` (`LocalTime`). Both existed on the entity and in the schema, but this DTO is what the pull serialises — so every terminal silently received its own defaults and the values were unreachable. |
+| `BusinessWriteService.updateProfile` | Copies both fields when present, per-field null-guarded like the rest of the payload, so a partial update cannot blank them. |
+| Web admin → Business settings → Basic information | Two `<input type="time">` fields. Load slices `08:00:00` to the `HH:mm` the control expects; validation rejects an identical pair but allows closing earlier than opening, since overnight trading is normal. |
+| Android → Restaurant configuration | Read-only "Business hours" line with a pointer to the web admin. The till must not edit them: profile fields are server-owned (`applyProfileChangedFieldsMerge` restores them), and an editable field that silently discards its push is worse than a caption. |
+
+Hours are configuration and display only. The day still rolls on `business_day_cutoff_time`, never on
+closing time — a `02:00` close is valid and unrelated to the cutoff.

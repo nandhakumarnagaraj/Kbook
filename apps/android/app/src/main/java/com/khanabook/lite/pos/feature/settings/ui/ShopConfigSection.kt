@@ -492,6 +492,22 @@ fun ShopConfigView(
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer", enabled = !readOnly, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done))
             Spacer(modifier = Modifier.height(spacing.medium))
+            // Read-only on purpose: trading hours are server-owned config. The till's push
+            // is discarded server-side (applyProfileChangedFieldsMerge), so an editable field
+            // here would look live and silently do nothing.
+            Text("Business Hours", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+            Spacer(modifier = Modifier.height(spacing.extraSmall))
+            Text(
+                "${(profile?.openingTime ?: "08:00").take(5)} – ${(profile?.closingTime ?: "23:00").take(5)}",
+                color = TextLight,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                "Set by the owner in the web admin.",
+                color = Color.Gray,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.height(spacing.medium))
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
                 enabled = !readOnly && profile != null,

@@ -741,6 +741,8 @@ public class BusinessWriteService {
         if (updateDto.getShopAddress() != null) profile.setShopAddress(updateDto.getShopAddress());
         if (updateDto.getWhatsappNumber() != null) profile.setWhatsappNumber(updateDto.getWhatsappNumber());
         if (updateDto.getEmail() != null) profile.setEmail(updateDto.getEmail());
+        if (updateDto.getOpeningTime() != null) profile.setOpeningTime(updateDto.getOpeningTime());
+        if (updateDto.getClosingTime() != null) profile.setClosingTime(updateDto.getClosingTime());
         if (updateDto.getGstEnabled() != null) profile.setGstEnabled(updateDto.getGstEnabled());
         if (updateDto.getGstin() != null) profile.setGstin(updateDto.getGstin());
         if (updateDto.getGstPercentage() != null) profile.setGstPercentage(updateDto.getGstPercentage());

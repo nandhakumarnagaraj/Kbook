@@ -35,6 +35,14 @@ public class RestaurantProfileDTO {
     private String country;
     private String currency;
     private String timezone;
+
+    /**
+     * Trading hours, local shop time. They were on the entity and in the schema but absent
+     * here, and this DTO is what the pull serialises — so the till always received its own
+     * defaults and an owner had no way to see or change them.
+     */
+    private java.time.LocalTime openingTime;
+    private java.time.LocalTime closingTime;
     private Boolean gstEnabled;
     private String gstin;
     private Boolean isTaxInclusive;
