@@ -66,13 +66,21 @@ Consequences, all deliberate:
 | **R5** | A business date the server already stamped is never moved by a later push. | **Done** |
 | **R6** | Cutoff configuration is server-owned: a till push can never reset or blank it. | **Done** |
 | **R7** | The cutoff cannot be activated until every active terminal is capable (`cutoff_capable`). | **Partial — column exists, no writer or gate** |
-| **R8** | Cashier shifts exist locally and on the server, and a closed shift is append-only. | **Done (server)** |
+| **R8** | Cashier shifts exist locally and on the server, and a closed shift is append-only. | **Schema + server guard only — nothing creates or closes a shift yet** |
 | **R9** | Only `declared_cash` is device truth; `expected_cash`, variance and totals are server-owned. | **Done (guard); computation pending** |
-| **R10** | Shifts sync: push/pull endpoints, and a `cashierShifts` section on the master-sync pull. | **Done (server); Android ignores it for now** |
+| **R10** | Shifts sync: push/pull endpoints, and a `cashierShifts` section on the master-sync pull. | **Server only — Android neither reads nor pushes shifts** |
 | **R11** | Order numbering, the duplicate guard, counter repair and seeding all use the business date. | **Done** |
 | **R12** | Reports window by the business day, not midnight-to-midnight. | **Done (client summary + server analytics)** |
 | **R13** | A transactional daily-closing email, queued at the cutoff. | **Not started — table only** |
 | **R14** | Deploying the schema changes nothing for a shop that never sets a cutoff. | **Done** |
+
+Read the status column strictly: **Done** means the code exists *and something calls it*. A table or an
+endpoint with no producer behind it is marked as schema-only, however complete it looks.
+
+Two consequences worth stating plainly. The **cutoff is dormant in production**: nothing sets
+`cutoff_effective_from` today — there is no web-admin form — so the rule returns the calendar day for
+every shop until item 1 of §10 lands. **No shift can exist yet**: the tables, entities and endpoints are
+in place, but no screen opens a drawer, so `cashier_shifts` will stay empty.
 
 ## 4. Data model
 
