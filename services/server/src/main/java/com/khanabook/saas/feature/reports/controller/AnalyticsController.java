@@ -35,9 +35,8 @@ import java.util.Map;
 @RequestMapping("/analytics")
 public class AnalyticsController {
 
-    private static final ZoneId ZONE = ZoneId.of("Asia/Kolkata");
-
     private final BillItemRepository billItemRepository;
+    private final com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository profileRepository;
     private final BillRepository billRepository;
     private final ItemRecipeRepository itemRecipeRepository;
     private final RawMaterialRepository rawMaterialRepository;
@@ -49,12 +48,14 @@ public class AnalyticsController {
                                ItemRecipeRepository itemRecipeRepository,
                                RawMaterialRepository rawMaterialRepository,
                                MenuItemRepository menuItemRepository,
+                               com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository profileRepository,
                                PermissionService permissionService) {
         this.billItemRepository = billItemRepository;
         this.billRepository = billRepository;
         this.itemRecipeRepository = itemRecipeRepository;
         this.rawMaterialRepository = rawMaterialRepository;
         this.menuItemRepository = menuItemRepository;
+        this.profileRepository = profileRepository;
         this.permissionService = permissionService;
     }
 
@@ -75,7 +76,7 @@ public class AnalyticsController {
             @RequestParam String from, @RequestParam String to) {
         requirePermission("reports.day_summary");
         Long restaurantId = requireTenant();
-        Range range = range(from, to);
+        Range range = range(from, to, dayContext(restaurantId));
 
         List<Map<String, Object>> out = new ArrayList<>();
         for (Object[] row : billItemRepository.aggregateSalesByMenuItem(
@@ -95,15 +96,18 @@ public class AnalyticsController {
     public ResponseEntity<List<Map<String, Object>>> hourlySales(@RequestParam String date) {
         requirePermission("reports.day_summary");
         Long restaurantId = requireTenant();
+        var dayContext = dayContext(restaurantId);
         LocalDate day = LocalDate.parse(date);
-        long from = day.atStartOfDay(ZONE).toInstant().toEpochMilli();
-        long to = day.plusDays(1).atStartOfDay(ZONE).toInstant().toEpochMilli();
+        long from = com.khanabook.saas.core.utility.BusinessDay.windowStart(
+                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom());
+        long to = com.khanabook.saas.core.utility.BusinessDay.windowEnd(
+                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom());
 
         long[] buckets = new long[24];
         billItemRepository.findByRestaurantIdAndCreatedAtBetween(restaurantId, from, to)
                 .forEach(bi -> {
                     if (bi.getCreatedAt() == null || bi.getQuantity() == null) return;
-                    int hour = Instant.ofEpochMilli(bi.getCreatedAt()).atZone(ZONE).getHour();
+                    int hour = Instant.ofEpochMilli(bi.getCreatedAt()).atZone(dayContext.zone()).getHour();
                     buckets[hour] += bi.getQuantity();
                 });
 
@@ -126,7 +130,7 @@ public class AnalyticsController {
             @RequestParam String from, @RequestParam String to) {
         requirePermission("reports.full");
         Long restaurantId = requireTenant();
-        Range range = range(from, to);
+        Range range = range(from, to, dayContext(restaurantId));
 
         // Material cost lookup
         Map<Long, BigDecimal> costPerUnit = new LinkedHashMap<>();
@@ -185,9 +189,12 @@ public class AnalyticsController {
     public ResponseEntity<Map<String, Object>> dailyClosing(@RequestParam String date) {
         requirePermission("reports.day_summary");
         Long restaurantId = requireTenant();
+        var dayContext = dayContext(restaurantId);
         LocalDate day = LocalDate.parse(date);
-        long from = day.atStartOfDay(ZONE).toInstant().toEpochMilli();
-        long to = day.plusDays(1).atStartOfDay(ZONE).toInstant().toEpochMilli();
+        long from = com.khanabook.saas.core.utility.BusinessDay.windowStart(
+                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom());
+        long to = com.khanabook.saas.core.utility.BusinessDay.windowEnd(
+                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom());
 
         // Payment mode breakdown: [mode, status, count]
         List<Object[]> modeStatus = billRepository.countByRestaurantIdAndModeAndStatusBetween(restaurantId, from, to);
@@ -262,7 +269,7 @@ public class AnalyticsController {
             @RequestParam String from, @RequestParam String to) {
         requirePermission("reports.day_summary");
         Long restaurantId = requireTenant();
-        Range range = range(from, to);
+        Range range = range(from, to, dayContext(restaurantId));
 
         List<com.khanabook.saas.feature.billing.data.Bill> bills =
                 billRepository.findByRestaurantIdAndCreatedAtBetweenAndIsDeletedFalse(restaurantId, range.from(), range.to());
@@ -311,11 +318,34 @@ public class AnalyticsController {
         return ResponseEntity.ok(out);
     }
 
-    private static Range range(String from, String to) {
+    /**
+     * The restaurant's own business day: its timezone, cutoff and effective instant.
+     *
+     * <p>Reports used to hardcode {@code Asia/Kolkata} and a midnight-to-midnight window,
+     * which stops matching the day the bills were numbered under as soon as a cutoff is
+     * configured — the 01:00 sales would land in the wrong day's report.
+     */
+    private record DayContext(ZoneId zone, java.time.LocalTime cutoff, Long effectiveFrom) {}
+
+    private DayContext dayContext(Long restaurantId) {
+        var profile = profileRepository.findByRestaurantId(restaurantId).orElse(null);
+        return new DayContext(
+                com.khanabook.saas.core.utility.BusinessDay.zoneOf(
+                        profile != null ? profile.getTimezone() : null),
+                profile != null && profile.getBusinessDayCutoffTime() != null
+                        ? profile.getBusinessDayCutoffTime()
+                        : java.time.LocalTime.MIDNIGHT,
+                profile != null ? profile.getCutoffEffectiveFrom() : null);
+    }
+
+    private static Range range(String from, String to, DayContext ctx) {
         LocalDate f = LocalDate.parse(from);
-        LocalDate t = LocalDate.parse(to).plusDays(1); // exclusive end
-        return new Range(f.atStartOfDay(ZONE).toInstant().toEpochMilli(),
-                t.atStartOfDay(ZONE).toInstant().toEpochMilli());
+        LocalDate t = LocalDate.parse(to);
+        return new Range(
+                com.khanabook.saas.core.utility.BusinessDay.windowStart(
+                        f, ctx.zone(), ctx.cutoff(), ctx.effectiveFrom()),
+                com.khanabook.saas.core.utility.BusinessDay.windowEnd(
+                        t, ctx.zone(), ctx.cutoff(), ctx.effectiveFrom()));
     }
 
     private Long requireTenant() {
