@@ -225,9 +225,14 @@ class HomeViewModel @Inject constructor(
     }
         .flatMapLatest { (profile, scope) ->
             val zoneId = AppConstants.DEFAULT_TIMEZONE
-            val today = java.time.LocalDate.now(java.time.ZoneId.of(zoneId)).toString()
-            val start = com.khanabook.lite.pos.core.util.DateUtils.getStartOfDay(today, zoneId)
-            val end = com.khanabook.lite.pos.core.util.DateUtils.getEndOfDay(today, zoneId)
+            // Business day, not calendar day: the counter, the duplicate guard and the
+            // server's order key all use the business date, so a summary keyed on the
+            // calendar date would drop the first four hours after midnight from "today".
+            val today = com.khanabook.lite.pos.core.util.BusinessDate
+                .businessDate(System.currentTimeMillis(), profile)
+            val day = java.time.LocalDate.parse(today)
+            val start = com.khanabook.lite.pos.core.util.BusinessDate.windowStart(day, profile)
+            val end = com.khanabook.lite.pos.core.util.BusinessDate.windowEnd(day, profile) - 1
 
             val billsFlow = when (scope) {
                 SummaryScope.THIS_COUNTER -> billRepository.getBillsByDateRange(start, end)

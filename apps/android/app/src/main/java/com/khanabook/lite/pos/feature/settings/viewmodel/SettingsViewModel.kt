@@ -480,17 +480,20 @@ class SettingsViewModel @Inject constructor(
                     return@launch
                 }
 
-                val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-                val today = java.time.LocalDate.now(zoneId)
-                val startTime = today.atStartOfDay(zoneId).toInstant().toEpochMilli()
-                val endTime = today.plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+                val healthProfile = restaurantRepository.getProfile()
+                val businessDate = com.khanabook.lite.pos.core.util.BusinessDate
+                    .businessDate(System.currentTimeMillis(), healthProfile)
+                val startTime = com.khanabook.lite.pos.core.util.BusinessDate
+                    .windowStart(java.time.LocalDate.parse(businessDate), healthProfile)
+                val endTime = com.khanabook.lite.pos.core.util.BusinessDate
+                    .windowEnd(java.time.LocalDate.parse(businessDate), healthProfile) - 1
                 val maxDailyToday = billDao.getMaxDailyOrderIdBetween(restaurantId, sessionManager.getDeviceId(), startTime, endTime)
 
                 // Only the daily order counter is repaired now. Invoice numbers use the
                 // per-terminal invoice sequence, not the legacy lifetime counter.
                 restaurantRepository.raiseDailyCounterAtLeast(
                     dailyCounter = maxDailyToday,
-                    date = today.toString()
+                    date = businessDate
                 )
                 loadDuplicateIdHealth(
                     lastRepairMessage = "Future duplicates prevented. Next order will use #${maxDailyToday + 1}."
@@ -601,19 +604,20 @@ class SettingsViewModel @Inject constructor(
                     check(restaurantId > 0L) { "Restaurant is not ready yet." }
                     val original = billDao.getBillById(billId, restaurantId)
                         ?: throw IllegalStateException("Bill not found.")
-                    val correctedDate = java.time.Instant.ofEpochMilli(original.createdAt)
-                        .atZone(java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE))
-                        .toLocalDate()
-                        .toString()
+                    val repairProfile = restaurantRepository.getProfile()
+                    // The bill's business date, not the calendar day of its createdAt: the
+                    // two disagree for four hours a night once a cutoff exists, and this
+                    // value decides which counter row is raised afterwards.
+                    val correctedDate = com.khanabook.lite.pos.core.util.BusinessDate
+                        .businessDate(original.createdAt, repairProfile)
                     val repaired = billDao.repairFailedDailyOrderIdentity(
                         billId = billId,
                         restaurantId = restaurantId,
                         correctedDate = correctedDate,
                         updatedAt = System.currentTimeMillis()
                     )
-                    val today = java.time.LocalDate.now(
-                        java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-                    ).toString()
+                    val today = com.khanabook.lite.pos.core.util.BusinessDate
+                        .businessDate(System.currentTimeMillis(), repairProfile)
                     repaired.createdTerminalId
                         ?.takeIf { correctedDate == today }
                         ?.let { terminalId ->
@@ -689,8 +693,9 @@ class SettingsViewModel @Inject constructor(
                     val restaurantId = sessionManager.getRestaurantId()
                     if (restaurantId <= 0L) return@withContext 0 to 0
 
-                    val zoneId = java.time.ZoneId.of(AppConstants.DEFAULT_TIMEZONE)
-                    val today = java.time.LocalDate.now(zoneId).toString()
+                    val resolveProfile = restaurantRepository.getProfile()
+                    val today = com.khanabook.lite.pos.core.util.BusinessDate
+                        .businessDate(System.currentTimeMillis(), resolveProfile)
                     val failedBills = billDao.getPermanentlyFailedBills(restaurantId)
                     var repaired = 0
 
@@ -701,10 +706,8 @@ class SettingsViewModel @Inject constructor(
 
                         if (isDailyOrderConflict && !bill.isSynced && bill.serverId == null) {
                             runCatching {
-                                val correctedDate = java.time.Instant.ofEpochMilli(bill.createdAt)
-                                    .atZone(zoneId)
-                                    .toLocalDate()
-                                    .toString()
+                                val correctedDate = com.khanabook.lite.pos.core.util.BusinessDate
+                                    .businessDate(bill.createdAt, resolveProfile)
                                 val repairedBill = billDao.repairFailedDailyOrderIdentity(
                                     billId = bill.id,
                                     restaurantId = restaurantId,
@@ -728,8 +731,10 @@ class SettingsViewModel @Inject constructor(
                     }
 
                     // Also bump the local counter based on today's maximum daily order
-                    val startTime = java.time.LocalDate.now(zoneId).atStartOfDay(zoneId).toInstant().toEpochMilli()
-                    val endTime = java.time.LocalDate.now(zoneId).plusDays(1).atStartOfDay(zoneId).toInstant().toEpochMilli() - 1
+                    val startTime = com.khanabook.lite.pos.core.util.BusinessDate
+                        .windowStart(java.time.LocalDate.parse(today), resolveProfile)
+                    val endTime = com.khanabook.lite.pos.core.util.BusinessDate
+                        .windowEnd(java.time.LocalDate.parse(today), resolveProfile) - 1
                     val maxDailyToday = billDao.getMaxDailyOrderIdBetween(restaurantId, sessionManager.getDeviceId(), startTime, endTime)
                     restaurantRepository.raiseDailyCounterAtLeast(
                         dailyCounter = maxDailyToday,
