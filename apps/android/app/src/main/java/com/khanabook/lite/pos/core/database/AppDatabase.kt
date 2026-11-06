@@ -30,6 +30,13 @@ import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
 import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
 import com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity
 
+/**
+ * Schema version, quoted by the open/migrate diagnostics in [DatabaseProvider]. Room needs a
+ * compile-time constant in the annotation, so this is the one place it is written; the logs
+ * used to hard-code a literal that still said 82 while Room had been on 84 for migrations.
+ */
+const val APP_DATABASE_VERSION = 84
+
 @Database(
         entities =
                 [
@@ -52,7 +59,7 @@ import com.khanabook.lite.pos.feature.menu.data.MenuItemCategoryRepairEntity
                         StaffPermissionEntity::class,
                         PermissionCacheEntity::class
                 ],
-        version = 84,
+        version = APP_DATABASE_VERSION,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
