@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Closing Report</title>
+</head>
+<body style="margin:0;padding:0;background-color:#120d0d;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#F1DFAF;-webkit-font-smoothing:antialiased;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#120d0d;padding:24px 12px;">
+        <tr>
+            <td align="center">
+                <!-- Container Card -->
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width:620px;background-color:#1d1313;border:1px solid #3d271d;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+                    <!-- Brand Top Bar -->
+                    <tr>
+                        <td style="background-color:#2a1914;padding:24px 32px;border-bottom:1px solid #3d271d;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td valign="middle">
+                                        <h1 style="color:#D9A514;font-size:22px;letter-spacing:-0.02em;margin:0;font-weight:700;">KhanaBook</h1>
+                                        <p style="color:#BBAE9D;font-size:12px;margin:4px 0 0;text-transform:uppercase;letter-spacing:0.05em;">End of Day Closing Report</p>
+                                    </td>
+                                    <td align="right" valign="middle">
+                                        <span style="display:inline-block;padding:6px 14px;background-color:#120d0d;border:1px solid #C8960C;border-radius:20px;color:#FFD166;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;" th:text="${data.businessDate}">06 Nov 2026</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Shop Info & Operating Hours -->
+                    <tr>
+                        <td style="padding:24px 32px 16px;">
+                            <h2 style="color:#F1DFAF;font-size:18px;margin:0 0 6px;font-weight:600;" th:text="${data.restaurantName}">Restaurant Name</h2>
+                            <p style="color:#BBAE9D;font-size:13px;line-height:1.5;margin:0;" th:if="${data.restaurantAddress != null and !data.restaurantAddress.isEmpty()}" th:text="${data.restaurantAddress}">Shop Address</p>
+                            <table cellpadding="0" cellspacing="0" style="margin-top:12px;">
+                                <tr>
+                                    <td style="color:#8C7B6B;font-size:12px;padding-right:16px;">
+                                        Hours: <strong style="color:#D4A843;font-variant-numeric:tabular-nums;" th:text="${data.openingTime} + ' – ' + ${data.closingTime}">08:00 – 23:00</strong>
+                                    </td>
+                                    <td style="color:#8C7B6B;font-size:12px;">
+                                        Cutoff: <strong style="color:#D4A843;font-variant-numeric:tabular-nums;" th:text="${data.cutoffTime}">00:00</strong>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Bento Hero KPI Strip -->
+                    <tr>
+                        <td style="padding:8px 32px 20px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <!-- Gross Sales -->
+                                    <td width="48%" style="background-color:#261715;border:1px solid #4a2d26;border-radius:8px;padding:16px;">
+                                        <div style="color:#BBAE9D;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Gross Sales</div>
+                                        <div style="color:#FFD166;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.grossSales, 1, 2)}">₹ 0.00</div>
+                                        <div style="color:#8C7B6B;font-size:11px;margin-top:4px;">
+                                            <span th:text="${data.completedOrders}">0</span> orders paid
+                                        </div>
+                                    </td>
+                                    <td width="4%"></td>
+                                    <!-- Net Sales -->
+                                    <td width="48%" style="background-color:#261715;border:1px solid #4a2d26;border-radius:8px;padding:16px;">
+                                        <div style="color:#BBAE9D;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">Net Sales (Excl. Tax)</div>
+                                        <div style="color:#F1DFAF;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.netSales, 1, 2)}">₹ 0.00</div>
+                                        <div style="color:#8C7B6B;font-size:11px;margin-top:4px;">
+                                            Tax: <span style="color:#D4A843;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.totalTax, 1, 2)}">₹ 0.00</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
+                                <tr>
+                                    <!-- Total Orders -->
+                                    <td width="31%" style="background-color:#261715;border:1px solid #3d271d;border-radius:8px;padding:12px 14px;">
+                                        <div style="color:#8C7B6B;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;">Total Bills</div>
+                                        <div style="color:#F1DFAF;font-size:18px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums;" th:text="${data.totalOrders}">0</div>
+                                    </td>
+                                    <td width="3.5%"></td>
+                                    <!-- Completed Orders -->
+                                    <td width="31%" style="background-color:#261715;border:1px solid #3d271d;border-radius:8px;padding:12px 14px;">
+                                        <div style="color:#8C7B6B;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;">Completed</div>
+                                        <div style="color:#27ae60;font-size:18px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums;" th:text="${data.completedOrders}">0</div>
+                                    </td>
+                                    <td width="3.5%"></td>
+                                    <!-- Cancelled Orders -->
+                                    <td width="31%" style="background-color:#261715;border:1px solid #3d271d;border-radius:8px;padding:12px 14px;">
+                                        <div style="color:#8C7B6B;font-size:10px;text-transform:uppercase;letter-spacing:0.04em;">Cancelled</div>
+                                        <div style="color:#e74c3c;font-size:18px;font-weight:600;margin-top:4px;font-variant-numeric:tabular-nums;" th:text="${data.cancelledOrders}">0</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Payment Mode Breakdown Table -->
+                    <tr>
+                        <td style="padding:10px 32px 20px;">
+                            <h3 style="color:#D4A843;font-size:14px;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 12px;font-weight:600;">Payment Breakdown</h3>
+                            <table width="100%" cellpadding="10" cellspacing="0" style="background-color:#261715;border:1px solid #3d271d;border-radius:8px;font-size:13px;">
+                                <tr style="border-bottom:1px solid #3d271d;">
+                                    <td style="color:#BBAE9D;font-weight:500;">Payment Mode</td>
+                                    <td align="center" style="color:#BBAE9D;font-weight:500;">Transactions</td>
+                                    <td align="right" style="color:#BBAE9D;font-weight:500;">Amount</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #2f1d19;">
+                                    <td style="color:#F1DFAF;font-weight:600;">Cash</td>
+                                    <td align="center" style="color:#BBAE9D;font-variant-numeric:tabular-nums;" th:text="${data.cashCount}">0</td>
+                                    <td align="right" style="color:#FFD166;font-weight:600;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.cashTotal, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #2f1d19;">
+                                    <td style="color:#F1DFAF;font-weight:600;">UPI / QR</td>
+                                    <td align="center" style="color:#BBAE9D;font-variant-numeric:tabular-nums;" th:text="${data.upiCount}">0</td>
+                                    <td align="right" style="color:#FFD166;font-weight:600;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.upiTotal, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #2f1d19;">
+                                    <td style="color:#F1DFAF;font-weight:600;">Card / POS</td>
+                                    <td align="center" style="color:#BBAE9D;font-variant-numeric:tabular-nums;" th:text="${data.cardCount}">0</td>
+                                    <td align="right" style="color:#FFD166;font-weight:600;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.cardTotal, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid #2f1d19;" th:if="${data.splitCount > 0}">
+                                    <td style="color:#F1DFAF;font-weight:600;">Split Payment</td>
+                                    <td align="center" style="color:#BBAE9D;font-variant-numeric:tabular-nums;" th:text="${data.splitCount}">0</td>
+                                    <td align="right" style="color:#FFD166;font-weight:600;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.splitTotal, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                                <tr style="background-color:#1e1210;border-top:1px solid #C8960C;">
+                                    <td style="color:#D9A514;font-weight:700;">Total Settled</td>
+                                    <td align="center" style="color:#D9A514;font-weight:700;font-variant-numeric:tabular-nums;" th:text="${data.completedOrders}">0</td>
+                                    <td align="right" style="color:#FFD166;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.grossSales, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Tax Summary Table (if applicable) -->
+                    <tr th:if="${data.totalTax > 0}">
+                        <td style="padding:4px 32px 20px;">
+                            <h3 style="color:#D4A843;font-size:14px;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 12px;font-weight:600;">Taxes & Levies</h3>
+                            <table width="100%" cellpadding="8" cellspacing="0" style="background-color:#261715;border:1px solid #3d271d;border-radius:8px;font-size:12px;">
+                                <tr th:if="${data.cgst > 0}">
+                                    <td style="color:#BBAE9D;">CGST</td>
+                                    <td align="right" style="color:#F1DFAF;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.cgst, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                                <tr th:if="${data.sgst > 0}">
+                                    <td style="color:#BBAE9D;">SGST</td>
+                                    <td align="right" style="color:#F1DFAF;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.sgst, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                                <tr th:if="${data.customTax > 0}">
+                                    <td style="color:#BBAE9D;">Custom Tax / Service Charge</td>
+                                    <td align="right" style="color:#F1DFAF;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.customTax, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                                <tr style="border-top:1px solid #3d271d;font-weight:600;">
+                                    <td style="color:#D9A514;">Total Tax Collected</td>
+                                    <td align="right" style="color:#FFD166;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(data.totalTax, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Cashier Shifts Section (if shifts were closed) -->
+                    <tr th:if="${data.shifts != null and !data.shifts.isEmpty()}">
+                        <td style="padding:4px 32px 20px;">
+                            <h3 style="color:#D4A843;font-size:14px;letter-spacing:0.04em;text-transform:uppercase;margin:0 0 12px;font-weight:600;">Cashier Shifts & Cash Reconciliation</h3>
+                            <table width="100%" cellpadding="8" cellspacing="0" style="background-color:#261715;border:1px solid #3d271d;border-radius:8px;font-size:12px;">
+                                <tr style="border-bottom:1px solid #3d271d;color:#BBAE9D;">
+                                    <td style="font-weight:500;">Cashier</td>
+                                    <td align="right" style="font-weight:500;">Declared</td>
+                                    <td align="right" style="font-weight:500;">Expected</td>
+                                    <td align="right" style="font-weight:500;">Variance</td>
+                                </tr>
+                                <tr th:each="shift : ${data.shifts}" style="border-bottom:1px solid #2f1d19;">
+                                    <td style="color:#F1DFAF;">
+                                        <div style="font-weight:600;" th:text="${shift.cashierName != null ? shift.cashierName : 'Cashier'}">Cashier</div>
+                                        <div style="color:#8C7B6B;font-size:11px;" th:text="${shift.terminal != null ? 'Terminal ' + shift.terminal : 'Till'}">Terminal A</div>
+                                    </td>
+                                    <td align="right" style="color:#F1DFAF;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(shift.declaredCash != null ? shift.declaredCash : 0, 1, 2)}">₹ 0.00</td>
+                                    <td align="right" style="color:#BBAE9D;font-variant-numeric:tabular-nums;" th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(shift.expectedCash != null ? shift.expectedCash : 0, 1, 2)}">₹ 0.00</td>
+                                    <td align="right" style="font-weight:600;font-variant-numeric:tabular-nums;"
+                                        th:style="${shift.cashVariance != null and shift.cashVariance.compareTo(T(java.math.BigDecimal).ZERO) < 0} ? 'color:#e74c3c;font-weight:600;font-variant-numeric:tabular-nums;' : 'color:#27ae60;font-weight:600;font-variant-numeric:tabular-nums;'"
+                                        th:text="${data.currency} + ' ' + ${#numbers.formatDecimal(shift.cashVariance != null ? shift.cashVariance : 0, 1, 2)}">₹ 0.00</td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color:#170e0d;padding:24px 32px;border-top:1px solid #3d271d;text-align:center;">
+                            <p style="color:#8C7B6B;font-size:12px;margin:0 0 6px;">
+                                Generated automatically by KhanaBook POS at <span th:text="${data.generatedAt}">2026-11-06 23:05</span>
+                            </p>
+                            <p style="color:#66554b;font-size:11px;margin:0;">
+                                Keep this report for your accounting and daily register reconciliation.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -1595,14 +1595,16 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		// Preserve this server-owned switch for every mask, including legacy full-record pushes.
 		incomingP.setEasebuzzEnabled(existingP.getEasebuzzEnabled());
 
-		// Business-day configuration (V119) is web-admin only: the till's profile DTO does
-		// not carry it, and SyncDtoContractTest lists the five fields as server-owned. The
-		// incoming row is bound fresh, so its field initialisers would otherwise rewrite a
-		// configured cutoff to 00:00 and NULL the effective instant on the next profile
-		// push — silently switching the shop back to calendar days and renumbering the
-		// night's receipts. Restore unconditionally, for every mask.
-		incomingP.setOpeningTime(existingP.getOpeningTime());
-		incomingP.setClosingTime(existingP.getClosingTime());
+		// Business-day configuration (V119): Cutoff, effective date, and report outbox switches
+		// are server-owned and web-admin managed. Restore unconditionally, for every mask.
+		// Opening and closing trading hours can be edited by both web admin and Android POS.
+		// When incoming has null, retain existing.
+		if (incomingP.getOpeningTime() == null) {
+			incomingP.setOpeningTime(existingP.getOpeningTime());
+		}
+		if (incomingP.getClosingTime() == null) {
+			incomingP.setClosingTime(existingP.getClosingTime());
+		}
 		incomingP.setBusinessDayCutoffTime(existingP.getBusinessDayCutoffTime());
 		incomingP.setCutoffEffectiveFrom(existingP.getCutoffEffectiveFrom());
 		incomingP.setEmailDailyClosingReport(existingP.getEmailDailyClosingReport());
@@ -1619,6 +1621,8 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			}
 		}
 		boolean wildcard = mask.contains("*");
+		if (!changed.contains("openingtime") && !changed.contains("opening_time")) incomingP.setOpeningTime(existingP.getOpeningTime());
+		if (!changed.contains("closingtime") && !changed.contains("closing_time")) incomingP.setClosingTime(existingP.getClosingTime());
 		// Business info
 		if (!changed.contains("shopname")) incomingP.setShopName(existingP.getShopName());
 		if (!changed.contains("shopaddress")) incomingP.setShopAddress(existingP.getShopAddress());

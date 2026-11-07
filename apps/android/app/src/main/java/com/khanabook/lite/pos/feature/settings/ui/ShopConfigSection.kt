@@ -76,6 +76,7 @@ import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
 import com.khanabook.lite.pos.core.util.AppAssetStore
 import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import com.khanabook.lite.pos.core.util.ValidationUtils
+import com.khanabook.lite.pos.core.components.KhanaTimePickerField
 import com.khanabook.lite.pos.core.components.ParchmentTextField
 import com.khanabook.lite.pos.core.designsystem.KhanaBookDialog
 import com.khanabook.lite.pos.core.designsystem.KhanaToast
@@ -118,6 +119,8 @@ fun ShopConfigView(
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
     var invoiceFooter by remember { mutableStateOf(profile?.invoiceFooter ?: "") }
+    var openingTime by remember { mutableStateOf((profile?.openingTime ?: "08:00").take(5)) }
+    var closingTime by remember { mutableStateOf((profile?.closingTime ?: "23:00").take(5)) }
     var pendingLogoUri by remember { mutableStateOf<Uri?>(null) }
 
     val logoUrl = profile?.logoUrl
@@ -143,14 +146,16 @@ fun ShopConfigView(
     var showModePinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
 
-    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, profile) {
+    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, openingTime, closingTime, profile) {
         name != (profile?.shopName ?: "") ||
             address != (profile?.shopAddress ?: "") ||
             whatsapp != (profile?.whatsappNumber ?: "") ||
             email != (profile?.email ?: "") ||
             consent != (profile?.emailInvoiceConsent ?: false) ||
             reviewUrl != (profile?.reviewUrl ?: "") ||
-            invoiceFooter != (profile?.invoiceFooter ?: "")
+            invoiceFooter != (profile?.invoiceFooter ?: "") ||
+            openingTime != (profile?.openingTime ?: "08:00").take(5) ||
+            closingTime != (profile?.closingTime ?: "23:00").take(5)
     }
 
     var showUnsavedDialog by remember { mutableStateOf(false) }
@@ -223,6 +228,8 @@ fun ShopConfigView(
             consent = it.emailInvoiceConsent
             reviewUrl = it.reviewUrl ?: ""
             invoiceFooter = it.invoiceFooter ?: ""
+            openingTime = (it.openingTime ?: "08:00").take(5)
+            closingTime = (it.closingTime ?: "23:00").take(5)
             selectedPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(it.orderPaymentFlowMode)
         }
     }
@@ -492,21 +499,27 @@ fun ShopConfigView(
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer", enabled = !readOnly, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done))
             Spacer(modifier = Modifier.height(spacing.medium))
-            // Read-only on purpose: trading hours are server-owned config. The till's push
-            // is discarded server-side (applyProfileChangedFieldsMerge), so an editable field
-            // here would look live and silently do nothing.
             Text("Business Hours", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.height(spacing.extraSmall))
-            Text(
-                "${(profile?.openingTime ?: "08:00").take(5)} – ${(profile?.closingTime ?: "23:00").take(5)}",
-                color = TextLight,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                "Set by the owner in the web admin.",
-                color = Color.Gray,
-                style = MaterialTheme.typography.bodySmall
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+            ) {
+                KhanaTimePickerField(
+                    label = "Opening Time",
+                    time = openingTime,
+                    onTimeSelected = { openingTime = it },
+                    enabled = !readOnly,
+                    modifier = Modifier.weight(1f)
+                )
+                KhanaTimePickerField(
+                    label = "Closing Time",
+                    time = closingTime,
+                    onTimeSelected = { closingTime = it },
+                    enabled = !readOnly,
+                    modifier = Modifier.weight(1f)
+                )
+            }
             Spacer(modifier = Modifier.height(spacing.medium))
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
@@ -545,6 +558,8 @@ fun ShopConfigView(
                                 emailInvoiceConsent = consent,
                                 reviewUrl = reviewUrl,
                                 invoiceFooter = invoiceFooter,
+                                openingTime = openingTime,
+                                closingTime = closingTime,
                                 orderPaymentFlowMode = selectedPaymentFlowMode.dbValue,
                                 isSynced = false,
                                 updatedAt = System.currentTimeMillis()

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CallSplit
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
@@ -87,6 +88,48 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
         }
     }
 }
+
+/**
+ * Date Filter Tab Bar (Today / Yesterday / Custom) for Orders Screen.
+ */
+@Composable
+fun OrderDateFilterComponent(
+    selectedFilter: String,
+    onFilterSelected: (String) -> Unit,
+    canViewFullReports: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val availableFilters = if (canViewFullReports) {
+        listOf("Today", "Yesterday", "Custom")
+    } else {
+        listOf("Today")
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.medium),
+        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+    ) {
+        availableFilters.forEach { filter ->
+            FilterChip(
+                label = filter,
+                isSelected = selectedFilter == filter,
+                onClick = { onFilterSelected(filter) },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+/** Idiomatic Compose alias for OrderDateFilterComponent */
+@Composable
+fun OrderDateFilterTabs(
+    selectedFilter: String,
+    onFilterSelected: (String) -> Unit,
+    canViewFullReports: Boolean = true,
+    modifier: Modifier = Modifier
+) = OrderDateFilterComponent(selectedFilter, onFilterSelected, canViewFullReports, modifier)
 
 @Composable
 fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -300,10 +343,10 @@ fun PartPaymentCard(
     }
 }
 
-private val COL_ORDER   = 1.0f
-private val COL_AMOUNT  = 1.2f
-private val COL_TIME    = 1.0f
-private val COL_ACTION  = 0.8f
+private val COL_ORDER   = 1.15f
+private val COL_AMOUNT  = 1.05f
+private val COL_TIME    = 1.05f
+private val COL_ACTION  = 0.75f
 
 /** Time-of-day for the Orders table "Time" column. */
 private fun formatOrderRowTime(row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow): String {
@@ -349,78 +392,66 @@ fun RowScope.OrderTableHeaderCell(
     )
 }
 
+/**
+ * Table Header for Orders Data Table: OrderNo, Amount, Time, Action.
+ */
 @Composable
-fun OrderLevelView(
-    rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
-    profile: RestaurantProfileEntity?,
-    enabledModes: List<PaymentMode> = emptyList(),
-    compactLayout: Boolean = false,
-    onStatusChange: (Long, String) -> Unit = { _, _ -> },
-    onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
-    onRequestCancel: (Long) -> Unit = {},
-    onViewDetails: (Long) -> Unit
-) {
+fun OrderTableHeader(modifier: Modifier = Modifier) {
     val spacing = KhanaBookTheme.spacing
-    Column(modifier = Modifier.fillMaxSize()) {
-
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.medium),
+        shape = KhanaRadii.md,
+        color = OrdersCard.copy(alpha = 0.55f),
+        border = BorderStroke(1.dp, OrdersDivider.copy(alpha = 0.45f))
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = spacing.medium)
-                .background(OrdersCard, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
-                .padding(horizontal = spacing.extraSmall, vertical = spacing.small),
+                .padding(horizontal = spacing.small, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OrderTableHeaderCell("OrderNo", COL_ORDER, align = TextAlign.Start, paddingStart = spacing.small)
-            OrderTableHeaderCell("Amount", COL_AMOUNT, align = TextAlign.End, paddingEnd = spacing.small)
+            OrderTableHeaderCell("OrderNo", COL_ORDER, align = TextAlign.Start, paddingStart = spacing.extraSmall)
+            OrderTableHeaderCell("Amount", COL_AMOUNT, align = TextAlign.Center)
             OrderTableHeaderCell("Time", COL_TIME, align = TextAlign.Center)
             OrderTableHeaderCell("Action", COL_ACTION, align = TextAlign.Center)
-        }
-
-        if (rows.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = spacing.extraLarge),
-                contentAlignment = Alignment.Center
-            ) {
-                KhanaEmptyState(
-                    title = "No orders in this period",
-                    message = "Try another date or report filter.",
-                    icon = Icons.Default.Description
-                )
-            }
-        } else {
-            val listState = rememberLazyListState()
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScrollbar(listState)
-                    .padding(horizontal = spacing.medium),
-                verticalArrangement = Arrangement.spacedBy(spacing.small),
-                contentPadding = PaddingValues(top = spacing.extraSmall, bottom = spacing.medium)
-            ) {
-                items(rows) { row ->
-                    OrderRowItem(
-                        row = row,
-                        profile = profile,
-                        enabledModes = enabledModes,
-                        compactLayout = compactLayout,
-                        onStatusChange = { newStatus -> onStatusChange(row.billId, newStatus) },
-                        onPayModeChange = { newMode -> onPayModeChange(row.billId, newMode) },
-                        onRequestCancel = { onRequestCancel(row.billId) },
-                        onViewDetails = onViewDetails
-                    )
-                }
-            }
         }
     }
 }
 
+/**
+ * 36dp circular gold Eye icon action button.
+ */
 @Composable
-fun OrderRowItem(
+fun ViewOrderAction(
+    dailyId: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        color = OrdersGold.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.55f)),
+        shape = CircleShape,
+        modifier = modifier.size(36.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.Visibility,
+                contentDescription = "View order $dailyId",
+                tint = OrdersGold,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Individual row in the Orders Data Table.
+ */
+@Composable
+fun OrderTableRow(
     row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow,
     profile: RestaurantProfileEntity?,
     enabledModes: List<PaymentMode> = emptyList(),
@@ -451,34 +482,60 @@ fun OrderRowItem(
                 .padding(horizontal = spacing.small, vertical = spacing.small),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. OrderNo (Left-aligned)
-            Text(
-                text = if (row.dailyId.startsWith("#")) row.dailyId else "#${row.dailyId}",
+            // 1. OrderNo (Left-aligned) + Secondary details
+            Column(
                 modifier = Modifier
                     .weight(COL_ORDER)
-                    .padding(start = spacing.small),
-                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextPrimary,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontFeatureSettings = "tnum"
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+                    .padding(start = spacing.extraSmall)
+            ) {
+                Text(
+                    text = if (row.dailyId.startsWith("#")) row.dailyId else "#${row.dailyId}",
+                    color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextPrimary,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFeatureSettings = "tnum"
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val detailsLabel = buildString {
+                    if (row.orderType.isNotBlank()) {
+                        val type = when (row.orderType.lowercase()) {
+                            com.khanabook.lite.pos.domain.model.OrderType.DINE_IN -> "Dine-in"
+                            com.khanabook.lite.pos.domain.model.OrderType.TAKEAWAY -> "Takeaway"
+                            else -> row.orderType.replaceFirstChar { it.uppercase() }
+                        }
+                        append(type)
+                    }
+                    if (row.paymentMode.displayLabel.isNotBlank()) {
+                        if (isNotEmpty()) append(" · ")
+                        append(row.paymentMode.displayLabel)
+                    }
+                }
+                if (detailsLabel.isNotBlank()) {
+                    Text(
+                        text = detailsLabel,
+                        color = OrdersTextSecondary.copy(alpha = 0.75f),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 11.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
 
-            // 2. Amount (Right-aligned, tabular nums, strikethrough if cancelled)
+            // 2. Amount (Center-aligned, tabular nums, strikethrough if cancelled)
             Text(
                 text = formatOrderRowAmount(row.totalAmount),
-                modifier = Modifier
-                    .weight(COL_AMOUNT)
-                    .padding(end = spacing.small),
+                modifier = Modifier.weight(COL_AMOUNT),
                 color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersBrightGold,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Bold,
                     fontFeatureSettings = "tnum"
                 ),
                 textDecoration = if (isCancelled) TextDecoration.LineThrough else TextDecoration.None,
-                textAlign = TextAlign.End,
+                textAlign = TextAlign.Center,
                 maxLines = 1
             )
 
@@ -496,23 +553,179 @@ fun OrderRowItem(
 
             // 4. Action (View Eye icon button - Circular 36dp)
             Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
-                Surface(
-                    onClick = { onViewDetails(row.billId) },
-                    color = OrdersGold.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.55f)),
-                    shape = CircleShape,
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Filled.Visibility,
-                            contentDescription = "View order ${row.dailyId}",
-                            tint = OrdersGold,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                ViewOrderAction(
+                    dailyId = row.dailyId,
+                    onClick = { onViewDetails(row.billId) }
+                )
+            }
+        }
+    }
+}
+
+/** Backward-compatibility alias for OrderTableRow */
+@Composable
+fun OrderRowItem(
+    row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow,
+    profile: RestaurantProfileEntity?,
+    enabledModes: List<PaymentMode> = emptyList(),
+    compactLayout: Boolean = false,
+    onStatusChange: (String) -> Unit = {},
+    onPayModeChange: (PaymentMode) -> Unit = {},
+    onRequestCancel: () -> Unit = {},
+    onViewDetails: (Long) -> Unit
+) = OrderTableRow(
+    row = row,
+    profile = profile,
+    enabledModes = enabledModes,
+    compactLayout = compactLayout,
+    onStatusChange = onStatusChange,
+    onPayModeChange = onPayModeChange,
+    onRequestCancel = onRequestCancel,
+    onViewDetails = onViewDetails
+)
+
+/**
+ * Orders Data Table Component displaying the list of orders with headers and empty state.
+ */
+@Composable
+fun OrderHistoryTableComponent(
+    rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
+    profile: RestaurantProfileEntity?,
+    enabledModes: List<PaymentMode> = emptyList(),
+    compactLayout: Boolean = false,
+    onStatusChange: (Long, String) -> Unit = { _, _ -> },
+    onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
+    onRequestCancel: (Long) -> Unit = {},
+    onViewDetails: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(modifier = modifier.fillMaxSize()) {
+        OrderTableHeader()
+
+        if (rows.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = spacing.extraLarge),
+                contentAlignment = Alignment.Center
+            ) {
+                KhanaEmptyState(
+                    title = "No orders in this period",
+                    message = "Try another date or report filter.",
+                    icon = Icons.Default.Description
+                )
+            }
+        } else {
+            val listState = rememberLazyListState()
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScrollbar(listState)
+                    .padding(horizontal = spacing.medium),
+                verticalArrangement = Arrangement.spacedBy(spacing.small),
+                contentPadding = PaddingValues(top = spacing.extraSmall, bottom = spacing.medium)
+            ) {
+                items(rows) { row ->
+                    OrderTableRow(
+                        row = row,
+                        profile = profile,
+                        enabledModes = enabledModes,
+                        compactLayout = compactLayout,
+                        onStatusChange = { newStatus -> onStatusChange(row.billId, newStatus) },
+                        onPayModeChange = { newMode -> onPayModeChange(row.billId, newMode) },
+                        onRequestCancel = { onRequestCancel(row.billId) },
+                        onViewDetails = onViewDetails
+                    )
                 }
             }
         }
+    }
+}
+
+/** Compose idiomatic alias for OrderHistoryTableComponent */
+@Composable
+fun OrderHistoryTable(
+    rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
+    profile: RestaurantProfileEntity?,
+    enabledModes: List<PaymentMode> = emptyList(),
+    compactLayout: Boolean = false,
+    onStatusChange: (Long, String) -> Unit = { _, _ -> },
+    onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
+    onRequestCancel: (Long) -> Unit = {},
+    onViewDetails: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) = OrderHistoryTableComponent(
+    rows = rows,
+    profile = profile,
+    enabledModes = enabledModes,
+    compactLayout = compactLayout,
+    onStatusChange = onStatusChange,
+    onPayModeChange = onPayModeChange,
+    onRequestCancel = onRequestCancel,
+    onViewDetails = onViewDetails,
+    modifier = modifier
+)
+
+/** Backward-compatibility alias for OrderLevelView */
+@Composable
+fun OrderLevelView(
+    rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
+    profile: RestaurantProfileEntity?,
+    enabledModes: List<PaymentMode> = emptyList(),
+    compactLayout: Boolean = false,
+    onStatusChange: (Long, String) -> Unit = { _, _ -> },
+    onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
+    onRequestCancel: (Long) -> Unit = {},
+    onViewDetails: (Long) -> Unit
+) = OrderHistoryTableComponent(
+    rows = rows,
+    profile = profile,
+    enabledModes = enabledModes,
+    compactLayout = compactLayout,
+    onStatusChange = onStatusChange,
+    onPayModeChange = onPayModeChange,
+    onRequestCancel = onRequestCancel,
+    onViewDetails = onViewDetails
+)
+
+/**
+ * Order Search input bar with clear action button.
+ */
+@Composable
+fun OrderSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = spacing.medium)
+            .padding(bottom = spacing.smallMedium)
+    ) {
+        KhanaBookInputField(
+            value = query,
+            onValueChange = onQueryChange,
+            label = "Search orders",
+            placeholder = "OrderNo, InvoiceNo, CustomerName, PhoneNumber, BillAmount, PaymentMode, OrderType",
+            marqueePlaceholder = true,
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear search",
+                            tint = TextGold
+                        )
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
     }
 }

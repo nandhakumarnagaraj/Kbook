@@ -33,6 +33,9 @@ import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.feature.reports.viewmodel.ReportsViewModel
 import com.khanabook.lite.pos.feature.reports.ui.FilterChip
+import com.khanabook.lite.pos.feature.reports.ui.OrderDateFilterComponent
+import com.khanabook.lite.pos.feature.reports.ui.OrderHistoryTableComponent
+import com.khanabook.lite.pos.feature.reports.ui.OrderSearchBar
 import com.khanabook.lite.pos.feature.reports.ui.PaymentLevelView
 import com.khanabook.lite.pos.feature.reports.ui.OrderLevelView
 import com.khanabook.lite.pos.feature.reports.ui.OrderDetailsDialog
@@ -185,36 +188,17 @@ fun OrdersScreen(
 
             
             AnimatedVisibility(visible = contentVisible, enter = enterSpec, exit = exitSpec) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium),
-                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                ) {
-                    // Today's summary is part of every staff member's baseline
-                    // (reports.day_summary). Anything wider is revenue reporting and
-                    // needs reports.full — matching what AnalyticsController enforces
-                    // server-side for the same data.
-                    val availableFilters = if (canViewFullReports) {
-                        listOf("Today", "Yesterday", "Custom")
-                    } else {
-                        listOf("Today")
-                    }
-                    availableFilters.forEach { filter ->
-                        FilterChip(
-                            label = filter,
-                            isSelected = timeFilter == filter,
-                            onClick = { 
-                                if (filter == "Custom") {
-                                    showDateRangePicker = true
-                                } else {
-                                    viewModel.setTimeFilter(filter) 
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
+                OrderDateFilterComponent(
+                    selectedFilter = timeFilter,
+                    onFilterSelected = { filter ->
+                        if (filter == "Custom") {
+                            showDateRangePicker = true
+                        } else {
+                            viewModel.setTimeFilter(filter)
+                        }
+                    },
+                    canViewFullReports = canViewFullReports
+                )
             }
 
             // One gap, not two. The search field used to sit between two unconditional
@@ -237,33 +221,10 @@ fun OrdersScreen(
                 enter = enterSpec,
                 exit = exitSpec
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = spacing.medium)
-                        .padding(bottom = spacing.smallMedium)
-                ) {
-                    KhanaBookInputField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        label = "Search orders",
-                        placeholder = "OrderNo, InvoiceNo, CustomerName, PhoneNumber, BillAmount, PaymentMode, OrderType",
-                        marqueePlaceholder = true,
-                        trailingIcon = {
-                            if (searchQuery.isNotEmpty()) {
-                                IconButton(onClick = { searchQuery = "" }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear search",
-                                        tint = TextGold
-                                    )
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                }
+                OrderSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it }
+                )
             }
 
             // Show skeleton while loading, otherwise show content
@@ -286,7 +247,7 @@ fun OrdersScreen(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    OrderLevelView(
+                    OrderHistoryTableComponent(
                         rows = filteredRows,
                         profile = profile,
                         enabledModes = enabledModes,

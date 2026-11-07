@@ -1401,6 +1401,11 @@ class MasterSyncProcessor @Inject constructor(
                         isDeleted = remoteProfile.isDeleted ?: false,
                         showBranding = remoteProfile.showBranding ?: true,
                         maskCustomerPhone = remoteProfile.maskCustomerPhone ?: true,
+                        openingTime = remoteProfile.openingTime ?: (currentLocalProfile?.openingTime ?: "08:00"),
+                        closingTime = remoteProfile.closingTime ?: (currentLocalProfile?.closingTime ?: "23:00"),
+                        businessDayCutoffTime = remoteProfile.businessDayCutoffTime ?: (currentLocalProfile?.businessDayCutoffTime ?: "00:00"),
+                        cutoffEffectiveFrom = remoteProfile.cutoffEffectiveFrom ?: currentLocalProfile?.cutoffEffectiveFrom,
+                        emailDailyClosingReport = remoteProfile.emailDailyClosingReport ?: (currentLocalProfile?.emailDailyClosingReport ?: false),
                         serverId = remoteProfile.serverId,
                         serverUpdatedAt = remoteProfile.serverUpdatedAt ?: 0L
                     )

@@ -229,6 +229,8 @@ fun RestaurantProfileEntity.toSyncDto() = RestaurantProfileSyncDto(
     serverUpdatedAt  = serverUpdatedAt,
     invoiceFooter           = invoiceFooter,
     reviewUrl               = reviewUrl,
+    openingTime             = openingTime,
+    closingTime             = closingTime,
     changedFields           = changedFields,
 )
 

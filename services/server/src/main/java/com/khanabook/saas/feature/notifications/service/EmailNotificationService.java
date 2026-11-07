@@ -121,10 +121,23 @@ public class EmailNotificationService {
         }
     }
 
-    private void sendHtmlEmail(String to, String subject, String htmlContent) throws MessagingException {
+    public void sendDailyClosingReport(String toEmail, String subject, String htmlContent) throws MessagingException {
+        if (!emailEnabled) {
+            log.info("Email disabled (khanabook.email.enabled=false). Daily closing report suppressed for {}", toEmail);
+            return;
+        }
+        sendHtmlEmail(toEmail, subject, htmlContent);
+        log.info("Daily closing report email sent to {}", toEmail);
+    }
+
+    public void sendHtmlEmail(String to, String subject, String htmlContent) throws MessagingException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        helper.setFrom(fromEmail);
+        try {
+            helper.setFrom(fromEmail, "KhanaBook POS");
+        } catch (Exception e) {
+            helper.setFrom(fromEmail);
+        }
         helper.setTo(to);
         helper.setSubject(subject);
         helper.setText(htmlContent, true);

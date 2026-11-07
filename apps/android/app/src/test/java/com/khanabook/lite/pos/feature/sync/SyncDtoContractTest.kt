@@ -182,8 +182,8 @@ class SyncDtoContractTest {
             // setting — and cutoffEffectiveFrom in particular must never move backwards, or
             // bills already numbered under the new rule would be re-attributed. Delivered on
             // the pull (MasterSyncResponse deserializes straight into RestaurantProfileEntity).
-            "openingTime", "closingTime", "businessDayCutoffTime",
-            "cutoffEffectiveFrom", "emailDailyClosingReport",
+            // Note: openingTime and closingTime are client-editable and pushed in RestaurantProfileSyncDto.
+            "businessDayCutoffTime", "cutoffEffectiveFrom", "emailDailyClosingReport",
         ),
     )
 

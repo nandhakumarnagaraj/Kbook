@@ -103,6 +103,8 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
 
     List<Bill> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);
 
+    List<Bill> findByRestaurantIdAndLastResetDateAndIsDeletedFalse(Long restaurantId, String lastResetDate);
+
     long countByRestaurantIdAndIsDeletedFalse(Long restaurantId);
 
     @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b " +

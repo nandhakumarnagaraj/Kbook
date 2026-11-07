@@ -246,6 +246,8 @@ data class RestaurantProfileSyncDto(
     @SerializedName("serverUpdatedAt") val serverUpdatedAt: Long,
     @SerializedName("invoiceFooter") val invoiceFooter: String?,
     @SerializedName("reviewUrl") val reviewUrl: String?,
+    @SerializedName("openingTime") val openingTime: String? = null,
+    @SerializedName("closingTime") val closingTime: String? = null,
     @SerializedName("changedFields") val changedFields: String? = null,
 )
 
