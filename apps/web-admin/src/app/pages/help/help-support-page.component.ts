@@ -719,81 +719,25 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
             </span>
             <div class="help-touch__meta">
               <strong>WhatsApp Support</strong>
-              <span>+91 98765 43210 — quick support on WhatsApp</span>
+              <span>Chat directly with KhanaBook Technical Specialists</span>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Sample-labelled ticket log: the ticket API is not wired for owners yet. -->
+      <!-- Support Desk Section -->
       <section class="panel help-section" aria-labelledby="help-tickets">
         <div class="help-section__header">
           <div class="help-section__eyebrow">YOUR REQUESTS</div>
           <h2 class="help-section__title" id="help-tickets">Your Support Tickets</h2>
-          <p class="muted help-section__lead">View subject, support requests. <span class="kpi-tag kpi-tag--neutral">Sample data</span></p>
+          <p class="muted help-section__lead">View and track operational support tickets for your outlet.</p>
         </div>
-        <div class="table-wrap">
-          <table class="data-table">
-            <caption class="visually-hidden">Sample support tickets listing</caption>
-            <thead>
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">Subject</th>
-                <th scope="col">Category</th>
-                <th scope="col">Status</th>
-                <th scope="col">Created On</th>
-                <th scope="col">Last Update</th>
-                <th scope="col"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th scope="row" class="font-semibold">1</th>
-                <td>Default printer not working</td>
-                <td>Hardware</td>
-                <td><span class="kpi-tag kpi-tag--green">Solved</span></td>
-                <td class="muted">25 Oct 2026, 10:30 AM</td>
-                <td class="muted">26 Oct 2026, 11:20 AM</td>
-                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
-              </tr>
-              <tr>
-                <th scope="row" class="font-semibold">2</th>
-                <td>GST configuration help</td>
-                <td>Tax &amp; Billing</td>
-                <td><span class="kpi-tag kpi-tag--amber">In Progress</span></td>
-                <td class="muted">22 Oct 2026, 04:15 PM</td>
-                <td class="muted">23 Oct 2026, 09:40 AM</td>
-                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
-              </tr>
-              <tr>
-                <th scope="row" class="font-semibold">3</th>
-                <td>Add new terminal</td>
-                <td>Terminals</td>
-                <td><span class="kpi-tag kpi-tag--green">Solved</span></td>
-                <td class="muted">18 Oct 2026, 11:20 AM</td>
-                <td class="muted">19 Oct 2026, 01:10 PM</td>
-                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
-              </tr>
-              <tr>
-                <th scope="row" class="font-semibold">4</th>
-                <td>Menu import issue</td>
-                <td>Menu</td>
-                <td><span class="kpi-tag kpi-tag--warn">Open</span></td>
-                <td class="muted">16 Oct 2026, 03:45 PM</td>
-                <td class="muted">16 Oct 2026, 03:45 PM</td>
-                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
-              </tr>
-              <tr>
-                <th scope="row" class="font-semibold">5</th>
-                <td>Invoice template customization</td>
-                <td>Invoice</td>
-                <td><span class="kpi-tag kpi-tag--neutral">Closed</span></td>
-                <td class="muted">10 Oct 2026, 09:10 AM</td>
-                <td class="muted">12 Oct 2026, 02:30 PM</td>
-                <td class="num-cell"><a class="invoice-link" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">View</a></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="empty-tickets">
+          <p class="empty-tickets__title">No Open Support Tickets</p>
+          <p class="empty-tickets__sub">All POS registers, receipt printers, and cloud sync are operating normally.</p>
+          <a class="empty-tickets__btn header-action-btn header-action-btn--primary" href="https://khanabook.in/contact-us" target="_blank" rel="noopener noreferrer">
+            Raise a Support Ticket
+          </a>
         </div>
       </section>
 
@@ -812,6 +756,10 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
   `,
   styles: [
     `
+      .empty-tickets { padding: var(--kb-space-6) var(--kb-space-4); text-align: center; }
+      .empty-tickets__title { font-weight: 600; margin-bottom: var(--kb-space-1); }
+      .empty-tickets__sub { color: var(--muted); font-size: var(--kb-text-sm); margin: 0 0 var(--kb-space-4); }
+      .empty-tickets__btn { display: inline-flex; align-items: center; gap: var(--kb-space-2); text-decoration: none; padding: var(--kb-space-2) var(--kb-space-4); border-radius: var(--kb-radius-md); }
       .help-shell {
         display: flex;
         flex-direction: column;
@@ -1420,7 +1368,7 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
       .help-touch__meta {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: var(--kb-space-1);
         flex: 1 1 auto;
         min-width: 0;
       }

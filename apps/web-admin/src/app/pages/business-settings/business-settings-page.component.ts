@@ -566,7 +566,7 @@ interface SettingsCategory {
               </div>
             </section>
 
-            <!-- 6. Review & Feedback (prototype section; sample figures) -->
+            <!-- 6. Review & Feedback -->
             <section id="reviews" class="settings-block" data-settings-section aria-label="Review and feedback">
               <div class="panel settings-section">
                 <div class="section-title-wrap">

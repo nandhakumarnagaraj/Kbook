@@ -21,11 +21,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <section class="auth-shell">
-      <!-- Left Brand Panel (64% desktop) -->
+      <!-- Left Brand Panel (Desktop Showcase) -->
       <aside class="auth-brand" aria-label="KhanaBook Restaurant Platform Overview">
-        <div class="brand-glow-1" aria-hidden="true"></div>
-        <div class="brand-glow-2" aria-hidden="true"></div>
-
         <div class="brand-top">
           <a href="https://khanabook.in" class="brand-mark" title="Back to KhanaBook website" aria-label="KhanaBook - Back to Homepage">
             <div class="brand-logo">
@@ -35,7 +32,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
           </a>
 
           <span class="brand-context-pill">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="var(--kb-color-primary)" aria-hidden="true"><path d="m12 2.5 2.85 5.78 6.38.93-4.62 4.5 1.09 6.36L12 17.06l-5.7 3 1.09-6.36-4.62-4.5 6.38-.93L12 2.5Z"/></svg>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="var(--kb-color-primary)" aria-hidden="true"><path d="m12 2.5 2.85 5.78 6.38.93-4.62 4.5 1.09 6.36L12 17.06l-5.7 3 1.09-6.36-4.62-4.5 6.38-.93L12 2.5Z"/></svg>
             Trusted by 250+ Restaurants
           </span>
         </div>
@@ -46,65 +43,124 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               Run your restaurant<br/>with <span class="brand-hero-accent">confidence.</span>
             </h1>
             <p class="brand-hero-sub">
-              One powerful workspace for menu, orders,<br />staff, payments and more.
+              One unified workspace for menu, orders, staff, payments, and real-time operations.
             </p>
           </div>
 
-          <img
-            src="/login-approved-dashboard.png"
-            alt="KhanaBook restaurant dashboard, mobile order screen, and receipt printer"
-            class="brand-approved-dashboard-img"
-            fetchpriority="high"
-          />
+          <!-- Interactive Live Showcase Widgets -->
+          <div class="brand-showcase" aria-hidden="true">
+            <!-- Top Live POS Order Card -->
+            <div class="pos-preview-card">
+              <div class="pos-preview-header">
+                <div class="pos-preview-badge">
+                  <span class="live-dot"></span>
+                  <span>Live POS • Table 04</span>
+                </div>
+                <span class="pos-order-id">#KB-1048</span>
+              </div>
+              <div class="pos-preview-items">
+                <div class="pos-item-row">
+                  <span class="pos-item-name"><span class="pos-item-qty">2×</span> Paneer Butter Masala</span>
+                  <span class="pos-item-price">₹560</span>
+                </div>
+                <div class="pos-item-row">
+                  <span class="pos-item-name"><span class="pos-item-qty">4×</span> Butter Garlic Naan</span>
+                  <span class="pos-item-price">₹160</span>
+                </div>
+                <div class="pos-item-row">
+                  <span class="pos-item-name"><span class="pos-item-qty">2×</span> Mango Lassi</span>
+                  <span class="pos-item-price">₹140</span>
+                </div>
+              </div>
+              <div class="pos-preview-total">
+                <span class="pos-total-label">Total Amount</span>
+                <span class="pos-total-val">₹860.00</span>
+              </div>
+              <div class="pos-preview-footer">
+                <span class="pos-chip pos-chip--success">✓ KOT Printed</span>
+                <span class="pos-chip">UPI / Cash</span>
+                <span class="pos-chip pos-chip--sync">Cloud Synced</span>
+              </div>
+            </div>
 
-          <!-- Product benefits -->
+            <!-- Side Floating Metric Widget -->
+            <div class="metric-preview-card">
+              <div class="metric-preview-top">
+                <span class="metric-label">Today's Revenue</span>
+                <span class="metric-trend">+18.5%</span>
+              </div>
+              <div class="metric-val">₹48,250<span class="metric-sub">.00</span></div>
+              <div class="metric-sparkline">
+                <svg viewBox="0 0 160 36" fill="none" class="sparkline-svg">
+                  <path d="M0 28 Q 20 25, 40 18 T 80 14 T 120 8 T 160 4" stroke="var(--kb-color-primary)" stroke-width="2.5" stroke-linecap="round"/>
+                  <path d="M0 28 Q 20 25, 40 18 T 80 14 T 120 8 T 160 4 L 160 36 L 0 36 Z" fill="url(#sparkGrad)" opacity="0.15"/>
+                  <defs>
+                    <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="var(--kb-color-primary)"/>
+                      <stop offset="100%" stop-color="var(--kb-color-primary)" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </div>
+              <div class="metric-footnote">
+                <span>142 Orders</span>
+                <span>•</span>
+                <span>Avg ₹340</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product benefits in modern chips -->
           <div class="brand-feature-stack">
             <div class="brand-feature-card">
-              <div class="feature-icon-badge feature-icon-badge--sales">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <div class="feature-icon-badge">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                   <circle cx="10" cy="7" r="4"/>
                   <path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
               </div>
               <div class="feature-text">
-              <strong class="feature-heading">Customer Management</strong>
-                <span class="feature-sub">Build lasting relationships, bring<br />customers back.</span>
+                <strong class="feature-heading">Customer CRM</strong>
+                <span class="feature-sub">Repeat loyalty</span>
               </div>
             </div>
 
             <div class="brand-feature-card">
-              <div class="feature-icon-badge feature-icon-badge--menu">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <div class="feature-icon-badge">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M3 3v18h18"/>
                   <path d="m7 14 4-4 4 3 6-7"/>
                   <path d="M16 6h5v5"/>
                 </svg>
               </div>
               <div class="feature-text">
-              <strong class="feature-heading">Real-time Analytics</strong>
-              <span class="feature-sub">Track sales, inventory and growth<br />with ease.</span>
+                <strong class="feature-heading">Real-Time POS</strong>
+                <span class="feature-sub">Instant sync</span>
               </div>
             </div>
 
             <div class="brand-feature-card">
-              <div class="feature-icon-badge feature-icon-badge--reports">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <div class="feature-icon-badge">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
                   <path d="m9 12 2 2 4-4"/>
                 </svg>
               </div>
               <div class="feature-text">
-                <strong class="feature-heading">Secure &amp; Reliable</strong>
-                <span class="feature-sub">Your data, payments and operations<br />are protected.</span>
+                <strong class="feature-heading">Secure Data</strong>
+                <span class="feature-sub">End-to-end safe</span>
               </div>
             </div>
           </div>
         </div>
 
+        <div class="brand-foot-row">
+          <span>&copy; {{ year }} KhanaBook Platform.</span>
+        </div>
       </aside>
 
-      <!-- Right Form Panel (37.5% desktop) -->
+      <!-- Right Form Panel -->
       <main class="auth-main">
         <div class="auth-topbar">
           <div class="mobile-brand-container">
@@ -118,7 +174,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
               </div>
             </a>
           </div>
-
         </div>
 
         <div class="auth-card">
@@ -191,8 +246,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                     [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
                     [attr.aria-pressed]="showPassword()"
                   >
-                    <svg *ngIf="showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.1A10.8 10.8 0 0 1 12 4.8c5.2 0 8.8 7.2 8.8 7.2a14.5 14.5 0 0 1-3.1 3.7"/><path d="M6.6 6.6C3.8 8.2 2 12 2 12s3.6 7.2 10 7.2a10.6 10.6 0 0 0 3.3-.5"/></svg>
-                    <svg *ngIf="!showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <svg *ngIf="showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M3 3l18 18"/><path d="M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.1A10.8 10.8 0 0 1 12 4.8c5.2 0 8.8 7.2 8.8 7.2a14.5 14.5 0 0 1-3.1 3.7"/><path d="M6.6 6.6C3.8 8.2 2 12 2 12s3.6 7.2 10 7.2a10.6 10.6 0 0 0 3.3-.5"/></svg>
+                    <svg *ngIf="!showPassword()" class="pwd-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
                 </div>
               </div>
@@ -206,7 +261,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                   Signing in…
                 </span>
               </button>
-              <br />
             </form>
 
             <div class="auth-card-footer">
@@ -214,7 +268,6 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
                 New to KhanaBook?
                 <a href="https://khanabook.in/get-started" class="signup-link" target="_blank" rel="noopener">Get started</a>
               </p>
-              <br />
               <nav class="login-footer-links" aria-label="Legal and support">
                 <a href="https://khanabook.in/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
                 <a href="https://khanabook.in/terms-and-conditions" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a>
@@ -375,29 +428,20 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     :host {
       display: block;
       --login-orange: var(--kb-color-primary);
-    --login-orange-action: var(--kb-color-primary);
-    --login-orange-hover: var(--kb-color-primary-hover);
-      --kb-color-foreground: #172347;
-      --kb-color-muted-foreground: #7180A2;
-      --kb-color-border: #D8E0F1;
+      --login-orange-action: var(--kb-color-primary);
+      --login-orange-hover: var(--kb-color-primary-hover);
+      --kb-color-foreground: #111827;
+      --kb-color-muted-foreground: #64748B;
+      --kb-color-border: #E2E8F0;
       --kb-color-surface: #FFFFFF;
-      --kb-color-surface-2: #FFFFFF;
-      --kb-purple-950: var(--kb-color-primary);
-      --kb-purple-800: var(--kb-color-primary-hover);
-      --kb-purple-600: var(--kb-color-primary);
-      --kb-lavender: var(--kb-color-primary);
-      --kb-text: var(--kb-color-foreground);
-      --kb-muted: var(--kb-color-muted-foreground);
-      --kb-border: var(--kb-color-border);
-      --kb-surface: var(--kb-color-surface);
-      --kb-soft: var(--kb-color-primary-soft);
+      --kb-color-surface-2: #F8FAFC;
     }
 
     .auth-shell {
       min-height: 100vh;
       min-height: 100dvh;
       display: grid;
-      grid-template-columns: 7fr 4fr;
+      grid-template-columns: 1.15fr 1fr;
       background: var(--kb-color-surface);
       overflow-x: hidden;
     }
@@ -405,57 +449,17 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     /* LEFT BRAND PANEL */
     .auth-brand {
       background:
-        radial-gradient(ellipse at 88% 28%, rgba(69, 77, 226, 0.68) 0%, rgba(69, 77, 226, 0) 40%),
-        radial-gradient(ellipse at 88% 64%, rgba(226, 82, 49, 0.28) 0%, rgba(226, 82, 49, 0) 34%),
+        radial-gradient(120% 120% at 50% 0%, rgba(99, 102, 241, 0.18) 0%, rgba(32, 25, 95, 0) 60%),
+        radial-gradient(90% 90% at 80% 80%, rgba(255, 90, 10, 0.10) 0%, rgba(32, 25, 95, 0) 50%),
         linear-gradient(135deg, #20195F 0%, #222B8A 56%, #3325B8 100%);
-      color: var(--kb-color-surface);
-      padding: clamp(32px, 3.5vw, 42px) clamp(32px, 3.5vw, 65px);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--kb-color-foreground-contrast);
+      padding: clamp(32px, 3.5vw, 48px) clamp(32px, 3.5vw, 56px);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
       overflow: hidden;
-    }
-    .auth-brand::before,
-    .auth-brand::after {
-      content: '';
-      position: absolute;
-      bottom: -245px;
-      width: 430px;
-      height: 430px;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .auth-brand::before {
-      left: -245px;
-      background: linear-gradient(145deg, rgba(232, 122, 30, 0.36), rgba(232, 122, 30, 0.04));
-    }
-    .auth-brand::after {
-      right: -245px;
-      background: linear-gradient(220deg, rgba(196, 181, 253, 0.10), rgba(147, 51, 234, 0.24));
-    }
-
-    /* Ambient soft decorative glows */
-    .brand-glow-1 {
-      position: absolute;
-      top: -100px;
-      left: -80px;
-      width: 440px;
-      height: 440px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(167, 139, 250, 0.18) 0%, rgba(91, 33, 182, 0) 70%);
-      pointer-events: none;
-    }
-    .brand-glow-2 {
-      position: absolute;
-      bottom: -60px;
-      right: -80px;
-      width: 480px;
-      height: 480px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(232, 122, 30, 0.16) 0%, rgba(232, 122, 30, 0) 75%);
-      pointer-events: none;
     }
 
     .brand-top {
@@ -468,179 +472,308 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .brand-mark {
       display: inline-flex;
       align-items: center;
-      gap: 1.125rem;
+      gap: var(--kb-space-3);
       text-decoration: none;
     }
     .brand-logo {
-      width: 62px;
-      height: 62px;
-      border-radius: 15px;
-      background: var(--kb-color-surface);
+      width: 44px;
+      height: 44px;
+      border-radius: var(--kb-radius-lg);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       display: grid;
       place-items: center;
       padding: var(--kb-space-1);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
     }
     .brand-logo img {
       width: 100%;
       height: 100%;
       object-fit: contain;
     }
-    .brand-mark .brand-logo {
-      background: var(--login-orange);
-    }
-    .brand-mark .brand-logo img {
-      mix-blend-mode: multiply;
-    }
     .brand-logo--sm {
       width: 36px;
       height: 36px;
-      border-radius: 9px;
-      padding: 3px;
+      border-radius: var(--kb-radius-md);
+      padding: var(--kb-space-1);
     }
     .brand-title {
-      font-weight: 800;
-      font-size: var(--kb-text-4xl);
-      letter-spacing: -0.025em;
-      color: var(--kb-color-surface);
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--kb-text-2xl);
+      letter-spacing: -0.02em;
+      color: var(--kb-color-foreground-contrast);
     }
     .brand-title--dark {
       color: var(--kb-color-foreground);
-      font-size: 1.2rem;
+      font-size: var(--kb-text-xl);
     }
 
     .brand-context-pill {
       display: inline-flex;
-      align-self: flex-start;
       align-items: center;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      padding: 10px 23px;
-      margin-top: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: var(--kb-space-2) var(--kb-space-3);
       border-radius: var(--kb-radius-full);
-      font-size: var(--kb-text-md);
-      font-weight: 650;
-      letter-spacing: normal;
-      text-transform: none;
-      color: rgba(255, 255, 255, 0.9);
+      font-size: var(--kb-text-xs);
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
       gap: var(--kb-space-2);
     }
 
     .brand-body {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr);
-      column-gap: clamp(0.5rem, 1.4vw, 1.25rem);
-      row-gap: clamp(0.75rem, 1.5vh, 1.25rem);
-      min-height: clamp(500px, 66vh, 620px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: var(--kb-space-8);
       margin: auto 0;
       position: relative;
       z-index: 1;
     }
 
     .brand-copy {
-      display: grid;
-      gap: 0.65rem;
-      grid-column: 1;
-      grid-row: 1;
-      align-self: start;
-      position: relative;
-      z-index: 2;
-      max-width: 490px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-3);
+      max-width: 480px;
     }
     .brand-hero-title {
-      font-size: clamp(34px, 2.8vw, 52px);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -0.03em;
-      color: var(--kb-color-surface);
+      font-family: var(--font-display);
+      font-size: clamp(32px, 2.5vw, 44px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      color: var(--kb-color-foreground-contrast);
       margin: 0;
     }
     .brand-hero-accent {
       color: var(--login-orange);
     }
     .brand-hero-sub {
-      font-size: clamp(15px, 1.05vw, 17px);
+      font-size: var(--kb-text-md);
       font-weight: 400;
       line-height: 1.5;
-      color: rgba(255, 255, 255, 0.88);
+      color: rgba(255, 255, 255, 0.72);
       margin: 0;
-      max-width: 410px;
+      max-width: 440px;
     }
 
-    .brand-approved-dashboard-img {
-      grid-column: 2;
-      grid-row: 1 / span 2;
-      align-self: center;
-      justify-self: center;
-      width: 125%;
-      height: auto;
-      max-width: 700px;
-      object-fit: contain;
-      filter: drop-shadow(0 18px 28px rgba(18, 5, 43, 0.34));
-      position: relative;
-      z-index: 1;
+    /* Brand Showcase: Vector Live Components */
+    .brand-showcase {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: var(--kb-space-3);
+      max-width: 520px;
     }
 
-    /* Translucent Feature Cards */
+    .pos-preview-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--kb-radius-xl);
+      padding: var(--kb-space-3);
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-2);
+      box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.4);
+    }
+    .pos-preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: var(--kb-space-1);
+    }
+    .pos-preview-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--kb-space-2);
+      font-size: var(--kb-text-xs);
+      font-weight: 600;
+      color: var(--pos-sidebar-success);
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--kb-radius-full);
+      background: var(--pos-sidebar-success);
+      box-shadow: 0 0 8px var(--pos-sidebar-success);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+    .pos-order-id {
+      font-size: var(--kb-text-xs);
+      color: rgba(255, 255, 255, 0.5);
+      font-family: var(--kb-font-mono);
+    }
+    .pos-preview-items {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-1);
+    }
+    .pos-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: var(--kb-text-xs);
+      color: rgba(255, 255, 255, 0.9);
+    }
+    .pos-item-qty {
+      font-weight: 600;
+      color: var(--kb-color-primary);
+      margin-right: var(--kb-space-1);
+    }
+    .pos-item-price {
+      font-variant-numeric: tabular-nums;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .pos-preview-total {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: var(--kb-space-2);
+      border-top: 1px dashed rgba(255, 255, 255, 0.12);
+      font-size: var(--kb-text-sm);
+      font-weight: 600;
+      color: var(--kb-color-foreground-contrast);
+    }
+    .pos-total-val {
+      font-size: var(--kb-text-md);
+      color: var(--kb-color-primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .pos-preview-footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--kb-space-1);
+      padding-top: var(--kb-space-1);
+    }
+    .pos-chip {
+      font-size: var(--kb-text-2xs);
+      padding: var(--kb-space-1) var(--kb-space-2);
+      border-radius: var(--kb-radius-sm);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .pos-chip--success {
+      background: rgba(22, 101, 52, 0.25);
+      color: var(--pos-sidebar-success);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+    .pos-chip--sync {
+      background: rgba(79, 70, 229, 0.2);
+      color: var(--kb-color-primary-soft);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .metric-preview-card {
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--kb-radius-xl);
+      padding: var(--kb-space-3);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.35);
+    }
+    .metric-preview-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .metric-label {
+      font-size: var(--kb-text-xs);
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 500;
+    }
+    .metric-trend {
+      font-size: var(--kb-text-2xs);
+      font-weight: 600;
+      color: var(--pos-sidebar-success);
+      background: rgba(22, 101, 52, 0.25);
+      padding: var(--kb-space-1);
+      border-radius: var(--kb-radius-sm);
+    }
+    .metric-val {
+      font-family: var(--font-display);
+      font-size: var(--kb-text-2xl);
+      font-weight: 700;
+      color: var(--kb-color-foreground-contrast);
+      font-variant-numeric: tabular-nums;
+      margin-top: var(--kb-space-1);
+    }
+    .metric-sub {
+      font-size: var(--kb-text-sm);
+      color: rgba(255, 255, 255, 0.5);
+    }
+    .sparkline-svg {
+      width: 100%;
+      height: 36px;
+      overflow: visible;
+      margin: var(--kb-space-1) 0;
+    }
+    .metric-footnote {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: var(--kb-text-2xs);
+      color: rgba(255, 255, 255, 0.45);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: var(--kb-space-1);
+    }
+
+    /* Product Benefit Chips */
     .brand-feature-stack {
       display: grid;
-      gap: 14px;
-      grid-column: 1;
-      grid-row: 2;
-      align-self: center;
-      width: 100%;
-      max-width: none;
-      position: relative;
-      z-index: 2;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--kb-space-3);
+      max-width: 520px;
     }
     .brand-feature-card {
       display: flex;
       align-items: center;
-      gap: 18px;
-      padding: var(--kb-space-2) 0;
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-3) var(--kb-space-4);
+      border-radius: var(--kb-radius-lg);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .feature-icon-badge {
-      width: 60px;
-      height: 60px;
-      border-radius: var(--kb-radius-xl);
-      background: rgba(255, 255, 255, 0.18);
-      color: var(--kb-color-surface);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--kb-radius-md);
+      background: rgba(255, 90, 10, 0.12);
+      color: var(--kb-color-primary);
       display: grid;
       place-items: center;
       flex-shrink: 0;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      box-shadow: none;
-    }
-    .feature-icon-badge--sales {
-      background: var(--login-orange);
-      border-color: rgba(255, 255, 255, 0.38);
-    }
-    .feature-icon-badge--menu {
-      background: var(--kb-color-primary);
-      border-color: rgba(255, 255, 255, 0.32);
-    }
-    .feature-icon-badge--reports {
-      background: var(--kb-color-success);
-      border-color: rgba(255, 255, 255, 0.32);
+      border: 1px solid rgba(255, 90, 10, 0.2);
     }
     .feature-text {
       display: flex;
       flex-direction: column;
       gap: var(--kb-space-1);
-      max-width: 340px;
     }
     .feature-heading {
-      font-size: 17px;
-      font-weight: 650;
-      color: var(--kb-color-surface);
-      line-height: 1.35;
-      letter-spacing: -0.01em;
+      font-size: var(--kb-text-sm);
+      font-weight: 600;
+      color: var(--kb-color-foreground-contrast);
+      line-height: 1.2;
     }
     .feature-sub {
-      font-size: 15px;
-      color: rgba(255, 255, 255, 0.84);
-      line-height: 1.3;
+      font-size: var(--kb-text-xs);
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.2;
+    }
+
+    .brand-foot-row {
+      font-size: var(--kb-text-xs);
+      color: rgba(255, 255, 255, 0.4);
     }
 
     /* RIGHT MAIN FORM PANEL */
@@ -648,8 +781,8 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: clamp(24px, 3.5vw, 42px) clamp(24px, 4vw, 56px);
-      background: var(--kb-color-surface);
+      padding: clamp(24px, 3.5vw, 48px) clamp(24px, 4vw, 56px);
+      background: var(--kb-color-bg-app);
       overflow-y: auto;
       box-sizing: border-box;
       min-height: 100vh;
@@ -659,16 +792,21 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       align-items: center;
       justify-content: space-between;
-      width: min(100%, 506px);
-      margin: 0 auto var(--kb-space-6);
+      width: min(100%, 420px);
+      margin: 0 auto var(--kb-space-4);
     }
     .auth-card {
-      width: min(100%, 506px);
+      width: min(100%, 420px);
       margin: auto;
       display: flex;
       flex-direction: column;
-      gap: var(--kb-space-10);
+      gap: var(--kb-space-6);
       box-sizing: border-box;
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-xl);
+      padding: var(--kb-space-8);
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
     }
 
     .mobile-brand-container {
@@ -693,19 +831,21 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .auth-head {
       display: flex;
       flex-direction: column;
-      gap: var(--kb-space-2);
+      gap: var(--kb-space-1);
+      text-align: left;
     }
     .login-heading {
       margin: 0;
-      font-size: clamp(30px, 2.2vw, 38px);
-      font-weight: 750;
-      line-height: 1.2;
-      letter-spacing: -0.035em;
+      font-family: var(--font-display);
+      font-size: var(--kb-text-3xl);
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.025em;
       color: var(--kb-color-foreground);
     }
     .login-sub {
       margin: 0;
-      font-size: 15px;
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
       line-height: 1.45;
     }
@@ -715,7 +855,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       gap: var(--kb-space-2);
       width: 100%;
       min-width: 0;
-      min-height: 58px;
+      min-height: 48px;
     }
     .google-button-host {
       width: 100%;
@@ -736,11 +876,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .divider {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: var(--kb-space-3);
       color: var(--kb-color-muted-foreground);
-      font-size: var(--kb-text-sm);
+      font-size: var(--kb-text-xs);
       font-weight: 500;
-      margin: -1px 0;
     }
     .divider::before, .divider::after {
       content: '';
@@ -751,14 +890,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
 
     .auth-form {
       display: grid;
-      gap: var(--kb-space-6);
+      gap: var(--kb-space-4);
     }
     .field {
-      display: grid;
-      gap: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-1);
     }
     .field-label {
-      font-size: var(--kb-text-md);
+      font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-foreground);
       letter-spacing: -0.01em;
@@ -768,7 +908,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 18px;
+      gap: var(--kb-space-4);
     }
     .input-icon-wrap {
       position: relative;
@@ -778,7 +918,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     }
     .leading-icon {
       position: absolute;
-      left: 16px;
+      left: 14px;
       color: var(--kb-color-muted-foreground);
       pointer-events: none;
       z-index: 1;
@@ -787,29 +927,30 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .field-input {
       box-sizing: border-box;
       width: 100%;
-      min-height: 52px;
-      padding: 14px var(--kb-space-4);
-      border: 1px solid var(--kb-border-control);
-      border-radius: var(--kb-radius-xl);
+      min-height: 48px;
+      padding: var(--kb-space-3) var(--kb-space-4);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
       background: var(--kb-color-surface);
       font: inherit;
-      font-size: 15px;
+      font-size: var(--kb-text-md);
       color: var(--kb-color-foreground);
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
     }
     .field-input--with-icon {
-      padding-left: 46px;
+      padding-left: 44px;
     }
     .field-input--with-trailing {
-      padding-right: 48px;
+      padding-right: 44px;
     }
     .field-input::placeholder {
-      color: var(--kb-border-control);
+      color: var(--kb-color-muted-foreground);
+      opacity: 0.7;
     }
     .field-input:focus {
       outline: none;
       border-color: var(--kb-color-primary);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+      box-shadow: 0 0 0 3px rgba(255, 90, 10, 0.15);
     }
 
     .toggle-pwd-btn {
@@ -818,15 +959,15 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       background: none;
       border: none;
       cursor: pointer;
-      min-width: 40px;
-      min-height: 40px;
-      padding: var(--kb-space-2);
+      min-width: 36px;
+      min-height: 36px;
+      padding: var(--kb-space-1);
       color: var(--kb-color-muted-foreground);
       display: grid;
       place-items: center;
       z-index: 1;
-      border-radius: var(--kb-radius-lg);
-      transition: color 0.15s ease;
+      border-radius: var(--kb-radius-md);
+      transition: color 150ms ease;
     }
     .toggle-pwd-btn:hover {
       color: var(--kb-color-foreground);
@@ -838,81 +979,58 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: block;
     }
 
-    .field-actions-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .remember-label {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--kb-space-2);
-      font-size: var(--kb-text-md);
-      color: var(--kb-color-muted-foreground);
-      cursor: pointer;
-      user-select: none;
-    }
-    .remember-checkbox {
-      width: 17px;
-      height: 17px;
-      border-radius: var(--kb-radius-sm);
-      border: 1.5px solid var(--kb-border-control);
-      accent-color: var(--kb-color-primary);
-      cursor: pointer;
-    }
     .forgot-link {
-      font-size: var(--kb-text-md);
-      font-weight: 600;
+      font-size: var(--kb-text-xs);
+      font-weight: 500;
       color: var(--kb-color-link);
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      transition: color 0.15s ease;
+      text-decoration: none;
+      transition: color 150ms ease;
     }
     .forgot-link:hover {
       color: var(--kb-color-link-hover);
       text-decoration: underline;
-      text-underline-offset: 3px;
     }
 
     .login-button {
       width: 100%;
-      min-height: 52px;
+      min-height: 48px;
       border: 0;
-      border-radius: var(--kb-radius-xl);
+      border-radius: var(--kb-radius-lg);
       background: var(--kb-color-primary);
       color: var(--kb-color-surface);
       font: inherit;
-      font-size: var(--kb-text-lg);
-      font-weight: 650;
+      font-size: var(--kb-text-md);
+      font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2);
+      box-shadow: 0 2px 8px rgba(255, 90, 10, 0.25);
       display: flex;
       align-items: center;
       justify-content: center;
       gap: var(--kb-space-2);
-      transition: background 160ms ease,
-                  transform 160ms ease,
-                  box-shadow 160ms ease;
+      transition: background 150ms ease,
+                  transform 150ms ease,
+                  box-shadow 150ms ease;
     }
     .login-button:hover:not(:disabled) {
       background: var(--kb-color-primary-hover);
-      box-shadow: 0 6px 20px rgba(79, 70, 229, 0.28);
+      box-shadow: 0 4px 14px rgba(255, 90, 10, 0.35);
       transform: translateY(-1px);
     }
     .login-button:active:not(:disabled) {
       transform: scale(0.98);
     }
     .login-button:disabled {
-      background: var(--kb-color-primary);
-      opacity: 0.6;
-      color: var(--kb-color-surface);
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-muted-foreground);
+      border: 1px solid var(--kb-color-border);
       box-shadow: none;
       cursor: not-allowed;
       transform: none;
+      opacity: 1;
     }
     .login-button:focus-visible {
-      outline: 3px solid var(--kb-color-primary);
-      outline-offset: 3px;
+      outline: 2px solid var(--kb-color-primary);
+      outline-offset: 2px;
     }
 
     .btn-spinner-row {
@@ -933,87 +1051,83 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 22px;
+      gap: var(--kb-space-4);
       text-align: center;
     }
     .footer-links {
       margin: 0;
       color: var(--kb-color-muted-foreground);
-      font-size: var(--kb-text-md);
+      font-size: var(--kb-text-sm);
     }
     .signup-link {
-      color: var(--kb-color-link);
+      color: var(--kb-color-primary);
       font-weight: 600;
       text-decoration: none;
-      transition: color 0.15s ease;
+      transition: color 150ms ease;
     }
     .signup-link:hover {
-      color: var(--kb-color-link-hover);
       text-decoration: underline;
-      text-underline-offset: 3px;
     }
     .login-footer-links {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: var(--kb-space-2) var(--kb-space-4);
-      font-size: var(--kb-text-sm);
+      font-size: var(--kb-text-xs);
       line-height: 1.5;
     }
     .login-footer-links a {
-      color: var(--kb-color-link);
+      color: var(--kb-color-muted-foreground);
       text-decoration: none;
-      text-underline-offset: 3px;
+      transition: color 150ms ease;
     }
     .login-footer-links a:hover {
-      color: var(--kb-color-link-hover);
+      color: var(--kb-color-foreground);
       text-decoration: underline;
     }
     .login-footer-links a:focus-visible,
     .forgot-link:focus-visible,
     .signup-link:focus-visible {
       outline: 2px solid var(--kb-color-primary);
-      outline-offset: 3px;
-      border-radius: 2px;
+      outline-offset: 2px;
+      border-radius: var(--kb-radius-sm);
     }
     .mobile-foot-row {
       display: none;
-      font-size: var(--kb-text-sm);
+      font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
       gap: var(--kb-space-2);
     }
     .mobile-foot-link {
-      color: var(--kb-color-link);
+      color: var(--kb-color-primary);
       font-weight: 600;
       text-decoration: none;
     }
     .mobile-foot-link:hover {
-      color: var(--kb-color-link-hover);
       text-decoration: underline;
-      text-underline-offset: 3px;
     }
 
     .back-link {
       color: var(--kb-color-muted-foreground);
-      font-size: var(--kb-text-md);
-      font-weight: 600;
+      font-size: var(--kb-text-sm);
+      font-weight: 500;
       cursor: pointer;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-top: 4px;
-      transition: color 0.15s ease;
+      gap: var(--kb-space-1);
+      margin-top: var(--kb-space-1);
+      transition: color 150ms ease;
     }
     .back-link:hover {
-      color: var(--kb-color-link);
+      color: var(--kb-color-primary);
       text-decoration: underline;
     }
 
     .alert-box {
-      border-radius: 10px;
+      border-radius: var(--kb-radius-lg);
       padding: var(--kb-space-3) var(--kb-space-4);
-      font-size: var(--kb-text-md);
+      font-size: var(--kb-text-sm);
       line-height: 1.4;
     }
     .alert-box.error {
@@ -1030,6 +1144,7 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     @media (max-width: 1100px) {
       .auth-shell {
         grid-template-columns: 1fr;
+        background: var(--kb-color-surface);
       }
       .auth-brand {
         display: none !important;
@@ -1041,76 +1156,32 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
         display: flex !important;
       }
       .auth-main {
-        padding: var(--kb-space-6) var(--kb-space-5);
+        background: var(--kb-color-surface);
+        padding: var(--kb-space-6) var(--kb-space-4);
       }
       .auth-card {
+        border: none;
+        padding: 0;
+        box-shadow: none;
         gap: var(--kb-space-6);
       }
       .auth-form {
-        gap: 18px;
-      }
-      .google-wrap {
-        min-height: 50px;
-      }
-      .login-button {
-        margin-top: 0;
-      }
-      .auth-card-footer {
-        gap: var(--kb-space-3);
-        margin-top: 8px;
-      }
-      .login-footer-links {
-        margin-top: 0;
-      }
-    }
-
-    @media (min-width: 1100px) and (max-height: 860px) {
-      .auth-main {
-        padding-top: var(--kb-space-4);
-        padding-bottom: var(--kb-space-4);
-      }
-      .auth-topbar {
-        margin-bottom: var(--kb-space-3);
-      }
-      .auth-card {
-        gap: var(--kb-space-5);
-      }
-      .auth-form {
         gap: var(--kb-space-4);
-      }
-      .auth-card-footer {
-        gap: var(--kb-space-2);
-      }
-    }
-
-    @media (min-width: 1100px) and (max-height: 800px) {
-      .auth-main {
-        padding-top: var(--kb-space-3);
-        padding-bottom: var(--kb-space-3);
-      }
-      .auth-card {
-        gap: var(--kb-space-4);
-      }
-      .auth-form {
-        gap: var(--kb-space-3);
-      }
-      .field-input {
-        min-height: 46px;
       }
       .google-wrap {
         min-height: 48px;
       }
       .auth-card-footer {
-        margin-top: 0;
+        gap: var(--kb-space-3);
       }
     }
 
     @media (prefers-contrast: more) {
-      .field-input { border-color: var(--kb-color-error); border-width: 2px; }
+      .field-input { border-color: var(--kb-color-danger); border-width: 2px; }
       .field-label { color: var(--kb-color-foreground); font-weight: 700; }
-      .login-button { background: var(--kb-color-primary); color: var(--kb-color-surface); border: 2px solid var(--kb-color-error); }
-      .divider { color: var(--kb-color-error); font-weight: 700; }
-      .divider::before, .divider::after { background: var(--kb-color-error); height: 2px; }
+      .login-button { background: var(--kb-color-primary); color: var(--kb-color-surface); border: 2px solid var(--kb-color-danger); }
+      .divider { color: var(--kb-color-danger); font-weight: 700; }
+      .divider::before, .divider::after { background: var(--kb-color-danger); height: 2px; }
     }
     .login-button--link { text-decoration: none; }
   `]
@@ -1222,7 +1293,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     const host = this.googleButtonHost;
     if (!this.googleInitialized || !host || typeof google === 'undefined' || !google?.accounts?.id) return;
 
-    const width = Math.min(506, Math.floor(host.getBoundingClientRect().width));
+    const width = Math.min(400, Math.floor(host.getBoundingClientRect().width));
     if (width < 120 || (this.renderedGoogleButtonHost === host && this.renderedGoogleButtonWidth === width)) return;
 
     host.replaceChildren();
@@ -1241,7 +1312,7 @@ export class LoginPageComponent implements OnInit, OnDestroy {
     gsiButton?.parentElement?.style.setProperty('width', '100%', 'important');
     gsiButton?.style.setProperty('width', '100%', 'important');
     gsiButton?.style.setProperty('max-width', 'none', 'important');
-    gsiButton?.style.setProperty('height', width >= 480 ? '58px' : '40px', 'important');
+    gsiButton?.style.setProperty('height', '48px', 'important');
     this.renderedGoogleButtonHost = host;
     this.renderedGoogleButtonWidth = width;
   }

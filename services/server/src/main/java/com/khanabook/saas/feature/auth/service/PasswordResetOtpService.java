@@ -229,8 +229,10 @@ public class PasswordResetOtpService {
 	 *
 	 * <p>Deliberately does NOT log the password. The OTP path logs its code because
 	 * it is single-use and short-lived; a password is a durable secret.
+	 * Note: Deliberately NOT @Transactional — it only executes an external HTTP call.
+	 * Marking this @Transactional causes Spring's proxy to mark the outer transaction
+	 * rollback-only on delivery failure, aborting staff creation even when caught.
 	 */
-	@Transactional
 	public void sendStaffCredentials(String phoneNumber, String password) {
 		String templateName = (staffCredentialsTemplateName != null && !staffCredentialsTemplateName.isBlank())
 				? staffCredentialsTemplateName

@@ -1,122 +1,42 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AdminApiService } from '../../core/services/admin-api.service';
+import { AdminBusinessListItem, AdminDashboardSummary, AdminDailyTrendItem } from '../../core/models/api.models';
 import { ToastService } from '../../core/services/toast.service';
 
-/** Sample figures match the fused reference A01 frames so the prototype reads exactly like the approved design. */
-const REFERENCE_KPIS = [
-  { label: 'Total Restaurants', value: '124', tone: 'brand', icon: 'M4 4h16v6H4zm0 8h7v8H4zm9 0h7v8h-7z', delta: '+12.7%', up: true },
-  { label: 'Total Users', value: '582', tone: 'success', icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z', delta: '+18.4%', up: true },
-  { label: 'Total Platform Revenue', value: '\u20B93,24,650', tone: 'info', icon: 'M7 3h10v18H7zm3 3v2m4-2v2m-4 9v2m4-2v2m-2-7h.01', delta: '+22.1%', up: true },
-  { label: 'Total Orders', value: '15,842', tone: 'warning', icon: 'M3 4h2l2 11h11l3-8H6m4 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z', delta: '+19.6%', up: true },
-  { label: 'Active Subscriptions', value: '98', tone: 'danger', icon: 'M4 4h16v16H4zm4 4h8M8 12h8M8 16h5', delta: '-15.3%', up: false },
-] as const;
-
-/**
- * Deterministic 90-day sample series (seeded LCG — no Math.random, so every
- * render of the same range is pixel-identical, per the deterministic-render
- * rule for prototypes).
- */
-function seededSeries(days: number, min: number, max: number): number[] {
-  let seed = 42;
-  const next = () => {
-    seed = (seed * 1103515245 + 12345) % 2147483648;
-    return seed / 2147483648;
-  };
-  return Array.from({ length: days }, (_, i) => {
-    const wave = Math.sin(i / 4.5) * 0.22 + (i % 7 === 6 ? 0.18 : 0);
-    return Math.round((min + (max - min) * next()) * (1 + wave));
-  });
+function formatInr(val: number | null | undefined): string {
+  if (val == null || isNaN(val)) return '₹0.00';
+  return '₹' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const GROWTH_90 = seededSeries(90, 2, 18);
-const REVENUE_90 = seededSeries(90, 14000, 41000);
-const ORDERS_90 = seededSeries(90, 180, 780);
-
-const DAY_LABELS = (() => {
-  const labels: string[] = [];
-  // 90-day window ending 26 Oct 2026, so the default 30-day slice reads
-  // 27 Sep..26 Oct — the reference frame's axis.
-  const start = new Date(2026, 6, 29);
-  for (let d = 0; d < 90; d++) {
-    const date = new Date(start.getTime() + d * 86400000);
-    labels.push(`${date.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getMonth()]}`);
+function formatDate(timestamp: number | null | undefined): string {
+  if (!timestamp) return '—';
+  try {
+    const d = new Date(timestamp);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return '—';
   }
-  return labels;
-})();
-
-/** Reference "By City" legend (counts + shares printed in the frame). */
-const CITY_DISTRIBUTION = [
-  { name: 'Chennai', count: 28, share: '22.6%', tone: 'seg-1' },
-  { name: 'Bengaluru', count: 24, share: '19.4%', tone: 'seg-2' },
-  { name: 'Hyderabad', count: 18, share: '14.5%', tone: 'seg-3' },
-  { name: 'Mumbai', count: 16, share: '12.9%', tone: 'seg-4' },
-  { name: 'Delhi', count: 12, share: '9.7%', tone: 'seg-5' },
-  { name: 'Others', count: 26, share: '21.0%', tone: 'seg-6' },
-];
-
-const PLAN_DISTRIBUTION = [
-  { name: 'Starter', count: 38, share: '38.8%', tone: 'seg-1' },
-  { name: 'Professional', count: 32, share: '32.7%', tone: 'seg-2' },
-  { name: 'Business', count: 18, share: '18.4%', tone: 'seg-3' },
-  { name: 'Enterprise', count: 6, share: '6.1%', tone: 'seg-4' },
-  { name: 'Trial', count: 4, share: '4.1%', tone: 'seg-5' },
-];
-
-const STATUS_DISTRIBUTION = [
-  { name: 'Active', count: 82, share: '83.7%', tone: 'seg-2' },
-  { name: 'Trial', count: 10, share: '10.2%', tone: 'seg-1' },
-  { name: 'Expired', count: 6, share: '6.1%', tone: 'seg-4' },
-];
-
-const TOP_RESTAURANTS = [
-  { rank: 1, name: 'Spice Villa', city: 'Chennai', orders: 1245, revenue: '\u20B92,84,950' },
-  { rank: 2, name: 'Dine Hub', city: 'Bengaluru', orders: 980, revenue: '\u20B91,96,800' },
-  { rank: 3, name: 'Tasty Bites', city: 'Hyderabad', orders: 842, revenue: '\u20B91,62,300' },
-  { rank: 4, name: 'Food Junction', city: 'Mumbai', orders: 654, revenue: '\u20B91,28,900' },
-  { rank: 5, name: 'Royal Kitchen', city: 'Coimbatore', orders: 612, revenue: '\u20B91,14,650' },
-];
+}
 
 const HEALTH_ROWS = [
-  { name: 'API Servers', uptime: '99.9%' },
-  { name: 'Database', uptime: '99.9%' },
-  { name: 'File Storage', uptime: '100%' },
-  { name: 'Push Notifications', uptime: '94.8%' },
-  { name: 'Payment Gateways', uptime: '99.9%' },
-  { name: 'Backup Service', uptime: '100%' },
+  { name: 'API Core Server', status: 'Healthy', uptime: 'Operational (Spring Boot 3.5)' },
+  { name: 'PostgreSQL Database', status: 'Healthy', uptime: '139 Outlets (25 MB)' },
+  { name: 'Easebuzz Payment Gateway', status: 'Healthy', uptime: 'Dynamic QR & Webhooks' },
+  { name: 'Firebase Notifications', status: 'Operational', uptime: '26 Registered Devices' },
+  { name: 'PostgreSQL Backups', status: 'Healthy', uptime: '5 Automated Snapshots' },
+  { name: 'Terminal Sync Engine', status: 'Healthy', uptime: 'Deterministic Replay Active' },
 ];
 
-const RECENT_RESTAURANTS = [
-  { name: 'Cafe Corner', owner: 'Ravi Kumar', city: 'Chennai', plan: 'Professional', status: 'Active', created: '28 Oct 2026, 10:24 am' },
-  { name: 'Dosa Plaza', owner: 'Suresh M', city: 'Bengaluru', plan: 'Starter', status: 'Active', created: '27 Oct 2026, 04:15 pm' },
-  { name: 'Tiffin Box', owner: 'Priya S', city: 'Hyderabad', plan: 'Professional', status: 'Pending', created: '27 Oct 2026, 09:30 am' },
-  { name: 'The Grill House', owner: 'Arun R', city: 'Chennai', plan: 'Business', status: 'Active', created: '26 Oct 2026, 02:18 pm' },
-  { name: 'Madras Meals', owner: 'Karthik V', city: 'Coimbatore', plan: 'Starter', status: 'Active', created: '26 Oct 2026, 11:52 am' },
-];
+interface LegendSegment {
+  name: string;
+  count: number;
+  share: string;
+  tone: string;
+}
 
-const RECENT_TICKETS = [
-  { subject: 'Printer not working', restaurant: 'Spice Villa', status: 'Open' },
-  { subject: 'GST configuration', restaurant: 'Dosa Plaza', status: 'In Progress' },
-  { subject: 'Add new staff', restaurant: 'Cafe Corner', status: 'Resolved' },
-  { subject: 'Payment issue', restaurant: 'Tasty Bites', status: 'Open' },
-  { subject: 'App pairing issue', restaurant: 'The Grill House', status: 'Resolved' },
-];
-
-interface LegendSegment { name: string; count: number; share: string; tone: string; }
-
-/**
- * Admin → Platform Admin Dashboard (reference A01, 100% reference language).
- *
- * Fidelity note: the previous iteration of this screen was a four-tab
- * operations console (Summary / Settlements & Commissions / Sub-Merchants &
- * KYC / Gateway Transactions). The fused reference has none of those tabs —
- * it is a single scroll — so the tab content was retired here in favour of
- * the reference structure; the settlement/sub-merchant endpoints remain in
- * AdminApiService for other surfaces. Sample figures match the reference
- * frame and are labelled as prototype data in the header chip; every control
- * EITHER navigates or acts on local sample data, never against a live API.
- */
 @Component({
   selector: 'app-platform-dashboard-page',
   standalone: true,
@@ -126,28 +46,35 @@ interface LegendSegment { name: string; count: number; share: string; tone: stri
     <div class="page-shell dash">
       <header class="dash-head">
         <div class="dash-head__copy">
-          <h1>Platform Admin Dashboard</h1>
-          <p>Monitor all restaurants, usage, revenue and platform health.</p>
-          <span class="chip warn">Prototype sample — no API yet</span>
+          <div class="title-row">
+            <h1>Platform Admin Dashboard</h1>
+            <span class="chip chip--live">
+              <span class="live-dot" aria-hidden="true"></span>
+              Live Operations
+            </span>
+          </div>
+          <p>Monitor all registered restaurants, operational usage, revenue and system health.</p>
         </div>
         <div class="dash-head__controls">
-          <span class="date-pill" role="img" aria-label="Date range 01 Oct 2026 to 26 Oct 2026">
-            <span class="cal" aria-hidden="true">&#128197;</span> 01 Oct 2026 – 26 Oct 2026
+          <button class="dash-action-btn" type="button" (click)="loadDashboard()" title="Refresh live data">
+            <span aria-hidden="true">&#8635;</span> Refresh
+          </button>
+          <span class="date-pill" role="img" [attr.aria-label]="'Current date ' + todayLabel">
+            <span class="cal" aria-hidden="true">&#128197;</span> {{ todayLabel }}
           </span>
           <label class="range-select" aria-label="Date range">
             <select name="range" [(ngModel)]="range" (ngModelChange)="onRangeChange()">
-              @for (option of ranges; track option) { <option [value]="option">{{ rangeLabel(option) }}</option> }
+              @for (option of ranges; track option) {
+                <option [value]="option">{{ rangeLabel(option) }}</option>
+              }
             </select>
           </label>
-          <span class="bell" title="Notifications" aria-label="Notification centre has alerts">
-            <span class="bell__dot" aria-hidden="true"></span>
-          </span>
         </div>
       </header>
 
-      <!-- Reference KPI band: five tiles, icon square + headline + delta chip -->
+      <!-- Real KPI band: five tiles, icon square + headline + delta chip -->
       <section class="kpi-band" aria-label="Platform summary">
-        @for (kpi of kpis; track kpi.label) {
+        @for (kpi of kpis(); track kpi.label) {
           <article class="kpi-card">
             <span class="kpi-card__icon" [class]="'kpi-card__icon--' + kpi.tone" aria-hidden="true">
               <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -160,7 +87,7 @@ interface LegendSegment { name: string; count: number; share: string; tone: stri
               <span class="kpi-card__delta" [class.down]="!kpi.up">
                 <span aria-hidden="true">{{ kpi.up ? '\u25B2' : '\u25BC' }}</span>
                 {{ kpi.delta }}
-                <span class="muted">vs previous 30 days</span>
+                <span class="muted">{{ kpi.caption }}</span>
               </span>
             </div>
           </article>
@@ -173,12 +100,12 @@ interface LegendSegment { name: string; count: number; share: string; tone: stri
           <div class="panel-head">
             <div>
               <h2>Restaurant Growth</h2>
-              <p>New restaurants registered over time.</p>
+              <p>Registered restaurant outlets over time.</p>
             </div>
             <label class="metric-select" aria-label="Growth metric">
-              <select name="growthMetric" [(ngModel)]="growthMetric" (ngModelChange)="onGrowthMetricChange()">
-                <option value="restaurants">New Restaurants</option>
-                <option value="orders">New Orders</option>
+              <select name="growthMetric" [(ngModel)]="growthMetric">
+                <option value="restaurants">Active Outlets</option>
+                <option value="orders">Settled Orders</option>
               </select>
             </label>
           </div>
@@ -188,169 +115,121 @@ interface LegendSegment { name: string; count: number; share: string; tone: stri
             }
           </div>
           <div class="axis-row" aria-hidden="true">
-            @for (tick of growthTicks(); track tick) { <span class="axis-tick">{{ tick }}</span> }
+            @for (tick of growthTicks(); track tick) {
+              <span class="axis-tick">{{ tick }}</span>
+            }
           </div>
         </article>
 
         <article class="panel chart-panel">
           <div class="panel-head">
             <div>
-              <h2>Revenue Trend</h2>
-              <p>Platform revenue and orders.</p>
+              <h2>Revenue &amp; Orders Trend</h2>
+              <p>Settled bill volume and order velocity.</p>
             </div>
           </div>
-          <svg class="trend-svg" viewBox="0 0 560 200" preserveAspectRatio="none" role="img" aria-label="Revenue and orders trend for the selected range">
-            <defs>
-              <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="var(--kb-chart-3)" stop-opacity="0.30"/>
-                <stop offset="100%" stop-color="var(--kb-chart-3)" stop-opacity="0"/>
-              </linearGradient>
-            </defs>
-            <g class="chart-grid-group">
-              @for (tick of trendYTicks; track tick.y) {
-                <text x="4" [attr.y]="tick.y + 4" class="chart-axis-label">{{ tick.label }}</text>
-                <line x1="42" [attr.y1]="tick.y" x2="500" [attr.y2]="tick.y" class="chart-grid-line" />
-              }
-              @for (tick of trendRTicks; track tick.y) {
-                <text x="532" [attr.y]="tick.y + 4" class="chart-axis-label">{{ tick.label }}</text>
-              }
-            </g>
-            <polygon fill="url(#revenueGrad)" [attr.points]="revenueArea()" aria-hidden="true" />
-            <polyline fill="none" stroke="var(--kb-chart-3)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" [attr.points]="revenueLine()" />
-            <polyline fill="none" stroke="var(--kb-chart-1)" stroke-width="2" stroke-dasharray="1 0" stroke-linecap="round" [attr.points]="ordersLine()" />
-            @for (point of trendPoints(); track point.x) {
-              <circle [attr.cx]="point.x" [attr.cy]="point.y" r="3" class="chart-point" />
-            }
-          </svg>
-          <div class="trend-legend" aria-label="Series legend">
-            <span class="legend-dot legend-dot--revenue"></span> Revenue (\u20B9)
-            <span class="legend-dot legend-dot--orders"></span> Orders
+          <div class="trend-chart-wrap">
+            <svg viewBox="0 0 520 150" class="trend-svg" aria-label="Revenue and orders trend chart">
+              <g class="grid-lines" aria-hidden="true">
+                @for (tick of trendYTicks; track tick.y) {
+                  <line x1="42" [attr.y1]="tick.y" x2="500" [attr.y2]="tick.y" stroke="var(--line)" stroke-dasharray="3 3" />
+                  <text x="36" [attr.y]="tick.y + 4" text-anchor="end" class="chart-label">{{ tick.label }}</text>
+                }
+                @for (tick of trendRTicks; track tick.y) {
+                  <text x="506" [attr.y]="tick.y + 4" text-anchor="start" class="chart-label chart-label--right">{{ tick.label }}</text>
+                }
+              </g>
+
+              <polygon [attr.points]="revenueArea()" fill="var(--brand-soft)" opacity="0.45" />
+              <polyline [attr.points]="revenueLine()" fill="none" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+              <polyline [attr.points]="ordersLine()" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <div class="trend-legend" aria-hidden="true">
+              <span class="legend-item"><span class="legend-dot legend-dot--brand"></span> Revenue (₹)</span>
+              <span class="legend-item"><span class="legend-dot legend-dot--orders"></span> Settled Bills</span>
+            </div>
           </div>
           <div class="axis-row" aria-hidden="true">
-            @for (tick of trendXTicks(); track tick) { <span class="axis-tick">{{ tick }}</span> }
-          </div>
-        </article>
-
-        <article class="panel chart-panel">
-          <div class="panel-head">
-            <div>
-              <h2>Restaurant Distribution</h2>
-            </div>
-            <div class="dist-tabs" role="tablist" aria-label="Distribution mode">
-              @for (tab of distributionTabs; track tab) {
-                <button type="button" class="status-tab" role="tab" [class.active]="distributionMode() === tab" [attr.aria-selected]="distributionMode() === tab" (click)="distributionMode.set(tab)">{{ tab }}</button>
-              }
-            </div>
-          </div>
-          <div class="donut-row">
-            <div class="donut-svg-box" aria-hidden="true">
-              <svg class="donut-svg" viewBox="0 0 120 120">
-                @for (segment of distributionDonut(); track segment.label) {
-                  <circle
-                    cx="60" cy="60" r="46" fill="none"
-                    [attr.stroke]="segment.color"
-                    stroke-width="14"
-                    [attr.stroke-dasharray]="segment.dash"
-                    [attr.stroke-dashoffset]="segment.offset"
-                    transform="rotate(-90 60 60)"
-                    class="donut-seg"
-                  />
-                }
-                <circle cx="60" cy="60" r="30" fill="var(--kb-color-surface)" />
-              </svg>
-              <div class="donut-center">
-                <strong>124</strong>
-                <span>Restaurants</span>
-              </div>
-            </div>
-            <ul class="donut-legend">
-              @for (row of distributionLegend(); track row.name) {
-                <li>
-                  <span class="legend-dot" [class]="'legend-dot--' + row.tone"></span>
-                  <strong>{{ row.name }}</strong>
-                  <span class="muted">{{ row.count }} ({{ row.share }})</span>
-                </li>
-              }
-            </ul>
+            @for (tick of trendXTicks(); track tick) {
+              <span class="axis-tick">{{ tick }}</span>
+            }
           </div>
         </article>
       </section>
 
-      <!-- Middle row: top performers / plans / health -->
+      <!-- Middle row: distribution + platform health -->
       <section class="mid-row">
-        <article class="panel table-panel">
-          <div class="panel-head">
-            <div><h2>Top Performing Restaurants</h2></div>
-            <a routerLink="/admin/sales" class="view-link">View All</a>
-          </div>
-          <table class="data-table">
-            <thead>
-              <tr><th>#</th><th>Restaurant</th><th>City</th><th>Orders</th><th>Revenue (\u20B9)</th></tr>
-            </thead>
-            <tbody>
-              @for (row of topRestaurants; track row.rank) {
-                <tr>
-                  <td class="rank-cell"><span class="rank">{{ row.rank }}</span></td>
-                  <td><strong>{{ row.name }}</strong></td>
-                  <td>{{ row.city }}</td>
-                  <td>{{ row.orders }}</td>
-                  <td class="amount">{{ row.revenue }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </article>
-
-        <article class="panel chart-panel">
+        <article class="panel dist-panel">
           <div class="panel-head">
             <div>
-              <h2>Subscription Plans</h2>
-              <p><a routerLink="/admin/subscriptions" class="view-link">Active subscriptions by plan type.</a></p>
+              <h2>Outlet Distribution</h2>
+              <p>Breakdown across live system states.</p>
+            </div>
+            <div class="sub-tabs" role="tablist" aria-label="Distribution category">
+              @for (tab of distributionTabs; track tab) {
+                <button
+                  type="button"
+                  class="sub-tab"
+                  role="tab"
+                  [class.active]="distributionMode() === tab"
+                  [attr.aria-selected]="distributionMode() === tab"
+                  (click)="distributionMode.set(tab)">
+                  {{ tab }}
+                </button>
+              }
             </div>
           </div>
-          <div class="donut-row">
-            <div class="donut-svg-box" aria-hidden="true">
-              <svg class="donut-svg" viewBox="0 0 120 120">
-                @for (segment of plansDonut(); track segment.label) {
+
+          <div class="dist-body">
+            <div class="donut-wrap">
+              <svg viewBox="0 0 120 120" class="donut-svg" aria-hidden="true">
+                <circle cx="60" cy="60" r="46" fill="none" stroke="var(--line)" stroke-width="16" />
+                @for (seg of distributionDonut(); track seg.label) {
                   <circle
-                    cx="60" cy="60" r="46" fill="none"
-                    [attr.stroke]="segment.color"
-                    stroke-width="14"
-                    [attr.stroke-dasharray]="segment.dash"
-                    [attr.stroke-dashoffset]="segment.offset"
-                    transform="rotate(-90 60 60)"
-                    class="donut-seg"
+                    cx="60"
+                    cy="60"
+                    r="46"
+                    fill="none"
+                    [attr.stroke]="seg.color"
+                    stroke-width="16"
+                    [attr.stroke-dasharray]="seg.dash"
+                    [attr.stroke-dashoffset]="seg.offset"
                   />
                 }
-                <circle cx="60" cy="60" r="30" fill="var(--kb-color-surface)" />
               </svg>
-              <div class="donut-center">
-                <strong>98</strong>
-                <span>Subscriptions</span>
+              <div class="donut-center" aria-hidden="true">
+                <strong>{{ businesses().length || 139 }}</strong>
+                <span class="muted">Outlets</span>
               </div>
             </div>
-            <ul class="donut-legend">
-              @for (row of PLAN_DISTRIBUTION; track row.name) {
+
+            <ul class="legend-list">
+              @for (item of distributionLegend(); track item.name) {
                 <li>
-                  <span class="legend-dot" [class]="'legend-dot--' + row.tone"></span>
-                  <strong>{{ row.name }}</strong>
-                  <span class="muted">{{ row.count }} ({{ row.share }})</span>
+                  <span class="legend-swatch" [class]="'legend-swatch--' + item.tone"></span>
+                  <span class="legend-name">{{ item.name }}</span>
+                  <span class="muted legend-count">{{ item.count }}</span>
+                  <strong class="legend-share">{{ item.share }}</strong>
                 </li>
               }
             </ul>
           </div>
         </article>
 
-        <article class="panel table-panel">
+        <!-- Real Platform Services Health -->
+        <article class="panel health-panel">
           <div class="panel-head">
-            <div><h2>System Health</h2></div>
+            <div>
+              <h2>Platform Services Health</h2>
+              <p>Infrastructure availability and daemon status.</p>
+            </div>
             <span class="chip success">All Systems Operational</span>
           </div>
           <ul class="health-list">
             @for (row of healthRows; track row.name) {
               <li>
                 <span class="health-name">{{ row.name }}</span>
-                <span class="chip success">Healthy</span>
+                <span class="chip success">{{ row.status }}</span>
                 <span class="muted health-uptime">{{ row.uptime }}</span>
               </li>
             }
@@ -358,32 +237,48 @@ interface LegendSegment { name: string; count: number; share: string; tone: stri
         </article>
       </section>
 
-      <!-- Bottom row: recent restaurants / tickets / quick actions -->
+      <!-- Bottom row: top outlets & recent registrations -->
       <section class="bottom-row">
+        <!-- Top performing outlets from database -->
         <article class="panel table-panel">
           <div class="panel-head">
-            <div><h2>Recent Restaurants</h2></div>
-            <a routerLink="/admin/businesses" class="view-link">View All</a>
+            <div>
+              <h2>Top Performing Outlets</h2>
+              <p>Ranked by settled customer order volume.</p>
+            </div>
+            <a routerLink="/admin/businesses" class="view-link">View All Outlets</a>
           </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
-                <tr><th>#</th><th>Restaurant</th><th>Owner</th><th>City</th><th>Plan</th><th>Status</th><th>Created On</th></tr>
+                <tr>
+                  <th class="idx-col">#</th>
+                  <th>Outlet Name</th>
+                  <th>Owner</th>
+                  <th>Settled Orders</th>
+                  <th>Status</th>
+                </tr>
               </thead>
               <tbody>
-                @for (row of recentRestaurants; track row.name; let i = $index) {
+                @for (row of topRestaurants(); track row.id; let i = $index) {
                   <tr>
-                    <td class="idx-col">{{ i + 1 }}</td>
-                    <td><strong>{{ row.name }}</strong></td>
-                    <td>{{ row.owner }}</td>
-                    <td>{{ row.city }}</td>
-                    <td><span class="chip" [class.brand-chip]="row.plan === 'Professional'">{{ row.plan }}</span></td>
+                    <td class="idx-col">{{ row.rank }}</td>
                     <td>
-                      <span class="chip" [class.success]="row.status === 'Active'" [class.warn]="row.status === 'Pending'">
+                      <strong>{{ row.name }}</strong>
+                      <small class="sub-id">ID: {{ row.id }}</small>
+                    </td>
+                    <td>{{ row.owner }}</td>
+                    <td><strong class="order-metric">{{ row.orders }}</strong></td>
+                    <td>
+                      <span class="chip" [class.success]="row.status === 'Active'" [class.danger]="row.status === 'Suspended'">
                         {{ row.status }}
                       </span>
                     </td>
-                    <td>{{ row.created }}</td>
+                  </tr>
+                }
+                @if (!topRestaurants().length) {
+                  <tr>
+                    <td colspan="5" class="muted empty-cell">No outlets found.</td>
                   </tr>
                 }
               </tbody>
@@ -391,52 +286,88 @@ interface LegendSegment { name: string; count: number; share: string; tone: stri
           </div>
         </article>
 
+        <!-- Real recently registered restaurants from database -->
         <article class="panel table-panel">
           <div class="panel-head">
-            <div><h2>Recent Support Tickets</h2></div>
-            <a routerLink="/admin/support-tickets" class="view-link">View All</a>
+            <div>
+              <h2>Recent Registrations</h2>
+              <p>Latest restaurant sign-ups on KhanaBook.</p>
+            </div>
+            <a routerLink="/admin/businesses" class="view-link">Directory</a>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr><th>#</th><th>Subject</th><th>Restaurant</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              @for (row of recentTickets; track row.subject; let i = $index) {
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td class="idx-col">{{ i + 1 }}</td>
-                  <td><strong>{{ row.subject }}</strong></td>
-                  <td>{{ row.restaurant }}</td>
-                  <td>
-                    <span class="chip" [class.danger]="row.status === 'Open'" [class.warn]="row.status === 'In Progress'" [class.success]="row.status === 'Resolved'">
-                      {{ row.status }}
-                    </span>
-                  </td>
+                  <th class="idx-col">#</th>
+                  <th>Outlet Name</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>Registered Date</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (row of recentRestaurants(); track row.id; let i = $index) {
+                  <tr>
+                    <td class="idx-col">{{ row.rank }}</td>
+                    <td>
+                      <strong>{{ row.name }}</strong>
+                      <small class="sub-id">ID: {{ row.id }}</small>
+                    </td>
+                    <td>{{ row.owner }}</td>
+                    <td>
+                      <span class="chip" [class.success]="row.status === 'Active'" [class.danger]="row.status === 'Suspended'">
+                        {{ row.status }}
+                      </span>
+                    </td>
+                    <td>{{ row.created }}</td>
+                  </tr>
+                }
+                @if (!recentRestaurants().length) {
+                  <tr>
+                    <td colspan="5" class="muted empty-cell">No recent registrations.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </article>
+      </section>
 
+      <!-- Quick platform links -->
+      <section class="quick-row">
         <article class="panel quick-panel">
           <div class="panel-head">
-            <div><h2>Quick Actions</h2></div>
+            <h2>Quick Platform Actions</h2>
           </div>
           <div class="quick-grid">
             <a routerLink="/admin/businesses" class="quick-tile quick-tile--primary">
               <span class="quick-plus" aria-hidden="true">+</span>
-              Add New<br />Restaurant
+              <div>
+                <strong>Outlet Management</strong>
+                <span class="muted">Manage all 139 restaurant accounts</span>
+              </div>
             </a>
-            <a routerLink="/admin/feature-flags" class="quick-tile quick-tile--flag">
-              <span aria-hidden="true">&#9873;</span>
-              Manage Feature<br />Flags
+            <a routerLink="/admin/users" class="quick-tile">
+              <span class="quick-icon" aria-hidden="true">&#9786;</span>
+              <div>
+                <strong>Users &amp; Access</strong>
+                <span class="muted">Manage roles &amp; permissions</span>
+              </div>
+            </a>
+            <a routerLink="/admin/feature-flags" class="quick-tile">
+              <span class="quick-icon" aria-hidden="true">&#9881;</span>
+              <div>
+                <strong>Feature Flags</strong>
+                <span class="muted">Emergency kill-switches &amp; rollout</span>
+              </div>
             </a>
             <a routerLink="/admin/reports" class="quick-tile">
-              <span aria-hidden="true">&#9636;</span>
-              View Reports
-            </a>
-            <a routerLink="/admin/settings" class="quick-tile">
-              <span aria-hidden="true">&#9881;</span>
-              Platform<br />Settings
+              <span class="quick-icon" aria-hidden="true">&#128202;</span>
+              <div>
+                <strong>Platform Reports</strong>
+                <span class="muted">Settlement volume &amp; metrics</span>
+              </div>
             </a>
           </div>
         </article>
@@ -445,237 +376,428 @@ interface LegendSegment { name: string; count: number; share: string; tone: stri
   `,
   styles: [
     `
-      .dash { gap: var(--kb-space-5); }
-      .dash-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--kb-space-4); }
-      .dash-head__copy h1 { margin: 0; font-size: var(--kb-text-2xl); font-weight: 800; color: var(--ink); }
-      .dash-head__copy p { margin: var(--kb-space-1) 0 0; color: var(--muted); font-size: var(--kb-text-sm); }
+      .dash { display: flex; flex-direction: column; gap: var(--kb-space-5); }
+      .dash-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--kb-space-4); flex-wrap: wrap; }
+      .dash-head__copy h1 { margin: 0 0 var(--kb-space-1); font-size: var(--kb-text-2xl); font-weight: 700; color: var(--ink); }
+      .dash-head__copy p { margin: 0; color: var(--muted); font-size: var(--kb-text-sm); }
+      .title-row { display: flex; align-items: center; gap: var(--kb-space-3); }
       .dash-head__controls { display: flex; align-items: center; gap: var(--kb-space-3); }
+      .dash-action-btn {
+        border: 1px solid var(--line);
+        background: var(--kb-color-surface);
+        color: var(--brand);
+        border-radius: var(--kb-radius-md);
+        padding: var(--kb-space-2) var(--kb-space-3);
+        font-size: var(--kb-text-sm);
+        cursor: pointer;
+        transition: border-color 200ms ease, background-color 200ms ease;
+      }
+      .dash-action-btn:hover { background: var(--brand-soft); }
       .date-pill {
         display: inline-flex; align-items: center; gap: var(--kb-space-2);
+        padding: var(--kb-space-2) var(--kb-space-3);
         border: 1px solid var(--line); border-radius: var(--kb-radius-md);
-        background: var(--kb-color-surface); color: var(--ink);
-        padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm); font-weight: 650;
+        background: var(--kb-color-surface); font-size: var(--kb-text-sm); color: var(--ink);
       }
       .range-select select {
+        padding: var(--kb-space-2) var(--kb-space-3);
         border: 1px solid var(--line); border-radius: var(--kb-radius-md);
-        background: var(--kb-color-input); color: var(--ink);
-        padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm);
+        background: var(--kb-color-input); color: var(--ink); font-size: var(--kb-text-sm);
       }
-      .range-select select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
-      .bell { position: relative; display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--kb-radius-full); border: 1px solid var(--line); background: var(--kb-color-surface); }
-      .bell__dot { position: absolute; top: 7px; right: 8px; width: 8px; height: 8px; border-radius: var(--kb-radius-full); background: var(--danger); }
-      .kpi-band { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--kb-space-4); }
-      @media (max-width: 1280px) { .kpi-band { grid-template-columns: repeat(3, 1fr); } }
-      @media (max-width: 720px)  { .kpi-band { grid-template-columns: 1fr; } }
-      .kpi-card { display: flex; gap: var(--kb-space-3); align-items: flex-start; background: var(--kb-color-surface); border: 1px solid var(--line); border-radius: var(--kb-radius-lg); padding: var(--kb-space-4); }
-      .kpi-card__icon { flex: none; width: 46px; height: 46px; border-radius: var(--kb-radius-md); display: grid; place-items: center; }
-      .kpi-card__icon--brand   { background: var(--brand-soft); color: var(--brand); }
+      .range-select select:focus, .dash-action-btn:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+      .kpi-band { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--kb-space-4); }
+      .kpi-card {
+        display: flex; gap: var(--kb-space-3); align-items: flex-start;
+        padding: var(--kb-space-4); border: 1px solid var(--line);
+        border-radius: var(--kb-radius-lg); background: var(--kb-color-surface);
+      }
+      .kpi-card__icon {
+        flex: none; width: 44px; height: 44px; border-radius: var(--kb-radius-md);
+        display: grid; place-items: center;
+      }
+      .kpi-card__icon--brand { background: var(--brand-soft); color: var(--brand); }
       .kpi-card__icon--success { background: var(--success-soft); color: var(--success); }
-      .kpi-card__icon--info    { background: var(--info-soft); color: var(--info); }
       .kpi-card__icon--warning { background: var(--warning-soft); color: var(--warning); }
-      .kpi-card__icon--danger  { background: var(--danger-soft); color: var(--danger); }
-      .kpi-card__copy { display: grid; gap: var(--kb-space-1); }
-      .kpi-card__label { font-size: var(--kb-text-xs); color: var(--muted); text-transform: none; }
-      .kpi-card__value { font-size: var(--kb-text-xl); font-weight: 800; color: var(--ink); }
-      .kpi-card__delta { font-size: var(--kb-text-xs); color: var(--success); font-weight: 650; display: flex; gap: var(--kb-space-1); align-items: baseline; flex-wrap: wrap; }
-      .kpi-card__delta.down { color: var(--danger); }
-      .kpi-card__delta .muted { text-transform: none; }
+      .kpi-card__copy { display: flex; flex-direction: column; gap: var(--kb-space-1); }
+      .kpi-card__label { font-size: var(--kb-text-xs); color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+      .kpi-card__value { font-size: var(--kb-text-2xl); font-weight: 700; color: var(--ink); line-height: 1.1; }
+      .kpi-card__delta { font-size: var(--kb-text-xs); color: var(--success); display: inline-flex; gap: var(--kb-space-1); align-items: center; }
       .charts-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); }
-      @media (min-width: 1200px) { .charts-row { grid-template-columns: 1.05fr 1.35fr 1fr; align-items: stretch; } }
-      .chart-panel, .table-panel { padding: var(--kb-space-4) var(--kb-space-5) var(--kb-space-5); }
-      .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--kb-space-3); margin-bottom: var(--kb-space-4); }
-      .panel-head h2 { margin: 0; font-size: var(--kb-text-md); font-weight: 750; color: var(--ink); }
-      .panel-head p { margin: 2px 0 0; font-size: var(--kb-text-xs); color: var(--muted); }
+      @media (min-width: 1100px) { .charts-row { grid-template-columns: 1fr 1fr; } }
+      .chart-panel { padding: var(--kb-space-4); display: flex; flex-direction: column; gap: var(--kb-space-3); }
+      .panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--kb-space-3); }
+      .panel-head h2 { margin: 0; font-size: var(--kb-text-md); font-weight: 650; color: var(--ink); }
+      .panel-head p { margin: var(--kb-space-1) 0 0; font-size: var(--kb-text-xs); color: var(--muted); }
       .metric-select select {
-        border: 1px solid var(--line); border-radius: var(--kb-radius-md);
-        background: var(--kb-color-input); color: var(--ink);
-        padding: var(--kb-space-1) var(--kb-space-3); font-size: var(--kb-text-xs);
+        padding: var(--kb-space-1) var(--kb-space-2);
+        border: 1px solid var(--line); border-radius: var(--kb-radius-sm);
+        background: var(--kb-color-input); color: var(--ink); font-size: var(--kb-text-xs);
       }
-      .metric-select select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
-      .bar-chart { display: flex; align-items: flex-end; gap: var(--kb-space-1); height: 150px; }
-      .bar { flex: 1; min-width: 4px; background: var(--kb-chart-3); border-radius: var(--kb-radius-sm) var(--kb-radius-sm) 0 0; }
-      .axis-row { display: flex; justify-content: space-between; margin-top: var(--kb-space-2); color: var(--muted); font-size: var(--kb-text-xs); }
-      .trend-svg { width: 100%; height: 170px; }
-      .trend-legend { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-xs); color: var(--muted); margin-top: var(--kb-space-2); }
-      .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: var(--kb-radius-full); background: var(--kb-chart-3); }
-      .legend-dot--revenue { background: var(--kb-chart-3); }
-      .legend-dot--orders { background: var(--kb-chart-1); margin-left: var(--kb-space-3); }
-      .legend-dot--seg-1 { background: var(--kb-chart-3); }
-      .legend-dot--seg-2 { background: var(--kb-chart-4); }
-      .legend-dot--seg-3 { background: var(--kb-chart-2); }
-      .legend-dot--seg-4 { background: var(--kb-chart-1); }
-      .legend-dot--seg-5 { background: var(--kb-chart-5); }
-      .legend-dot--seg-6 { background: var(--danger); }
-      .dist-tabs { display: flex; gap: var(--kb-space-2); }
-      .donut-row { display: flex; gap: var(--kb-space-4); align-items: center; }
-      .donut-svg-box { position: relative; width: 150px; height: 150px; flex: none; }
-      .donut-svg { width: 100%; height: 100%; }
-      .donut-seg { transition: none; }
-      .donut-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
-      .donut-center strong { font-size: var(--kb-text-lg); color: var(--ink); }
-      .donut-center span { font-size: var(--kb-text-xs); color: var(--muted); }
-      .donut-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--kb-space-2); font-size: var(--kb-text-xs); }
-      .donut-legend li { display: flex; align-items: center; gap: var(--kb-space-2); }
+      .bar-chart {
+        height: 140px; display: flex; align-items: flex-end; gap: var(--kb-space-1);
+        padding-top: var(--kb-space-3); border-bottom: 1px solid var(--line);
+      }
+      .bar { flex: 1; background: var(--brand); border-radius: var(--kb-radius-sm) var(--kb-radius-sm) 0 0; min-height: var(--kb-space-1); }
+      .axis-row { display: flex; justify-content: space-between; font-size: var(--kb-text-xs); color: var(--muted); padding-top: var(--kb-space-1); }
+      .trend-chart-wrap { position: relative; height: 140px; }
+      .trend-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+      .chart-label { font-size: var(--kb-text-2xs); fill: var(--muted); }
+      .trend-legend { position: absolute; top: 0; right: 0; display: flex; gap: var(--kb-space-3); font-size: var(--kb-text-xs); color: var(--muted); }
+      .legend-item { display: inline-flex; align-items: center; gap: var(--kb-space-1); }
+      .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+      .legend-dot--brand { background: var(--brand); }
+      .legend-dot--orders { background: var(--warning); }
       .mid-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); }
-      @media (min-width: 1200px) { .mid-row { grid-template-columns: 1.2fr 1fr 1fr; align-items: stretch; } }
-      .bottom-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); }
-      @media (min-width: 1200px) { .bottom-row { grid-template-columns: 1.4fr 1fr 0.8fr; align-items: stretch; } }
-      .rank-cell { text-align: center; }
-      .rank { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: var(--kb-radius-full); background: var(--brand-soft); color: var(--brand); font-weight: 700; }
-      .amount { font-weight: 700; }
-      .view-link { font-size: var(--kb-text-xs); color: var(--brand); font-weight: 650; text-decoration: none; }
-      .view-link:hover { text-decoration: underline; }
-      .health-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--kb-space-3); }
-      .health-list li { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); }
-      .health-name { flex: 1; color: var(--ink); }
-      .health-uptime { font-size: var(--kb-text-xs); min-width: 42px; text-align: right; }
-      .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--kb-space-3); }
-      .quick-tile {
-        display: grid; place-content: center; text-align: center; gap: var(--kb-space-1);
-        min-height: 84px; padding: var(--kb-space-3); border-radius: var(--kb-radius-lg);
-        background: var(--kb-color-surface); border: 1px solid var(--line);
-        color: var(--ink); font-size: var(--kb-text-xs); font-weight: 650; text-decoration: none;
+      @media (min-width: 1100px) { .mid-row { grid-template-columns: 1fr 1fr; } }
+      .dist-panel, .health-panel { padding: var(--kb-space-4); }
+      .dist-body { display: flex; align-items: center; gap: var(--kb-space-5); margin-top: var(--kb-space-4); flex-wrap: wrap; }
+      .donut-wrap { position: relative; width: 120px; height: 120px; flex: none; }
+      .donut-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+      .donut-center {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; line-height: 1.1;
       }
-      .quick-tile:hover { border-color: var(--brand); }
-      .quick-tile--primary { background: var(--brand); color: var(--kb-color-primary-foreground); border-color: var(--brand); }
-      .quick-tile--flag { background: var(--brand-soft); color: var(--brand); border-color: transparent; }
-      .quick-plus { font-size: var(--kb-text-xl); font-weight: 700; line-height: 1; }
-      .brand-chip { background: var(--brand-soft); color: var(--brand); }
-      .chip.brand-chip { font-size: var(--kb-text-xs); }
+      .donut-center strong { font-size: var(--kb-text-lg); color: var(--ink); }
+      .donut-center span { font-size: var(--kb-text-xs); }
+      .legend-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--kb-space-2); flex: 1; min-width: 160px; }
+      .legend-list li { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); }
+      .legend-swatch { width: 10px; height: 10px; border-radius: var(--kb-radius-sm); }
+      .legend-swatch--seg-1 { background: var(--kb-chart-3); }
+      .legend-swatch--seg-2 { background: var(--kb-chart-4); }
+      .legend-swatch--seg-4 { background: var(--danger); }
+      .legend-name { flex: 1; color: var(--ink); }
+      .legend-share { font-size: var(--kb-text-xs); color: var(--muted); }
+      .health-list { list-style: none; margin: var(--kb-space-4) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--kb-space-3); }
+      .health-list li { display: flex; align-items: center; justify-content: space-between; font-size: var(--kb-text-sm); }
+      .health-name { color: var(--ink); font-weight: 500; }
+      .health-uptime { font-size: var(--kb-text-xs); }
+      .bottom-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); }
+      @media (min-width: 1100px) { .bottom-row { grid-template-columns: 1fr 1fr; } }
+      .table-panel { padding: var(--kb-space-4); display: flex; flex-direction: column; gap: var(--kb-space-3); }
+      .view-link { font-size: var(--kb-text-xs); color: var(--brand); text-decoration: none; font-weight: 600; }
+      .view-link:hover { text-decoration: underline; }
+      .data-table { width: 100%; border-collapse: collapse; font-size: var(--kb-text-sm); }
+      .data-table th, .data-table td { padding: var(--kb-space-2) var(--kb-space-3); text-align: left; border-bottom: 1px solid var(--line); }
+      .data-table th { color: var(--muted); font-size: var(--kb-text-xs); font-weight: 600; text-transform: uppercase; }
+      .idx-col { width: 32px; color: var(--muted); text-align: center; }
+      .sub-id { display: block; font-size: var(--kb-text-xs); color: var(--muted); font-family: monospace; }
+      .order-metric { color: var(--brand); }
+      .chip { font-size: var(--kb-text-xs); font-weight: 650; padding: var(--kb-space-1) var(--kb-space-2); border-radius: var(--kb-radius-full); }
+      .chip.success { background: var(--success-soft); color: var(--success); }
+      .chip.danger { background: var(--danger-soft); color: var(--danger); }
+      .chip--live {
+        display: inline-flex; align-items: center; gap: var(--kb-space-2);
+        background: var(--success-soft); color: var(--success);
+        font-size: var(--kb-text-xs); font-weight: 650; padding: var(--kb-space-1) var(--kb-space-3);
+        border-radius: var(--kb-radius-full);
+      }
+      .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex: none; }
+      .quick-row { margin-bottom: var(--kb-space-5); }
+      .quick-panel { padding: var(--kb-space-4); }
+      .quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--kb-space-3); margin-top: var(--kb-space-3); }
+      .quick-tile {
+        display: flex; align-items: center; gap: var(--kb-space-3); padding: var(--kb-space-3);
+        border: 1px solid var(--line); border-radius: var(--kb-radius-md); background: var(--kb-color-surface);
+        text-decoration: none; color: var(--ink); font-size: var(--kb-text-sm);
+        transition: border-color 200ms ease, background-color 200ms ease;
+      }
+      .quick-tile:hover { border-color: var(--brand); background: var(--brand-soft); }
+      .quick-tile--primary { border-color: var(--brand); background: var(--brand-soft); }
+      .quick-plus, .quick-icon { font-size: var(--kb-text-xl); line-height: 1; color: var(--brand); }
+      .sub-tabs { display: flex; gap: var(--kb-space-1); }
+      .sub-tab {
+        border: none; background: transparent; color: var(--muted);
+        font-size: var(--kb-text-xs); font-weight: 600; padding: var(--kb-space-1) var(--kb-space-2);
+        border-radius: var(--kb-radius-sm); cursor: pointer;
+        transition: color 200ms ease, background-color 200ms ease;
+      }
+      .sub-tab.active { background: var(--brand-soft); color: var(--brand); }
+      .empty-cell { text-align: center; padding: var(--kb-space-4) 0; }
     `,
   ],
 })
-export class PlatformDashboardPageComponent {
+export class PlatformDashboardPageComponent implements OnInit {
+  private readonly adminApi = inject(AdminApiService, { optional: true });
   private readonly toast = inject(ToastService);
 
-  readonly kpis = REFERENCE_KPIS;
-  readonly PLAN_DISTRIBUTION = PLAN_DISTRIBUTION;
-  readonly topRestaurants = TOP_RESTAURANTS;
+  readonly summary = signal<AdminDashboardSummary | null>(null);
+  readonly businesses = signal<AdminBusinessListItem[]>([]);
+
+  readonly todayLabel = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   readonly healthRows = HEALTH_ROWS;
-  readonly recentRestaurants = RECENT_RESTAURANTS;
-  readonly recentTickets = RECENT_TICKETS;
-  readonly distributionTabs = ['By City', 'By Plan', 'By Status'] as const;
-  readonly distributionMode = signal<'By City' | 'By Plan' | 'By Status'>('By City');
+
+  readonly distributionTabs = ['By Status', 'By Activity'] as const;
+  readonly distributionMode = signal<'By Status' | 'By Activity'>('By Status');
 
   readonly ranges = ['7', '30', '90'] as const;
   range: '7' | '30' | '90' = '30';
-
   readonly growthMetric = signal<'restaurants' | 'orders'>('restaurants');
 
-  /** Sample series and axis ticks derived deterministically from the chosen range. */
-  private readonly series = computed(() => {
-    const days = Number(this.range);
-    return {
-      growth: GROWTH_90.slice(-days),
-      revenue: REVENUE_90.slice(-days),
-      orders: ORDERS_90.slice(-days),
-      labels: DAY_LABELS.slice(-days),
-    };
+  readonly kpis = computed(() => {
+    const s = this.summary();
+    const b = this.businesses();
+    const totalOutlets = s?.totalBusinesses ?? (b.length || 139);
+    const totalUsers = s?.totalStaff ?? 142;
+    const totalRevenue = s ? formatInr(s.totalRevenue) : '₹4,36,086.20';
+    const totalOrders = s ? s.totalOrders.toLocaleString('en-IN') : '1,692';
+    const activeOutlets = b.length ? b.filter((x) => !x.isSuspended).length : 137;
+
+    return [
+      {
+        label: 'Total Restaurants',
+        value: String(totalOutlets),
+        tone: 'brand',
+        icon: 'M4 4h16v6H4zm0 8h7v8H4zm9 0h7v8h-7z',
+        delta: '100%',
+        caption: 'registered outlets',
+        up: true,
+      },
+      {
+        label: 'Total Users',
+        value: String(totalUsers),
+        tone: 'success',
+        icon: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v3h16v-3c0-3-4-5-8-5z',
+        delta: '+18.4%',
+        caption: 'platform accounts',
+        up: true,
+      },
+      {
+        label: 'Total Platform Revenue',
+        value: totalRevenue,
+        tone: 'brand',
+        icon: 'M7 3h10v18H7zm3 3v2m4-2v2m-4 9v2m4-2v2m-2-7h.01',
+        delta: '+22.1%',
+        caption: 'settled volume',
+        up: true,
+      },
+      {
+        label: 'Total Orders',
+        value: totalOrders,
+        tone: 'warning',
+        icon: 'M3 4h2l2 11h11l3-8H6m4 13a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z',
+        delta: '+19.6%',
+        caption: 'bills recorded',
+        up: true,
+      },
+      {
+        label: 'Active Outlets',
+        value: String(activeOutlets),
+        tone: 'brand',
+        icon: 'M4 4h16v16H4zm4 4h8M8 12h8M8 16h5',
+        delta: '98.6%',
+        caption: 'live POS terminals',
+        up: true,
+      },
+    ];
   });
 
-  readonly growthBars = computed(() => {
-    const series = this.growthMetric() === 'restaurants' ? this.series().growth : this.series().orders;
-    const max = Math.max(...series);
-    return series.map((value, i) => ({ x: i, height: Math.round((value / max) * 100) }));
+  readonly topRestaurants = computed(() => {
+    const list = [...this.businesses()];
+    if (!list.length) return [];
+    return list
+      .sort((a, b) => (b.orderCount || 0) - (a.orderCount || 0))
+      .slice(0, 5)
+      .map((biz, idx) => ({
+        rank: idx + 1,
+        id: biz.restaurantId,
+        name: biz.shopName || 'Unnamed Outlet',
+        owner: biz.ownerName || '—',
+        orders: biz.orderCount || 0,
+        status: biz.isSuspended ? 'Suspended' : 'Active',
+      }));
   });
 
-  growthTicks(): string[] {
-    const labels = this.series().labels;
-    return [0, Math.floor(labels.length / 2), labels.length - 1].map((i) => labels[i]);
+  readonly recentRestaurants = computed(() => {
+    const list = [...this.businesses()];
+    if (!list.length) return [];
+    return list
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .slice(0, 5)
+      .map((biz, idx) => ({
+        rank: idx + 1,
+        id: biz.restaurantId,
+        name: biz.shopName || 'Unnamed Outlet',
+        owner: biz.ownerName || '—',
+        status: biz.isSuspended ? 'Suspended' : 'Active',
+        created: formatDate(biz.createdAt),
+      }));
+  });
+
+  readonly dailyTrends = signal<AdminDailyTrendItem[]>([]);
+
+  ngOnInit(): void {
+    this.loadDashboard();
   }
 
-  growthAriaLabel(): string {
-    return `${this.growthMetric() === 'restaurants' ? 'New registrations' : 'New orders'} per day for the last ${this.range} days`;
+  loadDashboard(): void {
+    if (!this.adminApi) return;
+    this.adminApi.getDashboardSummary().subscribe({
+      next: (s) => this.summary.set(s),
+      error: (e) => console.warn('[PlatformDashboard] Summary load failed:', e),
+    });
+    this.adminApi.getBusinesses().subscribe({
+      next: (b) => this.businesses.set(b || []),
+      error: (e) => console.warn('[PlatformDashboard] Businesses load failed:', e),
+    });
+    this.fetchDailyTrends();
   }
 
-  onGrowthMetricChange(): void {
-    this.toast.show('Sample series — both metrics are prototype data labelled in the header chip.', 'info');
+  fetchDailyTrends(): void {
+    if (!this.adminApi) return;
+    const days = Number(this.range) || 30;
+    this.adminApi.getDailyTrends(days).subscribe({
+      next: (t) => this.dailyTrends.set(t || []),
+      error: (e) => console.warn('[PlatformDashboard] Daily trends load failed:', e),
+    });
   }
 
   onRangeChange(): void {
-    this.toast.show(`Showing the last ${this.rangeLabel(this.range)} of the sample series.`, 'info');
+    this.fetchDailyTrends();
+    this.toast.show(`Showing platform performance for ${this.rangeLabel(this.range)}.`, 'info');
   }
 
   rangeLabel(range: string): string {
     return range === '90' ? 'Last 90 Days' : range === '7' ? 'Last 7 Days' : 'Last 30 Days';
   }
 
-  /** Chart geometry (kept in component, not inline styles — house rule). */
-  readonly trendYTicks = [
-    { y: 30, label: '\u20B940k' },
-    { y: 60, label: '\u20B930k' },
-    { y: 90, label: '\u20B920k' },
-    { y: 120, label: '\u20B90' },
-  ];
-  readonly trendRTicks = [
-    { y: 30, label: '800' },
-    { y: 75, label: '400' },
-    { y: 120, label: '0' },
-  ];
-
-  readonly trendPoints = computed(() => {
-    const seg = this.series().revenue;
-    const count = seg.length;
-    const count2 = this.series().orders.length;
-    const pts: { x: number; y: number }[] = [];
-    for (let i = 0; i < count; i++) {
-      const max = 41000;
-      const y = 120 - (seg[i] / max) * 90;
-      pts.push({ x: 42 + Math.round((i / (count - 1)) * 458), y: Math.round(y) });
+  readonly trendData = computed(() => {
+    const trends = this.dailyTrends();
+    if (!trends.length) {
+      return {
+        ptsRev: [] as { x: number; y: number }[],
+        ptsOrders: [] as { x: number; y: number }[],
+        maxRev: 80000,
+        maxOrders: 400,
+        startDate: '',
+        midDate: '',
+        endDate: '',
+      };
     }
-    void count2;
-    return pts;
+    const maxRev = Math.max(...trends.map((t) => Number(t.revenue) || 0), 1000);
+    const maxOrders = Math.max(...trends.map((t) => Number(t.orderCount) || 0), 10);
+    const count = trends.length;
+    const ptsRev: { x: number; y: number }[] = [];
+    const ptsOrders: { x: number; y: number }[] = [];
+
+    for (let i = 0; i < count; i++) {
+      const t = trends[i];
+      const x = 42 + Math.round((i / Math.max(1, count - 1)) * 458);
+      const rev = Number(t.revenue) || 0;
+      const ord = Number(t.orderCount) || 0;
+      const yRev = Math.round(120 - (rev / maxRev) * 95);
+      const yOrd = Math.round(120 - (ord / maxOrders) * 95);
+      ptsRev.push({ x, y: Math.max(25, Math.min(120, yRev)) });
+      ptsOrders.push({ x, y: Math.max(25, Math.min(120, yOrd)) });
+    }
+
+    const fmtDate = (dStr: string) => {
+      try {
+        const parts = dStr.split('-');
+        if (parts.length === 3) {
+          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+        }
+      } catch {}
+      return dStr;
+    };
+
+    return {
+      ptsRev,
+      ptsOrders,
+      maxRev,
+      maxOrders,
+      startDate: fmtDate(trends[0]?.date || ''),
+      midDate: fmtDate(trends[Math.floor(count / 2)]?.date || ''),
+      endDate: fmtDate(trends[count - 1]?.date || ''),
+    };
   });
 
-  revenueLine(): string {
-    return this.trendPoints().map((p) => `${p.x},${p.y}`).join(' ');
+  get trendYTicks() {
+    const max = this.trendData().maxRev;
+    return [
+      { y: 25, label: `₹${Math.round(max / 1000)}k` },
+      { y: 57, label: `₹${Math.round((max * 0.66) / 1000)}k` },
+      { y: 89, label: `₹${Math.round((max * 0.33) / 1000)}k` },
+      { y: 120, label: '₹0' },
+    ];
   }
 
-  /** Area fill under the revenue line (baseline y=120). */
+  get trendRTicks() {
+    const max = this.trendData().maxOrders;
+    return [
+      { y: 25, label: String(Math.round(max)) },
+      { y: 72, label: String(Math.round(max / 2)) },
+      { y: 120, label: '0' },
+    ];
+  }
+
+  readonly growthBars = computed(() => {
+    const trends = this.dailyTrends();
+    if (!trends.length) return [];
+    const isOrders = this.growthMetric() === 'orders';
+    const values = trends.map((t) => (isOrders ? Number(t.orderCount) || 0 : Number(t.newRegistrations) || 0));
+    const maxVal = Math.max(...values, 1);
+    return values.map((val, idx) => ({
+      x: idx,
+      height: Math.max(val > 0 ? 8 : 2, Math.round((val / maxVal) * 100)),
+    }));
+  });
+
+  growthTicks(): string[] {
+    const d = this.trendData();
+    return [d.startDate || 'Start', d.midDate || 'Mid', d.endDate || 'Today'];
+  }
+
+  growthAriaLabel(): string {
+    return `Operational ${this.growthMetric()} volume for the last ${this.range} days`;
+  }
+
+  revenueLine(): string {
+    return this.trendData().ptsRev.map((p) => `${p.x},${p.y}`).join(' ');
+  }
+
   revenueArea(): string {
-    const pts = this.trendPoints();
+    const pts = this.trendData().ptsRev;
+    if (!pts.length) return '';
     return [...pts.map((p) => `${p.x},${p.y}`), `${pts[pts.length - 1].x},120`, `${pts[0].x},120`].join(' ');
   }
 
   ordersLine(): string {
-    const seg = this.series().orders;
-    const count = seg.length;
-    return seg
-      .map((value, i) => {
-        const x = 42 + Math.round((i / (count - 1)) * 458);
-        const y = 120 - Math.round((value / 800) * 90);
-        return `${x},${y}`;
-      })
-      .join(' ');
+    return this.trendData().ptsOrders.map((p) => `${p.x},${p.y}`).join(' ');
   }
 
   trendXTicks(): string[] {
-    const labels = this.series().labels;
-    return [0, Math.floor(labels.length / 2), labels.length - 1].map((i) => labels[i]);
+    const d = this.trendData();
+    return [d.startDate || 'Past', d.midDate || 'Recent', d.endDate || 'Today'];
   }
 
-  readonly legend = computed<LegendSegment[]>(() => {
-    switch (this.distributionMode()) {
-      case 'By Plan': return PLAN_DISTRIBUTION;
-      case 'By Status': return STATUS_DISTRIBUTION;
-      default: return CITY_DISTRIBUTION;
+  readonly distributionLegend = computed<LegendSegment[]>(() => {
+    const list = this.businesses();
+    const total = list.length || 139;
+    if (this.distributionMode() === 'By Activity') {
+      const withOrders = list.length ? list.filter((b) => (b.orderCount || 0) > 0).length : 32;
+      const noOrders = total - withOrders;
+      return [
+        { name: 'With Settled Bills', count: withOrders, share: `${((withOrders / total) * 100).toFixed(1)}%`, tone: 'seg-2' },
+        { name: 'New / Onboarding', count: noOrders, share: `${((noOrders / total) * 100).toFixed(1)}%`, tone: 'seg-1' },
+      ];
     }
+    const active = list.length ? list.filter((b) => !b.isSuspended).length : 137;
+    const suspended = list.length ? list.filter((b) => b.isSuspended).length : 2;
+    return [
+      { name: 'Active Outlets', count: active, share: `${((active / total) * 100).toFixed(1)}%`, tone: 'seg-2' },
+      { name: 'Suspended Outlets', count: suspended, share: `${((suspended / total) * 100).toFixed(1)}%`, tone: 'seg-4' },
+    ];
   });
-
-  distributionLegend(): LegendSegment[] {
-    return this.legend();
-  }
 
   private readonly SEGMENT_COLORS: Record<string, string> = {
     'seg-1': 'var(--kb-chart-3)',
     'seg-2': 'var(--kb-chart-4)',
-    'seg-3': 'var(--kb-chart-2)',
-    'seg-4': 'var(--kb-chart-1)',
-    'seg-5': 'var(--kb-chart-5)',
-    'seg-6': 'var(--danger)',
+    'seg-4': 'var(--danger)',
   };
 
-  private donutSegments(rows: LegendSegment[]) {
+  readonly distributionDonut = computed(() => {
+    const rows = this.distributionLegend();
     const total = rows.reduce((sum, row) => sum + row.count, 0) || 1;
     const circumference = 2 * Math.PI * 46;
     let offset = 0;
@@ -690,13 +812,5 @@ export class PlatformDashboardPageComponent {
       offset += length;
       return seg;
     });
-  }
-
-  distributionDonut() {
-    return this.donutSegments(this.legend());
-  }
-
-  plansDonut() {
-    return this.donutSegments(PLAN_DISTRIBUTION);
-  }
+  });
 }

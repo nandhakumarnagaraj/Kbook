@@ -29,7 +29,7 @@
 *~
 
 # DB backups (contain sensitive customer/transaction data)
-backups/
+/backups/
 
 # Node.js
 node_modules/
@@ -245,3 +245,9 @@ apps/android/app/khanabook-release-key.jks
 /*.txt
 !/.hallmark-audit.txt
 !/.hallmark-audit-render.txt
+
+# Local tools & caches
+/.openqodex/
+/.cursor/
+/.gemini/
+/*.apk

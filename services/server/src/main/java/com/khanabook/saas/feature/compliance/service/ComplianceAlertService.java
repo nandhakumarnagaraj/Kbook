@@ -39,7 +39,6 @@ public class ComplianceAlertService {
     }
 
     @Scheduled(cron = "0 0 9 * * *") // Daily at 9 AM
-    @Transactional(readOnly = true)
     public void runDailyAlerts() {
         log.info("Running daily compliance expiry alerts check...");
         sendAlertsForDate(LocalDate.now());

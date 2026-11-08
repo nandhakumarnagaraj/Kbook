@@ -879,7 +879,6 @@ export class SidebarLayoutComponent implements OnInit, OnDestroy {
           links: [
             { label: 'Businesses', path: '/admin/businesses', icon: '', iconKey: 'business' },
             { label: 'Feature Flags', path: '/admin/feature-flags', icon: '', iconKey: 'flag' },
-            { label: 'Subscriptions', path: '/admin/subscriptions', icon: '', iconKey: 'payments' },
             { label: 'Users & Access', path: '/admin/users', icon: '', iconKey: 'manage_accounts' },
             { label: 'Support Tickets', path: '/admin/support-tickets', icon: '', iconKey: 'help' }
           ]

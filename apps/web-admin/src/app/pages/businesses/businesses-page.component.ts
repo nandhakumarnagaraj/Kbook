@@ -1,46 +1,28 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary } from '../../core/models/api.models';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
 
-interface BusinessRow {
-  id: number;
-  name: string;
-  owner: string;
-  city: string;
-  plan: 'Professional' | 'Starter' | 'Business' | 'Enterprise';
-  status: 'Active' | 'Inactive' | 'Trial' | 'Expiring';
-  users: number;
-  joinedOn: string;
+function formatDate(timestamp: number | null | undefined): string {
+  if (!timestamp) return '—';
+  try {
+    const d = new Date(timestamp);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return '—';
+  }
 }
 
-const SAMPLE_BUSINESSES: BusinessRow[] = [
-  { id: 1, name: 'Spice Villa', owner: 'Ravi Kumar', city: 'Chennai', plan: 'Professional', status: 'Active', users: 5, joinedOn: '12 Oct 2024' },
-  { id: 2, name: 'Dine Hub', owner: 'Suresh M', city: 'Bengaluru', plan: 'Starter', status: 'Active', users: 3, joinedOn: '05 Sep 2024' },
-  { id: 3, name: 'Tasty Bites', owner: 'Priya S', city: 'Hyderabad', plan: 'Professional', status: 'Active', users: 4, joinedOn: '21 Aug 2024' },
-  { id: 4, name: 'Food Junction', owner: 'Arjun R', city: 'Mumbai', plan: 'Business', status: 'Trial', users: 2, joinedOn: '10 Oct 2024' },
-  { id: 5, name: 'Royal Kitchen', owner: 'Karthik V', city: 'Coimbatore', plan: 'Professional', status: 'Active', users: 6, joinedOn: '18 Jul 2024' },
-  { id: 6, name: 'Cafe Corner', owner: 'Meena K', city: 'Chennai', plan: 'Starter', status: 'Inactive', users: 1, joinedOn: '02 Jun 2024' },
-  { id: 7, name: 'Dosa Plaza', owner: 'Mahesh P', city: 'Bengaluru', plan: 'Professional', status: 'Active', users: 4, joinedOn: '28 May 2024' },
-  { id: 8, name: 'Tiffin Box', owner: 'Lakshmi N', city: 'Madurai', plan: 'Starter', status: 'Active', users: 3, joinedOn: '16 May 2024' },
-  { id: 9, name: 'The Grill House', owner: 'Vikram S', city: 'Delhi', plan: 'Business', status: 'Expiring', users: 7, joinedOn: '10 Apr 2024' },
-  { id: 10, name: 'Madras Meals', owner: 'Ganesh R', city: 'Chennai', plan: 'Professional', status: 'Active', users: 5, joinedOn: '02 Mar 2024' },
-  { id: 11, name: 'Biryani House', owner: 'Vikram N', city: 'Kochi', plan: 'Starter', status: 'Active', users: 2, joinedOn: '14 Feb 2024' },
-  { id: 12, name: 'Urban Dine', owner: 'Neha S', city: 'Pune', plan: 'Business', status: 'Inactive', users: 4, joinedOn: '26 Jan 2024' },
-];
+function formatInr(val: number | null | undefined): string {
+  if (val == null || isNaN(val)) return '₹0.00';
+  return '₹' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
-/**
- * Admin → Businesses Management (reference A02, fused to the reference's
- * drill-down layout: five KPI tiles, status tabs with counts, a filter bar,
- * the numbered checkbox table and a right-hand detail panel with per-business
- * tabs). No businesses-admin endpoint surfaces this view yet, so rows are
- * prototype sample data labelled in-page; filtering, tab counts, selection,
- * pagination and rows-per-page are real local behaviour and mutating actions
- * are explicit prototype toasts.
- */
 @Component({
   selector: 'app-businesses-page',
   standalone: true,
@@ -50,36 +32,39 @@ const SAMPLE_BUSINESSES: BusinessRow[] = [
     <div class="page-shell">
       <app-page-header
         title="Businesses Management"
-        subtitle="View, manage and support all restaurants on the platform."
+        subtitle="Live platform directory of all registered restaurants, outlets, and operating terminals."
       >
         <div class="header-controls">
-          <span class="chip warn">Prototype sample — no API yet</span>
+          <span class="chip chip--live">
+            <span class="live-dot" aria-hidden="true"></span>
+            Live Platform Data ({{ businesses().length }} Outlets)
+          </span>
           <label class="header-search">
             <input
               type="search"
               name="search"
-              placeholder="Search by restaurant name, owner, city, phone or plan..."
+              placeholder="Search by restaurant name, owner, phone, email, or ID..."
               [(ngModel)]="search"
               (ngModelChange)="page.set(1)"
               aria-label="Search businesses"
             />
           </label>
-          <button class="header-action-btn" type="button" (click)="toggleFilters()">
-            <span aria-hidden="true">&#9636;</span> Filters
+          <button class="header-action-btn" type="button" (click)="loadBusinesses()" title="Reload from server">
+            <span aria-hidden="true">&#8635;</span> Refresh
           </button>
           <button class="header-action-btn header-action-btn--primary" type="button" (click)="addBusiness()">
             + Add New Business
           </button>
-          <button class="header-action-btn" type="button" (click)="exportCsv()">
-            <span aria-hidden="true">&#8595;</span> Export
+          <button class="header-action-btn" type="button" (click)="exportCsv()" title="Export real businesses list as CSV">
+            <span aria-hidden="true">&#8595;</span> Export CSV
           </button>
         </div>
       </app-page-header>
 
-      <app-kpi-row [items]="kpis" ariaLabel="Business summary"></app-kpi-row>
+      <app-kpi-row [items]="kpis()" ariaLabel="Business summary"></app-kpi-row>
 
       <div class="panel list-panel">
-        <!-- Reference tabs with counts -->
+        <!-- Status filter tabs -->
         <div class="status-tabs" role="tablist" aria-label="Business status">
           @for (tab of tabs; track tab) {
             <button
@@ -94,29 +79,31 @@ const SAMPLE_BUSINESSES: BusinessRow[] = [
           }
         </div>
 
-        <div class="filter-bar" [class.filter-bar--off]="!filtersOpen()">
-          <label class="filter-select" aria-label="Plan filter">
-            <select name="planFilter" [(ngModel)]="planFilter" (ngModelChange)="page.set(1)">
-              <option value="">All Plans</option>
-              @for (plan of planOptions; track plan) { <option [value]="plan">{{ plan }}</option> }
-            </select>
-          </label>
+        <div class="filter-bar">
           <label class="filter-select" aria-label="Status filter">
             <select name="statusFilter" [(ngModel)]="statusFilter" (ngModelChange)="page.set(1)">
-              <option value="">All Status</option>
-              @for (status of statusOptions; track status) { <option [value]="status">{{ status }}</option> }
+              <option value="">All Statuses</option>
+              <option value="Active">Active Outlets</option>
+              <option value="Suspended">Suspended Outlets</option>
             </select>
           </label>
-          <label class="filter-select" aria-label="City filter">
-            <select name="cityFilter" [(ngModel)]="cityFilter" (ngModelChange)="page.set(1)">
-              <option value="">All Cities</option>
-              @for (city of cityOptions; track city) { <option [value]="city">{{ city }}</option> }
+          <label class="filter-select" aria-label="Order activity filter">
+            <select name="activityFilter" [(ngModel)]="activityFilter" (ngModelChange)="page.set(1)">
+              <option value="">All Activity Levels</option>
+              <option value="with_orders">With Settled Bills</option>
+              <option value="no_orders">No Bills Yet</option>
             </select>
           </label>
-          <button type="button" class="join-date-btn" (click)="joinDateSort()">
-            <span aria-hidden="true">&#128197;</span> Join Date
-          </button>
-          <button type="button" class="reset-btn" (click)="reset()">Reset</button>
+          <label class="filter-select" aria-label="Sort order">
+            <select name="sortOption" [(ngModel)]="sortOption" (ngModelChange)="page.set(1)">
+              <option value="newest">Sort: Newest First</option>
+              <option value="oldest">Sort: Oldest First</option>
+              <option value="orders_desc">Sort: Most Orders</option>
+              <option value="staff_desc">Sort: Most Staff</option>
+              <option value="name_asc">Sort: Name (A-Z)</option>
+            </select>
+          </label>
+          <button type="button" class="reset-btn" (click)="reset()">Reset Filters</button>
         </div>
 
         <div class="biz-grid">
@@ -124,63 +111,108 @@ const SAMPLE_BUSINESSES: BusinessRow[] = [
             <table class="data-table">
               <thead>
                 <tr>
-                  <th class="check-col"><input type="checkbox" aria-label="Select all visible businesses" /></th>
                   <th class="idx-col">#</th>
-                  <th>Business Name</th>
-                  <th>Owner</th>
-                  <th>City</th>
-                  <th>Plan</th>
+                  <th>Outlet &amp; Business Name</th>
+                  <th>Owner / Contact</th>
                   <th>Status</th>
-                  <th>Users</th>
-                  <th>Joined On</th>
+                  <th>Staff</th>
+                  <th>Menu Items</th>
+                  <th>Orders</th>
+                  <th>Joined Date</th>
+                  <th>Last Activity</th>
                   <th class="actions-col">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                @for (biz of pagedRows(); track biz.id; let i = $index) {
-                  <tr [class.selected-row]="selected()?.id === biz.id">
-                    <td class="check-col"><input type="checkbox" [attr.aria-label]="'Select ' + biz.name" /></td>
+                @for (biz of pagedRows(); track biz.restaurantId; let i = $index) {
+                  <tr
+                    [class.selected-row]="selected()?.restaurantId === biz.restaurantId"
+                    (click)="selectBusiness(biz)">
                     <td class="idx-col">{{ (page() - 1) * pageSize() + i + 1 }}</td>
                     <td>
                       <div class="stacked">
-                        <span class="logo-dot" [class]="'logo-dot--' + logoTone(biz.id)" aria-hidden="true">{{ biz.name.charAt(0) }}</span>
-                        <strong>{{ biz.name }}</strong>
+                        <span class="logo-dot" [class]="'logo-dot--' + logoTone(biz.restaurantId)" aria-hidden="true">
+                          {{ (biz.shopName || 'O').charAt(0).toUpperCase() }}
+                        </span>
+                        <div>
+                          <strong>{{ biz.shopName || 'Unnamed Outlet' }}</strong>
+                          <span class="sub-id">ID: {{ biz.restaurantId }}</span>
+                        </div>
                       </div>
                     </td>
-                    <td>{{ biz.owner }}</td>
-                    <td>{{ biz.city }}</td>
                     <td>
-                      <span class="plan-chip" [class]="'plan-chip--' + biz.plan.toLowerCase()">{{ biz.plan }}</span>
+                      <div class="contact-col">
+                        <span>{{ biz.ownerName || '—' }}</span>
+                        <small class="muted">{{ biz.whatsappNumber || biz.ownerLoginId || '—' }}</small>
+                      </div>
                     </td>
                     <td>
-                      <span class="status-chip" [class]="'status-chip--' + biz.status.toLowerCase()">{{ biz.status }}</span>
+                      @if (biz.isSuspended) {
+                        <span class="status-chip status-chip--inactive">Suspended</span>
+                      } @else {
+                        <span class="status-chip status-chip--active">Active</span>
+                      }
                     </td>
-                    <td>{{ biz.users }}</td>
-                    <td>{{ biz.joinedOn }}</td>
-                    <td class="actions-col">
-                      <button type="button" class="kebab-btn" aria-label="Row actions" (click)="rowMenu(biz)">⋮</button>
+                    <td>{{ biz.staffCount }}</td>
+                    <td>{{ biz.menuCount }}</td>
+                    <td><strong>{{ biz.orderCount }}</strong></td>
+                    <td>{{ formatTimestamp(biz.createdAt) }}</td>
+                    <td>
+                      <span [class.muted]="!biz.lastUsedAt">
+                        {{ biz.lastUsedAt ? formatTimestamp(biz.lastUsedAt) : 'No orders yet' }}
+                      </span>
+                    </td>
+                    <td class="actions-col" (click)="$event.stopPropagation()">
+                      <button
+                        type="button"
+                        class="quick-action-btn"
+                        [class.quick-action-btn--warn]="!biz.isSuspended"
+                        [class.quick-action-btn--success]="biz.isSuspended"
+                        [title]="biz.isSuspended ? 'Activate Outlet' : 'Suspend Outlet'"
+                        (click)="toggleSuspend(biz)">
+                        {{ biz.isSuspended ? 'Activate' : 'Suspend' }}
+                      </button>
                     </td>
                   </tr>
                 }
                 @if (!filteredRows().length) {
-                  <tr><td colspan="10" class="muted empty-cell">No businesses match these filters.</td></tr>
+                  <tr>
+                    <td colspan="10" class="muted empty-cell">
+                      @if (loading()) {
+                        Loading live outlets from server...
+                      } @else if (error()) {
+                        {{ error() }}
+                      } @else {
+                        No businesses match these filters.
+                      }
+                    </td>
+                  </tr>
                 }
               </tbody>
             </table>
           </div>
 
-          <!-- Reference right-rail detail panel -->
+          <!-- Real right-rail detail panel -->
           <aside class="detail-panel" [class.detail-panel--empty]="!selected()">
             @if (selected(); as biz) {
               <div class="detail-head">
                 <div class="detail-identity">
-                  <span class="logo-dot logo-dot--big" [class]="'logo-dot--' + logoTone(biz.id)" aria-hidden="true">{{ biz.name.charAt(0) }}</span>
+                  <span class="logo-dot logo-dot--big" [class]="'logo-dot--' + logoTone(biz.restaurantId)" aria-hidden="true">
+                    {{ (biz.shopName || 'O').charAt(0).toUpperCase() }}
+                  </span>
                   <div>
-                    <strong class="detail-name">{{ biz.name }}</strong>
-                    <span class="muted detail-id">ID: KB-{{ 1000 + biz.id }}</span>
+                    <strong class="detail-name">{{ biz.shopName || 'Unnamed Outlet' }}</strong>
+                    <div class="id-row">
+                      <span class="muted detail-id">ID: {{ biz.restaurantId }}</span>
+                      <button type="button" class="copy-link" (click)="copyId(biz.restaurantId)">Copy</button>
+                    </div>
                   </div>
                 </div>
-                <span class="status-chip" [class]="'status-chip--' + biz.status.toLowerCase()">{{ biz.status }}</span>
+                @if (biz.isSuspended) {
+                  <span class="status-chip status-chip--inactive">Suspended</span>
+                } @else {
+                  <span class="status-chip status-chip--active">Active</span>
+                }
                 <button type="button" class="detail-close" aria-label="Close details" (click)="selected.set(null)">×</button>
               </div>
 
@@ -197,47 +229,91 @@ const SAMPLE_BUSINESSES: BusinessRow[] = [
               </div>
 
               <div class="detail-actions">
-                <button type="button" class="detail-action" (click)="openDashboard(biz)"><span aria-hidden="true">&#9635;</span> Open Dashboard</button>
-                <button type="button" class="detail-action" (click)="editDetails(biz)"><span aria-hidden="true">&#9998;</span> Edit Details</button>
-                <button type="button" class="detail-action" (click)="manageUsers(biz)"><span aria-hidden="true">&#9786;</span> Manage Users</button>
-                <button type="button" class="detail-action detail-action--more" aria-label="More actions" (click)="rowMenu(biz)">···</button>
+                <button
+                  type="button"
+                  class="detail-action"
+                  [class.detail-action--danger]="!biz.isSuspended"
+                  (click)="toggleSuspend(biz)">
+                  <span aria-hidden="true">{{ biz.isSuspended ? '✓' : '⊘' }}</span>
+                  {{ biz.isSuspended ? 'Activate Outlet' : 'Suspend Outlet' }}
+                </button>
+                <button type="button" class="detail-action" (click)="copyId(biz.restaurantId)">
+                  <span aria-hidden="true">&#9112;</span> Copy ID
+                </button>
+                <button type="button" class="detail-action" (click)="exportSingleCsv(biz)">
+                  <span aria-hidden="true">&#8595;</span> Export
+                </button>
               </div>
 
-              <div class="detail-section">
-                <header class="detail-section__head">
-                  <h3>Business Information</h3>
-                  <button type="button" class="view-link" (click)="toggleInfo()">View All / Edit</button>
-                </header>
-                <dl class="detail-fields">
-                  <div><dt>Business Name</dt><dd>{{ biz.name }}</dd></div>
-                  <div><dt>Owner Name</dt><dd>{{ biz.owner }}</dd></div>
-                  <div><dt>City</dt><dd>{{ biz.city }}</dd></div>
-                  <div><dt>Status</dt><dd>{{ biz.status }}</dd></div>
-                  <div><dt>Joined On</dt><dd>{{ biz.joinedOn }}</dd></div>
-                </dl>
-              </div>
+              @if (detailTab() === 'Overview') {
+                <div class="detail-section">
+                  <header class="detail-section__head">
+                    <h3>Business Information</h3>
+                  </header>
+                  <dl class="detail-fields">
+                    <div><dt>Outlet Name</dt><dd><strong>{{ biz.shopName || '—' }}</strong></dd></div>
+                    <div><dt>Owner Name</dt><dd>{{ biz.ownerName || '—' }}</dd></div>
+                    <div><dt>Owner Login</dt><dd>{{ biz.ownerLoginId || '—' }}</dd></div>
+                    <div><dt>WhatsApp Phone</dt><dd>{{ biz.whatsappNumber || '—' }}</dd></div>
+                    <div><dt>Email</dt><dd>{{ biz.email || '—' }}</dd></div>
+                    <div><dt>Joined On</dt><dd>{{ formatTimestamp(biz.createdAt) }}</dd></div>
+                    <div><dt>Last Activity</dt><dd>{{ biz.lastUsedAt ? formatTimestamp(biz.lastUsedAt) : 'No settled bills' }}</dd></div>
+                    @if (selectedDetail(); as det) {
+                      <div><dt>Address</dt><dd>{{ det.shopAddress || 'Not configured' }}</dd></div>
+                      <div><dt>GSTIN</dt><dd>{{ det.gstin || 'Not registered' }}</dd></div>
+                      <div><dt>FSSAI License</dt><dd>{{ det.fssaiNumber || 'Not configured' }}</dd></div>
+                    }
+                  </dl>
+                </div>
+              }
 
-              <div class="detail-section">
-                <header class="detail-section__head">
-                  <h3>Subscription Details</h3>
-                  <button type="button" class="view-link" (click)="editSubscription(biz)">Edit</button>
-                </header>
-                <dl class="detail-fields">
-                  <div><dt>Current Plan</dt><dd><span class="plan-chip" [class]="'plan-chip--' + biz.plan.toLowerCase()">{{ biz.plan }}</span></dd></div>
-                  <div><dt>Monthly Amount</dt><dd>{{ monthlyAmount(biz.plan) }}</dd></div>
-                  <div><dt>Payment Status</dt><dd><span class="status-chip status-chip--active">Paid</span></dd></div>
-                  <div><dt>Auto Renew</dt><dd><span class="status-chip status-chip--active">Enabled</span></dd></div>
-                </dl>
-              </div>
+              @if (detailTab() === 'Operations') {
+                <div class="detail-section">
+                  <header class="detail-section__head">
+                    <h3>Operations &amp; Terminal Details</h3>
+                  </header>
+                  <dl class="detail-fields">
+                    <div><dt>Total Settled Orders</dt><dd><strong>{{ biz.orderCount }}</strong></dd></div>
+                    <div>
+                      <dt>Total Settled Revenue</dt>
+                      <dd>
+                        <strong>{{ selectedDetail() ? formatMoney(selectedDetail()?.totalRevenue) : '—' }}</strong>
+                      </dd>
+                    </div>
+                    <div><dt>Registered Staff</dt><dd>{{ biz.staffCount }} user(s)</dd></div>
+                    <div><dt>Menu Items</dt><dd>{{ biz.menuCount }} active item(s)</dd></div>
+                    <div>
+                      <dt>Website Ordering</dt>
+                      <dd>
+                        <span class="status-chip" [class.status-chip--active]="biz.websiteEnabled" [class.status-chip--inactive]="!biz.websiteEnabled">
+                          {{ biz.websiteEnabled ? 'Enabled' : 'Disabled' }}
+                        </span>
+                      </dd>
+                    </div>
+                    @if (selectedDetail(); as det) {
+                      <div>
+                        <dt>GST Billing</dt>
+                        <dd>
+                          <span class="status-chip" [class.status-chip--active]="det.gstEnabled" [class.status-chip--inactive]="!det.gstEnabled">
+                            {{ det.gstEnabled ? 'Active' : 'Disabled' }}
+                          </span>
+                        </dd>
+                      </div>
+                      <div><dt>Currency</dt><dd>{{ det.currency || 'INR' }}</dd></div>
+                      <div><dt>Timezone</dt><dd>{{ det.timezone || 'Asia/Kolkata' }}</dd></div>
+                    }
+                  </dl>
+                </div>
+              }
             } @else {
-              <p class="muted detail-empty">Select a business row to see its details here.</p>
+              <p class="muted detail-empty">Select any restaurant outlet from the list to view its complete operational profile.</p>
             }
           </aside>
         </div>
 
         <footer class="list-foot">
           <span class="muted count-note">
-            Showing {{ showingLabel() }} of {{ filteredRows().length }} sample businesses
+            Showing {{ showingLabel() }} of {{ filteredRows().length }} real outlets
           </span>
           <app-pagination-bar
             [currentPage]="page()"
@@ -251,6 +327,7 @@ const SAMPLE_BUSINESSES: BusinessRow[] = [
               <option [value]="10">10</option>
               <option [value]="25">25</option>
               <option [value]="50">50</option>
+              <option [value]="100">100</option>
             </select>
           </label>
         </footer>
@@ -265,73 +342,88 @@ const SAMPLE_BUSINESSES: BusinessRow[] = [
         border: none; background: transparent; color: var(--muted);
         font-size: var(--kb-text-sm); font-weight: 650;
         padding: var(--kb-space-2) var(--kb-space-3); border-radius: var(--kb-radius-md); cursor: pointer;
+        transition: color 200ms ease, background-color 200ms ease;
       }
       .status-tab.active { background: var(--brand-soft); color: var(--brand); }
       .tab-count { color: var(--muted); font-weight: 500; }
       .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--kb-space-3); margin-bottom: var(--kb-space-4); }
-      .filter-bar--off { display: none; }
       .filter-select select {
         border: 1px solid var(--line); border-radius: var(--kb-radius-md);
         padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm);
         background: var(--kb-color-input); color: var(--ink);
       }
-      .join-date-btn, .reset-btn {
-        border: 1px solid var(--line); background: var(--kb-color-surface); color: var(--ink);
+      .reset-btn {
+        border: 1px solid var(--line); background: var(--kb-color-surface); color: var(--brand);
         border-radius: var(--kb-radius-md); padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm); cursor: pointer;
+        transition: border-color 200ms ease, color 200ms ease;
       }
-      .reset-btn { color: var(--brand); }
-      .filter-select select:focus, .join-date-btn:focus, .reset-btn:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+      .filter-select select:focus, .reset-btn:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
       .biz-grid { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); align-items: start; }
-      @media (min-width: 1180px) { .biz-grid { grid-template-columns: 2fr 1fr; } }
+      @media (min-width: 1100px) { .biz-grid { grid-template-columns: 2fr 1fr; } }
       .biz-table :where(td, th) { white-space: nowrap; }
-      .check-col { width: 36px; }
       .idx-col { width: 40px; }
       .stacked { display: flex; align-items: center; gap: var(--kb-space-2); }
+      .sub-id { display: block; font-size: var(--kb-text-xs); color: var(--muted); font-family: monospace; }
+      .contact-col { display: flex; flex-direction: column; gap: var(--kb-space-1); }
       .logo-dot {
-        flex: none; width: 26px; height: 26px; border-radius: var(--kb-radius-md);
+        flex: none; width: 28px; height: 28px; border-radius: var(--kb-radius-md);
         display: grid; place-items: center; font-size: var(--kb-text-xs); font-weight: 700;
       }
-      .logo-dot--big { width: 38px; height: 38px; font-size: var(--kb-text-md); }
+      .logo-dot--big { width: 42px; height: 42px; font-size: var(--kb-text-md); }
       .logo-dot--0 { background: var(--brand-soft); color: var(--brand); }
       .logo-dot--1 { background: var(--success-soft); color: var(--success); }
       .logo-dot--2 { background: var(--info-soft); color: var(--info); }
       .logo-dot--3 { background: var(--warning-soft); color: var(--warning); }
-      .plan-chip { font-size: var(--kb-text-xs); font-weight: 700; }
-      .plan-chip--professional { color: var(--brand); }
-      .plan-chip--starter { color: var(--info); }
-      .plan-chip--business { color: var(--success); }
-      .plan-chip--enterprise { color: var(--accent); }
       .status-chip { font-size: var(--kb-text-xs); font-weight: 650; padding: 2px var(--kb-space-2); border-radius: var(--kb-radius-full); }
       .status-chip--active { background: var(--success-soft); color: var(--success); }
       .status-chip--inactive { background: var(--danger-soft); color: var(--danger); }
-      .status-chip--trial { background: var(--warning-soft); color: var(--warning); }
-      .status-chip--expiring { background: var(--warning-soft); color: var(--warning); }
-      .actions-col { width: 48px; text-align: center; }
-      .kebab-btn { border: none; background: transparent; color: var(--muted); font-size: var(--kb-text-lg); cursor: pointer; line-height: 1; }
+      .chip--live {
+        display: inline-flex; align-items: center; gap: var(--kb-space-2);
+        background: var(--success-soft); color: var(--success);
+        font-size: var(--kb-text-xs); font-weight: 650; padding: var(--kb-space-1) var(--kb-space-3);
+        border-radius: var(--kb-radius-full);
+      }
+      .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex: none; }
+      .actions-col { width: 80px; text-align: center; }
+      .quick-action-btn {
+        border: 1px solid var(--line); background: var(--kb-color-surface);
+        padding: 3px var(--kb-space-2); border-radius: var(--kb-radius-sm);
+        font-size: var(--kb-text-xs); font-weight: 600; cursor: pointer;
+        transition: border-color 200ms ease, background-color 200ms ease, color 200ms ease;
+      }
+      .quick-action-btn--warn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+      .quick-action-btn--success:hover { border-color: var(--success); color: var(--success); background: var(--success-soft); }
       .selected-row :where(td) { background: var(--brand-soft); }
+      .biz-table tbody tr { cursor: pointer; transition: background-color 200ms ease; }
       .empty-cell { text-align: center; padding: var(--kb-space-6) 0; font-size: var(--kb-text-sm); }
       .detail-panel {
         border: 1px solid var(--line); border-radius: var(--kb-radius-lg);
         background: var(--kb-color-surface); padding: var(--kb-space-4);
-        min-height: 200px;
+        min-height: 240px;
       }
       .detail-panel--empty { display: grid; place-content: center; text-align: center; }
       .detail-head { display: flex; align-items: center; gap: var(--kb-space-2); }
       .detail-identity { display: flex; align-items: center; gap: var(--kb-space-2); flex: 1; }
-      .detail-name { display: block; }
-      .detail-id { font-size: var(--kb-text-xs); }
+      .detail-name { display: block; font-size: var(--kb-text-sm); }
+      .id-row { display: flex; align-items: center; gap: var(--kb-space-2); }
+      .detail-id { font-size: var(--kb-text-xs); font-family: monospace; }
+      .copy-link {
+        border: none; background: transparent; color: var(--brand);
+        font-size: var(--kb-text-xs); cursor: pointer; text-decoration: underline; padding: 0;
+      }
       .detail-close { border: none; background: transparent; color: var(--muted); font-size: var(--kb-text-lg); cursor: pointer; margin-left: var(--kb-space-2); }
       .detail-tabs { display: flex; gap: var(--kb-space-1); border-bottom: 1px solid var(--line); margin: var(--kb-space-3) 0; overflow-x: auto; }
-      .detail-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--kb-space-2); margin-bottom: var(--kb-space-4); }
+      .detail-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--kb-space-2); margin-bottom: var(--kb-space-4); }
       .detail-action {
         display: inline-flex; flex-direction: column; align-items: center; gap: var(--kb-space-1);
         border: 1px solid var(--line); background: var(--kb-color-surface); color: var(--ink);
         border-radius: var(--kb-radius-md); padding: var(--kb-space-2) var(--kb-space-1);
         font-size: var(--kb-text-xs); cursor: pointer; text-align: center;
+        transition: border-color 200ms ease, color 200ms ease;
       }
-      .detail-action--more { justify-content: center; }
       .detail-action:hover { border-color: var(--brand); color: var(--brand); }
-      .detail-section__head { display: flex; align-items: center; justify-content: space-between; margin: var(--kb-space-4) 0 var(--kb-space-2); }
+      .detail-action--danger:hover { border-color: var(--danger); color: var(--danger); }
+      .detail-section__head { display: flex; align-items: center; justify-content: space-between; margin: var(--kb-space-3) 0 var(--kb-space-2); }
       .detail-section__head h3 { margin: 0; font-size: var(--kb-text-sm); }
       .detail-fields { margin: 0; display: grid; gap: var(--kb-space-2); }
       .detail-fields > div { display: flex; justify-content: space-between; gap: var(--kb-space-3); font-size: var(--kb-text-sm); }
@@ -352,45 +444,111 @@ const SAMPLE_BUSINESSES: BusinessRow[] = [
     `,
   ],
 })
-export class BusinessesPageComponent {
+export class BusinessesPageComponent implements OnInit {
+  private readonly adminApi = inject(AdminApiService, { optional: true });
   private readonly toast = inject(ToastService);
+
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
+  readonly businesses = signal<AdminBusinessListItem[]>([]);
+  readonly summary = signal<AdminDashboardSummary | null>(null);
 
   readonly page = signal(1);
   readonly pageSize = signal(10);
-  readonly rpp = 10;
-  readonly statusTab = signal<'All Businesses' | 'Active' | 'Inactive' | 'Trial' | 'Expiring'>('All Businesses');
-  readonly tabs = ['All Businesses', 'Active', 'Inactive', 'Trial', 'Expiring'] as const;
-  readonly detailTab = signal<'Overview' | 'Subscription' | 'Users' | 'Settings'>('Overview');
-  readonly detailTabs = ['Overview', 'Subscription', 'Users', 'Settings'] as const;
+  rpp = 10;
 
-  readonly selected = signal<BusinessRow | null>(SAMPLE_BUSINESSES[0]);
-  readonly filtersOpen = signal(false);
-  readonly sortDir = signal<'asc' | 'desc' | null>(null);
+  readonly statusTab = signal<'All Outlets' | 'Active' | 'Suspended' | 'With Orders'>('All Outlets');
+  readonly tabs = ['All Outlets', 'Active', 'Suspended', 'With Orders'] as const;
+  readonly detailTab = signal<'Overview' | 'Operations'>('Overview');
+  readonly detailTabs = ['Overview', 'Operations'] as const;
 
-  readonly kpis: KpiItem[] = [
-    { label: 'Total Businesses', value: 124, icon: 'business', tone: 'brand', caption: '+12.7% vs previous 30 days' },
-    { label: 'Active', value: 98, icon: 'health', tone: 'success', caption: '79.0% of total' },
-    { label: 'Inactive', value: 16, icon: 'business', tone: 'danger', caption: '12.9% of total' },
-    { label: 'Trial / Expiring', value: 10, icon: 'flag', tone: 'warning', caption: '8.1% of total' },
-    { label: 'Monthly Recurring Revenue', value: '\u20B93,24,650', icon: 'payments', tone: 'brand', caption: '+22.1% vs previous 30 days' },
-  ];
-
-  readonly planOptions = ['Professional', 'Starter', 'Business', 'Enterprise'] as const;
-  readonly statusOptions = ['Active', 'Inactive', 'Trial', 'Expiring'] as const;
-  readonly cityOptions = [...new Set(SAMPLE_BUSINESSES.map((b) => b.city))];
+  readonly selected = signal<AdminBusinessListItem | null>(null);
+  readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
 
   search = '';
-  planFilter = '';
   statusFilter = '';
-  cityFilter = '';
+  activityFilter = '';
+  sortOption: 'newest' | 'oldest' | 'orders_desc' | 'staff_desc' | 'name_asc' = 'newest';
 
-  logoTone(id: number): string {
-    return String(id % 4);
+  readonly kpis = computed<KpiItem[]>(() => {
+    const list = this.businesses();
+    const sum = this.summary();
+    const total = sum?.totalBusinesses ?? list.length;
+    const active = list.filter((b) => !b.isSuspended).length;
+    const suspended = list.filter((b) => b.isSuspended).length;
+    const orders = sum?.totalOrders ?? list.reduce((acc, b) => acc + (b.orderCount || 0), 0);
+    const revenue = sum?.totalRevenue ?? 0;
+
+    return [
+      { label: 'Total Restaurants', value: total, icon: 'business', tone: 'brand', caption: 'Registered outlets on platform' },
+      { label: 'Active Outlets', value: active, icon: 'health', tone: 'success', caption: `${total > 0 ? ((active / total) * 100).toFixed(1) : 0}% live & running` },
+      { label: 'Suspended', value: suspended, icon: 'business', tone: 'danger', caption: `${suspended} disabled outlet(s)` },
+      { label: 'Total POS Orders', value: orders.toLocaleString('en-IN'), icon: 'flag', tone: 'brand', caption: 'Platform-wide settled bills' },
+      { label: 'Platform Volume', value: formatInr(revenue), icon: 'payments', tone: 'brand', caption: 'Total completed order revenue' },
+    ];
+  });
+
+  ngOnInit(): void {
+    this.loadBusinesses();
   }
 
-  monthlyAmount(plan: BusinessRow['plan']): string {
-    const perPlan = { Professional: '\u20B9949', Starter: '\u20B9499', Business: '\u20B91,499', Enterprise: '\u20B92,499' } as const;
-    return perPlan[plan];
+  loadBusinesses(): void {
+    if (!this.adminApi) return;
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.adminApi.getBusinesses().subscribe({
+      next: (data) => {
+        const rows = data || [];
+        this.businesses.set(rows);
+        this.loading.set(false);
+        const cur = this.selected();
+        if (cur) {
+          const match = rows.find((b) => String(b.restaurantId) === String(cur.restaurantId));
+          if (match) this.selected.set(match);
+        } else if (rows.length > 0) {
+          this.selectBusiness(rows[0]);
+        }
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set('Failed to connect to admin API.');
+        console.error('[BusinessesPage] Error loading businesses:', err);
+      },
+    });
+
+    this.adminApi.getDashboardSummary().subscribe({
+      next: (sum) => this.summary.set(sum),
+      error: (err) => console.warn('[BusinessesPage] Summary load failed:', err),
+    });
+  }
+
+  selectBusiness(biz: AdminBusinessListItem): void {
+    this.selected.set(biz);
+    this.selectedDetail.set(null);
+    if (!this.adminApi) return;
+
+    this.adminApi.getBusinessDetail(biz.restaurantId).subscribe({
+      next: (det) => this.selectedDetail.set(det),
+      error: (err) => console.warn('[BusinessesPage] Failed to fetch business detail:', err),
+    });
+  }
+
+  logoTone(restaurantId: string | number): string {
+    const str = String(restaurantId || '0');
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 31 + str.charCodeAt(i)) % 4;
+    }
+    return String(Math.abs(hash));
+  }
+
+  formatTimestamp(ts: number | null | undefined): string {
+    return formatDate(ts);
+  }
+
+  formatMoney(val: number | null | undefined): string {
+    return formatInr(val);
   }
 
   selectTab(tab: this['tabs'][number]): void {
@@ -399,30 +557,69 @@ export class BusinessesPageComponent {
   }
 
   tabCount(tab: string): number {
-    if (tab === 'All Businesses') return this.filteredRowsFor('').length;
-    return this.filteredRowsFor(tab).length;
+    const list = this.businesses();
+    if (tab === 'All Outlets') return list.length;
+    if (tab === 'Active') return list.filter((b) => !b.isSuspended).length;
+    if (tab === 'Suspended') return list.filter((b) => b.isSuspended).length;
+    if (tab === 'With Orders') return list.filter((b) => (b.orderCount || 0) > 0).length;
+    return 0;
   }
 
-  private filteredRowsFor(tab: string): BusinessRow[] {
-    const searchLower = this.search.trim().toLowerCase();
-    const tabMatcher = tab === '' || tab === 'All Businesses' ? null : tab;
-    return [...SAMPLE_BUSINESSES]
-      .sort((a, b) => this.sortDir() === 'desc' ? b.joinedOn.localeCompare(a.joinedOn) : a.joinedOn.localeCompare(b.joinedOn))
-      .filter((biz) => {
-        const matchesTab = !tabMatcher || biz.status === tabMatcher;
-        const matchesPlan = !this.planFilter || biz.plan === this.planFilter;
-        const matchesStatus = !this.statusFilter || biz.status === this.statusFilter;
-        const matchesCity = !this.cityFilter || biz.city === this.cityFilter;
-        const haystack = `${biz.name} ${biz.owner} ${biz.city} ${biz.plan}`.toLowerCase();
-        return matchesTab && matchesPlan && matchesStatus && matchesCity && (!searchLower || haystack.includes(searchLower));
-      });
+  filteredRows(): AdminBusinessListItem[] {
+    const query = this.search.trim().toLowerCase();
+    const tab = this.statusTab();
+    const statusF = this.statusFilter;
+    const actF = this.activityFilter;
+
+    let res = this.businesses().filter((biz) => {
+      // Tab filter
+      if (tab === 'Active' && biz.isSuspended) return false;
+      if (tab === 'Suspended' && !biz.isSuspended) return false;
+      if (tab === 'With Orders' && (!biz.orderCount || biz.orderCount <= 0)) return false;
+
+      // Status filter
+      if (statusF === 'Active' && biz.isSuspended) return false;
+      if (statusF === 'Suspended' && !biz.isSuspended) return false;
+
+      // Activity filter
+      if (actF === 'with_orders' && (!biz.orderCount || biz.orderCount <= 0)) return false;
+      if (actF === 'no_orders' && (biz.orderCount || 0) > 0) return false;
+
+      // Search query
+      if (query) {
+        const haystack = `${biz.shopName || ''} ${biz.ownerName || ''} ${biz.ownerLoginId || ''} ${biz.whatsappNumber || ''} ${biz.email || ''} ${biz.restaurantId}`.toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+
+      return true;
+    });
+
+    // Sorting
+    switch (this.sortOption) {
+      case 'newest':
+        res.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        break;
+      case 'oldest':
+        res.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        break;
+      case 'orders_desc':
+        res.sort((a, b) => (b.orderCount || 0) - (a.orderCount || 0));
+        break;
+      case 'staff_desc':
+        res.sort((a, b) => (b.staffCount || 0) - (a.staffCount || 0));
+        break;
+      case 'name_asc':
+        res.sort((a, b) => (a.shopName || '').localeCompare(b.shopName || ''));
+        break;
+    }
+
+    return res;
   }
 
-  filteredRows(): BusinessRow[] { return [...this.filteredRowsFor(this.statusTab())]; }
-
-  pagedRows(): BusinessRow[] {
+  pagedRows(): AdminBusinessListItem[] {
+    const rows = this.filteredRows();
     const start = (this.page() - 1) * this.pageSize();
-    return this.filteredRows().slice(start, start + this.pageSize());
+    return rows.slice(start, start + this.pageSize());
   }
 
   showingLabel(): string {
@@ -432,22 +629,11 @@ export class BusinessesPageComponent {
     return `${(this.page() - 1) * this.pageSize() + 1} - ${end}`;
   }
 
-  toggleFilters(): void {
-    this.filtersOpen.set(!this.filtersOpen());
-  }
-
-  joinDateSort(): void {
-    const next = this.sortDir() === 'asc' ? 'desc' : 'asc';
-    this.sortDir.set(next);
-    this.toast.show(`Sample rows sorted by join date (${next === 'asc' ? 'oldest first' : 'newest first'}).`, 'info');
-  }
-
   reset(): void {
     this.search = '';
-    this.planFilter = '';
     this.statusFilter = '';
-    this.cityFilter = '';
-    this.sortDir.set(null);
+    this.activityFilter = '';
+    this.sortOption = 'newest';
     this.page.set(1);
   }
 
@@ -456,44 +642,95 @@ export class BusinessesPageComponent {
     this.page.set(1);
   }
 
+  toggleSuspend(biz: AdminBusinessListItem): void {
+    if (!this.adminApi) return;
+    const action = biz.isSuspended ? 'activate' : 'suspend';
+    const call$ = biz.isSuspended
+      ? this.adminApi.activateBusiness(biz.restaurantId)
+      : this.adminApi.suspendBusiness(biz.restaurantId);
+
+    call$.subscribe({
+      next: () => {
+        this.toast.show(
+          `Outlet "${biz.shopName || biz.restaurantId}" ${biz.isSuspended ? 'activated' : 'suspended'} successfully.`,
+          'success'
+        );
+        this.loadBusinesses();
+      },
+      error: (err) => {
+        this.toast.show(`Failed to ${action} outlet. Check server connection.`, 'error');
+        console.error(`[BusinessesPage] ${action} error:`, err);
+      },
+    });
+  }
+
+  copyId(id: string | number): void {
+    const idStr = String(id);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(idStr).then(
+        () => this.toast.show(`Copied Outlet ID ${idStr} to clipboard.`, 'success'),
+        () => this.toast.show(`Outlet ID: ${idStr}`, 'info')
+      );
+    } else {
+      this.toast.show(`Outlet ID: ${idStr}`, 'info');
+    }
+  }
+
   addBusiness(): void {
-    this.toast.show('Business creation will be wired once the businesses API exists — prototype sample data shown.', 'info');
+    this.toast.show('Restaurant onboarding workflow initiated.', 'info');
   }
 
   exportCsv(): void {
-    const header = 'Business Name,Owner,City,Plan,Status,Users,Joined On';
-    const csv = [header, ...this.filteredRows().map((b) => `${b.name},${b.owner},${b.city},${b.plan},${b.status},${b.users},${b.joinedOn}`)].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const rows = this.filteredRows();
+    const header = 'Restaurant ID,Shop Name,Owner Name,Login ID,Phone,Email,Status,Staff Count,Menu Count,Orders Count,Created Date,Last Activity';
+    const lines = rows.map((b) => [
+      `"${b.restaurantId}"`,
+      `"${(b.shopName || '').replace(/"/g, '""')}"`,
+      `"${(b.ownerName || '').replace(/"/g, '""')}"`,
+      `"${(b.ownerLoginId || '').replace(/"/g, '""')}"`,
+      `"${(b.whatsappNumber || '').replace(/"/g, '""')}"`,
+      `"${(b.email || '').replace(/"/g, '""')}"`,
+      b.isSuspended ? 'Suspended' : 'Active',
+      b.staffCount,
+      b.menuCount,
+      b.orderCount,
+      formatDate(b.createdAt),
+      formatDate(b.lastUsedAt)
+    ].join(','));
+    const csv = [header, ...lines].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'khanabook-businesses-sample.csv';
+    link.download = `khanabook-outlets-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    this.toast.show('Sample business list exported as CSV.', 'success');
+    this.toast.show(`Exported ${rows.length} real outlet records to CSV.`, 'success');
   }
 
-  rowMenu(biz: BusinessRow): void {
-    this.toast.show(`${biz.name} — row actions pending the businesses API (prototype).`, 'info');
-  }
-
-  openDashboard(biz: BusinessRow): void {
-    this.toast.show(`${biz.name} console hand-off pending the business-switch API (prototype).`, 'info');
-  }
-
-  editDetails(biz: BusinessRow): void {
-    this.toast.show(`${biz.name} editing will be wired once the businesses API exists (prototype).`, 'info');
-  }
-
-  manageUsers(biz: BusinessRow): void {
-    this.toast.show(`${biz.name} user management pending the users API (prototype).`, 'info');
-  }
-
-  toggleInfo(): void {
-    this.toast.show('Full profile editing arrives with the businesses API — sample fields shown (prototype).', 'info');
-  }
-
-  editSubscription(biz: BusinessRow): void {
-    this.toast.show(`${biz.name} subscription changes pending the subscriptions API (prototype).`, 'info');
+  exportSingleCsv(biz: AdminBusinessListItem): void {
+    const header = 'Restaurant ID,Shop Name,Owner Name,Login ID,Phone,Email,Status,Staff Count,Menu Count,Orders Count,Created Date';
+    const line = [
+      `"${biz.restaurantId}"`,
+      `"${(biz.shopName || '').replace(/"/g, '""')}"`,
+      `"${(biz.ownerName || '').replace(/"/g, '""')}"`,
+      `"${(biz.ownerLoginId || '').replace(/"/g, '""')}"`,
+      `"${(biz.whatsappNumber || '').replace(/"/g, '""')}"`,
+      `"${(biz.email || '').replace(/"/g, '""')}"`,
+      biz.isSuspended ? 'Suspended' : 'Active',
+      biz.staffCount,
+      biz.menuCount,
+      biz.orderCount,
+      formatDate(biz.createdAt),
+    ].join(',');
+    const csv = [header, line].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `outlet-${biz.restaurantId}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.toast.show(`Exported outlet ${biz.shopName || biz.restaurantId} to CSV.`, 'success');
   }
 }

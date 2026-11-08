@@ -26,9 +26,43 @@ public class AdminDashboardController {
         return ResponseEntity.ok(adminReadService.getDashboardSummary());
     }
 
+    @GetMapping("/dashboard/daily-trends")
+    public ResponseEntity<List<com.khanabook.saas.feature.platform.dto.AdminDailyTrendItemResponse>> getDailyTrends(
+            @RequestParam(defaultValue = "30") int days) {
+        return ResponseEntity.ok(adminReadService.getDailyTrends(days));
+    }
+
     @GetMapping("/businesses")
     public ResponseEntity<List<AdminBusinessListItemResponse>> getBusinesses() {
         return ResponseEntity.ok(adminReadService.getBusinesses());
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<com.khanabook.saas.feature.platform.dto.AdminUserListItemResponse>> getUsers() {
+        return ResponseEntity.ok(adminReadService.getUsers());
+    }
+
+    @GetMapping("/bills")
+    public ResponseEntity<List<com.khanabook.saas.feature.platform.dto.AdminBillListItemResponse>> getRecentBills(
+            @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(adminReadService.getRecentBills(limit));
+    }
+
+    @GetMapping("/activity-logs")
+    public ResponseEntity<List<com.khanabook.saas.feature.platform.dto.AdminActivityLogResponse>> getActivityLogs(
+            @RequestParam(defaultValue = "50") int limit) {
+        return ResponseEntity.ok(adminReadService.getActivityLogs(limit));
+    }
+
+    @GetMapping("/notifications")
+    public ResponseEntity<com.khanabook.saas.feature.platform.dto.AdminNotificationFeedResponse> getNotifications(
+            @RequestParam(defaultValue = "100") int limit) {
+        return ResponseEntity.ok(adminReadService.getNotifications(limit));
+    }
+
+    @GetMapping("/backups")
+    public ResponseEntity<com.khanabook.saas.feature.platform.dto.AdminBackupStatusResponse> getBackupStatus() {
+        return ResponseEntity.ok(adminReadService.getBackupStatus());
     }
 
     @GetMapping("/businesses/{restaurantId}")

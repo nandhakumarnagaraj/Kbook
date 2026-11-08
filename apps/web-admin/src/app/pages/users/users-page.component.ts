@@ -1,30 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AdminUserListItem } from '../../core/models/api.models';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
 
-interface UserRow {
-  id: number;
-  name: string;
-  email: string;
-  role: 'Admin' | 'Owner' | 'Shop Staff';
-  business?: string;
-  location?: string;
-  status: 'Active' | 'Inactive' | 'Pending';
-  lastLogin: string;
+function formatDate(timestamp: number | null | undefined): string {
+  if (!timestamp) return '—';
+  try {
+    const d = new Date(timestamp);
+    return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return '—';
+  }
 }
 
-/**
- * Admin → Users & Access (reference A05, fused chrome pass).
- * No user-administration endpoint exists yet (admin-api.service.ts), so the
- * roster is prototype sample data, labelled on screen. The reference's page
- * language — four KPI cards, a select-style filter bar, initial-avatar rows,
- * kebab row actions and footer pagination with rows-per-page — is reproduced
- * with real local filtering/pagination behaviour.
- */
 @Component({
   selector: 'app-users-page',
   standalone: true,
@@ -33,27 +26,36 @@ interface UserRow {
   template: `
     <div class="page-shell">
       <app-page-header
-        title="Users & Access"
-        subtitle="Manage platform users, roles and permissions across all restaurants."
+        title="Users &amp; Access"
+        subtitle="Manage platform users, restaurant proprietors, cashiers and administrative roles."
       >
         <div class="header-controls">
-          <span class="chip warn">Prototype sample — no API yet</span>
+          <span class="chip chip--live">
+            <span class="live-dot" aria-hidden="true"></span>
+            Live Platform Accounts ({{ users().length }})
+          </span>
+          <button class="header-action-btn" type="button" (click)="loadUsers()" title="Reload from server">
+            <span aria-hidden="true">&#8635;</span> Refresh
+          </button>
           <button class="header-action-btn header-action-btn--primary" type="button" (click)="inviteUser()">
             + Invite User
+          </button>
+          <button class="header-action-btn" type="button" (click)="exportCsv()" title="Export real users roster as CSV">
+            <span aria-hidden="true">&#8595;</span> Export CSV
           </button>
         </div>
       </app-page-header>
 
-      <app-kpi-row [items]="kpis" ariaLabel="User summary"></app-kpi-row>
+      <app-kpi-row [items]="kpis()" ariaLabel="User summary"></app-kpi-row>
 
       <div class="panel list-panel">
-        <!-- Reference filter bar: search + select filters + clear -->
+        <!-- Filter bar: search + select filters + clear -->
         <div class="filter-bar">
           <label class="filter-search">
             <input
               type="search"
               name="search"
-              placeholder="Search by name, email or business..."
+              placeholder="Search by name, login ID, email, phone or restaurant..."
               [(ngModel)]="search"
               (ngModelChange)="page.set(1)"
               aria-label="Search users"
@@ -62,23 +64,36 @@ interface UserRow {
           <label class="filter-select" aria-label="Role filter">
             <select name="roleFilter" [(ngModel)]="roleFilter" (ngModelChange)="page.set(1)">
               <option value="">All Roles</option>
-              @for (role of roleOptions; track role) { <option [value]="role">{{ role }}</option> }
+              <option value="OWNER">Restaurant Owners</option>
+              <option value="KBOOK_ADMIN">Platform Admins</option>
+              <option value="SHOP_STAFF">Shop Staff</option>
             </select>
           </label>
           <label class="filter-select" aria-label="Status filter">
             <select name="statusFilter" [(ngModel)]="statusFilter" (ngModelChange)="page.set(1)">
-              <option value="">All Status</option>
-              @for (status of statusOptions; track status) { <option [value]="status">{{ status }}</option> }
+              <option value="">All Statuses</option>
+              <option value="active">Active Accounts</option>
+              <option value="inactive">Inactive Accounts</option>
             </select>
           </label>
           <label class="filter-select" aria-label="Business filter">
             <select name="businessFilter" [(ngModel)]="businessFilter" (ngModelChange)="page.set(1)">
-              <option value="">All Businesses</option>
-              @for (business of businessOptions; track business) { <option [value]="business">{{ business }}</option> }
+              <option value="">All Outlets</option>
+              @for (business of businessOptions(); track business) {
+                <option [value]="business">{{ business }}</option>
+              }
+            </select>
+          </label>
+          <label class="filter-select" aria-label="Sort order">
+            <select name="sortOption" [(ngModel)]="sortOption" (ngModelChange)="page.set(1)">
+              <option value="newest">Sort: Newest First</option>
+              <option value="oldest">Sort: Oldest First</option>
+              <option value="name_asc">Sort: Name (A-Z)</option>
+              <option value="role">Sort: By Role</option>
             </select>
           </label>
           <button type="button" class="clear-filters" (click)="clearFilters()">
-            <span aria-hidden="true">≡</span> Clear Filters
+            Clear Filters
           </button>
         </div>
 
@@ -87,12 +102,13 @@ interface UserRow {
             <thead>
               <tr>
                 <th class="idx-col">#</th>
-                <th>Name</th>
-                <th>Email</th>
+                <th>User Account</th>
+                <th>Login Identifier</th>
+                <th>Phone / WhatsApp</th>
                 <th>Role</th>
-                <th>Business</th>
+                <th>Assigned Outlet</th>
                 <th>Status</th>
-                <th>Last Login</th>
+                <th>Joined Date</th>
                 <th class="actions-col">Actions</th>
               </tr>
             </thead>
@@ -102,35 +118,72 @@ interface UserRow {
                   <td class="idx-col">{{ (page() - 1) * pageSize() + i + 1 }}</td>
                   <td>
                     <div class="stacked">
-                      <span class="avatar" aria-hidden="true">{{ user.name.charAt(0) }}</span>
-                      <strong>{{ user.name }}</strong>
+                      <span class="avatar" [class]="'avatar--' + avatarTone(user.id)" aria-hidden="true">
+                        {{ (user.name || 'U').charAt(0).toUpperCase() }}
+                      </span>
+                      <div>
+                        <strong>{{ user.name || 'Unnamed Account' }}</strong>
+                        <span class="sub-id">UID: {{ user.id }}</span>
+                      </div>
                     </div>
                   </td>
-                  <td class="email">{{ user.email }}</td>
-                  <td><span class="role-name">{{ user.role }}</span></td>
-                  <td>
-                    @if (user.business) {
-                      <div class="stacked">
-                        <strong class="biz">{{ user.business }}</strong>
-                        <span class="muted place">{{ user.location }}</span>
-                      </div>
-                    } @else {
-                      <span class="muted">Platform workspace</span>
+                  <td class="email">
+                    <span>{{ user.email || user.loginId }}</span>
+                    @if (user.email && user.loginId !== user.email) {
+                      <small class="muted sub-text">{{ user.loginId }}</small>
                     }
                   </td>
                   <td>
-                    <span class="chip" [class.success]="user.status === 'Active'" [class.danger]="user.status === 'Inactive'" [class.warn]="user.status === 'Pending'">
-                      {{ user.status }}
+                    <span [class.muted]="!user.phoneNumber">{{ user.phoneNumber || '—' }}</span>
+                  </td>
+                  <td>
+                    <span class="role-badge" [class]="'role-badge--' + roleSlug(user.role)">
+                      {{ roleDisplay(user.role) }}
                     </span>
                   </td>
-                  <td>{{ user.lastLogin }}</td>
+                  <td>
+                    @if (user.shopName) {
+                      <div class="outlet-col">
+                        <strong class="biz">{{ user.shopName }}</strong>
+                        <span class="muted place">ID: {{ user.restaurantId }}</span>
+                      </div>
+                    } @else if (user.role === 'KBOOK_ADMIN') {
+                      <span class="chip-platform">Platform Core</span>
+                    } @else {
+                      <span class="muted">Unassigned</span>
+                    }
+                  </td>
+                  <td>
+                    @if (user.isActive) {
+                      <span class="status-chip status-chip--active">Active</span>
+                    } @else {
+                      <span class="status-chip status-chip--inactive">Inactive</span>
+                    }
+                  </td>
+                  <td>{{ formatTimestamp(user.createdAt) }}</td>
                   <td class="actions-col">
-                    <button type="button" class="kebab-btn" aria-label="Row actions" (click)="rowMenu(user)">⋮</button>
+                    <button
+                      type="button"
+                      class="quick-action-btn"
+                      title="Copy Login Identifier"
+                      (click)="copyLogin(user)">
+                      Copy Login
+                    </button>
                   </td>
                 </tr>
               }
               @if (!filteredRows().length) {
-                <tr><td colspan="8" class="muted empty-cell">No users match these filters.</td></tr>
+                <tr>
+                  <td colspan="9" class="muted empty-cell">
+                    @if (loading()) {
+                      Loading platform accounts from server...
+                    } @else if (error()) {
+                      {{ error() }}
+                    } @else {
+                      No users match these filters.
+                    }
+                  </td>
+                </tr>
               }
             </tbody>
           </table>
@@ -138,7 +191,7 @@ interface UserRow {
 
         <footer class="list-foot">
           <span class="muted count-note">
-            {{ filteredRows().length }} of {{ users.length }} sample users
+            Showing {{ showingLabel() }} of {{ filteredRows().length }} real user accounts
           </span>
           <app-pagination-bar
             [currentPage]="page()"
@@ -152,6 +205,7 @@ interface UserRow {
               <option [value]="10">10</option>
               <option [value]="25">25</option>
               <option [value]="50">50</option>
+              <option [value]="100">100</option>
             </select>
           </label>
         </footer>
@@ -164,7 +218,7 @@ interface UserRow {
       .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--kb-space-3); margin-bottom: var(--kb-space-4); }
       .filter-search {
         flex: 1;
-        min-width: 220px;
+        min-width: 240px;
         display: flex;
         align-items: center;
         border: 1px solid var(--line);
@@ -189,42 +243,94 @@ interface UserRow {
         color: var(--ink);
       }
       .clear-filters {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--kb-space-1);
-        border: none;
-        background: transparent;
+        border: 1px solid var(--line);
+        background: var(--kb-color-surface);
         color: var(--brand);
+        border-radius: var(--kb-radius-md);
+        padding: var(--kb-space-2) var(--kb-space-3);
         font-size: var(--kb-text-sm);
         cursor: pointer;
+        transition: border-color 200ms ease, color 200ms ease;
       }
-      .filter-search:focus-within, .filter-select select:focus, .filter-search input:focus, .rpp select:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
-      .idx-col { width: 48px; text-align: center; color: var(--muted); }
+      .filter-search:focus-within, .filter-select select:focus, .filter-search input:focus, .rpp select:focus, .clear-filters:focus {
+        outline: 2px solid var(--brand);
+        outline-offset: 1px;
+      }
+      .idx-col { width: 44px; text-align: center; color: var(--muted); }
       .stacked { display: flex; align-items: center; gap: var(--kb-space-2); }
+      .sub-id { display: block; font-size: var(--kb-text-xs); color: var(--muted); font-family: monospace; }
+      .sub-text { display: block; font-size: var(--kb-text-xs); }
       .avatar {
         flex: none;
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
         border-radius: var(--kb-radius-full);
-        background: var(--brand-soft);
-        color: var(--brand);
         display: grid;
         place-items: center;
         font-size: var(--kb-text-sm);
         font-weight: 700;
       }
-      .role-name { color: var(--brand); font-weight: 650; }
+      .avatar--0 { background: var(--brand-soft); color: var(--brand); }
+      .avatar--1 { background: var(--success-soft); color: var(--success); }
+      .avatar--2 { background: var(--info-soft); color: var(--info); }
+      .avatar--3 { background: var(--warning-soft); color: var(--warning); }
+      .role-badge {
+        font-size: var(--kb-text-xs);
+        font-weight: 700;
+        padding: var(--kb-space-1) var(--kb-space-2);
+        border-radius: var(--kb-radius-sm);
+        display: inline-block;
+      }
+      .role-badge--admin { background: var(--warning-soft); color: var(--warning); }
+      .role-badge--owner { background: var(--success-soft); color: var(--success); }
+      .role-badge--staff { background: var(--info-soft); color: var(--info); }
+      .outlet-col { display: flex; flex-direction: column; gap: var(--kb-space-1); }
       .biz { font-size: var(--kb-text-sm); }
-      .place { font-size: var(--kb-text-xs); }
-      .email { font-size: var(--kb-text-sm); color: var(--ink-2); }
-      .actions-col { width: 56px; text-align: center; }
-      .kebab-btn {
-        border: none;
-        background: transparent;
-        color: var(--muted);
-        font-size: var(--kb-text-lg);
+      .place { font-size: var(--kb-text-xs); font-family: monospace; }
+      .chip-platform {
+        font-size: var(--kb-text-xs);
+        font-weight: 600;
+        color: var(--brand);
+        background: var(--brand-soft);
+        padding: var(--kb-space-1) var(--kb-space-2);
+        border-radius: var(--kb-radius-full);
+      }
+      .email { font-size: var(--kb-text-sm); color: var(--ink); }
+      .status-chip {
+        font-size: var(--kb-text-xs);
+        font-weight: 650;
+        padding: var(--kb-space-1) var(--kb-space-2);
+        border-radius: var(--kb-radius-full);
+      }
+      .status-chip--active { background: var(--success-soft); color: var(--success); }
+      .status-chip--inactive { background: var(--danger-soft); color: var(--danger); }
+      .chip--live {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--kb-space-2);
+        background: var(--success-soft);
+        color: var(--success);
+        font-size: var(--kb-text-xs);
+        font-weight: 650;
+        padding: var(--kb-space-1) var(--kb-space-3);
+        border-radius: var(--kb-radius-full);
+      }
+      .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex: none; }
+      .actions-col { width: 100px; text-align: center; }
+      .quick-action-btn {
+        border: 1px solid var(--line);
+        background: var(--kb-color-surface);
+        padding: var(--kb-space-1) var(--kb-space-2);
+        border-radius: var(--kb-radius-sm);
+        font-size: var(--kb-text-xs);
+        font-weight: 600;
+        color: var(--brand);
         cursor: pointer;
-        line-height: 1;
+        transition: border-color 200ms ease, background-color 200ms ease, color 200ms ease;
+      }
+      .quick-action-btn:hover {
+        border-color: var(--brand);
+        background: var(--brand-soft);
       }
       .empty-cell { text-align: center; padding: var(--kb-space-6) 0; font-size: var(--kb-text-sm); }
       .list-foot { display: flex; align-items: center; gap: var(--kb-space-4); padding-top: var(--kb-space-4); }
@@ -233,56 +339,152 @@ interface UserRow {
     `,
   ],
 })
-export class UsersPageComponent {
+export class UsersPageComponent implements OnInit {
+  private readonly adminApi = inject(AdminApiService, { optional: true });
   private readonly toast = inject(ToastService);
+
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
+  readonly users = signal<AdminUserListItem[]>([]);
 
   readonly page = signal(1);
   readonly pageSize = signal(10);
-  readonly rpp = 10;
-
-  readonly kpis: KpiItem[] = [
-    { label: 'Total Users', value: 156, icon: 'staff', tone: 'brand', caption: '+12 this month' },
-    { label: 'Admins', value: 12, icon: 'flag', tone: 'warning', caption: '7.7% of accounts' },
-    { label: 'Business Owners', value: 98, icon: 'business', tone: 'success', caption: '62.8% of accounts' },
-    { label: 'Staff Users', value: 46, icon: 'manage_accounts', tone: 'brand', caption: '29.5% of accounts' },
-  ];
-
-  readonly roleOptions = ['Admin', 'Owner', 'Shop Staff'] as const;
-  readonly statusOptions = ['Active', 'Inactive', 'Pending'] as const;
-  readonly businessOptions = ['Spice Villa', 'Dine Hub', 'Tasty Bites', 'Food Junction', 'Royal Kitchen', 'Curry Corner'];
+  rpp = 10;
 
   search = '';
   roleFilter = '';
   statusFilter = '';
   businessFilter = '';
+  sortOption: 'newest' | 'oldest' | 'name_asc' | 'role' = 'newest';
 
-  readonly users: UserRow[] = [
-    { id: 1, name: 'Bharat Mehta', email: 'bharat@khanabook.in', role: 'Admin', status: 'Active', lastLogin: '28 Oct 2026, 09:12 am' },
-    { id: 2, name: 'NandhaKumar N', email: 'nandhakumar@spicevilla.in', role: 'Owner', business: 'Spice Villa', location: 'Chennai, TN', status: 'Active', lastLogin: '28 Oct 2026, 07:45 am' },
-    { id: 3, name: 'Ravi Kumar', email: 'ravi@spicevilla.in', role: 'Shop Staff', business: 'Spice Villa', location: 'Chennai, TN', status: 'Active', lastLogin: '28 Oct 2026, 07:20 am' },
-    { id: 4, name: 'Suresh M', email: 'suresh@dinehub.in', role: 'Owner', business: 'Dine Hub', location: 'Bengaluru, KA', status: 'Active', lastLogin: '27 Oct 2026, 11:05 am' },
-    { id: 5, name: 'Priya S', email: 'priya@tastybites.in', role: 'Owner', business: 'Tasty Bites', location: 'Coimbatore, TN', status: 'Active', lastLogin: '26 Oct 2026, 09:12 am' },
-    { id: 6, name: 'Deepa R', email: 'deepa@royalkitchen.in', role: 'Owner', business: 'Royal Kitchen', location: 'Trichy, TN', status: 'Inactive', lastLogin: '12 Oct 2026, 11:30 am' },
-    { id: 7, name: 'Mohammed A', email: 'mohammed@flavorspoint.in', role: 'Owner', business: 'Flavors Point', location: 'Hyderabad, TS', status: 'Pending', lastLogin: '—' },
-    { id: 8, name: 'Vikram N', email: 'vikram@biryanihouse.in', role: 'Owner', business: 'Biryani House', location: 'Kochi, KL', status: 'Active', lastLogin: '22 Oct 2026, 10:50 am' },
-    { id: 9, name: 'Anjali P', email: 'anjali@tasteofindia.in', role: 'Owner', business: 'Taste of India', location: 'Mysuru, KA', status: 'Active', lastLogin: '21 Oct 2026, 03:22 pm' },
-    { id: 10, name: 'Neha S', email: 'neha@urbandine.in', role: 'Owner', business: 'Urban Dine', location: 'Pune, MH', status: 'Active', lastLogin: '20 Oct 2026, 11:08 am' },
-  ];
+  readonly kpis = computed<KpiItem[]>(() => {
+    const list = this.users();
+    const total = list.length;
+    const owners = list.filter((u) => u.role === 'OWNER').length;
+    const admins = list.filter((u) => u.role === 'KBOOK_ADMIN' || u.role === 'ADMIN').length;
+    const staff = list.filter((u) => u.role === 'SHOP_STAFF' || u.role === 'STAFF').length;
 
-  readonly filteredRows = computed(() => {
-    const searchLower = this.search.trim().toLowerCase();
-    return this.users.filter((user) => {
-      const matchesRole = !this.roleFilter || user.role === this.roleFilter;
-      const matchesStatus = !this.statusFilter || user.status === this.statusFilter;
-      const matchesBusiness = !this.businessFilter || user.business === this.businessFilter;
-      const haystack = `${user.name} ${user.email} ${user.business ?? ''} ${user.location ?? ''}`.toLowerCase();
-      return matchesRole && matchesStatus && matchesBusiness && (!searchLower || haystack.includes(searchLower));
-    });
+    return [
+      { label: 'Total Users', value: total, icon: 'staff', tone: 'brand', caption: 'Registered platform accounts' },
+      { label: 'Business Owners', value: owners, icon: 'business', tone: 'success', caption: `${total > 0 ? ((owners / total) * 100).toFixed(1) : 0}% of platform accounts` },
+      { label: 'Platform Admins', value: admins, icon: 'flag', tone: 'warning', caption: 'Superuser / root access' },
+      { label: 'Shop Staff Users', value: staff, icon: 'manage_accounts', tone: 'brand', caption: 'Counter operators & cashiers' },
+    ];
   });
 
-  pagedRows(): UserRow[] {
+  readonly businessOptions = computed<string[]>(() => {
+    const set = new Set<string>();
+    for (const u of this.users()) {
+      if (u.shopName) set.add(u.shopName);
+    }
+    return Array.from(set).sort();
+  });
+
+  ngOnInit(): void {
+    this.loadUsers();
+  }
+
+  loadUsers(): void {
+    if (!this.adminApi) return;
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.adminApi.getUsers().subscribe({
+      next: (data) => {
+        this.users.set(data || []);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.error.set('Failed to load users from server.');
+        console.error('[UsersPage] Error loading users:', err);
+      },
+    });
+  }
+
+  avatarTone(id: string | number): string {
+    const str = String(id || '0');
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash * 31 + str.charCodeAt(i)) % 4;
+    }
+    return String(Math.abs(hash));
+  }
+
+  roleSlug(role: string): string {
+    const r = (role || '').toUpperCase();
+    if (r.includes('ADMIN')) return 'admin';
+    if (r.includes('STAFF')) return 'staff';
+    return 'owner';
+  }
+
+  roleDisplay(role: string): string {
+    const r = (role || '').toUpperCase();
+    if (r === 'KBOOK_ADMIN') return 'Platform Admin';
+    if (r === 'SHOP_STAFF') return 'Shop Staff';
+    if (r === 'OWNER') return 'Business Owner';
+    return role || 'User';
+  }
+
+  formatTimestamp(ts: number | null | undefined): string {
+    return formatDate(ts);
+  }
+
+  filteredRows(): AdminUserListItem[] {
+    const query = this.search.trim().toLowerCase();
+    const roleF = this.roleFilter;
+    const statusF = this.statusFilter;
+    const bizF = this.businessFilter;
+
+    let res = this.users().filter((user) => {
+      // Role filter
+      if (roleF && user.role !== roleF) return false;
+
+      // Status filter
+      if (statusF === 'active' && !user.isActive) return false;
+      if (statusF === 'inactive' && user.isActive) return false;
+
+      // Business filter
+      if (bizF && user.shopName !== bizF) return false;
+
+      // Search query
+      if (query) {
+        const haystack = `${user.name || ''} ${user.email || ''} ${user.loginId || ''} ${user.phoneNumber || ''} ${user.shopName || ''} ${user.id}`.toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+
+      return true;
+    });
+
+    switch (this.sortOption) {
+      case 'newest':
+        res.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        break;
+      case 'oldest':
+        res.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        break;
+      case 'name_asc':
+        res.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        break;
+      case 'role':
+        res.sort((a, b) => a.role.localeCompare(b.role));
+        break;
+    }
+
+    return res;
+  }
+
+  pagedRows(): AdminUserListItem[] {
+    const rows = this.filteredRows();
     const start = (this.page() - 1) * this.pageSize();
-    return this.filteredRows().slice(start, start + this.pageSize());
+    return rows.slice(start, start + this.pageSize());
+  }
+
+  showingLabel(): string {
+    const len = this.filteredRows().length;
+    if (!len) return '0 results';
+    const end = Math.min(this.page() * this.pageSize(), len);
+    return `${(this.page() - 1) * this.pageSize() + 1} - ${end}`;
   }
 
   clearFilters(): void {
@@ -290,6 +492,7 @@ export class UsersPageComponent {
     this.roleFilter = '';
     this.statusFilter = '';
     this.businessFilter = '';
+    this.sortOption = 'newest';
     this.page.set(1);
   }
 
@@ -298,11 +501,45 @@ export class UsersPageComponent {
     this.page.set(1);
   }
 
-  inviteUser(): void {
-    this.toast.show('User invites will be wired once the users API exists — prototype sample data shown.', 'info');
+  copyLogin(user: AdminUserListItem): void {
+    const id = user.loginId || user.email || user.phoneNumber || '';
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(id).then(
+        () => this.toast.show(`Copied "${id}" to clipboard.`, 'success'),
+        () => this.toast.show(`Login Identifier: ${id}`, 'info')
+      );
+    } else {
+      this.toast.show(`Login Identifier: ${id}`, 'info');
+    }
   }
 
-  rowMenu(user: UserRow): void {
-    this.toast.show(`${user.name} — user actions pending the users API (prototype).`, 'info');
+  inviteUser(): void {
+    this.toast.show('User invite invitation link feature is queued for next platform rollout.', 'info');
+  }
+
+  exportCsv(): void {
+    const rows = this.filteredRows();
+    const header = 'User ID,Name,Login ID,Email,Phone,Role,Restaurant ID,Shop Name,Status,Joined Date';
+    const lines = rows.map((u) => [
+      `"${u.id}"`,
+      `"${(u.name || '').replace(/"/g, '""')}"`,
+      `"${(u.loginId || '').replace(/"/g, '""')}"`,
+      `"${(u.email || '').replace(/"/g, '""')}"`,
+      `"${(u.phoneNumber || '').replace(/"/g, '""')}"`,
+      `"${u.role}"`,
+      `"${u.restaurantId || ''}"`,
+      `"${(u.shopName || '').replace(/"/g, '""')}"`,
+      u.isActive ? 'Active' : 'Inactive',
+      formatDate(u.createdAt),
+    ].join(','));
+    const csv = [header, ...lines].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `khanabook-users-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    this.toast.show(`Exported ${rows.length} real user accounts to CSV.`, 'success');
   }
 }

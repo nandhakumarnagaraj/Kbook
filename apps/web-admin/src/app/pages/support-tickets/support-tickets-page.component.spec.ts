@@ -14,10 +14,10 @@ describe('SupportTicketsPageComponent — reference list layout', () => {
     fixture.detectChanges();
   });
 
-  it('renders four KPI tiles and the honest sample chip', () => {
+  it('renders four KPI tiles and the live header chip', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelectorAll('.kb-kpi').length).toBe(4);
-    expect(el.textContent).toContain('Prototype sample — no API yet');
+    expect(el.textContent).toContain('Support Desk');
   });
 
   it('matches tab counts to the sample rows', () => {

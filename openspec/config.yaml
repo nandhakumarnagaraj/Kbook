@@ -1,0 +1,40 @@
+schema: spec-driven
+
+# Project context (Core constraints guiding OpenSpec artifacts and workflows)
+context: |
+  KhanaBook is an offline-first GST billing POS for Indian restaurants with 3 platforms:
+  - apps/android: Touch cashier POS, Kotlin 2, Compose, Room (SQLCipher encrypted). Strictly terminal-scoped.
+  - services/server: Spring Boot 3.5 multi-tenant SaaS backend (Java 17, PostgreSQL, Flyway).
+  - apps/web-admin: Angular 18 standalone components. Restaurant-wide and platform oversight.
+
+  Hard Invariants:
+  1. Terminal Scoping: Android POS must never access or modify bills from another terminal. Web Admin is restaurant-wide.
+  2. 5-Terminal Limit: Strictly maximum 5 active till terminals per restaurant, approved via challenge code & DB row lock.
+  3. Offline-First Sync: Local SQLite is immediate authority; sync uses changed_fields mask; server-owned fields are immutable to device push.
+  4. Role Hierarchy: OWNER (full access), SHOP_STAFF (terminal billing only, blocked on web-admin), KBOOK_ADMIN (platform only).
+  5. Stock Ledger: Android POS has NO stock-write paths. Inventory is server-managed.
+  6. KOT Printing: Event-sourced with batchToken; sentToKot is a transport receipt flag, never business order state.
+  7. Easebuzz Payments: Sub-merchant model with webhook idempotency and audit ledger for refunds.
+
+# Per-artifact rules
+rules:
+  proposal:
+    - Specify affected platforms (Android POS, Server, Web Admin)
+    - Identify impact on offline sync and database schemas (Room and Flyway migrations)
+    - Explicitly state blast radius and affected roles (OWNER, SHOP_STAFF, KBOOK_ADMIN)
+  specs:
+    - Include terminal scoping considerations and offline/online failure modes
+    - For money/bill changes, define tax rounding and status version transitions
+  tasks:
+    - Group tasks by platform (Server API -> Android POS -> Web Admin)
+    - Require verification tests for both offline SQLite operations and server integration
+
+# Per-operation guidance
+operations:
+  apply:
+    guidance:
+      - Always verify database migration compatibility between Room (client) and Flyway (server)
+      - Ensure TenantContext and terminal ownership checks are preserved on all write paths
+  archive:
+    guidance:
+      - Update relevant system specs in openspec/specs/

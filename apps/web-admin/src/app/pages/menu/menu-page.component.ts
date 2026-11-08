@@ -810,7 +810,7 @@ import { environment } from '../../../environments/environment';
       flex: none;
       border-radius: var(--kb-radius-md);
       background: var(--kb-color-primary-soft);
-      font-size: 0.9rem;
+      font-size: var(--kb-text-md);
     }
     .menu-cat-rail__name {
       flex: 1 1 auto;

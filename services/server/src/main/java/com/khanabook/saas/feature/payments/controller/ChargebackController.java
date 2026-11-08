@@ -29,7 +29,7 @@ public class ChargebackController {
 
     @PostMapping("/score/{billId}")
     public ResponseEntity<Map<String, Object>> scoreTransaction(@PathVariable Long billId) {
-        return ResponseEntity.ok(chargebackService.scoreTransaction(billId));
+        return ResponseEntity.ok(chargebackService.scoreTransaction(requireTenant(), billId));
     }
 
     @PostMapping

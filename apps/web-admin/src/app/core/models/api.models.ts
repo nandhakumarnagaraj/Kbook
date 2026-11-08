@@ -56,9 +56,24 @@ export interface AdminBusinessDetail extends AdminBusinessListItem {
   timezone: string | null;
   gstEnabled: boolean;
   gstin: string | null;
+  fssaiNumber?: string | null;
   posOrderCount: number;
   totalRevenue: number;
   createdAt: number | null;
+}
+
+export interface AdminUserListItem {
+  id: string;
+  name: string;
+  email: string | null;
+  loginId: string;
+  phoneNumber: string | null;
+  role: string;
+  restaurantId: string | null;
+  shopName: string | null;
+  isActive: boolean;
+  createdAt: number | null;
+  lastSeenAt: number | null;
 }
 
 export interface AdminCreateBusinessRequest {
@@ -508,4 +523,88 @@ export interface GstLedgerResponse {
   invoiceCount: number;
   entries: GstLedgerEntry[];
 }
+
+export interface AdminBillListItem {
+  id: number;
+  restaurantId: number;
+  shopName: string;
+  invoiceNumber: string;
+  dailyOrderDisplay?: string;
+  totalAmount: number;
+  paymentMode: string;
+  paymentStatus: string;
+  orderStatus: string;
+  customerName?: string;
+  createdAt: number;
+}
+
+export interface AdminActivityLogItem {
+  id: number;
+  restaurantId?: number | null;
+  shopName: string;
+  userId: string;
+  action: string;
+  outcome: string;
+  targetCanonicalId?: string;
+  createdAt: number;
+}
+
+export interface AdminFeatureFlagItem {
+  flagKey: string;
+  killSwitched: boolean;
+  defaultEnabled: boolean;
+  description: string;
+  updatedAt: number;
+  effectiveState: boolean;
+}
+
+export interface AdminDailyTrendItem {
+  date: string;
+  orderCount: number;
+  revenue: number;
+  newRegistrations: number;
+}
+
+export interface AdminNotificationItem {
+  id: number;
+  restaurantId: number;
+  shopName: string;
+  notificationType: string;
+  title: string;
+  message: string;
+  referenceId?: string;
+  referenceType?: string;
+  amount?: number;
+  isRead: boolean;
+  isPushed: boolean;
+  createdAt: number;
+}
+
+export interface AdminNotificationFeed {
+  totalCount: number;
+  pushedCount: number;
+  readCount: number;
+  paymentCount: number;
+  systemCount: number;
+  notifications: AdminNotificationItem[];
+}
+
+export interface AdminBackupItem {
+  id: string;
+  timestamp: string;
+  type: string;
+  size: string;
+  status: string;
+  location: string;
+}
+
+export interface AdminBackupStatus {
+  totalSnapshots: number;
+  latestBackup: string;
+  databaseSize: string;
+  retentionPolicy: string;
+  backups: AdminBackupItem[];
+}
+
+
 

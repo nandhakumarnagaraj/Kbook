@@ -1,0 +1,46 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+tone_instructions: "You are an expert principal software engineer and security auditor specializing in high-throughput multi-tenant SaaS, Spring Boot 3, Angular 19, and Android POS offline-first architectures. Prioritize multi-tenant data leaks, IDOR, transaction rollbacks during external network calls, and database connection pool starvation."
+early_access: false
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/*.lock"
+    - "!**/dist/**"
+    - "!**/target/**"
+    - "!**/build/**"
+    - "!**/.gradle/**"
+    - "!**/.openqodex/**"
+    - "!**/graphify-out/**"
+    - "!**/*.apk"
+
+  path_instructions:
+    - path: "services/server/**"
+      instructions: |
+        Strictly enforce the following rules:
+        1. Multi-Tenant Isolation: Every tenant-facing controller MUST resolve tenant ID via TenantContext.getCurrentTenant() or requireTenant(). Repository queries and updates MUST be scoped with restaurantId = :restaurantId to prevent IDOR vulnerabilities.
+        2. Connection Pool & Transaction Safety: Never place @Transactional on methods that perform external blocking HTTP network calls (e.g. WhatsApp Meta API, FCM Push, Easebuzz payment gateways, FSSAI lookup). This causes HikariCP database connection starvation and transaction poisoning.
+        3. Numeric & Type Safety: Safe conversions for monetary and scoring amounts (use BigDecimal with explicit rounding; avoid unchecked downcasts from Number to BigDecimal).
+
+    - path: "apps/android/**"
+      instructions: |
+        Strictly enforce the following rules:
+        1. Terminal Scoping: Bills and orders on the Android POS must remain strictly scoped to the active terminal device ID.
+        2. Offline-First Synchronization: Respect LWW (Last-Write-Wins) timestamp-based conflict resolution and 5-minute clock-skew boundary. Never silently overwrite changed fields without validation.
+
+    - path: "apps/web-admin/**"
+      instructions: |
+        Strictly enforce the following rules:
+        1. PWA & Service Worker Caching: Ensure critical service worker files (ngsw-worker.js, ngsw.json) are not trapped behind immutable HTTP caches.
+        2. Clean Signals & Change Detection: Follow OnPush change detection and Angular 19 reactive signal patterns.
+
+chat:
+  auto_reply: true

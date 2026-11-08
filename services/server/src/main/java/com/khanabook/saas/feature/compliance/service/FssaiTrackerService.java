@@ -44,7 +44,6 @@ public class FssaiTrackerService {
      * Run daily at 10:00 AM to check FSSAI expiry dates and renewal status.
      */
     @Scheduled(cron = "0 0 10 * * ?")
-    @Transactional
     public void trackFssaiLicenses() {
         log.info("Starting daily FSSAI license tracking task...");
         List<RestaurantProfile> profiles = restaurantProfileRepo.findAll();

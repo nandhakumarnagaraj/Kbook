@@ -9,6 +9,9 @@ Every config below was started on 2026-10-26 and answered an MCP `initialize` ha
 
 | Config file | Server | Tools | Purpose |
 |---|---|---|---|
+| `chrome-devtools-mcp.json` | Chrome DevTools | 32 | Browser automation, DOM/CSS inspection, network requests, console logs, performance traces, Lighthouse audits |
+| `stitch-mcp.json` | Google Stitch | 17 | AI UI/UX design generation, multi-screen prototyping, design tokens, screen exploration |
+| `designmd-mcp.json` | DESIGNmd | 7 | Search, browse, inspect, download, and publish DESIGN.md design system kits |
 | `firebase-mcp.json` | Firebase | 27 | Firestore, Auth, Hosting, Cloud Functions via `firebase-tools` experimental MCP |
 | `postgres-mcp.json` | PostgreSQL | 1 | Direct SQL (`query`) against the local database |
 | `android-adb-mcp.json` | Android ADB | 25 | Device/emulator control via ADB — list devices, boot emulators, install |
@@ -472,6 +475,108 @@ condition are recorded so the intent is not lost with the file.
 To restore one: install the runtime it needs (Docker Desktop, real Python 3.11+, the Maestro CLI),
 confirm the package resolves with `npm view <pkg> version`, then add the config back and check it
 with the handshake test described under [Testing](#testing).
+
+---
+
+## Chrome DevTools MCP
+
+**File:** `chrome-devtools-mcp.json`
+
+Provides AI agents with direct browser automation, DOM inspection, and performance profiling via the official Google [`chrome-devtools-mcp`](https://github.com/ChromeDevTools/chrome-devtools-mcp) (32 tools):
+- **Browser Automation:** Click, drag, hover, fill forms, submit, wait for selector (`click`, `drag`, `fill_form`, `submit_form`)
+- **Inspection:** Live DOM snapshots (`take_snapshot`), computed CSS styles (`get_css_styles`), console messages (`list_console_messages`), network traffic (`list_network_requests`)
+- **Visuals:** Viewport and full-page screenshots (`take_screenshot`)
+- **Performance & Audits:** Performance traces (`performance_start_trace`), Core Web Vitals analysis, and Lighthouse audits (`lighthouse_audit`)
+
+### Usage
+
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--no-usage-statistics",
+        "--chrome-arg=--no-sandbox",
+        "--chrome-arg=--disable-setuid-sandbox"
+      ]
+    }
+  }
+}
+```
+
+---
+
+## Google Stitch MCP
+
+**File:** `stitch-mcp.json`
+
+Provides AI agents with direct access to [Google Stitch](https://stitch.withgoogle.com) (Google Labs' AI-native UI/UX design, design system, and multi-screen prototyping platform) via [`@_davideast/stitch-mcp`](https://github.com/davideast/stitch-mcp) (17 tools):
+- **Projects & Screens:** Create projects, list screens, inspect layout structures (`create_project`, `list_screens`, `get_screen`)
+- **Design DNA & Systems:** Generate and apply design systems, import from `DESIGN.md`, export design tokens (`create_design_system`, `upload_design_md`, `apply_design_system`)
+- **Screen Generation & Variants:** Prompt-driven screen creation and UI variant exploration (`generate_screen_from_text`, `generate_variants`, `edit_screens`)
+- **Code & Asset Export:** Download generated HTML/CSS layouts, Tailwind styles, and UI screenshots (`download_file`, `download_assets`)
+
+### Usage
+
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@_davideast/stitch-mcp",
+        "proxy"
+      ],
+      "env": {
+        "STITCH_API_KEY": "${STITCH_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Authentication
+Authenticate using either:
+1. **API Key:** Set `STITCH_API_KEY` (obtained from your [Stitch Settings](https://stitch.withgoogle.com)).
+2. **Google Cloud OAuth:** Run `npx @_davideast/stitch-mcp init` to link your Google Cloud project credentials.
+
+---
+
+## DESIGNmd MCP
+
+**File:** `designmd-mcp.json`
+
+Provides AI agents with access to [DESIGNmd](https://designmd.ai) (the curated library of `DESIGN.md` design systems and tokens) via [`designmd-mcp`](https://github.com/shafius/designmd-mcp) (7 tools):
+- **Search & Discovery:** Search design kits by theme/keywords, browse popular/trending systems, and inspect categories (`search_design_kits`, `list_popular_kits`, `list_tags`)
+- **Inspection & Detail:** Retrieve complete design tokens, palettes, typography, and component styling rules (`get_design_kit`)
+- **Download & Integrate:** Download `DESIGN.md` kits directly into the repository (`download_design_kit`)
+- **Publish & Manage:** Upload new design systems or manage personal published kits (`upload_design_kit`, `delete_design_kit`)
+
+### Usage
+
+```json
+{
+  "mcpServers": {
+    "designmd": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "designmd-mcp@latest"
+      ],
+      "env": {
+        "DESIGNMD_API_KEY": "${DESIGNMD_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Authentication
+Set `DESIGNMD_API_KEY` in `.env` (obtained from [designmd.ai/mcp](https://designmd.ai/mcp)).
 
 ---
 

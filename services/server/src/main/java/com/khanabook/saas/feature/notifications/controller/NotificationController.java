@@ -78,7 +78,14 @@ public class NotificationController {
     /** Mark single notification as read */
     @PostMapping("/{id}/read")
     public ResponseEntity<Map<String, Object>> markAsRead(@PathVariable Long id) {
-        pushNotificationService.markAsRead(id);
+        Long restaurantId = TenantContext.getCurrentTenant();
+        if (restaurantId == null) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", "No restaurant context"));
+        }
+        boolean updated = pushNotificationService.markAsRead(restaurantId, id);
+        if (!updated) {
+            return ResponseEntity.status(404).body(Map.of("status", "error", "message", "Notification not found"));
+        }
         return ResponseEntity.ok(Map.of("status", "success"));
     }
 

@@ -93,6 +93,25 @@ class ChargebackPreventionServiceTest {
     }
 
     @Test
+    void scoreTransaction_crossTenant_returnsZeroScore() {
+        when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
+
+        var result = chargebackService.scoreTransaction(999L, 1L);
+
+        assertThat(result.get("score")).isEqualTo(0);
+        assertThat(result.get("risk")).isEqualTo("unknown");
+    }
+
+    @Test
+    void createChargeback_crossTenant_throwsUnauthorized() {
+        when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
+
+        assertThatThrownBy(() -> chargebackService.createChargeback(999L, 1L, "fraudulent", "Cross-tenant attempt"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Unauthorized");
+    }
+
+    @Test
     void createChargeback_savesChargebackWithEmailNotification() {
         when(billRepository.findById(1L)).thenReturn(Optional.of(testBill));
         when(chargebackRepository.findByRestaurantIdOrderByCreatedAtDesc(100L)).thenReturn(java.util.List.of());

@@ -822,6 +822,15 @@ function getTodayIsoDate(): string {
       color: var(--kb-color-muted-foreground);
     }
 
+    .pulse-indicator {
+      display: inline-block;
+      flex: none;
+      width: 7px;
+      height: 7px;
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-color-success);
+    }
+
     .dash-title {
       margin: 0;
       font-family: var(--font-display);
@@ -887,11 +896,16 @@ function getTodayIsoDate(): string {
       font-size: var(--kb-text-sm);
       color: var(--kb-color-foreground);
       cursor: pointer;
-      transition: background 180ms ease;
+      transition: background 180ms ease, transform 180ms ease, border-color 180ms ease;
     }
 
     .dash-pill-btn:hover:not(:disabled) {
       background: var(--kb-color-border);
+      border-color: var(--kb-color-border-strong);
+    }
+
+    .dash-pill-btn:active:not(:disabled) {
+      transform: scale(0.97);
     }
 
     .dash-pill-btn:disabled {
@@ -932,12 +946,16 @@ function getTodayIsoDate(): string {
       background: transparent;
       font: inherit;
       text-align: left;
-      transition: background 180ms ease;
+      transition: background 180ms ease, transform 180ms ease, border-color 180ms ease;
     }
 
     .dash-user-profile:hover {
       background: var(--kb-color-surface-2);
       border-color: var(--kb-color-border);
+    }
+
+    .dash-user-profile:active {
+      transform: scale(0.98);
     }
 
     .dash-user-avatar {
@@ -1020,6 +1038,12 @@ function getTodayIsoDate(): string {
       gap: var(--kb-space-4);
       position: relative;
       min-width: 0;
+      box-shadow: var(--shadow-xs);
+      transition: border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .dash-card:hover {
+      border-color: var(--kb-color-border-strong);
     }
 
     .dash-card__header {
@@ -1142,7 +1166,8 @@ function getTodayIsoDate(): string {
 
     .chart-point--peak {
       fill: var(--kb-chart-1);
-      filter: drop-shadow(0 2px 6px rgba(var(--kb-color-primary-rgb), 0.5));
+      stroke: var(--kb-color-surface);
+      stroke-width: 2.5;
     }
 
     /* Empty chart / table states: same footprint as the data they replace, so
@@ -1237,6 +1262,8 @@ function getTodayIsoDate(): string {
       font-weight: 700;
       color: var(--kb-color-foreground);
       font-variant-numeric: tabular-nums;
+      font-family: var(--kb-font-mono);
+      letter-spacing: -0.01em;
     }
 
     /* ── ⑨ Order Type Donut Chart ── */
@@ -1511,6 +1538,8 @@ function getTodayIsoDate(): string {
     .cell-amount {
       font-weight: 700;
       font-variant-numeric: tabular-nums;
+      font-family: var(--kb-font-mono);
+      letter-spacing: -0.01em;
     }
 
     .order-status-badge {
@@ -2176,8 +2205,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   /**
    * The owner's four headline figures, in the order the dashboard reads them:
    * sales, order volume, new customers, stock risk. Every value is read from an
-   * API payload — where the shop has no source for a figure, the tile says so
-   * rather than printing the reference screenshot's sample number.
+   * API payload — where the shop has no source for a figure, the tile says so.
    */
   readonly dashboardKpis = computed<KpiItem[]>(() => {
     const data = this.dashboard();

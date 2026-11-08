@@ -29,8 +29,8 @@ public interface NotificationEventRepository extends JpaRepository<NotificationE
     int markAllAsRead(@Param("restaurantId") Long restaurantId, @Param("now") Long now);
 
     @Modifying
-    @Query("UPDATE NotificationEvent n SET n.isRead = true, n.readAt = :now WHERE n.id = :id")
-    int markAsRead(@Param("id") Long id, @Param("now") Long now);
+    @Query("UPDATE NotificationEvent n SET n.isRead = true, n.readAt = :now WHERE n.id = :id AND n.restaurantId = :restaurantId")
+    int markAsRead(@Param("restaurantId") Long restaurantId, @Param("id") Long id, @Param("now") Long now);
 
     void deleteByRestaurantIdAndCreatedAtBefore(Long restaurantId, Long beforeTimestamp);
 

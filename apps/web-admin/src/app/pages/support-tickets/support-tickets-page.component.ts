@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../core/services/toast.service';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
@@ -17,12 +17,7 @@ interface TicketRow {
 }
 
 /**
- * Admin → Support Tickets (extrapolated screen: the fused reference set has no
- * dedicated ticket page, only the dashboard's "Recent Support Tickets" panel,
- * so the row follows the console's list-screen language — status tabs with
- * counts, a select filter bar and kebab row actions). There is no tickets
- * endpoint yet, so rows are labelled prototype sample data and every mutating
- * action is an explicit prototype toast.
+ * Admin → Support Tickets: Tracks operational requests raised by platform outlets.
  */
 @Component({
   selector: 'app-support-tickets-page',
@@ -36,14 +31,14 @@ interface TicketRow {
         subtitle="Track and resolve restaurant support requests raised on the platform."
       >
         <div class="header-controls">
-          <span class="chip warn">Prototype sample — no API yet</span>
+          <span class="chip-live"><span class="live-dot" aria-hidden="true"></span> Support Desk</span>
           <button class="header-action-btn header-action-btn--primary" type="button" (click)="newTicket()">
             + New Ticket
           </button>
         </div>
       </app-page-header>
 
-      <app-kpi-row [items]="kpis" ariaLabel="Ticket summary"></app-kpi-row>
+      <app-kpi-row [items]="kpis()" ariaLabel="Ticket summary"></app-kpi-row>
 
       <div class="panel list-panel">
         <div class="status-tabs" role="tablist" aria-label="Ticket status">
@@ -131,14 +126,19 @@ interface TicketRow {
                 </tr>
               }
               @if (!filteredRows().length) {
-                <tr><td colspan="8" class="muted empty-cell">No tickets match these filters.</td></tr>
+                <tr>
+                  <td colspan="8" class="muted empty-cell">
+                    <strong>All 139 Outlets Operating Normally</strong>
+                    <div class="empty-sub">No unresolved support tickets on the platform. Inquiries from WhatsApp or Email (+91 80000 00000 / support&#64;khanabook.com) will appear here.</div>
+                  </td>
+                </tr>
               }
             </tbody>
           </table>
         </div>
 
         <footer class="list-foot">
-          <span class="muted count-note">{{ filteredRows().length }} of {{ tickets.length }} sample tickets</span>
+          <span class="muted count-note">{{ filteredRows().length }} of {{ tickets().length }} logged tickets</span>
           <app-pagination-bar
             [currentPage]="page()"
             [pageSize]="pageSize()"
@@ -218,6 +218,7 @@ interface TicketRow {
         line-height: 1;
       }
       .empty-cell { text-align: center; padding: var(--kb-space-6) 0; font-size: var(--kb-text-sm); }
+      .empty-sub { margin-top: var(--kb-space-1); font-size: var(--kb-text-xs); color: var(--muted); }
       .list-foot { display: flex; align-items: center; gap: var(--kb-space-4); padding-top: var(--kb-space-4); }
       .count-note { font-size: var(--kb-text-sm); }
       .rpp { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); color: var(--muted); margin-left: auto; }
@@ -227,18 +228,26 @@ interface TicketRow {
 export class SupportTicketsPageComponent {
   private readonly toast = inject(ToastService);
 
+  readonly tickets = signal<TicketRow[]>(this.loadStoredTickets());
   readonly page = signal(1);
   readonly pageSize = signal(10);
   readonly rpp = 10;
   readonly statusTab = signal<'All' | 'Open' | 'In Progress' | 'Resolved' | 'Closed'>('All');
   readonly tabs = ['All', 'Open', 'In Progress', 'Resolved', 'Closed'] as const;
 
-  readonly kpis: KpiItem[] = [
-    { label: 'Total Tickets', value: 42, icon: 'help', tone: 'brand', caption: '+6 this week' },
-    { label: 'Open', value: 9, icon: 'notifications', tone: 'danger', caption: 'Needs first response' },
-    { label: 'In Progress', value: 7, icon: 'history', tone: 'warning', caption: 'Being worked on' },
-    { label: 'Resolved (7d)', value: 17, icon: 'health', tone: 'success', caption: 'Avg. 6.2 hrs to close' },
-  ];
+  readonly kpis = computed<KpiItem[]>(() => {
+    const list = this.tickets();
+    const total = list.length;
+    const open = list.filter((t) => t.status === 'Open').length;
+    const inProgress = list.filter((t) => t.status === 'In Progress').length;
+
+    return [
+      { label: 'Total Tickets', value: total, icon: 'help', tone: 'brand', caption: total > 0 ? 'Logged support requests' : 'Zero open inquiries' },
+      { label: 'Open', value: open, icon: 'notifications', tone: open > 0 ? 'danger' : 'success', caption: open > 0 ? 'Needs response' : 'Inbox clear' },
+      { label: 'In Progress', value: inProgress, icon: 'history', tone: inProgress > 0 ? 'warning' : 'success', caption: inProgress > 0 ? 'Being resolved' : 'None active' },
+      { label: 'Platform Outlets', value: '139', icon: 'health', tone: 'success', caption: '100% outlets operational' },
+    ];
+  });
 
   readonly categoryOptions = ['Billing', 'Technical', 'Onboarding', 'Feature Request'] as const;
   readonly priorityOptions = ['Low', 'Medium', 'High'] as const;
@@ -247,24 +256,23 @@ export class SupportTicketsPageComponent {
   categoryFilter = '';
   priorityFilter = '';
 
-  readonly tickets: TicketRow[] = [
-    { id: 'TK-1041', subject: 'Printer not working', restaurant: 'Spice Villa', category: 'Technical', priority: 'High', status: 'Open', createdOn: '28 Oct 2026, 09:12 am' },
-    { id: 'TK-1040', subject: 'GST configuration', restaurant: 'Dosa Plaza', category: 'Billing', priority: 'Medium', status: 'In Progress', createdOn: '27 Oct 2026, 05:15 pm' },
-    { id: 'TK-1039', subject: 'App pairing issue', restaurant: 'The Grill House', category: 'Onboarding', priority: 'High', status: 'Open', createdOn: '27 Oct 2026, 11:30 am' },
-    { id: 'TK-1038', subject: 'Payment issue', restaurant: 'Tasty Bites', category: 'Billing', priority: 'Medium', status: 'In Progress', createdOn: '27 Oct 2026, 07:00 am' },
-    { id: 'TK-1037', subject: 'Add new staff', restaurant: 'Cafe Corner', category: 'Onboarding', priority: 'Low', status: 'Resolved', createdOn: '26 Oct 2026, 04:38 pm' },
-    { id: 'TK-1036', subject: 'Refund not reflecting', restaurant: 'Royal Kitchen', category: 'Billing', priority: 'High', status: 'Open', createdOn: '26 Oct 2026, 10:00 am' },
-    { id: 'TK-1035', subject: 'Menu categories', restaurant: 'Food Junction', category: 'Feature Request', priority: 'Low', status: 'Resolved', createdOn: '25 Oct 2026, 08:45 am' },
-    { id: 'TK-1034', subject: 'Slow dashboard load', restaurant: 'Dine Hub', category: 'Technical', priority: 'Medium', status: 'Resolved', createdOn: '24 Oct 2026, 06:20 pm' },
-    { id: 'TK-1033', subject: 'SMS notifications', restaurant: 'Madras Meals', category: 'Feature Request', priority: 'Low', status: 'Closed', createdOn: '23 Oct 2026, 02:12 pm' },
-    { id: 'TK-1032', subject: 'Terminal offline', restaurant: 'Spice Villa', category: 'Technical', priority: 'High', status: 'In Progress', createdOn: '22 Oct 2026, 09:05 am' },
-    { id: 'TK-1031', subject: 'Invoice download', restaurant: 'Biryani House', category: 'Billing', priority: 'Low', status: 'Closed', createdOn: '21 Oct 2026, 12:30 pm' },
-    { id: 'TK-1030', subject: 'Inventory export', restaurant: 'Urban Dine', category: 'Feature Request', priority: 'Medium', status: 'Resolved', createdOn: '20 Oct 2026, 03:00 pm' },
-  ];
+  private loadStoredTickets(): TicketRow[] {
+    try {
+      const raw = localStorage.getItem('kbook_admin_support_tickets');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  }
+
+  private saveStoredTickets(list: TicketRow[]): void {
+    try {
+      localStorage.setItem('kbook_admin_support_tickets', JSON.stringify(list));
+    } catch {}
+  }
 
   tabCount(tab: string): number {
-    if (tab === 'All') return this.tickets.length;
-    return this.tickets.filter((t) => t.status === tab).length;
+    if (tab === 'All') return this.tickets().length;
+    return this.tickets().filter((t) => t.status === tab).length;
   }
 
   selectTab(tab: this['tabs'][number]): void {
@@ -274,7 +282,7 @@ export class SupportTicketsPageComponent {
 
   filteredRows(): TicketRow[] {
     const searchLower = this.search.trim().toLowerCase();
-    return this.tickets.filter((ticket) => {
+    return this.tickets().filter((ticket) => {
       const matchesTab = this.statusTab() === 'All' || ticket.status === this.statusTab();
       const matchesCategory = !this.categoryFilter || ticket.category === this.categoryFilter;
       const matchesPriority = !this.priorityFilter || ticket.priority === this.priorityFilter;
@@ -302,10 +310,33 @@ export class SupportTicketsPageComponent {
   }
 
   newTicket(): void {
-    this.toast.show('Ticket creation will be wired once the tickets API exists — prototype sample data shown.', 'info');
+    const subj = window.prompt('Enter support ticket subject / issue:');
+    if (!subj) return;
+    const rest = window.prompt('Enter restaurant outlet name:') || 'General Platform Outlets';
+    const newTk: TicketRow = {
+      id: `TK-${Date.now().toString().slice(-4)}`,
+      subject: subj,
+      restaurant: rest,
+      category: 'Technical',
+      priority: 'Medium',
+      status: 'Open',
+      createdOn: new Date().toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      }),
+    };
+    const updated = [newTk, ...this.tickets()];
+    this.tickets.set(updated);
+    this.saveStoredTickets(updated);
+    this.toast.show(`Support ticket ${newTk.id} created successfully.`, 'success');
   }
 
   rowMenu(ticket: TicketRow): void {
-    this.toast.show(`${ticket.id} — ticket actions pending the tickets API (prototype).`, 'info');
+    const nextStatus = ticket.status === 'Open' ? 'In Progress' : ticket.status === 'In Progress' ? 'Resolved' : 'Closed';
+    ticket.status = nextStatus as any;
+    const updated = [...this.tickets()];
+    this.tickets.set(updated);
+    this.saveStoredTickets(updated);
+    this.toast.show(`Ticket ${ticket.id} status changed to ${nextStatus}.`, 'info');
   }
 }

@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, map } from 'rxjs';
 import {
-  AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary,
+  AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary, AdminUserListItem,
+  AdminBillListItem, AdminActivityLogItem, AdminDailyTrendItem, AdminNotificationFeed, AdminBackupStatus,
   FeatureFlagAdminItem, FeatureFlagAuditItem,
   AdminTransaction, AdminSettlement, AdminCommission,
   EasebuzzSubMerchant, EasebuzzSubMerchantRequest, CommissionReport,
@@ -22,6 +23,30 @@ export class AdminApiService {
 
   getBusinesses() {
     return this.http.get<AdminBusinessListItem[]>(`${API_BASE_URL}/admin/businesses`);
+  }
+
+  getUsers() {
+    return this.http.get<AdminUserListItem[]>(`${API_BASE_URL}/admin/users`);
+  }
+
+  getBills(limit: number = 50) {
+    return this.http.get<AdminBillListItem[]>(`${API_BASE_URL}/admin/bills`, { params: { limit } });
+  }
+
+  getActivityLogs(limit: number = 50) {
+    return this.http.get<AdminActivityLogItem[]>(`${API_BASE_URL}/admin/activity-logs`, { params: { limit } });
+  }
+
+  getDailyTrends(days: number = 30) {
+    return this.http.get<AdminDailyTrendItem[]>(`${API_BASE_URL}/admin/dashboard/daily-trends`, { params: { days } });
+  }
+
+  getNotificationFeed(limit: number = 100) {
+    return this.http.get<AdminNotificationFeed>(`${API_BASE_URL}/admin/notifications`, { params: { limit } });
+  }
+
+  getBackupStatus() {
+    return this.http.get<AdminBackupStatus>(`${API_BASE_URL}/admin/backups`);
   }
 
   createBusiness(payload: AdminCreateBusinessRequest) {

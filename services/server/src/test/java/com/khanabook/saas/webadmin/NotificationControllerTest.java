@@ -155,12 +155,14 @@ class NotificationControllerTest extends BaseIntegrationTest {
     void testMarkAsRead() throws Exception {
         String token = persistUserAndGetToken("owner-notify@test.com", RESTAURANT_ID, UserRole.OWNER);
 
+        Mockito.when(pushNotificationService.markAsRead(eq(RESTAURANT_ID), eq(10L))).thenReturn(true);
+
         mockMvc.perform(post("/notifications/10/read")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"));
 
-        Mockito.verify(pushNotificationService).markAsRead(eq(10L));
+        Mockito.verify(pushNotificationService).markAsRead(eq(RESTAURANT_ID), eq(10L));
     }
 
     @Test

@@ -144,7 +144,7 @@ private readonly toast = inject(ToastService);
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
-    role: ['', [Validators.required]],
+    role: ['SHOP_STAFF' as StaffRole, [Validators.required]],
     email: ['', [Validators.email]]
   });
 
@@ -168,6 +168,8 @@ private readonly toast = inject(ToastService);
     // signal writes are intentional and idempotent, so they are permitted here.
     // Without this flag Angular throws NG0600 the moment the modal is instantiated.
     effect(() => {
+      const isOpen = this.open();
+      if (!isOpen) return;
       const item = this.editItem();
       if (item && this.isEdit()) {
         this.form.reset({
@@ -181,8 +183,9 @@ private readonly toast = inject(ToastService);
         } else {
           this.form.get('role')?.enable();
         }
-      } else if (!this.isEdit()) {
-        this.form.reset({ name: '', phone: '', role: '', email: '' });
+      } else {
+        this.form.reset({ name: '', phone: '', role: 'SHOP_STAFF', email: '' });
+        this.form.get('role')?.enable();
       }
       this.formError.set('');
       this.createdStaff = null;
@@ -195,12 +198,15 @@ private readonly toast = inject(ToastService);
     this.submitting.set(true);
     this.formError.set('');
 
-    const formValue = this.form.value;
+    const formValue = this.form.getRawValue();
+    const rawPhone = (formValue.phone || '').trim();
+    const cleanDigits = rawPhone.replace(/\D/g, '');
+    const normalizedPhone = cleanDigits.length >= 10 ? cleanDigits.slice(-10) : cleanDigits;
     const payload = {
-      name: formValue.name!,
-      phone: formValue.phone!,
+      name: (formValue.name || '').trim(),
+      phone: normalizedPhone,
       role: formValue.role! as StaffRole,
-      ...(formValue.email ? { email: formValue.email } : {})
+      ...(formValue.email?.trim() ? { email: formValue.email.trim() } : {})
     };
 
     if (this.isEdit()) {
@@ -222,6 +228,7 @@ private readonly toast = inject(ToastService);
         next: (response) => {
           this.createdStaff = response;
           this.submitting.set(false);
+          this.saved.emit();
         },
         error: (err: HttpErrorResponse) => {
           this.submitting.set(false);
@@ -237,7 +244,8 @@ private readonly toast = inject(ToastService);
     } else if (err.status === 400 && err.error?.fields) {
       this.formError.set(Object.values(err.error.fields).join('. '));
     } else {
-      this.formError.set(err.error?.message || 'Failed to save staff member. Please try again.');
+      const msg = err.error?.message || err.error?.error;
+      this.formError.set(msg || 'Failed to save staff member. Please try again.');
     }
   }
 

@@ -1,0 +1,6 @@
+#!/bin/sh
+# openqodex pre-push hook: openqodex hook uninstall removes it
+'/root/.openqodex/bin/openqodex' hook pre-push "$@"
+status=$?
+[ "$status" -eq 1 ] && exit 1
+exit 0

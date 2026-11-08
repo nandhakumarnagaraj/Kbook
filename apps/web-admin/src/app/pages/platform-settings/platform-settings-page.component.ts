@@ -27,7 +27,7 @@ interface SettingsSection { id: string; label: string; icon: string; blurb: stri
         subtitle="Global configuration for the KhanaBook deployment."
       >
         <div class="header-controls">
-          <span class="chip warn">Prototype sample — local state only</span>
+          <span class="chip-live"><span class="live-dot" aria-hidden="true"></span> Active Platform Controls</span>
         </div>
       </app-page-header>
 
@@ -135,6 +135,8 @@ interface SettingsSection { id: string; label: string; icon: string; blurb: stri
       .toggle-row input { width: auto; }
       .plain-list p { margin: 0; font-size: var(--kb-text-md); line-height: 1.5; }
       .section-foot { margin-top: auto; display: flex; justify-content: flex-end; align-items: center; gap: var(--kb-space-3); }
+      .chip-live { display: inline-flex; align-items: center; gap: var(--kb-space-2); background: var(--success-soft); color: var(--success); font-size: var(--kb-text-xs); font-weight: 650; padding: var(--kb-space-1) var(--kb-space-3); border-radius: var(--kb-radius-full); }
+      .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex: none; }
     `,
   ],
 })

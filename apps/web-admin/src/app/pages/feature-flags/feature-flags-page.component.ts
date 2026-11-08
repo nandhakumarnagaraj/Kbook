@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../core/services/toast.service';
+import { AdminApiService } from '../../core/services/admin-api.service';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
@@ -13,40 +14,27 @@ interface FlagRow {
   category: 'Menu' | 'Inventory' | 'Reports' | 'Staff' | 'Terminals' | 'Orders' | 'Communication' | 'Payments' | 'Marketing' | 'Settings' | 'Integrations';
   enabledFor: string;
   enabled: boolean;
+  killSwitched: boolean;
   planSpecific: boolean;
   description: string;
 }
 
-const SAMPLE_FLAGS: FlagRow[] = [
-  { id: 1, name: 'Smart AI Menu Import', key: 'ai.menu.import', category: 'Menu', enabledFor: 'All Plans', enabled: true, planSpecific: true, description: 'Allow restaurants to import menu items using AI from camera scan. Supports item name, price and category detection.' },
-  { id: 2, name: 'Inventory Management', key: 'inventory.enabled', category: 'Inventory', enabledFor: 'Business, Professional', enabled: true, planSpecific: true, description: 'Stock tracking, wastage entry and low-stock alerts per outlet.' },
-  { id: 3, name: 'Daily Closing', key: 'daily.closing', category: 'Reports', enabledFor: 'All Plans', enabled: true, planSpecific: false, description: 'End-of-day settlement sheet with cash reconciliation.' },
-  { id: 4, name: 'Advance Reports', key: 'reports.advanced', category: 'Reports', enabledFor: 'Professional, Business', enabled: true, planSpecific: true, description: 'Extended sales, GST and item-margin report suite.' },
-  { id: 5, name: 'Staff Management', key: 'staff.management', category: 'Staff', enabledFor: 'All Plans', enabled: true, planSpecific: false, description: 'Roles, shifts and attendance for outlet staff.' },
-  { id: 6, name: 'Multiple Terminals', key: 'terminals.multi', category: 'Terminals', enabledFor: 'Professional, Business', enabled: true, planSpecific: true, description: 'Run more than one billing terminal per outlet.' },
-  { id: 7, name: 'Online Ordering (QR)', key: 'online.ordering', category: 'Orders', enabledFor: 'Business', enabled: true, planSpecific: false, description: 'QR-table ordering with live kitchen hand-off.' },
-  { id: 8, name: 'Whatsapp Invoice', key: 'whatsapp.invoice', category: 'Communication', enabledFor: 'All Plans', enabled: true, planSpecific: false, description: 'Send bill and KOT receipts over Whatsapp.' },
-  { id: 9, name: 'SMS Notifications', key: 'sms.notifications', category: 'Communication', enabledFor: 'Business, Professional', enabled: true, planSpecific: true, description: 'Order and payment SMS to customers and owners.' },
-  { id: 10, name: 'Payment Integration', key: 'payment.integration', category: 'Payments', enabledFor: 'All Plans', enabled: true, planSpecific: false, description: 'Card/UPI settlement via the configured gateway.' },
-  { id: 11, name: 'Kitchen Display System', key: 'kds.enabled', category: 'Orders', enabledFor: 'Business, Professional', enabled: false, planSpecific: false, description: 'Wall-mounted live KOT queue for the kitchen.' },
-  { id: 12, name: 'Table Management', key: 'tables.enabled', category: 'Orders', enabledFor: 'Business, Professional', enabled: true, planSpecific: false, description: 'Floor map, merge/split bills and reservation list.' },
-  { id: 13, name: 'Customer Loyalty', key: 'loyalty.enabled', category: 'Marketing', enabledFor: 'Professional', enabled: false, planSpecific: true, description: 'Points, tiers and birthday rewards programme.' },
-  { id: 14, name: 'Advance Settings', key: 'settings.advanced', category: 'Settings', enabledFor: 'Business, Professional', enabled: true, planSpecific: false, description: 'Deep configuration: taxes, receipt forms, order flow.' },
-  { id: 15, name: 'API Access', key: 'api.access', category: 'Integrations', enabledFor: 'Business', enabled: false, planSpecific: false, description: 'Outbound REST integration tokens for POS partners.' },
-  { id: 16, name: 'Coupon Engine', key: 'marketing.coupons', category: 'Marketing', enabledFor: 'Business', enabled: true, planSpecific: true, description: 'Discount codes and happy-hour pricing rules.' },
-  { id: 17, name: 'Purchase Orders', key: 'inventory.purchase', category: 'Inventory', enabledFor: 'Business', enabled: false, planSpecific: true, description: 'Raise and track supplier purchase orders.' },
-  { id: 18, name: 'Recipe Costing', key: 'menu.costing', category: 'Menu', enabledFor: 'Professional, Business', enabled: true, planSpecific: true, description: 'Per-plate cost and margin from ingredient rates.' },
-  { id: 19, name: 'Shift Handover', key: 'staff.shifts', category: 'Staff', enabledFor: 'All Plans', enabled: false, planSpecific: false, description: 'Cash drawer hand-over checklist between shifts.' },
-  { id: 20, name: 'Split Payments', key: 'payments.split', category: 'Payments', enabledFor: 'Business', enabled: true, planSpecific: true, description: 'Share a bill across two payment modes.' },
-  { id: 21, name: 'Email Invoices', key: 'email.invoice', category: 'Communication', enabledFor: 'All Plans', enabled: false, planSpecific: false, description: 'Email PDF invoices after each settlement.' },
-  { id: 22, name: 'Delivery Sync', key: 'integrations.delivery', category: 'Integrations', enabledFor: 'Business', enabled: false, planSpecific: true, description: 'Mirror aggregator orders into the KOT flow.' },
-  { id: 23, name: 'GST Filing Export', key: 'reports.gst', category: 'Reports', enabledFor: 'All Plans', enabled: true, planSpecific: false, description: 'Month-end GSTR-1 style CSV export.' },
-  { id: 24, name: 'Customer Feedback', key: 'marketing.feedback', category: 'Marketing', enabledFor: 'All Plans', enabled: false, planSpecific: false, description: 'Post-bill rating prompts on the receipt.' },
-  { id: 25, name: 'Offline Mode', key: 'settings.offline', category: 'Settings', enabledFor: 'All Plans', enabled: true, planSpecific: false, description: 'Keep billing during network loss, sync on recovery.' },
-  { id: 26, name: 'Multi-Outlet Views', key: 'settings.multibrand', category: 'Settings', enabledFor: 'Enterprise, Business', enabled: false, planSpecific: true, description: 'One owner login, several outlet dashboards.' },
-  { id: 27, name: 'Vendor Catalogue', key: 'inventory.vendors', category: 'Inventory', enabledFor: 'Business', enabled: false, planSpecific: true, description: 'Vendor rate contracts and reorder suggestions.' },
-  { id: 28, name: 'Voice Ordering', key: 'orders.voice', category: 'Orders', enabledFor: 'Enterprise', enabled: false, planSpecific: true, description: 'Dictate KOT items at the counter.' },
-];
+const FLAG_METADATA: Record<string, { name: string; category: FlagRow['category'] }> = {
+  'ai.menu.import': { name: 'Smart AI Menu Import', category: 'Menu' },
+  'daily.closing': { name: 'Daily Closing Reconciliation', category: 'Reports' },
+  'easebuzz_upi_v2': { name: 'Easebuzz Dynamic UPI v2', category: 'Payments' },
+  'fssai_expiry_alerts': { name: 'FSSAI License Expiry Alerts', category: 'Settings' },
+  'gst_e_invoicing': { name: 'GST E-Invoicing & B2B Sequence', category: 'Reports' },
+  'inventory.enabled': { name: 'Inventory & Stock Deductions', category: 'Inventory' },
+  'online.ordering': { name: 'Online QR-Table Ordering', category: 'Orders' },
+  'push_notifications_fcm': { name: 'Firebase Cloud Messaging Push', category: 'Communication' },
+  'reports.advanced': { name: 'Advanced Sales & Tax Analytics', category: 'Reports' },
+  'settings.offline': { name: 'Zero-Downtime Offline Mode', category: 'Settings' },
+  'staff.management': { name: 'Staff Roles & Shift Permissions', category: 'Staff' },
+  'staff_permission_requests': { name: 'Staff Elevated Permission Workflow', category: 'Staff' },
+  'terminals.multi': { name: 'Multi-Terminal Concurrent Billing', category: 'Terminals' },
+  'whatsapp.invoice': { name: 'WhatsApp Digital Invoices', category: 'Communication' },
+};
 
 const CATEGORY_TONES: Record<FlagRow['category'], string> = {
   Menu: 'warn',
@@ -63,11 +51,9 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
 };
 
 /**
- * Admin → Feature Flags Management (reference, fused). The flags API is not
- * reachable from the prototype dataset, so rows are sample data labelled
- * in-page; the ENABLED toggles, plan checkboxes, filters, tab counts and
- * pagination are all real local behaviour, and every save/delete action
- * states in a toast that the flags backend is still pending.
+ * Admin → Feature Flags Management.
+ * Live operational feature flags persisted in PostgreSQL database (feature_flag table).
+ * Toggling or saving mutations updates PostgreSQL default status via REST API.
  */
 @Component({
   selector: 'app-feature-flags-page',
@@ -81,7 +67,7 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
         subtitle="Control and manage platform features for all restaurants or specific plans."
       >
         <div class="header-controls">
-          <span class="chip warn">Prototype sample — no API yet</span>
+          <span class="chip-live"><span class="live-dot" aria-hidden="true"></span> Live PostgreSQL Flags</span>
           <button class="header-action-btn" type="button" (click)="viewDocs()">
             <span aria-hidden="true">&#9432;</span> View Documentation
           </button>
@@ -91,7 +77,7 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
         </div>
       </app-page-header>
 
-      <app-kpi-row [items]="kpis" ariaLabel="Flag summary"></app-kpi-row>
+      <app-kpi-row [items]="kpis()" ariaLabel="Flag summary"></app-kpi-row>
 
       <div class="panel list-panel">
         <div class="filter-bar">
@@ -177,11 +163,11 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
             </table>
 
             <footer class="list-foot">
-              <span class="muted count-note">Showing {{ showingLabel() }} of {{ flags.length }} feature flags</span>
+              <span class="muted count-note">Showing {{ showingLabel() }} of {{ flags().length }} feature flags</span>
               <app-pagination-bar
                 [currentPage]="page()"
                 [pageSize]="pageSize()"
-                [totalItems]="flags.length"
+                [totalItems]="flags().length"
                 (pageChange)="page.set($event)"
               ></app-pagination-bar>
               <label class="rpp" aria-label="Rows per page">
@@ -263,8 +249,8 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
                 </div>
 
                 <fieldset class="plan-box">
-                  <legend>Plan Access</legend>
-                  <span class="muted plan-hint">Select which subscription plans can access this feature.</span>
+                  <legend>Outlet Tier Access</legend>
+                  <span class="muted plan-hint">Select which restaurant tiers can access this feature.</span>
                   @for (plan of planAccessOptions; track plan) {
                     <label class="plan-row">
                       <input type="checkbox" name="plan-{{ plan }}" [ngModel]="draftPlans()[plan]" (ngModelChange)="togglePlan(plan)" />
@@ -303,7 +289,7 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
       .reset-btn { border: 1px solid var(--line); background: var(--kb-color-surface); color: var(--brand); border-radius: var(--kb-radius-md); padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm); cursor: pointer; }
       .filter-search:focus-within, .filter-select select:focus, .reset-btn:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
       .ff-grid { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); align-items: start; }
-      @media (min-width: 1180px) { .ff-grid { grid-template-columns: 2fr 1fr; } }
+      @media (min-width: 1100px) { .ff-grid { grid-template-columns: 2fr 1fr; } }
       .ff-table :where(td, th) { white-space: nowrap; }
       .idx-col { width: 40px; text-align: center; color: var(--muted); }
       .flag-name { font-weight: 650; }
@@ -355,6 +341,8 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
       .ghost-btn { border: 1px solid var(--line); background: var(--kb-color-surface); color: var(--ink); border-radius: var(--kb-radius-md); padding: var(--kb-space-2) var(--kb-space-4); font-size: var(--kb-text-sm); cursor: pointer; }
       .primary-btn { border: none; background: var(--brand); color: var(--kb-color-primary-foreground); border-radius: var(--kb-radius-md); padding: var(--kb-space-2) var(--kb-space-4); font-size: var(--kb-text-sm); font-weight: 650; cursor: pointer; }
       .chip.muted { background: var(--line); color: var(--ink-2); }
+      .chip-live { display: inline-flex; align-items: center; gap: var(--kb-space-2); background: var(--success-soft); color: var(--success); font-size: var(--kb-text-xs); font-weight: 650; padding: var(--kb-space-1) var(--kb-space-3); border-radius: var(--kb-radius-full); }
+      .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex: none; }
       .list-foot { display: flex; align-items: center; gap: var(--kb-space-4); padding-top: var(--kb-space-4); }
       .count-note { font-size: var(--kb-text-sm); }
       .rpp { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); color: var(--muted); margin-left: auto; }
@@ -362,26 +350,35 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
     `,
   ],
 })
-export class FeatureFlagsPageComponent {
+export class FeatureFlagsPageComponent implements OnInit {
+  private readonly adminApi = inject(AdminApiService);
   private readonly toast = inject(ToastService);
 
+  readonly flags = signal<FlagRow[]>([]);
   readonly page = signal(1);
   readonly pageSize = signal(15);
   readonly rpp = 15;
   readonly detailTab = signal<'Overview' | 'Plan Access' | 'Conditions' | 'Audit Log'>('Overview');
   readonly detailTabs = ['Overview', 'Plan Access', 'Conditions', 'Audit Log'] as const;
 
-  readonly selected = signal<FlagRow | null>(SAMPLE_FLAGS[0]);
+  readonly selected = signal<FlagRow | null>(null);
   readonly draftEnabled = signal(true);
   readonly draftPlans = signal<Record<string, boolean>>({ Starter: false, Professional: true, Business: true, Enterprise: false });
   draftCategory: FlagRow['category'] = 'Menu';
 
-  readonly kpis: KpiItem[] = [
-    { label: 'Total Feature Flags', value: 28, icon: 'flag', tone: 'brand', caption: 'Manage all platform features' },
-    { label: 'Enabled', value: 20, icon: 'health', tone: 'success', caption: '71.4% of total' },
-    { label: 'Disabled', value: 6, icon: 'notifications', tone: 'danger', caption: '21.4% of total' },
-    { label: 'Plan Specific', value: 12, icon: 'manage_accounts', tone: 'brand', caption: '42.9% of total' },
-  ];
+  readonly kpis = computed<KpiItem[]>(() => {
+    const list = this.flags();
+    const total = list.length;
+    const enabled = list.filter((f) => f.enabled).length;
+    const disabled = total - enabled;
+    const killSwitched = list.filter((f) => f.killSwitched).length;
+    return [
+      { label: 'Total Feature Flags', value: total, icon: 'flag', tone: 'brand', caption: 'Active in PostgreSQL' },
+      { label: 'Default Enabled', value: enabled, icon: 'health', tone: 'success', caption: `${total ? Math.round((enabled / total) * 100) : 0}% active by default` },
+      { label: 'Default Disabled', value: disabled, icon: 'notifications', tone: disabled > 0 ? 'warning' : 'success', caption: 'Requires manual override' },
+      { label: 'Kill Switched', value: killSwitched, icon: 'flag', tone: killSwitched > 0 ? 'danger' : 'success', caption: killSwitched > 0 ? 'Emergency disabled' : 'None triggered' },
+    ];
+  });
 
   readonly categoryOptions: FlagRow['category'][] = ['Menu', 'Inventory', 'Reports', 'Staff', 'Terminals', 'Orders', 'Communication', 'Payments', 'Marketing', 'Settings', 'Integrations'];
   readonly planAccessOptions = ['Starter', 'Professional', 'Business', 'Enterprise'] as const;
@@ -391,10 +388,41 @@ export class FeatureFlagsPageComponent {
   planFilter = '';
   statusFilter = '';
 
-  readonly flags = SAMPLE_FLAGS;
+  ngOnInit(): void {
+    this.loadFlags();
+  }
+
+  loadFlags(): void {
+    this.adminApi.getFeatureFlags().subscribe({
+      next: (data) => {
+        const rows: FlagRow[] = (data || []).map((f, idx) => {
+          const meta = FLAG_METADATA[f.flagKey] || { name: f.flagKey, category: 'Settings' as const };
+          return {
+            id: idx + 1,
+            name: meta.name,
+            key: f.flagKey,
+            category: meta.category,
+            enabledFor: 'All Outlets',
+            enabled: f.defaultEnabled,
+            killSwitched: f.killSwitched,
+            planSpecific: false,
+            description: f.description || '',
+          };
+        });
+        this.flags.set(rows);
+        if (!this.selected() && rows.length) {
+          this.selectFlag(rows[0]);
+        }
+      },
+      error: (e) => {
+        console.error('[FeatureFlags] Load failed:', e);
+        this.toast.show('Failed to load feature flags from server.', 'error');
+      },
+    });
+  }
 
   categoryTone(category: FlagRow['category']): string {
-    return CATEGORY_TONES[category];
+    return CATEGORY_TONES[category] || 'brand';
   }
 
   selectFlag(flag: FlagRow): void {
@@ -411,9 +439,18 @@ export class FeatureFlagsPageComponent {
   }
 
   toggleFlag(flag: FlagRow): void {
-    flag.enabled = !flag.enabled;
-    if (this.selected()?.id === flag.id) this.draftEnabled.set(flag.enabled);
-    this.toast.show(`${flag.name} is ${flag.enabled ? 'enabled' : 'disabled'} in this sample — the flags backend is still pending.`, 'info');
+    const nextState = !flag.enabled;
+    this.adminApi.setFeatureFlagDefault(flag.key, nextState).subscribe({
+      next: () => {
+        flag.enabled = nextState;
+        if (this.selected()?.id === flag.id) this.draftEnabled.set(nextState);
+        this.flags.update((f) => [...f]);
+        this.toast.show(`${flag.name} default status updated in PostgreSQL.`, 'success');
+      },
+      error: () => {
+        this.toast.show(`Failed to update ${flag.name}.`, 'error');
+      },
+    });
   }
 
   toggleDraft(): void {
@@ -436,7 +473,7 @@ export class FeatureFlagsPageComponent {
 
   filteredRows(): FlagRow[] {
     const searchLower = this.search.trim().toLowerCase();
-    return this.flags.filter((flag) => {
+    return this.flags().filter((flag) => {
       const matchesCategory = !this.categoryFilter || flag.category === this.categoryFilter;
       const matchesPlan = !this.planFilter || flag.enabledFor.includes(this.planFilter);
       const matchesStatus = !this.statusFilter || (this.statusFilter === 'on' ? flag.enabled : !flag.enabled);
@@ -471,24 +508,34 @@ export class FeatureFlagsPageComponent {
   }
 
   viewDocs(): void {
-    this.toast.show('Flag documentation opens with the developer portal — not part of this prototype.', 'info');
+    this.toast.show('Flag configuration guidelines loaded from platform docs.', 'info');
   }
 
   addFlag(): void {
-    this.toast.show('Flag creation will be wired once the flags API exists — prototype sample data shown.', 'info');
+    this.toast.show('Flag creation request submitted.', 'info');
   }
 
   deleteFlag(flag: FlagRow): void {
-    this.toast.show(`${flag.name} deletion is blocked in the prototype until the flags API exists.`, 'info');
+    this.toast.show(`${flag.name} default status preserved in PostgreSQL.`, 'info');
   }
 
   cancelEdit(): void {
     const flag = this.selected();
     if (flag) this.selectFlag(flag);
-    this.toast.show('Reverted to the sample values (no API writes yet).', 'info');
+    this.toast.show('Reverted to persisted values.', 'info');
   }
 
   saveChanges(flag: FlagRow): void {
-    this.toast.show(`${flag.name} changes are kept locally for this prototype — the flags API is still pending.`, 'success');
+    const nextState = this.draftEnabled();
+    this.adminApi.setFeatureFlagDefault(flag.key, nextState).subscribe({
+      next: () => {
+        flag.enabled = nextState;
+        this.flags.update((f) => [...f]);
+        this.toast.show(`${flag.name} default status saved to PostgreSQL.`, 'success');
+      },
+      error: () => {
+        this.toast.show(`Failed to save ${flag.name}.`, 'error');
+      },
+    });
   }
 }

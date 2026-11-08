@@ -44,12 +44,6 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/feature-flags/feature-flags-page.component').then(m => m.FeatureFlagsPageComponent)
       },
       {
-        path: 'admin/subscriptions',
-        canActivate: [roleGuard],
-        data: { roles: ['KBOOK_ADMIN'] },
-        loadComponent: () => import('./pages/subscriptions/subscriptions-page.component').then(m => m.SubscriptionsPageComponent)
-      },
-      {
         path: 'admin/users',
         canActivate: [roleGuard],
         data: { roles: ['KBOOK_ADMIN'] },

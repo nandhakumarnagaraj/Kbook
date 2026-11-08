@@ -450,8 +450,8 @@ public class PushNotificationService {
     }
 
     @Transactional
-    public void markAsRead(Long notificationId) {
-        notificationEventRepo.markAsRead(notificationId, System.currentTimeMillis());
+    public boolean markAsRead(Long restaurantId, Long notificationId) {
+        return notificationEventRepo.markAsRead(restaurantId, notificationId, System.currentTimeMillis()) > 0;
     }
 
     @Transactional

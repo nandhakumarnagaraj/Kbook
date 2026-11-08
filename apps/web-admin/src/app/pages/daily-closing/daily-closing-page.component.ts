@@ -689,7 +689,7 @@ interface TerminalSalesRow {
     .closing-step__copy {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: var(--kb-space-1);
     }
     .closing-step__copy strong {
       font-size: var(--kb-text-sm);
@@ -749,7 +749,7 @@ interface TerminalSalesRow {
       left: 50%;
       transform: translateX(-50%);
       white-space: nowrap;
-      padding: 2px 8px;
+      padding: var(--kb-space-1) var(--kb-space-2);
       border-radius: var(--kb-radius-sm);
       background: var(--kb-color-foreground);
       color: var(--kb-color-foreground-contrast);

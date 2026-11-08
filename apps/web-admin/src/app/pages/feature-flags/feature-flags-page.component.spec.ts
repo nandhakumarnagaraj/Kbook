@@ -14,10 +14,10 @@ describe('FeatureFlagsPageComponent — reference editor layout', () => {
     fixture.detectChanges();
   });
 
-  it('renders four KPI tiles and the honest sample chip', () => {
+  it('renders four KPI tiles and the live flags header chip', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelectorAll('.kb-kpi').length).toBe(4);
-    expect(el.textContent).toContain('Prototype sample — no API yet');
+    expect(el.textContent).toContain('Live PostgreSQL Flags');
   });
 
   it('lists 28 sample flags with 15 visible per page', () => {

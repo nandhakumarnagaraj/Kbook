@@ -151,7 +151,7 @@
      can carry its own label (the old orange fill measured 3.1:1 with white). */
   --kb-color-primary:           #FF5A0A; /* Primary action orange */
   --kb-color-primary-foreground:#FFFFFF; /* Ink carried on a primary or danger solid fill */
-  --kb-color-primary-hover:     #3F1B95;
+  --kb-color-primary-hover:     #E04D05; /* Deepened primary action orange on hover */
   --kb-color-primary-soft:      rgba(255, 90, 10, 0.10);
   /* Semantic status. Each foreground clears 4.5:1 against its own soft tint
      composited on --kb-color-surface, so the pin does not rely on colour alone

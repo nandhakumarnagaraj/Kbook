@@ -46,8 +46,15 @@ public class ChargebackPreventionService {
 
     @Transactional
     public Map<String, Object> scoreTransaction(Long billId) {
+        return scoreTransaction(null, billId);
+    }
+
+    @Transactional
+    public Map<String, Object> scoreTransaction(Long restaurantId, Long billId) {
         Bill bill = billRepository.findById(billId).orElse(null);
-        if (bill == null) return Map.of("score", 0, "risk", "unknown");
+        if (bill == null || (restaurantId != null && !restaurantId.equals(bill.getRestaurantId()))) {
+            return Map.of("score", 0, "risk", "unknown");
+        }
 
         double score = 0;
         List<String> factors = new ArrayList<>();
@@ -128,6 +135,9 @@ public class ChargebackPreventionService {
     public Chargeback createChargeback(Long restaurantId, Long billId, String reasonCode, String description) {
         Bill bill = billRepository.findById(billId)
                 .orElseThrow(() -> new BusinessRuleException("Bill not found"));
+        if (!restaurantId.equals(bill.getRestaurantId())) {
+            throw new BusinessRuleException("Unauthorized");
+        }
         Chargeback cb = new Chargeback();
         cb.setRestaurantId(restaurantId);
         cb.setBillId(billId);
@@ -140,8 +150,17 @@ public class ChargebackPreventionService {
         cb.setCustomerPhone(bill.getCustomerWhatsapp());
         cb.setCreatedAt(System.currentTimeMillis());
 
-        Map<String, Object> fraudScore = scoreTransaction(billId);
-        cb.setFraudScore((BigDecimal) fraudScore.get("score"));
+        Map<String, Object> fraudScore = scoreTransaction(restaurantId, billId);
+        Object rawScore = fraudScore.get("score");
+        BigDecimal scoreBd;
+        if (rawScore instanceof BigDecimal bd) {
+            scoreBd = bd;
+        } else if (rawScore instanceof Number num) {
+            scoreBd = BigDecimal.valueOf(num.doubleValue()).setScale(1, RoundingMode.HALF_UP);
+        } else {
+            scoreBd = BigDecimal.ZERO;
+        }
+        cb.setFraudScore(scoreBd);
 
         Chargeback saved = chargebackRepository.save(cb);
 
