@@ -98,10 +98,9 @@ export type OrdersTab = 'live' | 'history';
         [items]="liveKpiItems()"
       />
 
-      <app-kpi-row
-        *ngIf="tab() === 'history'"
-        [items]="historyKpiItems()"
-        />
+      <!-- Order History owns its KPI strip: it sits with the filter panel and
+           updates from the tab's own loaded page. The shell's copy read plain
+           fields through a computed, so it stayed at zero and duplicated the row. -->
       <section
         id="orders-panel-live"
         role="tabpanel"
@@ -246,36 +245,6 @@ export class OrdersPageComponent {
         value: this._paymentDueCount().toString(),
         tone: 'danger' as const,
         accent: 'activity',
-      } as KpiItem,
-    ] as KpiItem[];
-  });
-
-  /** KPI items for the Order History view. */
-  readonly historyKpiItems = computed<KpiItem[]>(() => {
-    const total = this.orderHistoryTab?.serverTotalElements ?? 0;
-    const completed = this.orderHistoryTab?.filteredCompletedCount ?? 0;
-    const cancelled = this.orderHistoryTab?.filteredOrders.filter(o => (o.orderStatus || '').toLowerCase() === 'cancelled').length ?? 0;
-    const sales = this.orderHistoryTab?.filteredTotalRevenue ?? 0;
-    return [
-      {
-        label: 'Total Orders',
-        value: total.toString(),
-        tone: 'default' as const,
-      } as KpiItem,
-      {
-        label: 'Total Sales',
-        value: `₹${sales.toLocaleString()}`,
-        tone: 'default' as const,
-      } as KpiItem,
-      {
-        label: 'Completed Orders',
-        value: completed.toString(),
-        tone: 'success' as const,
-      } as KpiItem,
-      {
-        label: 'Cancelled Orders',
-        value: cancelled.toString(),
-        tone: 'danger' as const,
       } as KpiItem,
     ] as KpiItem[];
   });

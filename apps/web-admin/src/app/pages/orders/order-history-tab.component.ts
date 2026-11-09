@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnDestroy, Output, inject, computed } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, HostListener, Input, OnDestroy, Output, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, debounceTime, distinctUntilChanged, from, of } from 'rxjs';
 import { concatMap, finalize, reduce, switchMap } from 'rxjs/operators';
@@ -8,7 +8,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
-import { KpiItem } from '../../shared/kpi-row.component';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
@@ -104,7 +104,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
   selector: 'app-order-history-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent, PaginationBarComponent, FocusTrapDirective],
+  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent, PaginationBarComponent, FocusTrapDirective, KpiRowComponent],
   template: `
     <app-order-detail-modal
       *ngIf="selectedOrderDetail"
@@ -239,67 +239,23 @@ export function orderStatusLabel(status: string | null | undefined): string {
 
       <!-- Order History KPI cards + Filters panel -->
       <div class="history-kpi-and-filters" *ngIf="!ordersError" aria-label="Order history KPI and filters">
-        <!-- KPI Cards above filters -->
-        <div class="kpi-row history-kpi-row"
+        <!-- The shared strip: this block used four .kpi-card divs whose classes
+             were never defined anywhere, so the figures printed as bare lines. -->
+        <app-kpi-row
           *ngIf="serverTotalElements && serverTotalElements > 0"
-          aria-label="Order history metrics"
-        >
-          <div class="kpi-card history-kpi-card"
-            *ngFor="let item of historyKpiItems()"
-            [class.kpi-card--default]="item.tone === 'default'"
-            [class.kpi-card--success]="item.tone === 'success'"
-            [class.kpi-card--danger]="item.tone === 'danger'"
-            [attr.aria-label]="item.label + ': ' + item.value"
-          >
-            <div class="kpi-card__label" [class.kpi-card__label--secondary]="true">{{ item.label }}</div>
-            <div class="kpi-card__value" [class.kpi-card__value--tone]="item.tone"
-              [class.kpi-card__value--accent-default]="item.tone === 'default'"
-              [class.kpi-card__value--accent-success]="item.tone === 'success'"
-              [class.kpi-card__value--accent-danger]="item.tone === 'danger'"
-            >{{ item.value }}</div>
-            <div class="kpi-card__unit" *ngIf="item.unit">{{ item.unit }}</div>
-          </div>
-        </div>
+          [items]="historyKpiItems"
+          ariaLabel="Order history metrics">
+        </app-kpi-row>
 
         <!-- Filter panel with search, clear, and combined filters -->
         <div class="filter-panel"
           *ngIf="serverTotalElements && serverTotalElements > 0"
           aria-label="Order history filters"
         >
-          <div class="filter-row"
-            *ngIf="serverTotalElements && serverTotalElements > 0"
-          >
-            <div class="filter-item"
-              *ngIf="serverTotalElements && serverTotalElements > 0"
-            >
-              <input
-                type="text"
-                class="field-control"
-                placeholder="Search order #, items, guest..."
-                [(ngModel)]="orderSearchTerm"
-                (ngModelChange)="onSearchChange($event)"
-                aria-label="Search order history"
-              />
-            </div>
-            <div class="filter-item"
-              *ngIf="serverTotalElements && serverTotalElements > 0"
-            >
-              <button
-                type="button"
-                class="btn-clear"
-                (click)="clearFilters()"
-                aria-label="Clear all filters"
-                *ngIf="orderSearchTerm || orderSourceFilter || orderStatusFilter || orderPaymentFilter"
-              >Clear</button>
-            </div>
-          </div>
-
-          <div class="filter-row"
-            *ngIf="serverTotalElements && serverTotalElements > 0"
-          >
-            <div class="filter-item"
-              *ngIf="serverTotalElements && serverTotalElements > 0"
-            >
+          <!-- Search lives once, in the page header; this panel owns the
+               channel/status/payment filters and their reset. -->
+          <div class="filter-row">
+            <div class="filter-item filter-item--select">
               <select
                 class="field-select"
                 [(ngModel)]="orderSourceFilter"
@@ -312,9 +268,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
                 <option value="DELIVERY">Delivery</option>
               </select>
             </div>
-            <div class="filter-item"
-              *ngIf="serverTotalElements && serverTotalElements > 0"
-            >
+            <div class="filter-item filter-item--select">
               <select
                 class="field-select"
                 [(ngModel)]="orderStatusFilter"
@@ -328,9 +282,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
                 <option value="Pending">Pending</option>
               </select>
             </div>
-            <div class="filter-item"
-              *ngIf="serverTotalElements && serverTotalElements > 0"
-            >
+            <div class="filter-item filter-item--select">
               <select
                 class="field-select"
                 [(ngModel)]="orderPaymentFilter"
@@ -341,6 +293,15 @@ export function orderStatusLabel(status: string | null | undefined): string {
                 <option value="UPI">UPI</option>
                 <option value="Card">Card</option>
               </select>
+            </div>
+            <div class="filter-item"
+              *ngIf="orderSearchTerm || orderSourceFilter !== 'ALL' || orderStatusFilter !== 'ALL' || orderPaymentFilter !== 'ALL'">
+              <button
+                type="button"
+                class="btn-clear"
+                (click)="clearFilters()"
+                aria-label="Clear all filters"
+              >Clear</button>
             </div>
           </div>
         </div>
@@ -615,6 +576,38 @@ export function orderStatusLabel(status: string | null | undefined): string {
        global stylesheets. This block owns only the history table's layout and
        its two-line cells; the copies that used to live here had already drifted
        from the shared ones. */
+    /* KPI strip + filters. The filter row had markup but no layout or button
+       styles of its own; the shared .filter-panel only carried padding. */
+    .history-kpi-and-filters { display: grid; gap: var(--kb-space-4); }
+    .filter-panel {
+      display: grid; gap: var(--kb-space-3);
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-card);
+    }
+    .filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--kb-space-3); }
+    .filter-item { min-width: 0; }
+    .filter-item--select { flex: 1 1 170px; }
+    .btn-clear {
+      min-height: var(--kb-touch-min);
+      padding: 0 1rem;
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
+      font-size: var(--kb-text-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 150ms ease, border-color 150ms ease;
+    }
+    .btn-clear:hover { background: var(--kb-color-surface-2); border-color: var(--kb-border-control); }
+    .btn-clear:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+    @media (max-width: 640px) {
+      .filter-row { display: grid; grid-template-columns: 1fr; }
+      .filter-item { flex: none; }
+      .btn-clear { width: 100%; }
+    }
+
     /* The card clips the table's corners; .panel already removes the inner
        .table-wrap frame, so one border wraps the whole surface. */
     .history-card { overflow: hidden; }
@@ -786,11 +779,15 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   onStatusFilterChange(event: any): void {
     this.orderStatusFilter = event.target ? event.target.value : event;
+    this.orderCurrentPage = 1;
     this.loadOrders();
     this.cdr.markForCheck();
   }
 
-  readonly historyKpiItems = computed(() => {
+  /** A getter, not a computed: the tab's filters and page data are plain
+   *  fields, so a computed would cache the first render and ignore every
+   *  later filter change. */
+  get historyKpiItems(): KpiItem[] {
     const total = this.serverTotalElements ?? 0;
     const completed = this.filteredCompletedCount ?? 0;
     const cancelled = this.filteredOrders.filter(o => (o.orderStatus || '').toLowerCase() === 'cancelled').length ?? 0;
@@ -817,7 +814,7 @@ export class OrderHistoryTabComponent implements OnDestroy {
         tone: 'danger',
       },
     ] as KpiItem[];
-  });
+  }
 
   isDineIn(order: BusinessOrder): boolean {
     const t = (order.orderType || order.sourceType || '').toLowerCase();
@@ -901,14 +898,21 @@ export class OrderHistoryTabComponent implements OnDestroy {
   }
 
   get filteredOrders(): BusinessOrder[] {
+    let rows = this.orders;
     if (this.orderSourceFilter !== 'ALL') {
-      return this.orders.filter(order => {
+      rows = rows.filter(order => {
         if (this.orderSourceFilter === 'DINE_IN') return this.isDineIn(order);
         if (this.orderSourceFilter === 'TAKEAWAY') return this.isTakeaway(order);
         return true;
       });
     }
-    return this.orders;
+    // Status and search are applied by the API; payment has no server param and
+    // used to be dropped entirely, leaving the select inert.
+    if (this.orderPaymentFilter !== 'ALL') {
+      const payment = this.orderPaymentFilter.toLowerCase();
+      rows = rows.filter(order => (order.paymentMethod || '').toLowerCase() === payment);
+    }
+    return rows;
   }
 
   get pagedOrders(): BusinessOrder[] {
@@ -973,8 +977,9 @@ export class OrderHistoryTabComponent implements OnDestroy {
     const fromDate = this.dateFrom ?? undefined;
     const toDate = this.dateTo ?? undefined;
     const search = this.orderSearchTerm.trim() || undefined;
+    const status = this.orderStatusFilter !== 'ALL' ? this.orderStatusFilter : undefined;
 
-    this.api.getOrdersPaginated(0, pageSize, undefined, fromDate, toDate, search).pipe(
+    this.api.getOrdersPaginated(0, pageSize, status, fromDate, toDate, search).pipe(
       switchMap(firstPage => {
         if (firstPage.totalPages <= 1) return of(firstPage.content);
         const remainingPages = Array.from({ length: firstPage.totalPages - 1 }, (_, index) => index + 1);
@@ -995,8 +1000,10 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   private downloadOrdersCsv(orders: BusinessOrder[]): void {
     const matchingOrders = orders.filter(order => {
-      if (this.orderSourceFilter === 'DINE_IN') return this.isDineIn(order);
-      if (this.orderSourceFilter === 'TAKEAWAY') return this.isTakeaway(order);
+      if (this.orderSourceFilter === 'DINE_IN' && !this.isDineIn(order)) return false;
+      if (this.orderSourceFilter === 'TAKEAWAY' && !this.isTakeaway(order)) return false;
+      if (this.orderPaymentFilter !== 'ALL'
+          && (order.paymentMethod || '').toLowerCase() !== this.orderPaymentFilter.toLowerCase()) return false;
       return true;
     });
     if (!matchingOrders.length) {
@@ -1045,7 +1052,8 @@ export class OrderHistoryTabComponent implements OnDestroy {
     const from = this.dateFrom ?? undefined;
     const to = this.dateTo ?? undefined;
     const search = this.orderSearchTerm?.trim() || undefined;
-    this.api.getOrdersPaginated(this.orderCurrentPage - 1, this.orderPageSize, undefined, from, to, search).subscribe({
+    const status = this.orderStatusFilter !== 'ALL' ? this.orderStatusFilter : undefined;
+    this.api.getOrdersPaginated(this.orderCurrentPage - 1, this.orderPageSize, status, from, to, search).subscribe({
       next: (data: PaginatedOrdersResponse) => {
         this.orders = data.content;
         this.serverTotalElements = data.totalElements;
@@ -1151,10 +1159,15 @@ export class OrderHistoryTabComponent implements OnDestroy {
 
   clearFilters(): void {
     this.orderSearchTerm = '';
+    this.searchQueryChange.emit('');
     this.orderSourceFilter = 'ALL';
     this.orderStatusFilter = 'ALL';
     this.orderPaymentFilter = 'ALL';
-    this.onSearchChange('');
+    this.orderCurrentPage = 1;
+    // Reload explicitly: the debounced search stream drops a repeated '', which
+    // used to leave the table showing the previous status filter after a reset.
+    this.searchSubject.next('');
+    this.loadOrders();
     this.cdr.markForCheck();
   }
 
