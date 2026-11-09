@@ -163,3 +163,117 @@ describe('LiveOrdersTabComponent — the card action row', () => {
     expect(title.textContent).toContain('C22');
   });
 });
+
+describe('LiveOrdersTabComponent — channel filters', () => {
+  let fixture: ComponentFixture<LiveOrdersTabComponent> | undefined;
+  let api: jasmine.SpyObj<BusinessApiService>;
+
+  function apiOrder(id: number, orderType: string, tableNumber?: string): BusinessOrder {
+    return {
+      orderId: id,
+      orderCode: `C${id}`,
+      customerName: 'Walk-in Guest',
+      totalAmount: id * 100,
+      createdAt: Date.now() - 5 * 60 * 1000,
+      orderType,
+      orderStatus: 'Draft',
+      paymentStatus: 'Pending',
+      tableNumber,
+    } as unknown as BusinessOrder;
+  }
+
+  function mount(orders: BusinessOrder[]): void {
+    api = jasmine.createSpyObj<BusinessApiService>('BusinessApiService', [
+      'getOrdersPaginated',
+      'getOrderDetail',
+      'voidBill',
+    ]);
+    api.getOrdersPaginated.and.returnValue(of({ content: orders } as any));
+
+    TestBed.configureTestingModule({
+      imports: [LiveOrdersTabComponent],
+      providers: [
+        { provide: BusinessApiService, useValue: api },
+        { provide: AuthService, useValue: { session: () => null } },
+        { provide: ToastService, useValue: { show: jasmine.createSpy('show') } },
+      ],
+    });
+
+    fixture = TestBed.createComponent(LiveOrdersTabComponent);
+    fixture.detectChanges();
+  }
+
+  afterEach(() => {
+    fixture?.destroy();
+    fixture = undefined;
+  });
+
+  function chip(label: string): HTMLButtonElement {
+    const buttons = fixture!.nativeElement.querySelectorAll('.filter-chip') as NodeListOf<HTMLButtonElement>;
+    return Array.from(buttons).find((button) => (button.textContent || '').trim() === label)!;
+  }
+
+  function cardCodes(): string[] {
+    return Array.from(
+      fixture!.nativeElement.querySelectorAll('.pos-card-tactile') as NodeListOf<HTMLElement>,
+    ).map((card) => ((card.querySelector('.order-code')?.textContent || '').trim().replace(/^#/, '')));
+  }
+
+  function kpiValue(label: string): string {
+    const tiles = Array.from(fixture!.nativeElement.querySelectorAll('.kb-kpi') as NodeListOf<HTMLElement>);
+    const tile = tiles.find((item) => (item.querySelector('.kb-kpi__label')?.textContent || '').trim() === label)!;
+    return (tile.querySelector('.kb-kpi__value')?.textContent || '').trim();
+  }
+
+  function summaryValue(label: string): string {
+    const items = Array.from(fixture!.nativeElement.querySelectorAll('.live-summary__item') as NodeListOf<HTMLElement>);
+    const item = items.find((entry) => (entry.querySelector('.live-summary__label')?.textContent || '').trim() === label)!;
+    return (item.querySelector('.live-summary__value')?.textContent || '').trim();
+  }
+
+  it('filters the cards and every summary figure to the chosen channel', () => {
+    mount([
+      apiOrder(1, 'DINE_IN', 'T1'),
+      apiOrder(2, 'TAKEAWAY'),
+      apiOrder(3, 'DELIVERY'),
+    ]);
+
+    expect(cardCodes().length).withContext('all three channels are on the board at rest').toBe(3);
+    expect(kpiValue('Active Orders')).toBe('3');
+    expect(summaryValue('Active orders')).toBe('3');
+
+    chip('Takeaway').click();
+    fixture!.detectChanges();
+
+    expect(cardCodes()).withContext('only the takeaway order remains').toEqual(['C2']);
+    expect(chip('Takeaway').getAttribute('aria-pressed')).toBe('true');
+    expect(chip('All').getAttribute('aria-pressed')).toBe('false');
+    expect(kpiValue('Active Orders')).toBe('1');
+    expect(summaryValue('Active orders')).toBe('1');
+    expect(summaryValue('Tables in use')).withContext('the filtered board has no tables').toBe('0');
+
+    chip('All').click();
+    fixture!.detectChanges();
+    expect(cardCodes().length).toBe(3);
+  });
+
+  it('keeps the chips and offers a way back when the chosen channel is empty', () => {
+    mount([apiOrder(1, 'DINE_IN', 'T1')]);
+
+    chip('Delivery').click();
+    fixture!.detectChanges();
+
+    expect(fixture!.nativeElement.textContent).toContain('No Delivery orders');
+    expect(fixture!.nativeElement.querySelectorAll('.filter-chip').length)
+      .withContext('the chips stay visible so the choice can be reversed').toBe(4);
+    expect(fixture!.nativeElement.querySelector('.active-orders-grid')).toBeFalsy();
+    expect(fixture!.nativeElement.querySelector('app-kpi-row')).toBeTruthy();
+
+    const showAll = fixture!.nativeElement.querySelector('.empty-orders-view .btn-retry') as HTMLButtonElement;
+    showAll.click();
+    fixture!.detectChanges();
+
+    expect(cardCodes()).toEqual(['C1']);
+    expect(chip('All').getAttribute('aria-pressed')).toBe('true');
+  });
+});

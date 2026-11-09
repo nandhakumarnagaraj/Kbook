@@ -72,14 +72,15 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
         <!-- Order-type filter chips directly below the KPI cards -->
         <div class="filter-chips"
           *ngIf="!showReloadSkeleton()"
+          role="group"
           aria-label="Order type filters"
         >
           <button
             type="button"
             class="filter-chip"
             *ngFor="let channel of ['All', 'Dine-in', 'Takeaway', 'Delivery']"
-            [class.filter-chip--active]="isTakeawayFilter() === channel"
-            [attr.aria-pressed]="isTakeawayFilter() === channel"
+            [class.filter-chip--active]="channelFilter() === channel"
+            [attr.aria-pressed]="channelFilter() === channel"
             (click)="filterByChannel(channel)"
           >{{ channel }}</button>
         </div>
@@ -90,11 +91,11 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
            and adds no request of its own. -->
       <section
         class="live-summary"
-        *ngIf="activeOrders().length && !showReloadSkeleton()"
+        *ngIf="visibleOrders().length && !showReloadSkeleton()"
         aria-label="Live floor summary">
         <div class="live-summary__item">
           <span class="live-summary__label">Active orders</span>
-          <strong class="live-summary__value">{{ activeOrders().length }}</strong>
+          <strong class="live-summary__value">{{ visibleOrders().length }}</strong>
         </div>
         <div class="live-summary__item">
           <span class="live-summary__label">Tables in use</span>
@@ -115,10 +116,10 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       </section>
 
       <!-- Bento Cards Grid (bentogrids.com standard) -->
-      <div class="active-orders-grid" *ngIf="activeOrders().length && !showReloadSkeleton()">
+      <div class="active-orders-grid" *ngIf="visibleOrders().length && !showReloadSkeleton()">
         <article
           class="bento-tile pos-card-tactile"
-          *ngFor="let order of activeOrders(); trackBy: trackByOrderId"
+          *ngFor="let order of visibleOrders(); trackBy: trackByOrderId"
           [class.pos-card--urgent]="isUrgent(order)"
           tabindex="0"
           role="button"
@@ -218,6 +219,19 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
             </button>
           </div>
         </article>
+      </div>
+
+      <!-- The board has orders, but none in the selected channel. Keep this
+           distinct from the all-clear state so the chips stay discoverable. -->
+      <div class="empty-orders-view" *ngIf="!loading() && !error() && activeOrders().length && !visibleOrders().length">
+        <div class="empty-icon-circle" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 3H2l8 9.46V19l4 2v-8.54z"/>
+          </svg>
+        </div>
+        <h4>No {{ channelFilter() }} orders</h4>
+        <p>Live orders are still open in other channels.</p>
+        <button type="button" class="btn-retry" (click)="filterByChannel('All')">Show all orders</button>
       </div>
 
       <!-- Dignified Zero State (404s.design / Anti-Slop standard) -->
@@ -779,7 +793,7 @@ export class LiveOrdersTabComponent implements OnDestroy {
   readonly fmt = formatCurrency;
 
   readonly liveKpiItems = computed(() => {
-    const orders = this.activeOrders();
+    const orders = this.visibleOrders();
     return [
       {
         label: 'Active Orders',
@@ -814,7 +828,7 @@ export class LiveOrdersTabComponent implements OnDestroy {
   });
 
   readonly totalFloorValue = computed(() => {
-    return this.activeOrders().reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+    return this.visibleOrders().reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   });
 
   readonly dineInCount = computed(() => {
@@ -830,17 +844,18 @@ export class LiveOrdersTabComponent implements OnDestroy {
   });
 
   readonly activeTableCount = computed(() => {
-    const tableOrders = this.activeOrders().filter(o => o.tableNumber != null && o.tableNumber !== '');
+    const orders = this.visibleOrders();
+    const tableOrders = orders.filter(o => o.tableNumber != null && o.tableNumber !== '');
     const uniqueTables = new Set(tableOrders.map(o => String(o.tableNumber)));
-    return uniqueTables.size || this.dineInCount();
+    return uniqueTables.size || orders.filter(o => this.isDineIn(o)).length;
   });
 
   readonly urgentCount = computed(() => {
-    return this.activeOrders().filter(o => this.isUrgent(o)).length;
+    return this.visibleOrders().filter(o => this.isUrgent(o)).length;
   });
 
   readonly oldestWaitFormatted = computed(() => {
-    const orders = this.activeOrders();
+    const orders = this.visibleOrders();
     if (!orders.length) return '—';
     const now = Date.now();
     let maxElapsed = 0;
@@ -961,10 +976,21 @@ export class LiveOrdersTabComponent implements OnDestroy {
     return 'Dine-In';
   }
 
-  readonly isTakeawayFilter = signal('All');
+  readonly channelFilter = signal('All');
+
+  /** The board and every summary figure reflect the selected channel. */
+  readonly visibleOrders = computed(() => {
+    const orders = this.activeOrders();
+    switch (this.channelFilter()) {
+      case 'Dine-in': return orders.filter(o => this.isDineIn(o));
+      case 'Takeaway': return orders.filter(o => this.isTakeaway(o));
+      case 'Delivery': return orders.filter(o => this.isDelivery(o));
+      default: return orders;
+    }
+  });
 
   filterByChannel(channel: string): void {
-    this.isTakeawayFilter.set(channel);
+    this.channelFilter.set(channel);
   }
 
   trackByOrderId = (_: number, order: BusinessOrder) => order.orderId;
