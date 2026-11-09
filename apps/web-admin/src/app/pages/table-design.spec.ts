@@ -100,12 +100,12 @@ function designOf(host: HTMLElement, label: string): TableDesign {
     .withContext(`${label}: every table carries the one design class`)
     .toBeTrue();
 
-  const th = table!.querySelector('thead th') as HTMLElement | null;
+  const th = (table!.querySelector('thead th:not(.idx-col)') ?? table!.querySelector('thead th')) as HTMLElement | null;
   // Measure a plain data cell. `.muted` is a deliberate secondary-value
   // modifier (a timestamp, a rank) and is not the table's design; a row header
   // now occupies the first cell of some tables, so the first `td` can be either
   // of those rather than the body cell the design defines.
-  const td = (table!.querySelector('tbody td:not(.muted)') ?? table!.querySelector('tbody td')) as HTMLElement | null;
+  const td = (table!.querySelector('tbody td:not(.muted):not(.idx-col)') ?? table!.querySelector('tbody td:not(.muted)') ?? table!.querySelector('tbody td')) as HTMLElement | null;
   const firstRow = table!.querySelector('tbody tr') as HTMLElement | null;
   expect(th).withContext(`${label}: header cell`).toBeTruthy();
   expect(td).withContext(`${label}: body cell`).toBeTruthy();
@@ -144,11 +144,27 @@ function measureAll(): { label: string; design: TableDesign }[] {
   results.push({ label: 'menu (.data-table + local overrides, now layout only)', design: designOf(menu.nativeElement, 'menu') });
   menu.destroy();
 
-  const businessesApi = jasmine.createSpyObj('AdminApiService', ['getBusinesses']);
+  const businessesApi = jasmine.createSpyObj('AdminApiService', ['getBusinesses', 'getDashboardSummary', 'getBusinessDetail']);
   businessesApi.getBusinesses.and.returnValue(of([
     { restaurantId: 1, shopName: 'Test Kitchen', isSuspended: false },
     { restaurantId: 2, shopName: 'Second Kitchen', isSuspended: false },
   ]));
+  businessesApi.getDashboardSummary.and.returnValue(of({
+    totalBusinesses: 2,
+    liveBusinesses: 2,
+    totalStaff: 4,
+    totalOrders: 10,
+    totalRevenue: 5000,
+  }));
+  businessesApi.getBusinessDetail.and.returnValue(of({
+    restaurantId: 1,
+    shopName: 'Test Kitchen',
+    ownerName: 'Ravi',
+    phone: '9876543210',
+    planType: 'PRO',
+    status: 'ACTIVE',
+    terminalsCount: 1,
+  }));
   const businesses = mount<BusinessesPageComponent>(BusinessesPageComponent, [
     { provide: AdminApiService, useValue: businessesApi },
   ]);
@@ -203,6 +219,10 @@ function measureAll(): { label: string; design: TableDesign }[] {
   // so the design audit now covers its recent-orders and top-performers tables.
   const platform = mount<PlatformDashboardPageComponent>(PlatformDashboardPageComponent, [
     provideRouter([]),
+  ]);
+  platform.componentInstance.businesses.set([
+    { restaurantId: '1', shopName: 'Test Kitchen', ownerName: 'Ravi', orderCount: 50, isSuspended: false } as any,
+    { restaurantId: '2', shopName: 'Second Kitchen', ownerName: 'Meena', orderCount: 30, isSuspended: false } as any,
   ]);
   platform.detectChanges();
   results.push({ label: 'platform dashboard tables (was .admin-table)', design: designOf(platform.nativeElement, 'platform') });

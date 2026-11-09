@@ -253,6 +253,7 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
       .donut-row { display: flex; gap: var(--kb-space-4); align-items: center; }
       .donut-svg-box { position: relative; width: 130px; height: 130px; flex: none; }
       .donut-svg { width: 100%; height: 100%; }
+      .donut-seg { transition: stroke-dasharray var(--kb-duration-fast), stroke-dashoffset var(--kb-duration-fast); }
       .donut-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; }
       .donut-center strong { font-size: var(--kb-text-md); }
       .donut-center span { font-size: var(--kb-text-xs); color: var(--muted); }

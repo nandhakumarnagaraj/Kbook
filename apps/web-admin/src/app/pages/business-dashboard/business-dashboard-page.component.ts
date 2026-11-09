@@ -869,6 +869,19 @@ function getTodayIsoDate(): string {
       content: '·';
       color: var(--kb-color-border-strong);
     }
+    .dash-meta__sep { color: var(--kb-color-border-strong); }
+    .dash-card--sales-overview,
+    .dash-card--order-type,
+    .dash-card--terminals,
+    .dash-card--recent-orders { min-width: 0; }
+    .time-filter-select-wrap { display: flex; align-items: center; }
+    .chart-grid-group { pointer-events: none; }
+    .chart-x-labels { display: flex; justify-content: space-between; font-size: var(--kb-text-2xs); color: var(--kb-color-muted-foreground); }
+    .metric-table-wrap { overflow-x: auto; }
+    .col-order, .col-type, .col-table, .col-amount, .col-status, .col-time, .cell-time { white-space: nowrap; }
+    .multi-terminal-actions { display: flex; gap: var(--kb-space-2); }
+    .state-panel--offset { margin-top: var(--kb-space-4); }
+    .bento-intel-grid--spaced { margin-top: var(--kb-space-4); }
 
     @media (max-width: 1100px) {
       .dash-top-header {

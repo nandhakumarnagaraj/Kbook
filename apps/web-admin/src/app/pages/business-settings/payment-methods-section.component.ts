@@ -206,10 +206,11 @@ export interface PaymentMethodsSettings {
       font-size: var(--kb-text-md); color: var(--kb-color-foreground); font-weight: 500;
     }
     .toggle-label input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--kb-color-primary); }
-    .upi-feedback { margin-top: 6px; font-size: var(--kb-text-sm); }
+    .upi-feedback { margin-top: var(--kb-space-1); font-size: var(--kb-text-sm); }
     .feedback-success { color: var(--kb-color-success); display: flex; align-items: center; gap: var(--kb-space-1); font-weight: 500; }
-    .feedback-warning { color: var(--kb-color-warning); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .feedback-warning { color: var(--kb-color-warning); display: flex; align-items: center; gap: var(--kb-space-1); flex-wrap: wrap; }
     .feedback-error { color: var(--kb-color-error); font-weight: 500; }
+    .icon { font-size: var(--kb-text-sm); line-height: 1; }
     .suggestion-btn {
       background: none; border: 1px solid var(--kb-color-primary);
       color: var(--kb-color-link); border-radius: var(--kb-radius-sm);

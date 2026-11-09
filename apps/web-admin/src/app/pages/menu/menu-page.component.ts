@@ -762,6 +762,11 @@ import { environment } from '../../../environments/environment';
       gap: var(--kb-space-4);
       align-items: start;
     }
+    .menu-main-col {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
     .menu-cat-rail {
       display: flex;
       flex-direction: column;

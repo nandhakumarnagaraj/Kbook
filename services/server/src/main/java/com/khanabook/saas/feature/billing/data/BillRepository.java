@@ -188,6 +188,33 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             Pageable pageable);
 
     @Query("""
+            SELECT 
+                COALESCE(SUM(b.totalAmount), 0.0),
+                COALESCE(SUM(CASE WHEN LOWER(b.orderStatus) IN ('completed', 'paid') THEN 1L ELSE 0L END), 0L),
+                COALESCE(SUM(CASE WHEN LOWER(b.orderStatus) IN ('cancelled', 'voided') THEN 1L ELSE 0L END), 0L)
+            FROM Bill b
+            WHERE b.restaurantId = :restaurantId
+              AND b.isDeleted = false
+              AND (:status IS NULL OR LOWER(b.orderStatus) = :status)
+              AND (:from IS NULL OR b.createdAt >= :from)
+              AND (:to IS NULL OR b.createdAt < :to)
+              AND (:search IS NULL OR :search = '' OR (
+                    LOWER(COALESCE(b.dailyOrderDisplay, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR LOWER(COALESCE(b.invoiceNumber, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR LOWER(COALESCE(b.customerName, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR LOWER(COALESCE(b.customerWhatsapp, '')) LIKE LOWER(CONCAT('%', :search, '%'))
+                 OR CAST(b.dailyOrderId AS string) LIKE CONCAT('%', :search, '%')
+                 OR (b.lifetimeOrderId IS NOT NULL AND CAST(b.lifetimeOrderId AS string) LIKE CONCAT('%', :search, '%'))
+              ))
+            """)
+    List<Object[]> findOrderAggregateStats(
+            @Param("restaurantId") Long restaurantId,
+            @Param("status") String status,
+            @Param("from") Long from,
+            @Param("to") Long to,
+            @Param("search") String search);
+
+    @Query("""
             SELECT COALESCE(MAX(b.dailyOrderId), 0) FROM Bill b
             WHERE b.restaurantId = :restaurantId
               AND b.lastResetDate = :lastResetDate

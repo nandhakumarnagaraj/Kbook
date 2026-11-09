@@ -621,6 +621,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-size: var(--kb-text-xs);
       color: rgba(255, 255, 255, 0.9);
     }
+    .pos-item-name {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--kb-space-1);
+    }
     .pos-item-qty {
       font-weight: 600;
       color: var(--kb-color-primary);
@@ -639,6 +644,10 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
       font-size: var(--kb-text-sm);
       font-weight: 600;
       color: var(--kb-color-foreground-contrast);
+    }
+    .pos-total-label {
+      font-size: var(--kb-text-xs);
+      color: rgba(255, 255, 255, 0.75);
     }
     .pos-total-val {
       font-size: var(--kb-text-md);
@@ -710,6 +719,11 @@ export function isPasswordResetSubmissionValid(newPassword: string, confirmPassw
     .metric-sub {
       font-size: var(--kb-text-sm);
       color: rgba(255, 255, 255, 0.5);
+    }
+    .metric-sparkline {
+      display: flex;
+      align-items: center;
+      margin-top: var(--kb-space-2);
     }
     .sparkline-svg {
       width: 100%;

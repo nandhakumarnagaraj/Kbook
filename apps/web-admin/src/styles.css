@@ -259,6 +259,7 @@
   --kb-z-peek:     140;  /* collapsed-rail hover chip */
   --kb-z-modal:    1000; /* every modal overlay, whichever component owns it */
   --kb-z-toast:    1100; /* every toast, above an open modal */
+  --tip: 50%;
   --kb-sidebar-width: 232px; --kb-topbar-height: 56px;
   /* One content measure, read by .page-shell and nothing else. 1680px is the
      shipped and chosen width (owner decision 2026-10-25); it preserves the
@@ -318,7 +319,7 @@ body {
 }
 
 h1, h2, h3, h4, p { margin-top: 0; }
-h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; color: var(--ink); text-wrap: balance; }
 
 button, input, select, textarea { font: inherit; }
 
@@ -831,7 +832,7 @@ tbody tr[aria-selected="true"] {
   align-items: center;
   gap: 0.4rem;
   min-height: var(--kb-touch-min);
-  padding: 0.35rem 0.85rem;
+  padding: var(--kb-space-1) 0.85rem;
   border: 1px solid var(--kb-color-border);
   border-radius: var(--kb-radius-full);
   background: var(--kb-color-surface);

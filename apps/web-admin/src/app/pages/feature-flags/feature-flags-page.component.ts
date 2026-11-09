@@ -330,6 +330,7 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
         background: var(--kb-color-input); color: var(--ink); font-family: inherit;
       }
       .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--kb-space-3); }
+      .field--half { min-width: 0; }
       .field__hint { font-size: var(--kb-text-xs); }
       .field__control { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); }
       .plan-box { border: 1px solid var(--line); border-radius: var(--kb-radius-lg); padding: var(--kb-space-3) var(--kb-space-4) var(--kb-space-4); display: grid; gap: var(--kb-space-2); }

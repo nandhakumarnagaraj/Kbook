@@ -276,4 +276,38 @@ describe('LiveOrdersTabComponent — channel filters', () => {
     expect(cardCodes()).toEqual(['C1']);
     expect(chip('All').getAttribute('aria-pressed')).toBe('true');
   });
+
+  it('announces filter updates to screen readers and supports arrow key navigation', () => {
+    mount([
+      apiOrder(1, 'DINE_IN', 'T1'),
+      apiOrder(2, 'TAKEAWAY'),
+    ]);
+
+    const liveRegion = fixture!.nativeElement.querySelector('[role="status"][aria-live="polite"]') as HTMLElement;
+    expect(liveRegion).toBeTruthy();
+    expect(liveRegion.textContent?.trim()).toBe('Showing all 2 active orders.');
+
+    // Click Takeaway and verify live announcement
+    chip('Takeaway').click();
+    fixture!.detectChanges();
+    expect(liveRegion.textContent?.trim()).toBe('Showing 1 Takeaway order.');
+
+    // Click Delivery (0 matching) and verify announcement
+    chip('Delivery').click();
+    fixture!.detectChanges();
+    expect(liveRegion.textContent?.trim()).toBe('No Delivery orders found. Live orders are still open in other channels.');
+
+    // Arrow navigation from Delivery (index 3) -> ArrowRight wraps to All (index 0)
+    const deliveryChip = chip('Delivery');
+    deliveryChip.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    fixture!.detectChanges();
+    expect(fixture!.componentInstance.channelFilter()).toBe('All');
+    expect(liveRegion.textContent?.trim()).toBe('Showing all 2 active orders.');
+
+    // ArrowLeft from All wraps to Delivery
+    const allChip = chip('All');
+    allChip.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    fixture!.detectChanges();
+    expect(fixture!.componentInstance.channelFilter()).toBe('Delivery');
+  });
 });

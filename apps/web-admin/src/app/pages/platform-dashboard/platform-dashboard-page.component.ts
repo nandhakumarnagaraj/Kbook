@@ -224,8 +224,8 @@ interface GrowthBar {
               @if (trendHover(); as hover) {
                 <line [attr.x1]="hover.x" [attr.y1]="trendPlot().top" [attr.x2]="hover.x" [attr.y2]="trendPlot().bottom"
                       stroke="var(--muted)" stroke-dasharray="3 3" opacity="0.6" />
-                <circle [attr.cx]="hover.x" [attr.cy]="hover.yOrders" r="4" fill="var(--kb-chart-2)" stroke="#fff" stroke-width="2" />
-                <circle [attr.cx]="hover.x" [attr.cy]="hover.yRev" r="4.5" fill="var(--brand)" stroke="#fff" stroke-width="2" />
+                <circle [attr.cx]="hover.x" [attr.cy]="hover.yOrders" r="4" fill="var(--kb-chart-2)" stroke="var(--kb-color-surface)" stroke-width="2" />
+                <circle [attr.cx]="hover.x" [attr.cy]="hover.yRev" r="4.5" fill="var(--brand)" stroke="var(--kb-color-surface)" stroke-width="2" />
               }
             </svg>
             @if (trendHover(); as hover) {
@@ -369,7 +369,7 @@ interface GrowthBar {
               <tbody>
                 @for (row of topRestaurants(); track row.id; let i = $index) {
                   <tr>
-                    <td class="idx-col">{{ row.rank }}</td>
+                    <td class="idx-col muted">{{ row.rank }}</td>
                     <td>
                       <strong>{{ row.name }}</strong>
                       <small class="sub-id">ID: {{ row.id }}</small>
@@ -416,7 +416,7 @@ interface GrowthBar {
               <tbody>
                 @for (row of recentRestaurants(); track row.id; let i = $index) {
                   <tr>
-                    <td class="idx-col">{{ row.rank }}</td>
+                    <td class="idx-col muted">{{ row.rank }}</td>
                     <td>
                       <strong>{{ row.name }}</strong>
                       <small class="sub-id">ID: {{ row.id }}</small>
@@ -530,17 +530,17 @@ interface GrowthBar {
          full-width tile. A single auto-fit track produced a 4 + 1 orphan at
          desktop widths, which is why this is explicit. */
       .kpi-band { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--kb-space-4); }
-      @media (max-width: 1199px) {
+      @media (max-width: 1100px) {
         .kpi-band { grid-template-columns: repeat(6, minmax(0, 1fr)); }
         .kpi-band > * { grid-column: span 2; }
         .kpi-band > :nth-child(4), .kpi-band > :nth-child(5) { grid-column: span 3; }
       }
-      @media (max-width: 899px) {
+      @media (max-width: 768px) {
         .kpi-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .kpi-band > *, .kpi-band > :nth-child(4), .kpi-band > :nth-child(5) { grid-column: auto; }
         .kpi-band > :last-child:nth-child(odd) { grid-column: span 2; }
       }
-      @media (max-width: 639px) {
+      @media (max-width: 640px) {
         .kpi-band { grid-template-columns: 1fr; }
         .kpi-band > :last-child:nth-child(odd) { grid-column: auto; }
       }
@@ -603,21 +603,21 @@ interface GrowthBar {
       .bar-grid span { border-top: 1px dashed var(--line); }
       .bar {
         flex: 1; background: var(--brand); border-radius: var(--kb-radius-sm) var(--kb-radius-sm) 0 0;
-        min-height: var(--kb-space-1); transition: opacity 120ms ease;
+        min-height: var(--kb-space-1); transition: opacity var(--kb-duration-fast) ease;
       }
       .bar:hover { opacity: 0.7; }
       .chart-tip {
         position: absolute; top: 3px; transform: translateX(-50%);
         /* Anchored at the sample but never past the plot edge, so the first and
            last tooltip cannot widen the page on a phone. */
-        left: clamp(52px, var(--tip, 50%), calc(100% - 52px));
-        display: grid; gap: 1px; padding: var(--kb-space-1) var(--kb-space-2);
+        left: clamp(52px, var(--tip), calc(100% - 52px));
+        display: grid; gap: 0; padding: var(--kb-space-1) var(--kb-space-2);
         border: 1px solid var(--line); border-radius: var(--kb-radius-sm);
         background: var(--kb-color-surface); font-size: var(--kb-text-2xs); color: var(--muted);
-        pointer-events: none; white-space: nowrap; z-index: 3;
+        pointer-events: none; white-space: nowrap; z-index: var(--kb-z-tooltip);
       }
       .chart-tip strong { color: var(--ink); font-size: var(--kb-text-xs); font-weight: 650; }
-      .chart-tip--trend strong { display: inline-flex; align-items: center; gap: 4px; }
+      .chart-tip--trend strong { display: inline-flex; align-items: center; gap: var(--kb-space-1); }
       /* Both charts take focus and read out the sample under the arrow keys, so a
          keyboard user gets the same numbers a mouse hover shows. */
       .bar-chart:focus-visible, .trend-svg:focus-visible {
@@ -628,8 +628,12 @@ interface GrowthBar {
         overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
       }
       .axis-row { display: flex; justify-content: space-between; font-size: var(--kb-text-xs); color: var(--muted); padding-top: var(--kb-space-1); }
+      .axis-tick { font-size: var(--kb-text-2xs); color: var(--muted); }
+      .grid-lines line { opacity: 0.6; }
+      .legend-count { font-variant-numeric: tabular-nums; }
+      .cal { display: inline-flex; align-items: center; }
       /* Same 54/40px insets as the plot, so the date labels line up with the line ends. */
-      .axis-row--trend { padding: var(--kb-space-1) 40px 0 54px; }
+      .axis-row--trend { padding: var(--kb-space-1) calc(40px) 0 calc(54px); }
       .trend-chart-wrap { position: relative; height: 152px; }
       .trend-svg { width: 100%; height: 100%; display: block; overflow: visible; cursor: crosshair; touch-action: pan-y; }
       .chart-label { font-size: var(--kb-text-2xs); fill: var(--muted); }
@@ -641,7 +645,7 @@ interface GrowthBar {
       .legend-item { display: inline-flex; align-items: center; gap: var(--kb-space-1); }
       .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
       .legend-dot--brand { background: var(--brand); }
-      .legend-dot--orders { background: var(--kb-chart-2); width: 10px; height: 3px; border-radius: 1px; }
+      .legend-dot--orders { background: var(--kb-chart-2); width: 10px; height: 3px; border-radius: var(--kb-radius-full); }
       .mid-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); }
       @media (min-width: 1100px) { .mid-row { grid-template-columns: 1fr 1fr; } }
       .dist-panel, .health-panel { padding: var(--kb-space-4); }
@@ -682,9 +686,6 @@ interface GrowthBar {
         text-decoration: none; font-weight: 600;
       }
       .view-link:hover { text-decoration: underline; }
-      .data-table { width: 100%; border-collapse: collapse; font-size: var(--kb-text-sm); }
-      .data-table th, .data-table td { padding: var(--kb-space-2) var(--kb-space-3); text-align: left; border-bottom: 1px solid var(--line); }
-      .data-table th { color: var(--muted); font-size: var(--kb-text-xs); font-weight: 600; text-transform: uppercase; }
       .idx-col { width: 32px; color: var(--muted); text-align: center; }
       .sub-id { display: block; font-size: var(--kb-text-xs); color: var(--muted); font-family: monospace; }
       .order-metric { color: var(--brand-orange-ink); }
@@ -708,7 +709,7 @@ interface GrowthBar {
         text-decoration: none; color: var(--ink); font-size: var(--kb-text-sm);
         transition: border-color 200ms ease, background-color 200ms ease;
       }
-      .quick-tile > div { display: grid; gap: 2px; min-width: 0; }
+      .quick-tile > div { display: grid; gap: var(--kb-space-1); min-width: 0; }
       .quick-tile strong { font-weight: 600; }
       .quick-tile:hover { border-color: var(--brand); background: var(--brand-soft); }
       .quick-tile--primary { border-color: var(--brand); background: var(--brand-soft); }

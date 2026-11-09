@@ -1,5 +1,6 @@
 package com.khanabook.saas.feature.billing.controller;
 
+import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.core.utility.AppConstants;
 
 import com.khanabook.saas.feature.billing.data.Bill;
@@ -82,7 +83,18 @@ public class InvoiceController {
 
         java.util.UUID uuid = null;
         boolean isPreview = "preview".equalsIgnoreCase(token);
-        if (!isPreview) {
+        if (isPreview) {
+            Long currentTenant = TenantContext.getCurrentTenant();
+            String currentRole = TenantContext.getCurrentRole();
+            boolean isAuthorizedAdmin = "KBOOK_ADMIN".equals(currentRole);
+            boolean isAuthorizedTenant = restaurantId.equals(currentTenant)
+                    && ("OWNER".equals(currentRole) || "SHOP_STAFF".equals(currentRole));
+
+            if (!isAuthorizedAdmin && !isAuthorizedTenant) {
+                // Anonymous or unauthorized users MUST NOT bypass publicToken verification with "preview"
+                return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+            }
+        } else {
             try {
                 uuid = java.util.UUID.fromString(token);
             } catch (IllegalArgumentException e) {
@@ -97,9 +109,9 @@ public class InvoiceController {
         }
 
         if (!isPreview) {
-            if (!java.security.MessageDigest.isEqual(
+            if (bill.getPublicToken() == null || !java.security.MessageDigest.isEqual(
                     uuid.toString().getBytes(),
-                    (bill.getPublicToken() != null ? bill.getPublicToken().toString() : "").getBytes())) {
+                    bill.getPublicToken().toString().getBytes())) {
                 return ResponseEntity.notFound().build();
             }
         }
@@ -126,7 +138,14 @@ public class InvoiceController {
         String gstin = blank(profile != null ? profile.getGstin() : null);
         String fssai = blank(profile != null ? profile.getFssaiNumber() : null);
         String logoUrl = blank(profile != null ? profile.getLogoUrl() : null);
-        String reviewUrl = blank(profile != null ? profile.getReviewUrl() : null);
+        String rawReviewUrl = blank(profile != null ? profile.getReviewUrl() : null);
+        String reviewUrl = "";
+        if (!rawReviewUrl.isEmpty()) {
+            String lower = rawReviewUrl.toLowerCase();
+            if (lower.startsWith("https://") || lower.startsWith("http://")) {
+                reviewUrl = rawReviewUrl;
+            }
+        }
         String footer = blank(profile != null ? profile.getInvoiceFooter() : null);
         String customTaxName = blank(profile != null ? profile.getCustomTaxName() : null);
         String invoiceLabel = profile != null && Boolean.TRUE.equals(profile.getGstEnabled()) ? "Tax Invoice No" : "Invoice No";

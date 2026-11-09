@@ -7,6 +7,18 @@ public record PaginatedOrdersResponse(
         long totalElements,
         int totalPages,
         int page,
-        int size
+        int size,
+        Double totalRevenue,
+        Long completedCount,
+        Long cancelledCount
 ) {
+    public PaginatedOrdersResponse(
+            List<BusinessOrderListItemResponse> content,
+            long totalElements,
+            int totalPages,
+            int page,
+            int size
+    ) {
+        this(content, totalElements, totalPages, page, size, null, null, null);
+    }
 }

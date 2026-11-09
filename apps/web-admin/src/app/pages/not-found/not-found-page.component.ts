@@ -248,8 +248,15 @@ import { AuthService } from '../../core/auth/auth.service';
       font-weight: 700;
       color: var(--kb-color-foreground);
     }
+    .line-name {
+      color: var(--kb-color-foreground);
+    }
+    .line-price {
+      font-variant-numeric: tabular-nums;
+      color: var(--kb-color-muted-foreground);
+    }
     .bill-line--secondary {
-      margin-top: 0.25rem;
+      margin-top: var(--kb-space-1);
     }
     .line-sub {
       font-size: var(--kb-text-xs);

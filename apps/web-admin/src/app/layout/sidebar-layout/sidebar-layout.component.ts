@@ -464,6 +464,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
 
     /* ── Topbar (mobile only) ── */
     .topbar { display: none; }
+    .topbar--mobile { width: 100%; box-sizing: border-box; }
     .topbar__brand { display: flex; align-items: center; gap: var(--kb-space-3); min-width: 0; }
     .topbar__brand-copy { display: grid; min-width: 0; gap: 0.1rem; }
 
@@ -693,7 +694,8 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     }
 
     /* Screen-reader only helper for the collapse announcement */
-    .sr-only {
+    .sr-only,
+    .presence-status {
       position: absolute;
       width: 1px;
       height: 1px;

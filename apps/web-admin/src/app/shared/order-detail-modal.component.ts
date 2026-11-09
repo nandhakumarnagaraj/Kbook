@@ -267,12 +267,12 @@ import { BusinessApiService } from '../core/services/business-api.service';
     .order-modal__close {
       background: none;
       border: none;
-      font-size: 1.2rem;
+      font-size: var(--kb-text-lg);
       color: var(--muted);
       cursor: pointer;
       padding: var(--kb-space-1) var(--kb-space-2);
       border-radius: var(--kb-radius-md);
-      transition: background 0.2s;
+      transition: background var(--kb-duration-fast);
     }
 
     .order-modal__close:hover {
@@ -283,7 +283,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
       padding: var(--kb-space-4) var(--kb-space-6);
       display: flex;
       flex-direction: column;
-      gap: 0.6rem;
+      gap: var(--kb-space-2);
     }
 
     .order-modal__row {
@@ -293,8 +293,8 @@ import { BusinessApiService } from '../core/services/business-api.service';
     }
 
     .order-modal__row--total {
-      margin-top: 0.5rem;
-      padding-top: 0.75rem;
+      margin-top: var(--kb-space-2);
+      padding-top: var(--kb-space-3);
       border-top: 1px solid var(--line);
     }
 
@@ -310,18 +310,18 @@ import { BusinessApiService } from '../core/services/business-api.service';
     }
 
     .order-modal__value--total {
-      font-size: 1.05rem;
+      font-size: var(--kb-text-lg);
       font-weight: 700;
       color: var(--brand);
+      font-variant-numeric: tabular-nums;
     }
 
     .chip {
       display: inline-block;
-      padding: 0.15rem 0.55rem;
+      padding: var(--kb-space-1) var(--kb-space-2);
       border-radius: var(--kb-radius-md);
       font-size: var(--kb-text-xs);
       font-weight: 600;
-      text-transform: uppercase;
       background: var(--bg);
       color: var(--ink);
     }
@@ -350,12 +350,12 @@ import { BusinessApiService } from '../core/services/business-api.service';
     .correction__toggle {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: var(--kb-space-1);
       border: 1px solid var(--line);
       background: var(--panel);
       color: var(--kb-color-foreground);
       border-radius: var(--kb-radius-full);
-      padding: 0.4rem 0.85rem;
+      padding: var(--kb-space-1) var(--kb-space-3);
       font-size: var(--kb-text-sm);
       font-weight: 700;
       cursor: pointer;
@@ -363,21 +363,22 @@ import { BusinessApiService } from '../core/services/business-api.service';
 
     .correction__toggle:hover { border-color: var(--brand); color: var(--brand); }
 
-    .correction__form { margin-top: 0.85rem; display: grid; gap: 0.7rem; }
+    .correction__form { margin-top: var(--kb-space-3); display: grid; gap: var(--kb-space-3); }
 
     .correction__grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
-      gap: 0.6rem;
+      gap: var(--kb-space-2);
     }
 
     .correction__field { display: grid; gap: var(--kb-space-1); }
+    .correction__field--wide { grid-column: 1 / -1; }
     .correction__field > span { font-size: var(--kb-text-xs); font-weight: 700; color: var(--kb-color-muted-foreground); }
 
     .correction__field select,
     .correction__field input {
       min-height: 36px;
-      padding: 0.35rem 0.55rem;
+      padding: var(--kb-space-1) var(--kb-space-2);
       border: 1px solid var(--line);
       border-radius: var(--kb-radius-lg);
       background: var(--panel);
@@ -442,13 +443,13 @@ import { BusinessApiService } from '../core/services/business-api.service';
     .action-btn-link {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      padding: 0.45rem 0.85rem;
+      gap: var(--kb-space-1);
+      padding: var(--kb-space-2) var(--kb-space-3);
       border-radius: var(--kb-radius-lg);
       font-size: var(--kb-text-sm);
       font-weight: 600;
       text-decoration: none;
-      transition: background 0.15s, transform 0.15s;
+      transition: background var(--kb-duration-fast), transform var(--kb-duration-fast);
     }
 
     .action-btn-link.primary-action {
@@ -463,8 +464,8 @@ import { BusinessApiService } from '../core/services/business-api.service';
     .wa-btn {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      padding: 0.45rem 0.85rem;
+      gap: var(--kb-space-1);
+      padding: var(--kb-space-2) var(--kb-space-3);
       border-radius: var(--kb-radius-lg);
       font-size: var(--kb-text-sm);
       font-weight: 600;
@@ -472,7 +473,7 @@ import { BusinessApiService } from '../core/services/business-api.service';
       color: var(--kb-color-success);
       border: 1px solid rgba(37, 211, 102, 0.3);
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background var(--kb-duration-fast);
     }
 
     .wa-btn:hover {
@@ -498,11 +499,11 @@ import { BusinessApiService } from '../core/services/business-api.service';
       .order-modal__header,
       .order-modal__details,
       .order-modal__items {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding-left: var(--kb-space-4);
+        padding-right: var(--kb-space-4);
       }
     }
-    .order-modal__value--strong { font-weight: 700; }
+    .order-modal__value--strong { font-weight: 700; font-variant-numeric: tabular-nums; }
   `]
 })
 export class OrderDetailModalComponent implements OnChanges, OnDestroy {

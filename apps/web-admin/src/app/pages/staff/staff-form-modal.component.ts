@@ -22,6 +22,11 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
     }
     .form-group .field-control, .form-group .field-select { width: 100%; box-sizing: border-box; }
     .field-error { color: var(--kb-color-error); font-size: var(--kb-text-xs); margin-top: 0.25rem; }
+    .role-disabled-note {
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+      margin-top: var(--kb-space-1);
+    }
     .form-error {
       background: rgba(239, 68, 68, 0.08); border: 1px solid var(--kb-color-error);
       border-radius: var(--kb-radius-lg); padding: var(--kb-space-3) var(--kb-space-4); color: var(--kb-color-error);

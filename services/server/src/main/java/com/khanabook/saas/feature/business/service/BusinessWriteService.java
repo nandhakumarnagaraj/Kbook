@@ -755,7 +755,14 @@ public class BusinessWriteService {
         if (updateDto.getPosEnabled() != null) profile.setPosEnabled(updateDto.getPosEnabled());
         if (updateDto.getOrderPaymentFlowMode() != null) profile.setOrderPaymentFlowMode(updateDto.getOrderPaymentFlowMode());
         if (updateDto.getInvoiceFooter() != null) profile.setInvoiceFooter(updateDto.getInvoiceFooter());
-        if (updateDto.getReviewUrl() != null) profile.setReviewUrl(updateDto.getReviewUrl());
+        if (updateDto.getReviewUrl() != null) {
+            String rUrl = updateDto.getReviewUrl().trim();
+            if (rUrl.isEmpty() || rUrl.startsWith("https://") || rUrl.startsWith("http://")) {
+                profile.setReviewUrl(rUrl.isEmpty() ? null : rUrl);
+            } else {
+                throw new IllegalArgumentException("Review URL must begin with http:// or https://");
+            }
+        }
         if (updateDto.getFssaiNumber() != null) profile.setFssaiNumber(updateDto.getFssaiNumber());
         if (updateDto.getFssaiExpiryDate() != null) {
             try {

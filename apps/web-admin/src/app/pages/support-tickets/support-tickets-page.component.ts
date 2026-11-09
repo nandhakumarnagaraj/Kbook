@@ -16,6 +16,21 @@ interface TicketRow {
   createdOn: string;
 }
 
+export const DEFAULT_TICKETS: TicketRow[] = [
+  { id: 'TK-1041', subject: 'Printer not working', restaurant: 'Spice Villa', category: 'Technical', priority: 'High', status: 'Open', createdOn: '28 Oct 2026, 09:12 am' },
+  { id: 'TK-1040', subject: 'GST configuration', restaurant: 'Dosa Plaza', category: 'Billing', priority: 'Medium', status: 'In Progress', createdOn: '27 Oct 2026, 05:15 pm' },
+  { id: 'TK-1039', subject: 'App pairing issue', restaurant: 'The Grill House', category: 'Onboarding', priority: 'High', status: 'Open', createdOn: '27 Oct 2026, 11:30 am' },
+  { id: 'TK-1038', subject: 'Payment issue', restaurant: 'Tasty Bites', category: 'Billing', priority: 'Medium', status: 'In Progress', createdOn: '27 Oct 2026, 07:00 am' },
+  { id: 'TK-1037', subject: 'Add new staff', restaurant: 'Cafe Corner', category: 'Onboarding', priority: 'Low', status: 'Resolved', createdOn: '26 Oct 2026, 04:38 pm' },
+  { id: 'TK-1036', subject: 'Refund not reflecting', restaurant: 'Royal Kitchen', category: 'Billing', priority: 'High', status: 'Open', createdOn: '26 Oct 2026, 10:00 am' },
+  { id: 'TK-1035', subject: 'Menu categories', restaurant: 'Food Junction', category: 'Feature Request', priority: 'Low', status: 'Resolved', createdOn: '25 Oct 2026, 08:45 am' },
+  { id: 'TK-1034', subject: 'Slow dashboard load', restaurant: 'Dine Hub', category: 'Technical', priority: 'Medium', status: 'Resolved', createdOn: '24 Oct 2026, 06:20 pm' },
+  { id: 'TK-1033', subject: 'SMS notifications', restaurant: 'Madras Meals', category: 'Feature Request', priority: 'Low', status: 'Closed', createdOn: '23 Oct 2026, 02:12 pm' },
+  { id: 'TK-1032', subject: 'Terminal offline', restaurant: 'Spice Villa', category: 'Technical', priority: 'High', status: 'In Progress', createdOn: '22 Oct 2026, 09:05 am' },
+  { id: 'TK-1031', subject: 'Invoice download', restaurant: 'Biryani House', category: 'Billing', priority: 'Low', status: 'Closed', createdOn: '21 Oct 2026, 12:30 pm' },
+  { id: 'TK-1030', subject: 'Inventory export', restaurant: 'Urban Dine', category: 'Feature Request', priority: 'Medium', status: 'Resolved', createdOn: '20 Oct 2026, 03:00 pm' },
+];
+
 /**
  * Admin → Support Tickets: Tracks operational requests raised by platform outlets.
  */
@@ -259,9 +274,12 @@ export class SupportTicketsPageComponent {
   private loadStoredTickets(): TicketRow[] {
     try {
       const raw = localStorage.getItem('kbook_admin_support_tickets');
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch {}
-    return [];
+    return [...DEFAULT_TICKETS];
   }
 
   private saveStoredTickets(list: TicketRow[]): void {

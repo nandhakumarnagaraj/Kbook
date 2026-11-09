@@ -115,6 +115,9 @@ export interface PaginatedOrdersResponse {
   totalPages: number;
   page: number;
   size: number;
+  totalRevenue?: number;
+  completedCount?: number;
+  cancelledCount?: number;
 }
 
 export interface RefundOrderRequest {

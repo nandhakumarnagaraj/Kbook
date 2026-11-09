@@ -519,7 +519,16 @@ function todayRange(): { from: string; to: string } {
       overflow: hidden;
       margin-bottom: var(--kb-space-6);
     }
-    .table-section { margin-top: 1.25rem; }
+    .gst-ledger-shell,
+    .items-ledger-shell,
+    .orders-ledger-shell,
+    .payments-ledger-shell,
+    .terminals-ledger-shell {
+      display: flex;
+      flex-direction: column;
+      gap: var(--kb-space-4);
+    }
+    .table-section { margin-top: var(--kb-space-5); }
     @media (max-width: 768px) {
       .financial-strip-card { grid-template-columns: 1fr; }
     }

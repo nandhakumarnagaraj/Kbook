@@ -523,8 +523,14 @@ import { formatDate } from '../../shared/formatters';
   `,
   styles: [`
     .small-btn {
-      padding: var(--kb-space-1) 10px;
+      padding: var(--kb-space-1) var(--kb-space-2);
       font-size: var(--kb-text-xs);
+    }
+    .compact-loading {
+      padding: var(--kb-space-6) var(--kb-space-4);
+      text-align: center;
+      color: var(--kb-color-muted-foreground);
+      font-size: var(--kb-text-sm);
     }
     .danger-btn {
       color: var(--kb-color-danger);
@@ -792,7 +798,7 @@ import { formatDate } from '../../shared/formatters';
     .device-copy-btn {
       width: 24px;
       height: 24px;
-      margin: -4px -4px -4px 0;
+      margin: calc(var(--kb-space-1) * -1) calc(var(--kb-space-1) * -1) calc(var(--kb-space-1) * -1) 0;
       border: none;
       border-radius: var(--kb-radius-sm);
       cursor: pointer;

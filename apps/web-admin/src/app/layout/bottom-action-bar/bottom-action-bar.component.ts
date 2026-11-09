@@ -35,7 +35,8 @@ export interface BottomActionBarItem {
     </a>
   `,
   styles: [`
-    :host {
+    :host,
+    .kb-bottom-action-bar {
       position: fixed;
       bottom: 0;
       left: 0;

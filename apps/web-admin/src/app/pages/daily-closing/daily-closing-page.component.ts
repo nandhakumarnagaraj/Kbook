@@ -480,6 +480,9 @@ interface TerminalSalesRow {
       font-size: var(--kb-text-xs);
       color: var(--kb-color-muted-foreground);
     }
+    .recon-card--expected,
+    .recon-card--input,
+    .recon-card--variance { min-width: 0; }
     .recon-card--match { border-color: var(--kb-color-success-soft); background: var(--kb-color-success-soft); }
     .recon-card--match .recon-value { color: var(--kb-color-success); }
     .recon-card--overage { border-color: var(--kb-color-warning-soft); background: var(--kb-color-warning-soft); }
@@ -633,6 +636,7 @@ interface TerminalSalesRow {
       gap: var(--kb-space-4);
       min-width: 0;
     }
+    .closing-rail { display: flex; flex-direction: column; }
     .closing-rail__head {
       display: flex;
       align-items: center;

@@ -4,7 +4,7 @@ import { Directive, ElementRef, EventEmitter, HostListener, inject, OnDestroy, O
  * FocusTrapDirective — keeps keyboard focus inside a modal while it is open.
  *
  * Usage:
- *   <div class="modal-overlay" *ngIf="open" appFocusTrap (escape)="close()">
+ *   <div class="modal-backdrop" *ngIf="open" appFocusTrap (escape)="close()">
  *     <section class="modal-box" tabindex="-1">
  *       <button #close type="button">✕</button>
  *     </section>

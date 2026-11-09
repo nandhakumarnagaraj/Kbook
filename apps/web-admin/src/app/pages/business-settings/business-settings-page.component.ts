@@ -703,6 +703,8 @@ interface SettingsCategory {
     }
     .settings-nav__link:hover { background: var(--kb-color-surface-2); color: var(--kb-color-foreground); }
     .settings-nav__link:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+    .settings-nav__label { flex: 1 1 auto; min-width: 0; }
+    .section-sub { margin: var(--kb-space-1) 0 0; font-size: var(--kb-text-xs); color: var(--kb-color-muted-foreground); line-height: 1.45; }
     .settings-nav__link--active {
       background: var(--kb-color-primary-soft);
       color: var(--kb-color-primary);

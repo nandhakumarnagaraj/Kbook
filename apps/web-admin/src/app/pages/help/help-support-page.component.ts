@@ -774,6 +774,10 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         box-shadow: var(--shadow-xs);
       }
 
+      .help-section--contact {
+        position: relative;
+      }
+
       .help-section__header {
         margin-bottom: var(--kb-space-5);
       }
@@ -1348,6 +1352,7 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         background: var(--kb-color-surface);
       }
 
+      .help-touch { display: flex; flex-direction: column; }
       .help-touch__badge {
         display: inline-flex;
         align-items: center;
@@ -1360,6 +1365,9 @@ import { PageHeaderComponent } from '../../shared/page-header.component';
         background: rgba(var(--kb-brand-purple-rgb), 0.08);
       }
 
+      .help-touch__badge--chat { color: var(--kb-color-primary); background: var(--kb-color-primary-soft); }
+      .help-touch__badge--mail { color: var(--kb-color-info); background: var(--kb-color-info-soft); }
+      .help-touch__badge--phone { color: var(--kb-color-warning); background: var(--kb-color-warning-soft); }
       .help-touch__badge--whatsapp {
         color: var(--kb-color-success);
         background: var(--kb-color-success-soft);

@@ -82,7 +82,13 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
             [class.filter-chip--active]="channelFilter() === channel"
             [attr.aria-pressed]="channelFilter() === channel"
             (click)="filterByChannel(channel)"
+            (keydown)="onChipKeydown($event, channel)"
           >{{ channel }}</button>
+        </div>
+
+        <!-- Live announcement for screen-reader and keyboard users -->
+        <div class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">
+          {{ filterAnnouncement() }}
         </div>
       </div>
 
@@ -574,11 +580,15 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       justify-content: space-between;
       gap: var(--kb-space-3);
       border-top: 1px solid var(--kb-color-border);
-      padding-top: 0.75rem;
+      padding-top: var(--kb-space-3);
     }
     .amount-col {
       display: flex;
       flex-direction: column;
+    }
+    .elapsed-col {
+      display: flex;
+      align-items: center;
     }
     .amount-label {
       font-size: var(--kb-text-xs);
@@ -989,8 +999,40 @@ export class LiveOrdersTabComponent implements OnDestroy {
     }
   });
 
+  /** Screen-reader and accessible announcement for active filter changes */
+  readonly filterAnnouncement = computed(() => {
+    const channel = this.channelFilter();
+    const count = this.visibleOrders().length;
+    if (channel === 'All') {
+      return `Showing all ${count} active ${count === 1 ? 'order' : 'orders'}.`;
+    }
+    if (count === 0) {
+      return `No ${channel} orders found. Live orders are still open in other channels.`;
+    }
+    return `Showing ${count} ${channel} ${count === 1 ? 'order' : 'orders'}.`;
+  });
+
   filterByChannel(channel: string): void {
     this.channelFilter.set(channel);
+  }
+
+  onChipKeydown(event: KeyboardEvent, currentChannel: string): void {
+    const channels = ['All', 'Dine-in', 'Takeaway', 'Delivery'];
+    const idx = channels.indexOf(currentChannel);
+    if (idx === -1) return;
+    let nextIdx = -1;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      nextIdx = (idx + 1) % channels.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      nextIdx = (idx - 1 + channels.length) % channels.length;
+    }
+    if (nextIdx !== -1) {
+      this.filterByChannel(channels[nextIdx]);
+      const target = (event.currentTarget as HTMLElement)?.parentElement?.children[nextIdx] as HTMLElement;
+      target?.focus();
+    }
   }
 
   trackByOrderId = (_: number, order: BusinessOrder) => order.orderId;

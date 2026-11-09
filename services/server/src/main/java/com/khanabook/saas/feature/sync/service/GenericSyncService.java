@@ -1638,7 +1638,14 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (!changed.contains("logoversion")) incomingP.setLogoVersion(existingP.getLogoVersion());
 		if (!changed.contains("customwelcomemessage")) incomingP.setCustomWelcomeMessage(existingP.getCustomWelcomeMessage());
 		if (!changed.contains("customfssaicomessage")) incomingP.setCustomFssaiMessage(existingP.getCustomFssaiMessage());
-		if (!changed.contains("reviewurl")) incomingP.setReviewUrl(existingP.getReviewUrl());
+		if (!changed.contains("reviewurl")) {
+			incomingP.setReviewUrl(existingP.getReviewUrl());
+		} else if (incomingP.getReviewUrl() != null && !incomingP.getReviewUrl().isBlank()) {
+			String rUrl = incomingP.getReviewUrl().trim();
+			if (!rUrl.startsWith("https://") && !rUrl.startsWith("http://")) {
+				incomingP.setReviewUrl(null);
+			}
+		}
 		if (!changed.contains("invoicefooter")) incomingP.setInvoiceFooter(existingP.getInvoiceFooter());
 		if (!changed.contains("showbranding")) incomingP.setShowBranding(existingP.getShowBranding());
 		if (!changed.contains("maskcustomerphone")) incomingP.setMaskCustomerPhone(existingP.getMaskCustomerPhone());

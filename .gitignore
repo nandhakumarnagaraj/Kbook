@@ -27,6 +27,7 @@
 *.swp
 *.swo
 *~
+freebuff-chat-*.md
 
 # DB backups (contain sensitive customer/transaction data)
 /backups/

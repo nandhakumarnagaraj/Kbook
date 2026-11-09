@@ -181,7 +181,29 @@ public class BusinessReadService {
                 .map(this::toBillOrderResponse)
                 .toList();
 
-        return new PaginatedOrdersResponse(content, billPage.getTotalElements(), billPage.getTotalPages(), page, size);
+        List<Object[]> statsList = billRepository.findOrderAggregateStats(restaurantId, normalizedStatus, fromEpoch, toEpoch, normalizedSearch);
+        Double totalRevenue = null;
+        Long completedCount = null;
+        Long cancelledCount = null;
+        if (statsList != null && !statsList.isEmpty()) {
+            Object[] stats = statsList.get(0);
+            if (stats != null && stats.length >= 3) {
+                if (stats[0] instanceof Number n) totalRevenue = n.doubleValue();
+                if (stats[1] instanceof Number n) completedCount = n.longValue();
+                if (stats[2] instanceof Number n) cancelledCount = n.longValue();
+            }
+        }
+
+        return new PaginatedOrdersResponse(
+                content,
+                billPage.getTotalElements(),
+                billPage.getTotalPages(),
+                page,
+                size,
+                totalRevenue,
+                completedCount,
+                cancelledCount
+        );
     }
 
     @Transactional(readOnly = true)

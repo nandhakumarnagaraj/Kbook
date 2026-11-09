@@ -346,7 +346,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
                     <span class="order-time">{{ formatOrderTime(order.createdAt) }}</span>
                   </td>
                   <td>
-                    <span class="channel-chip channel-chip--{{ channelClass(order) }}">
+                    <span class="channel-chip" [ngClass]="'channel-chip--' + channelClass(order)">
                       {{ formatOrderType(order) }}
                     </span>
                     <span class="table-ref" *ngIf="order.tableNumber">Table {{ order.tableNumber }}</span>
@@ -590,7 +590,7 @@ export function orderStatusLabel(status: string | null | undefined): string {
     .filter-item--select { flex: 1 1 170px; }
     .btn-clear {
       min-height: var(--kb-touch-min);
-      padding: 0 1rem;
+      padding: 0 var(--kb-space-4);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-lg);
       background: var(--kb-color-surface);
@@ -735,6 +735,9 @@ export class OrderHistoryTabComponent implements OnDestroy {
   // Server-side pagination state
   serverTotalElements = 0;
   serverTotalPages = 1;
+  serverTotalRevenue: number | null = null;
+  serverCompletedCount: number | null = null;
+  serverCancelledCount: number | null = null;
 
   // Date range filter state
   dateFrom: string | null = null;
@@ -789,9 +792,9 @@ export class OrderHistoryTabComponent implements OnDestroy {
    *  later filter change. */
   get historyKpiItems(): KpiItem[] {
     const total = this.serverTotalElements ?? 0;
-    const completed = this.filteredCompletedCount ?? 0;
-    const cancelled = this.filteredOrders.filter(o => (o.orderStatus || '').toLowerCase() === 'cancelled').length ?? 0;
-    const sales = this.filteredTotalRevenue ?? 0;
+    const completed = this.serverCompletedCount ?? this.filteredCompletedCount ?? 0;
+    const cancelled = this.serverCancelledCount ?? (this.filteredOrders.filter(o => (o.orderStatus || '').toLowerCase() === 'cancelled').length ?? 0);
+    const sales = this.serverTotalRevenue ?? this.filteredTotalRevenue ?? 0;
     return [
       {
         label: 'Total Orders',
@@ -1058,6 +1061,9 @@ export class OrderHistoryTabComponent implements OnDestroy {
         this.orders = data.content;
         this.serverTotalElements = data.totalElements;
         this.serverTotalPages = data.totalPages;
+        this.serverTotalRevenue = typeof data.totalRevenue === 'number' ? data.totalRevenue : null;
+        this.serverCompletedCount = typeof data.completedCount === 'number' ? data.completedCount : null;
+        this.serverCancelledCount = typeof data.cancelledCount === 'number' ? data.cancelledCount : null;
         this.ordersLoaded = true;
         this.ordersError = '';
         this.cdr.markForCheck();
@@ -1066,6 +1072,9 @@ export class OrderHistoryTabComponent implements OnDestroy {
         this.orders = [];
         this.serverTotalElements = 0;
         this.serverTotalPages = 1;
+        this.serverTotalRevenue = null;
+        this.serverCompletedCount = null;
+        this.serverCancelledCount = null;
         // If 404 or empty response, treat as "no orders" (not a connection error)
         if (err?.status === 404 || err?.status === 0) {
           this.ordersError = err?.status === 0

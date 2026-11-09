@@ -453,7 +453,7 @@ function formatInr(val: number | null | undefined): string {
       .quick-action-btn--warn:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
       .quick-action-btn--success:hover { border-color: var(--success); color: var(--success); background: var(--success-soft); }
       .selected-row :where(td) { background: var(--brand-soft); }
-      .biz-table tbody tr { cursor: pointer; transition: background-color 200ms ease; }
+      .biz-table tbody tr { cursor: pointer; }
       .empty-cell { text-align: center; padding: var(--kb-space-6) 0; font-size: var(--kb-text-sm); }
       .detail-panel {
         border: 1px solid var(--line); border-radius: var(--kb-radius-lg);
@@ -475,9 +475,9 @@ function formatInr(val: number | null | undefined): string {
       /* A 16px glyph is not a 16px target: the box is 40px, the ink stays small. */
       .detail-close {
         display: inline-flex; align-items: center; justify-content: center;
-        width: 40px; height: 40px; margin: -6px -6px -6px var(--kb-space-1);
+        width: 40px; height: 40px; margin: calc(var(--kb-space-1) * -1.5) calc(var(--kb-space-1) * -1.5) calc(var(--kb-space-1) * -1.5) var(--kb-space-1);
         border: none; border-radius: var(--kb-radius-md); background: transparent;
-        color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer;
+        color: var(--muted); font-size: var(--kb-text-xl); line-height: 1; cursor: pointer;
       }
       .detail-close:hover { background: var(--kb-color-surface-2); color: var(--ink); }
       .detail-tabs { display: flex; gap: var(--kb-space-1); border-bottom: 1px solid var(--line); margin: var(--kb-space-3) 0; overflow-x: auto; }
@@ -495,6 +495,7 @@ function formatInr(val: number | null | undefined): string {
         border-color: var(--danger); color: var(--danger); background: var(--danger-soft);
       }
       .detail-action--danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
+      .detail-section { display: grid; gap: var(--kb-space-2); }
       .detail-section__head { display: flex; align-items: center; justify-content: space-between; margin: var(--kb-space-3) 0 var(--kb-space-2); }
       .detail-section__head h3 { margin: 0; font-size: var(--kb-text-md); font-weight: 650; }
       .detail-fields { margin: 0; display: grid; gap: var(--kb-space-2); }
