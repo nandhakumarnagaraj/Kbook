@@ -339,3 +339,148 @@ describe('OrderHistoryTabComponent — the order detail modal paints on the resp
     fixture.destroy();
   });
 });
+
+/**
+ * The strip above the table is the at-a-glance summary of what the filters are
+ * showing: four figures, one per order outcome, and the Clear control that only
+ * exists while a filter is on. The markup that used to sit here had no CSS at
+ * all, and the status select was UI-only — it changed the control's value and
+ * nothing else. These specs pin the wiring, not the pixels.
+ */
+describe('OrderHistoryTabComponent — KPI strip and filters', () => {
+  const cashCompleted: BusinessOrder = {
+    sourceType: 'POS', orderType: 'DINE_IN', orderId: 41, orderCode: '1041',
+    invoiceNumber: 'INV-1041', publicToken: null, customerName: 'Table 4',
+    customerContact: null, tableNumber: 4, orderStatus: 'Completed',
+    paymentStatus: 'Paid', paymentMethod: 'Cash', totalAmount: 640,
+    gatewayPaidAmount: null, refundAmount: 0, refundStatus: 'NONE', refundMode: null,
+    cancelReason: null, manualRefundAllowed: false, gatewayRefundAllowed: false,
+    createdAt: Date.now(),
+  };
+  const upiCancelled: BusinessOrder = {
+    ...cashCompleted, orderId: 42, orderCode: '1042', invoiceNumber: 'INV-1042',
+    orderStatus: 'Cancelled', paymentStatus: 'Refunded', paymentMethod: 'UPI',
+    totalAmount: 220, refundAmount: 220, tableNumber: null, customerName: 'Asha',
+  };
+  const upiCompleted: BusinessOrder = {
+    ...cashCompleted, orderId: 43, orderCode: '1043', invoiceNumber: 'INV-1043',
+    orderStatus: 'Completed', paymentMethod: 'UPI', totalAmount: 180,
+    tableNumber: null, customerName: 'Ravi',
+  };
+
+  const allOrders: PaginatedOrdersResponse = {
+    content: [cashCompleted, upiCancelled, upiCompleted],
+    totalElements: 3, totalPages: 1, page: 0, size: 15,
+  };
+  const cancelledOnly: PaginatedOrdersResponse = {
+    content: [upiCancelled], totalElements: 1, totalPages: 1, page: 0, size: 15,
+  };
+
+  let fixture: ComponentFixture<OrderHistoryTabComponent>;
+  let api: jasmine.SpyObj<BusinessApiService>;
+
+  beforeEach(() => {
+    sessionStorage.removeItem(DATE_RANGE_STORAGE_KEY);
+    api = jasmine.createSpyObj<BusinessApiService>('BusinessApiService', [
+      'getOrdersPaginated',
+      'voidBill',
+      'getOrderDetail',
+    ]);
+    // The real endpoint applies the status filter, so the mock answers the way
+    // the API does: a Cancelled request returns only cancelled orders.
+    api.getOrdersPaginated.and.callFake(
+      (_page: number, _size: number, status?: string) =>
+        of(status === 'Cancelled' ? cancelledOnly : allOrders)
+    );
+
+    TestBed.configureTestingModule({
+      imports: [OrderHistoryTabComponent],
+      providers: [
+        { provide: BusinessApiService, useValue: api },
+        { provide: AuthService, useValue: { session: () => null } },
+        { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['show']) },
+      ],
+    });
+
+    fixture = TestBed.createComponent(OrderHistoryTabComponent);
+    fixture.detectChanges();
+  });
+
+  afterEach(() => sessionStorage.removeItem(DATE_RANGE_STORAGE_KEY));
+
+  function host(): HTMLElement {
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  function kpiValues(): string[] {
+    return Array.from(host().querySelectorAll('.kb-kpi__value'))
+      .map(el => (el.textContent ?? '').trim());
+  }
+
+  function clearButton(): HTMLButtonElement | null {
+    return host().querySelector('.btn-clear');
+  }
+
+  it('renders one tile per outcome, with the figures the loaded orders produce', () => {
+    const tiles = host().querySelectorAll('app-kpi-row .kb-kpi');
+    expect(tiles.length).withContext('four KPIs, not bare label lines').toBe(4);
+    expect(Array.from(tiles).map(tile => (tile.querySelector('.kb-kpi__label')?.textContent ?? '').trim()))
+      .toEqual(['Total Orders', 'Total Sales', 'Completed Orders', 'Cancelled Orders']);
+    expect(kpiValues()).toEqual(['3', '₹1,040', '2', '1']);
+  });
+
+  it('does not offer Clear while every filter is on All', () => {
+    expect(clearButton()).withContext('nothing is filtered, so there is nothing to clear').toBeFalsy();
+  });
+
+  it('sends the chosen status to the API and starts again at page one', () => {
+    fixture.componentInstance.orderCurrentPage = 2;
+
+    const select = host().querySelector('select[aria-label="Filter by status"]') as HTMLSelectElement;
+    select.value = 'Cancelled';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const args = api.getOrdersPaginated.calls.mostRecent().args;
+    expect(args[2]).withContext('the select must reach the request, not just the control').toBe('Cancelled');
+    expect(args[0]).withContext('a different filter cannot stay on the old page').toBe(0);
+    expect(kpiValues()).toEqual(['1', '₹220', '0', '1']);
+    expect(host().querySelectorAll('table.data-table tbody tr').length).toBe(1);
+    expect(clearButton()).withContext('a status filter is on, so Clear must be reachable').toBeTruthy();
+  });
+
+  it('applies the payment filter to the rows and the KPI figures in the same pass', () => {
+    const select = host().querySelector('select[aria-label="Filter by payment"]') as HTMLSelectElement;
+    select.value = 'UPI';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    // Status is server-side; payment has no server param, so this has to happen
+    // on the rows already fetched. It used to be dropped entirely.
+    expect(host().querySelectorAll('table.data-table tbody tr').length).toBe(2);
+    expect(kpiValues()).toEqual(['3', '₹400', '1', '1']);
+    expect(clearButton()).toBeTruthy();
+  });
+
+  it('Clear resets every select and reloads without the filters', () => {
+    const payment = host().querySelector('select[aria-label="Filter by payment"]') as HTMLSelectElement;
+    payment.value = 'UPI';
+    payment.dispatchEvent(new Event('change'));
+    const status = host().querySelector('select[aria-label="Filter by status"]') as HTMLSelectElement;
+    status.value = 'Cancelled';
+    status.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    clearButton()!.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.orderPaymentFilter).toBe('ALL');
+    expect(fixture.componentInstance.orderStatusFilter).toBe('ALL');
+    expect(fixture.componentInstance.orderSourceFilter).toBe('ALL');
+    const args = api.getOrdersPaginated.calls.mostRecent().args;
+    expect(args[2]).withContext('the previous status must not survive the reset').toBeUndefined();
+    expect(args[5]).withContext('the header search must be cleared with the rest').toBeUndefined();
+    expect(host().querySelectorAll('table.data-table tbody tr').length).toBe(3);
+    expect(clearButton()).withContext('nothing is filtered again, so Clear goes away').toBeFalsy();
+  });
+});
