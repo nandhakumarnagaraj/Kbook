@@ -7,6 +7,7 @@ import { AdminUserListItem } from '../../core/models/api.models';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
+import { IconComponent } from '../../shared/icon.component';
 
 function formatDate(timestamp: number | null | undefined): string {
   if (!timestamp) return '—';
@@ -22,7 +23,7 @@ function formatDate(timestamp: number | null | undefined): string {
   selector: 'app-users-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, KpiRowComponent, PaginationBarComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, KpiRowComponent, PaginationBarComponent, IconComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -32,16 +33,16 @@ function formatDate(timestamp: number | null | undefined): string {
         <div class="header-controls">
           <span class="chip chip--live">
             <span class="live-dot" aria-hidden="true"></span>
-            Live Platform Accounts ({{ users().length }})
+            Platform accounts
           </span>
           <button class="header-action-btn" type="button" (click)="loadUsers()" title="Reload from server">
-            <span aria-hidden="true">&#8635;</span> Refresh
+            <kb-icon name="refresh" [size]="16" [ariaHidden]="true"></kb-icon> Refresh
+          </button>
+          <button class="header-action-btn" type="button" (click)="exportCsv()" title="Export the current roster as CSV">
+            <kb-icon name="download" [size]="16" [ariaHidden]="true"></kb-icon> Export CSV
           </button>
           <button class="header-action-btn header-action-btn--primary" type="button" (click)="inviteUser()">
-            + Invite User
-          </button>
-          <button class="header-action-btn" type="button" (click)="exportCsv()" title="Export real users roster as CSV">
-            <span aria-hidden="true">&#8595;</span> Export CSV
+            <kb-icon name="plus" [size]="16" [ariaHidden]="true"></kb-icon> Invite User
           </button>
         </div>
       </app-page-header>
@@ -187,6 +188,58 @@ function formatDate(timestamp: number | null | undefined): string {
               }
             </tbody>
           </table>
+
+          <!-- Same records as cards below 768px: a 1051px table in a 358px column
+               hid role, outlet and status behind a sideways scroll. -->
+          <div class="mobile-data-list" aria-label="Platform users">
+            @for (user of pagedRows(); track user.id) {
+              <article class="mobile-data-card">
+                <div class="mobile-data-card__head">
+                  <div class="stacked">
+                    <span class="avatar" [class]="'avatar--' + avatarTone(user.id)" aria-hidden="true">
+                      {{ (user.name || 'U').charAt(0).toUpperCase() }}
+                    </span>
+                    <div>
+                      <strong>{{ user.name || 'Unnamed Account' }}</strong>
+                      <span class="sub-id">UID: {{ user.id }}</span>
+                    </div>
+                  </div>
+                  @if (user.isActive) {
+                    <span class="status-chip status-chip--active">Active</span>
+                  } @else {
+                    <span class="status-chip status-chip--inactive">Inactive</span>
+                  }
+                </div>
+                <p>{{ user.email || user.loginId }}@if (user.phoneNumber) { · {{ user.phoneNumber }} }</p>
+                <dl>
+                  <div>
+                    <dt>Role</dt>
+                    <dd><span class="role-badge" [class]="'role-badge--' + roleSlug(user.role)">{{ roleDisplay(user.role) }}</span></dd>
+                  </div>
+                  <div>
+                    <dt>Assigned Outlet</dt>
+                    <dd>{{ user.shopName || (user.role === 'KBOOK_ADMIN' ? 'Platform Core' : 'Unassigned') }}</dd>
+                  </div>
+                  <div><dt>Joined</dt><dd>{{ formatTimestamp(user.createdAt) }}</dd></div>
+                </dl>
+                <div class="mobile-data-card__actions">
+                  <button type="button" class="quick-action-btn" (click)="copyLogin(user)">Copy Login</button>
+                </div>
+              </article>
+            }
+          </div>
+
+          @if (!filteredRows().length) {
+            <p class="mobile-empty muted">
+              @if (loading()) {
+                Loading platform accounts from server...
+              } @else if (error()) {
+                {{ error() }}
+              } @else {
+                No users match these filters.
+              }
+            </p>
+          }
         </div>
 
         <footer class="list-foot">
@@ -336,6 +389,20 @@ function formatDate(timestamp: number | null | undefined): string {
       .list-foot { display: flex; align-items: center; gap: var(--kb-space-4); padding-top: var(--kb-space-4); }
       .count-note { font-size: var(--kb-text-sm); }
       .rpp { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); color: var(--muted); margin-left: auto; }
+      .mobile-empty { display: none; margin: 0; padding: var(--kb-space-4); font-size: var(--kb-text-sm); }
+      /* The footer duplicated the pagination range; at 390 that duplication
+         squeezed the pager into a one-character column. */
+      @media (max-width: 640px) {
+        .list-foot { flex-wrap: wrap; row-gap: var(--kb-space-3); }
+        .count-note { display: none; }
+        .list-foot app-pagination-bar { flex: 1 1 100%; }
+        .rpp { margin-left: 0; }
+      }
+      /* The table is hidden from 768px down, so the empty message must appear
+         for that same width, not only below 640. */
+      @media (max-width: 768px) {
+        .mobile-empty { display: block; }
+      }
     `,
   ],
 })

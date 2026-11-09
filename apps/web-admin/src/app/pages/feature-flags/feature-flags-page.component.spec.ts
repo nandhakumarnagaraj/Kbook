@@ -39,7 +39,7 @@ describe('FeatureFlagsPageComponent — reference editor layout', () => {
   });
 
   it('toggles a flag and keeps the draft in sync', () => {
-    const flag = component.flags[0];
+    const flag = component.flags()[0];
     const before = flag.enabled;
     component.selectFlag(flag);
     component.draftEnabled.set(!component.draftEnabled());
@@ -47,7 +47,7 @@ describe('FeatureFlagsPageComponent — reference editor layout', () => {
   });
 
   it('maps plan selection from a flag row', () => {
-    const flag = component.flags.find((f) => f.name === 'Inventory Management')!;
+    const flag = component.flags().find((f) => f.name === 'Inventory Management')!;
     component.selectFlag(flag);
     expect(component.draftPlans()['Business']).toBeTrue();
     expect(component.draftPlans()['Starter']).toBeFalse();

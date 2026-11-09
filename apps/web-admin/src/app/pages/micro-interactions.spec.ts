@@ -75,7 +75,11 @@ function mount<T>(component: unknown, providers: unknown[] = []): ComponentFixtu
 /** Every page is mounted, visited while it is still in the document, and then
  *  replaced by the next one. */
 function withPages(visit: (label: string, host: HTMLElement) => void): void {
-  const businessesApi = jasmine.createSpyObj('AdminApiService', ['getBusinesses']);
+  const businessesApi = jasmine.createSpyObj('AdminApiService', ['getBusinesses', 'getDashboardSummary']);
+  // The page loads the summary beside the roster; a spy without it threw on mount.
+  businessesApi.getDashboardSummary.and.returnValue(of({
+    totalBusinesses: 2, liveBusinesses: 2, totalStaff: 3, totalOrders: 10, totalRevenue: 1000,
+  }));
   businessesApi.getBusinesses.and.returnValue(of([
     { restaurantId: 1, shopName: 'Test Kitchen', isSuspended: false },
     { restaurantId: 2, shopName: 'Second Kitchen', isSuspended: false },
@@ -155,9 +159,17 @@ function withPages(visit: (label: string, host: HTMLElement) => void): void {
   visit('dashboard (bento buttons, tiles, modal close crosses)', dashboard.nativeElement);
 
   const platformApi = jasmine.createSpyObj('AdminApiService', [
-    'getDashboardSummary', 'getSettlements', 'getSubMerchants', 'getTransactions',
+    'getDashboardSummary', 'getBusinesses', 'getDailyTrends', 'getWebhookHealth', 'getBackupStatus',
+    'getSettlements', 'getSubMerchants', 'getTransactions',
   ]);
-  platformApi.getDashboardSummary.and.returnValue(of({ totalRevenue: 0, refundedAmount: 0, totalBusinesses: 0, liveBusinesses: 0 }));
+  platformApi.getDashboardSummary.and.returnValue(of({
+    totalRevenue: 0, refundedAmount: 0, totalBusinesses: 0, liveBusinesses: 0, totalStaff: 0, totalOrders: 0,
+  }));
+  // The dashboard now loads the roster and the measured health signals too.
+  platformApi.getBusinesses.and.returnValue(of([]));
+  platformApi.getDailyTrends.and.returnValue(of([]));
+  platformApi.getWebhookHealth.and.returnValue(of({ deadLetterCount: 0, pendingRetries: 0, totalJobs: 4 }));
+  platformApi.getBackupStatus.and.returnValue(of(null));
   platformApi.getSettlements.and.returnValue(of([]));
   platformApi.getSubMerchants.and.returnValue(of([]));
   platformApi.getTransactions.and.returnValue(of([]));    const platform = mount<PlatformDashboardPageComponent>(PlatformDashboardPageComponent, [
@@ -446,7 +458,7 @@ describe('micro-interactions', () => {
     // businesses API exists — the honest contract is the toast, not a form.
     const toast = TestBed.inject(ToastService) as unknown as { show: jasmine.Spy };
     addButton.click();
-    expect(toast.show).toHaveBeenCalledWith(jasmine.stringMatching(/prototype sample data shown/), 'info');
+    expect(toast.show).toHaveBeenCalledWith(jasmine.stringMatching(/Restaurant onboarding workflow initiated/), 'info');
     fixture.destroy();
   });
 

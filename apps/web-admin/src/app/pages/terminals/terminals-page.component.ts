@@ -26,16 +26,6 @@ import { formatDate } from '../../shared/formatters';
         title="POS Devices &amp; Terminals"
         subtitle="Manage authorized Android billing registers, approve counter pairing requests, and handle terminal recovery tokens."
       >
-        <span
-          kbHeaderBadge
-          class="kpi-tag"
-          [class.kpi-tag--green]="activeTerminalsCount > 0"
-          [class.kpi-tag--neutral]="activeTerminalsCount === 0"
-          *ngIf="!terminalsLoading()">
-          <span class="pulse-indicator" aria-hidden="true" *ngIf="activeTerminalsCount > 0"></span>
-          {{ activeTerminalsCount }} Active
-        </span>
-
         <app-refresh-button (refresh)="reload()" [disabled]="terminalsLoading() || requestsLoading()" [loading]="terminalsLoading() || requestsLoading()" ariaLabel="Refresh terminals" />
       </app-page-header>
 
@@ -89,7 +79,7 @@ import { formatDate } from '../../shared/formatters';
             class="terminal-search"
             [ngModel]="terminalSearch()"
             (ngModelChange)="terminalSearch.set($event)"
-            placeholder="Search by terminal name or device ID…"
+            placeholder="Search terminals…"
             aria-label="Search registered terminals by name or device ID"
           />
         </div>
@@ -175,14 +165,14 @@ import { formatDate } from '../../shared/formatters';
                     [class.status-indicator-pill--inactive]="terminal.status.toLowerCase() === 'inactive'"
                   >
                     <span class="indicator-dot"></span>
-                    {{ terminal.status }}
+                    {{ terminal.status | titlecase }}
                   </span>
                 </td>
                 <td class="tabular-num muted">{{ formatDateValue(terminal.updatedAt) }}</td>
                 <td>
                   <div class="action-stack-row">
                     <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
-                    <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)" title="Recover access using the new device ID">Recover access</button>
+                    <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)" title="Recover access using the new device ID" aria-label="Recover access with a new device ID">Recover access</button>
                     <button
                       *ngIf="terminal.status.toLowerCase() !== 'inactive'"
                       class="ghost-btn danger-btn small-btn"
@@ -219,7 +209,7 @@ import { formatDate } from '../../shared/formatters';
                 </div>
                 <span class="status-indicator-pill" [class.status-indicator-pill--active]="terminal.status.toLowerCase() === 'active'" [class.status-indicator-pill--inactive]="terminal.status.toLowerCase() === 'inactive'">
                   <span class="indicator-dot"></span>
-                  {{ terminal.status }}
+                  {{ terminal.status | titlecase }}
                 </span>
               </div>
               <p>
@@ -232,7 +222,7 @@ import { formatDate } from '../../shared/formatters';
               <dl><div><dt>Type</dt><dd>{{ terminal.terminalType || 'BILLING' }}</dd></div><div><dt>Updated</dt><dd class="tabular-num">{{ formatDateValue(terminal.updatedAt) }}</dd></div></dl>
               <div class="mobile-data-card__actions">
                 <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startEdit(terminal)">Rename</button>
-                  <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)" title="Recover access using the new device ID">Recover access</button>
+                  <button class="ghost-btn small-btn" [disabled]="saving()" (click)="startRecovery(terminal)" title="Recover access using the new device ID" aria-label="Recover access with a new device ID">Recover access</button>
                 <button *ngIf="terminal.status.toLowerCase() !== 'inactive'" class="ghost-btn danger-btn small-btn" [disabled]="saving()" (click)="requestDeactivate(terminal)">Deactivate</button>
                 <button *ngIf="terminal.status.toLowerCase() === 'inactive' && canManageTerminals()" class="ghost-btn success-btn small-btn" [disabled]="saving()" (click)="confirmReactivate(terminal)">Reactivate</button>
               </div>
@@ -341,7 +331,7 @@ import { formatDate } from '../../shared/formatters';
                     [class.status-indicator-pill--pending]="req.status.toLowerCase() === 'pending'"
                   >
                     <span class="indicator-dot"></span>
-                    {{ req.status }}
+                    {{ req.status | titlecase }}
                   </span>
                 </td>
                 <td class="tabular-num muted">{{ formatDateValue(req.requestedAt) }}</td>
@@ -366,7 +356,7 @@ import { formatDate } from '../../shared/formatters';
                 <strong>{{ req.deviceName || 'Unnamed device' }}</strong>
                 <span class="status-indicator-pill" [class.status-indicator-pill--active]="req.status.toLowerCase() === 'approved'" [class.status-indicator-pill--inactive]="req.status.toLowerCase() === 'rejected'" [class.status-indicator-pill--pending]="req.status.toLowerCase() === 'pending'">
                   <span class="indicator-dot"></span>
-                  {{ req.status }}
+                  {{ req.status | titlecase }}
                 </span>
               </div>
               <p>
@@ -800,16 +790,20 @@ import { formatDate } from '../../shared/formatters';
       font-size: var(--kb-text-sm);
     }
     .device-copy-btn {
-      background: none;
+      width: 24px;
+      height: 24px;
+      margin: -4px -4px -4px 0;
       border: none;
+      border-radius: var(--kb-radius-sm);
       cursor: pointer;
       padding: 0;
       color: var(--kb-color-muted-foreground);
       display: inline-flex;
       align-items: center;
-      transition: color 0.15s ease, transform 0.15s ease;
+      justify-content: center;
+      transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
     }
-    .device-copy-btn:hover { color: var(--kb-color-foreground); }
+    .device-copy-btn:hover { color: var(--kb-color-foreground); background: var(--kb-color-surface-2); }
     .device-copy-btn:active { transform: scale(0.9); }
     .terminals-panel, .requests-panel {
       margin-bottom: var(--kb-space-4);
@@ -874,10 +868,10 @@ export class TerminalsPageComponent implements OnDestroy {
       {
         label: 'Active Terminals',
         value: this.activeTerminalsCount,
-        unit: `/ ${this.maxActiveTerminals} max`,
+        unit: `of ${this.maxActiveTerminals}`,
         tone: overLimit ? 'warning' : 'success',
         alert: overLimit,
-        caption: overLimit ? 'Plan limit reached' : 'Currently billing at the counter',
+        caption: overLimit ? 'Plan limit reached' : `Plan allows ${this.maxActiveTerminals} active terminals`,
       },
       {
         label: 'Inactive Terminals',

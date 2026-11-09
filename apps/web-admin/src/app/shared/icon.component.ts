@@ -254,4 +254,53 @@ const ICONS: Record<string, { viewBox: string; strokeWidth?: number; paths: stri
       '<line x1="4" x2="4" y1="22" y2="15"/>',
     ],
   },
+  // Action glyphs. Before these, pages typed the character (↻ ↓ + ⓘ ⊘ ⎘ ×)
+  // and every OS font decided its weight; one stroke family keeps them equal.
+  refresh: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M21 12a9 9 0 1 1-2.64-6.36"/>',
+      '<polyline points="21 3 21 9 15 9"/>',
+    ],
+  },
+  plus: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<line x1="12" y1="5" x2="12" y2="19"/>',
+      '<line x1="5" y1="12" x2="19" y2="12"/>',
+    ],
+  },
+  info: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<circle cx="12" cy="12" r="10"/>',
+      '<line x1="12" y1="11" x2="12" y2="16"/>',
+      '<line x1="12" y1="8" x2="12.01" y2="8"/>',
+    ],
+  },
+  copy: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<rect x="9" y="9" width="13" height="13" rx="2"/>',
+      '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    ],
+  },
+  close: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<path d="M18 6 6 18"/>',
+      '<path d="m6 6 12 12"/>',
+    ],
+  },
+  ban: {
+    viewBox: '0 0 24 24',
+    paths: [
+      '<circle cx="12" cy="12" r="10"/>',
+      '<line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>',
+    ],
+  },
+  check: {
+    viewBox: '0 0 24 24',
+    paths: ['<polyline points="20 6 9 17 4 12"/>'],
+  },
 };

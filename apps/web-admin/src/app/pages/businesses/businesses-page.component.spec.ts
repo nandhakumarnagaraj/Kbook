@@ -103,10 +103,13 @@ describe('BusinessesPageComponent — real live platform directory', () => {
     fixture.detectChanges();
   });
 
-  it('renders five live KPI tiles and the live platform data badge', () => {
+  it('renders five live KPI tiles without a duplicated header badge', () => {
     const el: HTMLElement = fixture.nativeElement;
     expect(el.querySelectorAll('.kb-kpi').length).toBe(5);
-    expect(el.textContent).toContain('Live Platform Data');
+    // The header chip used to restate the outlet count that the KPI row already
+    // shows, and it forced the search onto a third header row.
+    expect(el.querySelector('.chip--live')).toBeNull();
+    expect(el.textContent).not.toContain('Live Platform Data');
     expect(component.businesses().length).toBe(3);
   });
 

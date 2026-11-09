@@ -7,6 +7,8 @@ import { AdminBusinessDetail, AdminBusinessListItem, AdminDashboardSummary } fro
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
+import { IconComponent } from '../../shared/icon.component';
 
 function formatDate(timestamp: number | null | undefined): string {
   if (!timestamp) return '—';
@@ -27,7 +29,7 @@ function formatInr(val: number | null | undefined): string {
   selector: 'app-businesses-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, KpiRowComponent, PaginationBarComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, KpiRowComponent, PaginationBarComponent, ConfirmDialogComponent, IconComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -35,28 +37,24 @@ function formatInr(val: number | null | undefined): string {
         subtitle="Live platform directory of all registered restaurants, outlets, and operating terminals."
       >
         <div class="header-controls">
-          <span class="chip chip--live">
-            <span class="live-dot" aria-hidden="true"></span>
-            Live Platform Data ({{ businesses().length }} Outlets)
-          </span>
           <label class="header-search">
             <input
               type="search"
               name="search"
-              placeholder="Search by restaurant name, owner, phone, email, or ID..."
+              placeholder="Search outlets…"
               [(ngModel)]="search"
               (ngModelChange)="page.set(1)"
               aria-label="Search businesses"
             />
           </label>
           <button class="header-action-btn" type="button" (click)="loadBusinesses()" title="Reload from server">
-            <span aria-hidden="true">&#8635;</span> Refresh
+            <kb-icon name="refresh" [size]="16" [ariaHidden]="true"></kb-icon> Refresh
           </button>
           <button class="header-action-btn header-action-btn--primary" type="button" (click)="addBusiness()">
-            + Add New Business
+            <kb-icon name="plus" [size]="16" [ariaHidden]="true"></kb-icon> Add New Business
           </button>
           <button class="header-action-btn" type="button" (click)="exportCsv()" title="Export real businesses list as CSV">
-            <span aria-hidden="true">&#8595;</span> Export CSV
+            <kb-icon name="download" [size]="16" [ariaHidden]="true"></kb-icon> Export CSV
           </button>
         </div>
       </app-page-header>
@@ -190,6 +188,54 @@ function formatInr(val: number | null | undefined): string {
                 }
               </tbody>
             </table>
+
+            <!-- Phone fallback: the ten-column table hid status, staff and orders
+                 behind 756px of sideways scroll. Tapping a card opens the rail. -->
+            <div class="mobile-data-list" aria-label="Business outlets">
+              @for (biz of pagedRows(); track biz.restaurantId) {
+                <article class="mobile-data-card" [class.mobile-data-card--danger]="biz.isSuspended">
+                  <div class="mobile-data-card__head">
+                    <div class="detail-identity">
+                      <span class="logo-dot" [class]="'logo-dot--' + logoTone(biz.restaurantId)" aria-hidden="true">
+                        {{ (biz.shopName || 'O').charAt(0).toUpperCase() }}
+                      </span>
+                      <div>
+                        <strong>{{ biz.shopName || 'Unnamed Outlet' }}</strong>
+                        <span class="sub-id">ID: {{ biz.restaurantId }}</span>
+                      </div>
+                    </div>
+                    <span
+                      class="status-chip"
+                      [class.status-chip--active]="!biz.isSuspended"
+                      [class.status-chip--inactive]="biz.isSuspended">
+                      {{ biz.isSuspended ? 'Suspended' : 'Active' }}
+                    </span>
+                  </div>
+                  <p>{{ biz.ownerName || '—' }}@if (biz.ownerLoginId) { · {{ biz.ownerLoginId }} }</p>
+                  <dl>
+                    <div><dt>Orders</dt><dd>{{ biz.orderCount }}</dd></div>
+                    <div><dt>Staff</dt><dd>{{ biz.staffCount }}</dd></div>
+                    <div><dt>Menu items</dt><dd>{{ biz.menuCount }}</dd></div>
+                    <div><dt>Joined</dt><dd>{{ formatTimestamp(biz.createdAt) }}</dd></div>
+                  </dl>
+                  <div class="mobile-data-card__actions">
+                    <button type="button" class="ghost-btn" (click)="selectBusiness(biz)">View details</button>
+                  </div>
+                </article>
+              }
+            </div>
+
+            @if (!filteredRows().length) {
+              <p class="mobile-empty muted">
+                @if (loading()) {
+                  Loading live outlets from server...
+                } @else if (error()) {
+                  {{ error() }}
+                } @else {
+                  No businesses match these filters.
+                }
+              </p>
+            }
           </div>
 
           <!-- Real right-rail detail panel -->
@@ -204,7 +250,7 @@ function formatInr(val: number | null | undefined): string {
                     <strong class="detail-name">{{ biz.shopName || 'Unnamed Outlet' }}</strong>
                     <div class="id-row">
                       <span class="muted detail-id">ID: {{ biz.restaurantId }}</span>
-                      <button type="button" class="copy-link" (click)="copyId(biz.restaurantId)">Copy</button>
+                      <button type="button" class="copy-link" aria-label="Copy business ID" (click)="copyId(biz.restaurantId)">Copy</button>
                     </div>
                   </div>
                 </div>
@@ -213,7 +259,9 @@ function formatInr(val: number | null | undefined): string {
                 } @else {
                   <span class="status-chip status-chip--active">Active</span>
                 }
-                <button type="button" class="detail-close" aria-label="Close details" (click)="selected.set(null)">×</button>
+                <button type="button" class="detail-close" aria-label="Close details" (click)="selected.set(null)">
+                  <kb-icon name="close" [size]="20" [ariaHidden]="true"></kb-icon>
+                </button>
               </div>
 
               <div class="detail-tabs" role="tablist" aria-label="Business detail sections">
@@ -233,15 +281,15 @@ function formatInr(val: number | null | undefined): string {
                   type="button"
                   class="detail-action"
                   [class.detail-action--danger]="!biz.isSuspended"
-                  (click)="toggleSuspend(biz)">
-                  <span aria-hidden="true">{{ biz.isSuspended ? '✓' : '⊘' }}</span>
+                  (click)="requestSuspend(biz)">
+                  <kb-icon [name]="biz.isSuspended ? 'check' : 'ban'" [size]="16" [ariaHidden]="true"></kb-icon>
                   {{ biz.isSuspended ? 'Activate Outlet' : 'Suspend Outlet' }}
                 </button>
                 <button type="button" class="detail-action" (click)="copyId(biz.restaurantId)">
-                  <span aria-hidden="true">&#9112;</span> Copy ID
+                  <kb-icon name="copy" [size]="16" [ariaHidden]="true"></kb-icon> Copy ID
                 </button>
                 <button type="button" class="detail-action" (click)="exportSingleCsv(biz)">
-                  <span aria-hidden="true">&#8595;</span> Export
+                  <kb-icon name="download" [size]="16" [ariaHidden]="true"></kb-icon> Export
                 </button>
               </div>
 
@@ -259,9 +307,9 @@ function formatInr(val: number | null | undefined): string {
                     <div><dt>Joined On</dt><dd>{{ formatTimestamp(biz.createdAt) }}</dd></div>
                     <div><dt>Last Activity</dt><dd>{{ biz.lastUsedAt ? formatTimestamp(biz.lastUsedAt) : 'No settled bills' }}</dd></div>
                     @if (selectedDetail(); as det) {
-                      <div><dt>Address</dt><dd>{{ det.shopAddress || 'Not configured' }}</dd></div>
-                      <div><dt>GSTIN</dt><dd>{{ det.gstin || 'Not registered' }}</dd></div>
-                      <div><dt>FSSAI License</dt><dd>{{ det.fssaiNumber || 'Not configured' }}</dd></div>
+                      <div><dt>Address</dt><dd>{{ det.shopAddress || '—' }}</dd></div>
+                      <div><dt>GSTIN</dt><dd>{{ det.gstin || '—' }}</dd></div>
+                      <div><dt>FSSAI License</dt><dd>{{ det.fssaiNumber || '—' }}</dd></div>
                     }
                   </dl>
                 </div>
@@ -332,6 +380,17 @@ function formatInr(val: number | null | undefined): string {
           </label>
         </footer>
       </div>
+
+      <app-confirm-dialog
+        *ngIf="suspendingBusiness()"
+        title="Suspend Outlet"
+        [message]="suspendMessage()"
+        confirmLabel="Suspend outlet"
+        cancelLabel="Keep active"
+        [confirmDanger]="true"
+        (confirmed)="confirmSuspend()"
+        (cancelled)="suspendingBusiness.set(null)">
+      </app-confirm-dialog>
     </div>
   `,
   styles: [
@@ -344,7 +403,7 @@ function formatInr(val: number | null | undefined): string {
         padding: var(--kb-space-2) var(--kb-space-3); border-radius: var(--kb-radius-md); cursor: pointer;
         transition: color 200ms ease, background-color 200ms ease;
       }
-      .status-tab.active { background: var(--brand-soft); color: var(--brand); }
+      .status-tab.active { background: var(--brand-soft); color: var(--brand-orange-ink); }
       .tab-count { color: var(--muted); font-weight: 500; }
       .filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--kb-space-3); margin-bottom: var(--kb-space-4); }
       .filter-select select {
@@ -408,10 +467,19 @@ function formatInr(val: number | null | undefined): string {
       .id-row { display: flex; align-items: center; gap: var(--kb-space-2); }
       .detail-id { font-size: var(--kb-text-xs); font-family: monospace; }
       .copy-link {
-        border: none; background: transparent; color: var(--brand);
-        font-size: var(--kb-text-xs); cursor: pointer; text-decoration: underline; padding: 0;
+        display: inline-flex; align-items: center; min-height: 24px; padding: 0 var(--kb-space-1);
+        border: none; background: transparent; color: var(--brand-orange-ink);
+        font-size: var(--kb-text-xs); cursor: pointer; text-decoration: underline;
       }
-      .detail-close { border: none; background: transparent; color: var(--muted); font-size: var(--kb-text-lg); cursor: pointer; margin-left: var(--kb-space-2); }
+      .copy-link:hover { color: var(--brand-orange-ink); }
+      /* A 16px glyph is not a 16px target: the box is 40px, the ink stays small. */
+      .detail-close {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 40px; height: 40px; margin: -6px -6px -6px var(--kb-space-1);
+        border: none; border-radius: var(--kb-radius-md); background: transparent;
+        color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer;
+      }
+      .detail-close:hover { background: var(--kb-color-surface-2); color: var(--ink); }
       .detail-tabs { display: flex; gap: var(--kb-space-1); border-bottom: 1px solid var(--line); margin: var(--kb-space-3) 0; overflow-x: auto; }
       .detail-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--kb-space-2); margin-bottom: var(--kb-space-4); }
       .detail-action {
@@ -422,17 +490,35 @@ function formatInr(val: number | null | undefined): string {
         transition: border-color 200ms ease, color 200ms ease;
       }
       .detail-action:hover { border-color: var(--brand); color: var(--brand); }
-      .detail-action--danger:hover { border-color: var(--danger); color: var(--danger); }
+      /* Suspension is destructive before the pointer touches it, not only on hover. */
+      .detail-action--danger {
+        border-color: var(--danger); color: var(--danger); background: var(--danger-soft);
+      }
+      .detail-action--danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-soft); }
       .detail-section__head { display: flex; align-items: center; justify-content: space-between; margin: var(--kb-space-3) 0 var(--kb-space-2); }
-      .detail-section__head h3 { margin: 0; font-size: var(--kb-text-sm); }
+      .detail-section__head h3 { margin: 0; font-size: var(--kb-text-md); font-weight: 650; }
       .detail-fields { margin: 0; display: grid; gap: var(--kb-space-2); }
-      .detail-fields > div { display: flex; justify-content: space-between; gap: var(--kb-space-3); font-size: var(--kb-text-sm); }
+      /* Values start on a shared column instead of hugging the right edge: the
+         eye moves 12px down the list, not 300px across it. */
+      .detail-fields > div { display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: var(--kb-space-3); font-size: var(--kb-text-sm); }
       .detail-fields dt { color: var(--muted); }
-      .detail-fields dd { margin: 0; color: var(--ink); text-align: right; }
+      .detail-fields dd { margin: 0; color: var(--ink); text-align: left; overflow-wrap: anywhere; }
       .detail-empty { font-size: var(--kb-text-sm); }
       .list-foot { display: flex; align-items: center; gap: var(--kb-space-4); padding-top: var(--kb-space-4); }
       .count-note { font-size: var(--kb-text-sm); }
       .rpp { display: flex; align-items: center; gap: var(--kb-space-2); font-size: var(--kb-text-sm); color: var(--muted); margin-left: auto; }
+      .mobile-empty { display: none; margin: 0; padding: var(--kb-space-4); font-size: var(--kb-text-sm); }
+      @media (max-width: 640px) {
+        .list-foot { flex-wrap: wrap; row-gap: var(--kb-space-3); }
+        .count-note { display: none; }
+        .list-foot app-pagination-bar { flex: 1 1 100%; }
+        .rpp { margin-left: 0; }
+        /* The fixed 128px label column left ~170px for values on a phone. */
+        .detail-fields > div { grid-template-columns: 96px minmax(0, 1fr); }
+      }
+      @media (max-width: 768px) {
+        .mobile-empty { display: block; }
+      }
       .rpp select {
         border: 1px solid var(--line); border-radius: var(--kb-radius-md);
         padding: var(--kb-space-2) var(--kb-space-3); font-size: var(--kb-text-sm);
@@ -464,6 +550,7 @@ export class BusinessesPageComponent implements OnInit {
 
   readonly selected = signal<AdminBusinessListItem | null>(null);
   readonly selectedDetail = signal<AdminBusinessDetail | null>(null);
+  readonly suspendingBusiness = signal<AdminBusinessListItem | null>(null);
 
   search = '';
   statusFilter = '';
@@ -640,6 +727,27 @@ export class BusinessesPageComponent implements OnInit {
   onRppChange(): void {
     this.pageSize.set(Number(this.rpp) || 10);
     this.page.set(1);
+  }
+
+  /** Suspension stops a live outlet billing, so it asks first; activation does not. */
+  requestSuspend(biz: AdminBusinessListItem): void {
+    if (biz.isSuspended) {
+      this.toggleSuspend(biz);
+      return;
+    }
+    this.suspendingBusiness.set(biz);
+  }
+
+  suspendMessage(): string {
+    const biz = this.suspendingBusiness();
+    const name = biz?.shopName || biz?.restaurantId || 'this outlet';
+    return `Suspend "${name}"? Its terminals stop billing until you activate it again.`;
+  }
+
+  confirmSuspend(): void {
+    const biz = this.suspendingBusiness();
+    this.suspendingBusiness.set(null);
+    if (biz) this.toggleSuspend(biz);
   }
 
   toggleSuspend(biz: AdminBusinessListItem): void {

@@ -6,6 +6,7 @@ import { AdminApiService } from '../../core/services/admin-api.service';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { PaginationBarComponent } from '../../shared/pagination-bar.component';
+import { IconComponent } from '../../shared/icon.component';
 
 interface FlagRow {
   id: number;
@@ -59,7 +60,7 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
   selector: 'app-feature-flags-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, KpiRowComponent, PaginationBarComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, KpiRowComponent, PaginationBarComponent, IconComponent],
   template: `
     <div class="page-shell">
       <app-page-header
@@ -69,10 +70,10 @@ const CATEGORY_TONES: Record<FlagRow['category'], string> = {
         <div class="header-controls">
           <span class="chip-live"><span class="live-dot" aria-hidden="true"></span> Live PostgreSQL Flags</span>
           <button class="header-action-btn" type="button" (click)="viewDocs()">
-            <span aria-hidden="true">&#9432;</span> View Documentation
+            <kb-icon name="info" [size]="16" [ariaHidden]="true"></kb-icon> View Documentation
           </button>
           <button class="header-action-btn header-action-btn--primary" type="button" (click)="addFlag()">
-            + Add New Feature Flag
+            <kb-icon name="plus" [size]="16" [ariaHidden]="true"></kb-icon> Add New Feature Flag
           </button>
         </div>
       </app-page-header>

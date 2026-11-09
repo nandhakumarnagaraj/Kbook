@@ -152,6 +152,10 @@
   --kb-color-primary:           #FF5A0A; /* Primary action orange */
   --kb-color-primary-foreground:#FFFFFF; /* Ink carried on a primary or danger solid fill */
   --kb-color-primary-hover:     #E04D05; /* Deepened primary action orange on hover */
+  /* Filled actions carry 13px white labels, so the fill must clear 4.5:1:
+     white on #FF5A0A is 3.1:1. Brand orange stays for accents and marks. */
+  --kb-color-primary-strong:       #C2410C;
+  --kb-color-primary-strong-hover: #A63A0A;
   --kb-color-primary-soft:      rgba(255, 90, 10, 0.10);
   /* Semantic status. Each foreground clears 4.5:1 against its own soft tint
      composited on --kb-color-surface, so the pin does not rely on colour alone
@@ -404,6 +408,10 @@ a:hover { color: var(--kb-color-link-hover); }
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* A live chip names a condition ("Platform accounts"), not a table column:
+   the shared uppercase turned a sentence-case label into a shout and split it
+   from the same component on Feature Flags. */
+.chip--live { text-transform: none; letter-spacing: 0; }
 /* A status chip is its semantic colour's soft tint, with the border taken from
    that same colour rather than from a hand-mixed rgba() of an older palette.
    The three literals that used to live here (rgba(47,133,90) / (183,121,31) /
@@ -609,9 +617,9 @@ tbody tr[aria-selected="true"] {
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  background: var(--brand);
+  background: var(--kb-color-primary-strong);
   color: var(--kb-color-on-primary);
-  border: 1px solid var(--brand);
+  border: 1px solid var(--kb-color-primary-strong);
   border-radius: var(--kb-radius-lg);
   padding: 0.55rem var(--kb-space-4);
   cursor: pointer;
@@ -622,8 +630,8 @@ tbody tr[aria-selected="true"] {
   transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .primary-btn:hover {
-  background: var(--brand-deep);
-  border-color: var(--brand-deep);
+  background: var(--kb-color-primary-strong-hover);
+  border-color: var(--kb-color-primary-strong-hover);
   box-shadow: var(--shadow);
 }
 .primary-btn:active { transform: scale(0.97); }
@@ -652,9 +660,9 @@ tbody tr[aria-selected="true"] {
   justify-content: center;
   gap: 0.45rem;
   padding: 0.55rem var(--kb-space-4);
-  background: var(--brand);
+  background: var(--kb-color-primary-strong);
   color: var(--kb-color-on-primary);
-  border: 1px solid var(--brand);
+  border: 1px solid var(--kb-color-primary-strong);
   border-radius: var(--kb-radius-lg);
   font-size: var(--kb-text-sm);
   font-weight: 600;
@@ -664,8 +672,8 @@ tbody tr[aria-selected="true"] {
   transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .refresh-btn:hover:not([disabled]) {
-  background: var(--brand-deep);
-  border-color: var(--brand-deep);
+  background: var(--kb-color-primary-strong-hover);
+  border-color: var(--kb-color-primary-strong-hover);
   box-shadow: 0 4px 12px rgba(var(--kb-color-primary-rgb), 0.3);
 }
 .refresh-btn:active:not([disabled]) { transform: scale(0.97); }

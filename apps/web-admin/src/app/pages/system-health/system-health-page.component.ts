@@ -1,16 +1,27 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AdminApiService } from '../../core/services/admin-api.service';
+import { AdminBackupStatus } from '../../core/models/api.models';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 
-interface ServiceRow { name: string; kind: string; state: 'operational' | 'degraded' | 'down'; latency: string; uptime: string; }
+interface ServiceRow {
+  name: string;
+  signal: string;
+  state: 'operational' | 'degraded' | 'unknown';
+  detail: string;
+}
 
 /**
  * Admin → System Health (reference A08).
  *
- * Live health monitoring across core platform services and webhook infrastructure.
+ * This page used to print an unconditional "All systems operational" banner, five
+ * invented KPIs (99.98% uptime, 142ms p95, 10/10 pool) and six service rows with
+ * made-up latency and uptime figures. None of it was measured. It now renders only
+ * what `/admin/webhooks/health` and `/admin/backups` actually answer, and says so
+ * when they answer nothing.
  */
 @Component({
   selector: 'app-system-health-page',
@@ -21,64 +32,61 @@ interface ServiceRow { name: string; kind: string; state: 'operational' | 'degra
     <div class="page-shell">
       <app-page-header
         title="System Health"
-        subtitle="Live status of the services behind KhanaBook."
+        subtitle="Measured from the health endpoints this console can reach."
       >
         <div class="header-controls">
-          <span class="chip-live"><span class="live-dot" aria-hidden="true"></span> Live Infrastructure</span>
+          <span class="chip-live"><span class="live-dot" aria-hidden="true"></span> Measured signals</span>
           <app-refresh-button (refresh)="refresh()" [loading]="refreshing()" ariaLabel="Refresh system health" />
         </div>
       </app-page-header>
 
-      <div class="panel status-banner status-banner--ok" role="status">
+      <div class="panel status-banner" role="status" [class]="'panel status-banner status-banner--' + banner().tone">
         <span class="status-dot" aria-hidden="true"></span>
         <div>
-          <strong>All systems operational</strong>
-          <span class="muted banner-note" *ngIf="webhookState() === 'ok'">Payment webhooks responding</span>
-          <span class="muted banner-note" *ngIf="webhookState() === 'degraded'">Payment webhooks reporting degraded performance</span>
-          <span class="muted banner-note" *ngIf="webhookState() === 'unknown'">Payment webhooks responding</span>
+          <strong>{{ banner().title }}</strong>
+          <span class="muted banner-note">{{ banner().note }}</span>
         </div>
       </div>
 
-      <app-kpi-row [items]="kpis" ariaLabel="Platform health summary"></app-kpi-row>
+      <app-kpi-row [items]="kpis()" ariaLabel="Measured platform health" />
 
       <div class="panel panel-pad">
-        <div class="section-head"><h3>Services</h3><span class="muted">Live operational checks</span></div>
+        <div class="section-head">
+          <h3>Measured services</h3>
+          <span class="muted">Only signals this console can read</span>
+        </div>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr><th>Service</th><th>Component</th><th>Status</th><th>Latency</th><th>30-day Uptime</th></tr>
+              <tr><th>Service</th><th>Signal</th><th>Status</th><th>Detail</th></tr>
             </thead>
             <tbody>
-              <tr *ngFor="let service of services; trackBy: trackByName">
-                <td><strong>{{ service.name }}</strong></td>
-                <td class="muted">{{ service.kind }}</td>
-                <td>
-                  <span class="chip" [class.success]="service.state === 'operational'" [class.warn]="service.state === 'degraded'" [class.danger]="service.state === 'down'">
-                    {{ service.state }}
-                  </span>
-                </td>
-                <td>{{ service.latency }}</td>
-                <td>{{ service.uptime }}</td>
-              </tr>
+              @for (row of services(); track row.name) {
+                <tr>
+                  <td><strong>{{ row.name }}</strong></td>
+                  <td class="muted">{{ row.signal }}</td>
+                  <td>
+                    <span
+                      class="chip"
+                      [class.success]="row.state === 'operational'"
+                      [class.warn]="row.state === 'degraded'"
+                      [class.neutral]="row.state === 'unknown'">
+                      {{ row.state }}
+                    </span>
+                  </td>
+                  <td class="muted">{{ row.detail }}</td>
+                </tr>
+              }
             </tbody>
           </table>
         </div>
       </div>
 
-      <div class="panel panel-pad gauges-panel">
-        <div class="section-head"><h3>Host Resource Usage</h3><span class="muted">Docker container limits (4GB DB / 6GB JVM)</span></div>
-        <div class="gauges">
-          <div class="gauge" *ngFor="let gauge of gauges; trackBy: trackByLabel">
-            <div class="gauge-head">
-              <span>{{ gauge.label }}</span>
-              <span class="muted">{{ gauge.value }}%</span>
-            </div>
-            <div class="gauge-track">
-              <div class="gauge-fill" [style.width.%]="gauge.value" [style.background]="gaugeFill(gauge)"></div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <p class="scope-note muted">
+        CPU, memory, disk and per-request latency are collected by the production
+        monitoring stack. This console has no endpoint for them, so it does not show
+        them — a green gauge nobody measured would be worse than no gauge.
+      </p>
     </div>
   `,
   styles: [
@@ -86,67 +94,180 @@ interface ServiceRow { name: string; kind: string; state: 'operational' | 'degra
       .status-banner { margin-top: var(--kb-space-5); padding: var(--kb-space-4) var(--kb-space-5); display: flex; align-items: center; gap: var(--kb-space-3); }
       .chip-live { display: inline-flex; align-items: center; gap: var(--kb-space-2); background: var(--success-soft); color: var(--success); font-size: var(--kb-text-xs); font-weight: 650; padding: var(--kb-space-1) var(--kb-space-3); border-radius: var(--kb-radius-full); }
       .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex: none; }
-      .status-dot { width: 12px; height: 12px; border-radius: var(--kb-radius-full); background: var(--success); flex: none; }
+      .status-dot { width: 12px; height: 12px; border-radius: var(--kb-radius-full); background: var(--muted); flex: none; }
+      .status-banner--ok .status-dot { background: var(--success); }
+      .status-banner--warn { border-color: var(--warning); }
+      .status-banner--warn .status-dot { background: var(--warning); }
+      .status-banner--unknown { border-color: var(--line); }
       .banner-note { margin-left: var(--kb-space-2); font-size: var(--kb-text-sm); }
       .panel-pad { margin-top: var(--kb-space-4); padding: var(--kb-space-5) var(--kb-space-6); }
-      .gauges { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--kb-space-5); }
-      .gauge { display: flex; flex-direction: column; gap: var(--kb-space-2); }
-      .gauge-head { display: flex; justify-content: space-between; font-size: var(--kb-text-sm); }
-      .gauge-track { height: 10px; border-radius: var(--kb-radius-full); background: var(--panel-2); overflow: hidden; }
-      .gauge-fill { height: 100%; border-radius: var(--kb-radius-full); background: var(--success); }
+      .scope-note { margin-top: var(--kb-space-4); font-size: var(--kb-text-xs); line-height: 1.5; max-width: 72ch; }
+      .data-table th, .data-table td { vertical-align: top; }
+      .chip.neutral { background: var(--kb-color-bg-app); color: var(--muted); }
     `,
   ],
 })
-export class SystemHealthPageComponent {
+export class SystemHealthPageComponent implements OnInit {
   private readonly adminApi = inject(AdminApiService);
 
   readonly refreshing = signal(false);
   readonly webhookState = signal<'ok' | 'degraded' | 'unknown'>('unknown');
+  readonly backup = signal<AdminBackupStatus | null>(null);
+  /** null = not queried yet; true = at least one health endpoint answered. */
+  readonly apiReachable = signal<boolean | null>(null);
 
-  readonly kpis: KpiItem[] = [
-    { label: 'Uptime 30d', value: '99.98%', icon: 'health', tone: 'success', caption: 'Platform availability' },
-    { label: 'API Latency p95', value: '142ms', icon: 'monitoring', tone: 'default', caption: 'Spring Boot REST' },
-    { label: 'DB Connection Pool', value: '10/10', icon: 'dashboard', tone: 'brand', caption: 'HikariCP active' },
-    { label: 'Error Rate', value: '0.00%', icon: 'flag', tone: 'success', caption: 'Zero unhandled exceptions' },
-    { label: 'Open Incidents', value: 0, icon: 'notifications', tone: 'success', caption: 'None in last 24h' },
-  ];
+  readonly banner = computed(() => {
+    const hooks = this.webhookState();
+    const backup = this.backup();
+    if (hooks === 'unknown' && !backup) {
+      return {
+        tone: 'unknown',
+        title: 'Health data unavailable',
+        note: 'Neither the webhook nor the backup endpoint answered.',
+      };
+    }
+    if (hooks === 'degraded') {
+      return {
+        tone: 'warn',
+        title: 'Service degradation reported',
+        note: 'Payment webhooks are reporting degraded performance.',
+      };
+    }
+    if (hooks === 'unknown') {
+      // One endpoint answering does not stand in for the other.
+      return {
+        tone: 'warn',
+        title: 'Webhook health unavailable',
+        note: backup
+          ? `${backup.totalSnapshots} backup snapshots on record · webhook health did not answer`
+          : 'The webhook health endpoint did not answer.',
+      };
+    }
+    return {
+      tone: 'ok',
+      title: 'Measured services operational',
+      note: backup
+        ? `Payment webhooks responding · ${backup.totalSnapshots} backup snapshots on record`
+        : 'Payment webhooks responding',
+    };
+  });
 
-  readonly services: ServiceRow[] = [
-    { name: 'REST API', kind: 'orders · menu · billing', state: 'operational', latency: '142 ms', uptime: '99.98%' },
-    { name: 'PostgreSQL', kind: 'primary datastore', state: 'operational', latency: '9 ms', uptime: '99.99%' },
-    { name: 'Payment Service', kind: 'Easebuzz + settlements', state: 'operational', latency: '310 ms', uptime: '99.91%' },
-    { name: 'Webhook Delivery', kind: 'Easebuzz callbacks', state: 'operational', latency: '265 ms', uptime: '99.87%' },
-    { name: 'Push Notifications', kind: 'Firebase Cloud Messaging', state: 'degraded', latency: '810 ms', uptime: '98.62%' },
-    { name: 'Offline Sync Queue', kind: 'terminal replay', state: 'operational', latency: '86 ms', uptime: '99.97%' },
-  ];
+  readonly kpis = computed<KpiItem[]>(() => {
+    const hooks = this.webhookState();
+    const backup = this.backup();
+    const webhookValue = hooks === 'ok' ? 'Operational' : hooks === 'degraded' ? 'Degraded' : 'Unknown';
 
-  readonly gauges = [
-    { label: 'CPU', value: 38 },
-    { label: 'Memory', value: 64 },
-    { label: 'Disk', value: 47 },
-  ];
+    return [
+      {
+        label: 'Payment Webhooks',
+        value: webhookValue,
+        icon: 'health',
+        tone: hooks === 'ok' ? 'success' : hooks === 'degraded' ? 'danger' : 'default',
+        caption: 'Easebuzz callbacks',
+      },
+      {
+        label: 'Snapshots',
+        value: backup ? backup.totalSnapshots : '—',
+        icon: 'flag',
+        tone: backup ? 'success' : 'default',
+        caption: 'database backups',
+      },
+      {
+        label: 'Latest Backup',
+        value: this.latestBackupLabel(backup),
+        icon: 'monitoring',
+        caption: 'most recent snapshot',
+      },
+      {
+        label: 'Database Size',
+        value: backup?.databaseSize || '—',
+        icon: 'dashboard',
+        caption: 'current footprint',
+      },
+      {
+        label: 'Retention',
+        value: backup?.retentionPolicy || '—',
+        icon: 'notifications',
+        caption: 'backup window',
+      },
+    ];
+  });
 
-  gaugeFill(gauge: { value: number }): string {
-    if (gauge.value >= 85) return 'var(--danger)';
-    if (gauge.value >= 70) return 'var(--warning)';
-    return 'var(--success)';
+  readonly services = computed<ServiceRow[]>(() => {
+    const hooks = this.webhookState();
+    const backup = this.backup();
+    const reached = this.apiReachable();
+
+    return [
+      {
+        name: 'Payment Webhooks',
+        signal: 'Easebuzz callback delivery',
+        state: hooks === 'ok' ? 'operational' : hooks === 'degraded' ? 'degraded' : 'unknown',
+        detail:
+          hooks === 'ok'
+            ? 'Health endpoint reports OK'
+            : hooks === 'degraded'
+              ? 'Health endpoint reports degradation'
+              : 'No response from the webhook health endpoint',
+      },
+      {
+        name: 'Database Backups',
+        signal: 'Automated snapshot status',
+        state: backup ? 'operational' : 'unknown',
+        detail: backup
+          ? `${backup.totalSnapshots} snapshots · latest ${this.latestBackupLabel(backup)}`
+          : 'No response from the backup status endpoint',
+      },
+      {
+        name: 'Admin API',
+        signal: 'This console’s data source',
+        state: reached ? 'operational' : 'unknown',
+        detail:
+          reached === null
+            ? 'Not queried yet'
+            : reached
+              ? 'Answered the health queries'
+              : 'Did not answer the health queries',
+      },
+    ];
+  });
+
+  ngOnInit(): void {
+    this.refresh();
   }
 
   refresh(): void {
     this.refreshing.set(true);
-    this.adminApi.getWebhookHealth().subscribe({
-      next: (data: any) => {
-        const healthy = String(data?.status ?? data?.health ?? 'ok');
-        this.webhookState.set(healthy.includes('degrad') ? 'degraded' : 'ok');
-        this.refreshing.set(false);
-      },
-      error: () => {
+    forkJoin({
+      hooks: this.adminApi.getWebhookHealth().pipe(catchError(() => of(null))),
+      backups: this.adminApi.getBackupStatus().pipe(catchError(() => of(null))),
+    }).subscribe(({ hooks, backups }) => {
+      this.apiReachable.set(!!hooks || !!backups);
+
+      if (hooks) {
+        const payload = hooks as {
+          status?: string; health?: string; deadLetterCount?: number;
+        };
+        const state = String(payload.status ?? payload.health ?? '').toLowerCase();
+        const deadLettered = Number(payload.deadLetterCount) > 0;
+        this.webhookState.set(
+          deadLettered || state.includes('degrad') || state.includes('fail') ? 'degraded' : 'ok',
+        );
+      } else {
         this.webhookState.set('unknown');
-        this.refreshing.set(false);
-      },
+      }
+
+      if (backups) this.backup.set(backups);
+      this.refreshing.set(false);
     });
   }
 
-  trackByName(index: number, service: ServiceRow): string { return service.name; }
-  trackByLabel(index: number, gauge: { label: string }): string { return gauge.label; }
+  /** Accepts an ISO date or an already-formatted string; never invents one. */
+  latestBackupLabel(backup: AdminBackupStatus | null): string {
+    if (!backup?.latestBackup) return '—';
+    const parsed = new Date(backup.latestBackup);
+    return isNaN(parsed.getTime())
+      ? backup.latestBackup
+      : parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
 }

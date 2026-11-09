@@ -94,6 +94,7 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
               (click)="toggleCollapsed()"
               [attr.aria-label]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
               [attr.aria-expanded]="!collapsed()"
+              [attr.title]="collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
               aria-controls="sidebar-nav">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path [attr.d]="collapsed() ? 'm9 18 6-6-6-6' : 'm15 18-6-6 6-6'" />
@@ -557,9 +558,11 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       .sidebar-toggle svg { position: relative; }
       .sidebar-toggle:hover { color: var(--kb-color-foreground-contrast); }
       .sidebar-toggle:hover::before { background: var(--pos-sidebar-hover); }
-      .sidebar-toggle:focus-visible {
-        outline: 2px solid var(--kb-color-foreground-contrast);
-        outline-offset: 2px;
+      /* The visible control is the inset circle, so the ring must be circular
+         too. A box outline around the 44px hit area read as a stray rectangle. */
+      .sidebar-toggle:focus-visible { outline: none; }
+      .sidebar-toggle:focus-visible::before {
+        box-shadow: 0 0 0 2px var(--pos-sidebar-bg), 0 0 0 4px var(--kb-color-foreground-contrast);
       }
 
       .layout-shell--collapsed { grid-template-columns: var(--rail-width) 1fr; }

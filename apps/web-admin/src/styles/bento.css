@@ -249,15 +249,15 @@
     }
 
 .header-action-btn--primary {
-      background: var(--kb-color-primary);
-      border-color: var(--kb-color-primary);
+      background: var(--kb-color-primary-strong);
+      border-color: var(--kb-color-primary-strong);
       color: var(--kb-color-on-primary);
       box-shadow: 0 2px 8px rgba(var(--kb-color-primary-rgb), 0.22);
     }
 
 .header-action-btn--primary:hover {
-      background: var(--kb-color-primary-hover);
-      border-color: var(--kb-color-primary-hover);
+      background: var(--kb-color-primary-strong-hover);
+      border-color: var(--kb-color-primary-strong-hover);
     }
 
 .spinning { animation: spin 1s linear infinite; }
