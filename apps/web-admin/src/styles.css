@@ -792,6 +792,9 @@ tbody tr[aria-selected="true"] {
   box-shadow: 0 0 0 3px var(--kb-color-danger-soft);
 }
 .field-error { font-size: var(--kb-text-sm); color: var(--danger); }
+/* Form and dialog error copy. Several sections had a private copy; pages such
+   as the dashboard and feature flags used the class with no definition at all. */
+.error-text { color: var(--kb-color-danger); font-size: var(--kb-text-sm); }
 .hint-text { font-size: var(--kb-text-sm); color: var(--muted); }
 
 .filter-panel { padding: var(--kb-space-4) 1.15rem; }
@@ -818,6 +821,76 @@ tbody tr[aria-selected="true"] {
   flex-wrap: wrap;
   font-size: var(--kb-text-sm);
   color: var(--muted);
+}
+
+/* Filter chips are used by Menu, Activity Logs, Terminals and Live Orders. The
+   first two carried a private copy; the last two had no styles at all, so their
+   chips rendered as default browser buttons. This is the one definition. */
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--kb-touch-min);
+  padding: 0.35rem 0.85rem;
+  border: 1px solid var(--kb-color-border);
+  border-radius: var(--kb-radius-full);
+  background: var(--kb-color-surface);
+  color: var(--kb-color-muted-foreground);
+  font: inherit;
+  font-size: var(--kb-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+.filter-chip:hover { border-color: var(--kb-color-border-strong); color: var(--kb-color-foreground); }
+.filter-chip:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+.filter-chip--active {
+  border-color: var(--kb-color-primary);
+  background: var(--kb-color-primary-soft);
+  color: var(--kb-color-link);
+}
+.filter-chip__count {
+  padding: 0 0.35rem;
+  border-radius: var(--kb-radius-full);
+  background: var(--kb-color-surface-2);
+  color: var(--kb-color-muted-foreground);
+  font-size: var(--kb-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.filter-chip--active .filter-chip__count {
+  background: var(--kb-color-surface);
+  color: var(--kb-color-link);
+}
+
+/* The cluster of actions projected into app-page-header. The header's right
+   slot is a flex row already; without this wrapper rule its children are one
+   block and lose the shared gap on every page that uses it. */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Live-state pill, shared by every page that reports a running service. */
+.chip-live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--kb-space-2);
+  padding: var(--kb-space-1) var(--kb-space-3);
+  border-radius: var(--kb-radius-full);
+  background: var(--kb-color-success-soft);
+  color: var(--kb-color-success);
+  font-size: var(--kb-text-xs);
+  font-weight: 650;
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--kb-color-success);
+  flex: none;
 }
 
 /* ============ Loading / Empty / Error ============ */
@@ -887,6 +960,17 @@ tbody tr[aria-selected="true"] {
   animation: slideUp 0.2s ease;
 }
 .modal-box h3 { margin: 0 0 0.35rem; font-weight: 650; font-size: var(--kb-text-xl); }
+/* Dialog chrome. Both were used in the Orders tabs but only one tab defined
+   them locally, so the other dialog's title and close button did not sit in a
+   row. Layout only; a dialog owns its own inner spacing. */
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--kb-space-4);
+  margin-bottom: 0.75rem;
+}
+.modal-body { display: grid; gap: var(--kb-space-4); min-width: 0; }
 .modal-actions {
   display: flex;
   justify-content: flex-end;

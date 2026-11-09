@@ -6,7 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { BusinessOrder, OrderDetailResponse, PaginatedOrdersResponse } from '../../core/models/api.models';
 import { formatCurrency, formatDate } from '../../shared/formatters';
-import { KpiItem } from '../../shared/kpi-row.component';
+import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
 import { ApiStateComponent } from '../../core/components/api-state.component';
@@ -16,7 +16,7 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
   selector: 'app-live-orders-tab',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent, FocusTrapDirective],
+  imports: [CommonModule, FormsModule, OrderDetailModalComponent, ApiStateComponent, FocusTrapDirective, KpiRowComponent],
   template: `
     <div class="tab-panel">
       <!-- Loading and Error States -->
@@ -56,37 +56,18 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
         (retry)="load(true)"
       ></app-api-state>
 
-      <!-- KPI Cards Row + Filter Chips -->
+      <!-- KPI strip + filter chips. The four .kpi-card divs that used to sit
+           here were never defined in any stylesheet; they printed as bare label
+           and value lines above the summary. This is the shared strip. -->
       <div class="kpi-row-and-filters"
         *ngIf="activeOrders().length && !showReloadSkeleton()"
         aria-label="KPI and filter controls"
       >
-        <!-- KPI Cards: four compact cards in a single row at desktop -->
-        <div class="kpi-cards"
+        <app-kpi-row
           *ngIf="!showReloadSkeleton()"
-          aria-label="Key order metrics"
-        >
-          <div class="kpi-card"
-            *ngFor="let item of liveKpiItems()"
-            [class.kpi-card--active]="item.accent === 'positive'"
-            [class.kpi-card--flow]="item.accent === 'flow'"
-            [class.kpi-card--activity]="item.accent === 'activity'"
-            [attr.aria-label]="item.label + ': ' + item.value"
-          >
-            <div class="kpi-card__label" [class.kpi-card__label--secondary]="true">{{ item.label }}</div>
-            <div class="kpi-card__value" [class.kpi-card__value--tone]="item.tone"
-              [class.kpi-card__value--accent]="item.accent"
-            >{{ item.value }}</div>
-            <div class="kpi-card__badge" *ngIf="item.badge"
-              [class.kpi-card__badge--tone]="item.badge.tone"
-            >{{ item.badge.text }}</div>
-            <div class="kpi-card__accent"
-              [class.kpi-card__accent--flow]="item.accent === 'flow'"
-              [class.kpi-card__accent--positive]="item.accent === 'positive'"
-              [class.kpi-card__accent--activity]="item.accent === 'activity'"
-            ></div>
-          </div>
-        </div>
+          [items]="liveKpiItems()"
+          ariaLabel="Live order metrics">
+        </app-kpi-row>
 
         <!-- Order-type filter chips directly below the KPI cards -->
         <div class="filter-chips"
@@ -97,7 +78,8 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
             type="button"
             class="filter-chip"
             *ngFor="let channel of ['All', 'Dine-in', 'Takeaway', 'Delivery']"
-            [class.filter-chip--active]="channel !== 'All' && isTakeawayFilter || channel === 'All'"
+            [class.filter-chip--active]="isTakeawayFilter() === channel"
+            [attr.aria-pressed]="isTakeawayFilter() === channel"
             (click)="filterByChannel(channel)"
           >{{ channel }}</button>
         </div>
@@ -322,6 +304,9 @@ import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
       width: 100%;
       font-family: var(--kb-font-sans);
     }
+
+    .kpi-row-and-filters { display: grid; gap: var(--kb-space-4); }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: var(--kb-space-2); }
 
     /* Tab body — the routed shell owns the page header and outer geometry. */
     .tab-panel {
