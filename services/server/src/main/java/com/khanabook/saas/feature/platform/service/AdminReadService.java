@@ -44,6 +44,9 @@ public class AdminReadService {
     private final NotificationEventRepository notificationEventRepository;
     private final EntityManager entityManager;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.khanabook.saas.feature.subscription.service.SubscriptionService subscriptionService;
+
     @Transactional(readOnly = true)
     @Cacheable("adminDashboardSummary")
     public AdminDashboardSummaryResponse getDashboardSummary() {
@@ -140,6 +143,15 @@ public class AdminReadService {
         long posOrders     = billRepository.countByRestaurantIdAndIsDeletedFalse(restaurantId);
         BigDecimal billRev = nullSafe(billRepository.sumCompletedRevenueByRestaurant(restaurantId));
 
+        com.khanabook.saas.feature.subscription.dto.SubscriptionSummaryDTO sub = null;
+        if (subscriptionService != null) {
+            try {
+                sub = subscriptionService.getSubscriptionSummary(restaurantId);
+            } catch (Exception e) {
+                // Ignore if subscription lookup fails
+            }
+        }
+
         return AdminBusinessDetailResponse.builder()
                 .restaurantId(profile.getRestaurantId())
                 .shopName(profile.getShopName())
@@ -159,6 +171,10 @@ public class AdminReadService {
                 .menuCount(menuCount)
                 .posOrderCount(posOrders)
                 .totalRevenue(billRev)
+                .subscriptionPlan(sub != null ? sub.getPlanName() : null)
+                .subscriptionStatus(sub != null && sub.getStatus() != null ? sub.getStatus().name() : null)
+                .subscriptionPeriodEnd(sub != null ? sub.getCurrentPeriodEnd() : null)
+                .maxTerminals(sub != null ? sub.getMaxTerminals() : null)
                 .createdAt(profile.getCreatedAt())
                 .updatedAt(profile.getUpdatedAt())
                 .build();

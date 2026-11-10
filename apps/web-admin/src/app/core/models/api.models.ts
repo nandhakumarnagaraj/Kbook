@@ -1,3 +1,5 @@
+export * from './subscription.model';
+
 export interface AdminDashboardSummary {
   totalBusinesses: number;
   liveBusinesses: number;
@@ -59,6 +61,10 @@ export interface AdminBusinessDetail extends AdminBusinessListItem {
   fssaiNumber?: string | null;
   posOrderCount: number;
   totalRevenue: number;
+  subscriptionPlan?: string | null;
+  subscriptionStatus?: string | null;
+  subscriptionPeriodEnd?: number | null;
+  maxTerminals?: number | null;
   createdAt: number | null;
 }
 

@@ -6,6 +6,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { TaxSettingsSectionComponent, TaxSettings } from './tax-settings-section.component';
 import { PaymentMethodsSectionComponent, PaymentMethodsSettings } from './payment-methods-section.component';
+import { SubscriptionSectionComponent } from './subscription-section.component';
 import { PasswordChangeSectionComponent } from './password-change-section.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
@@ -75,6 +76,7 @@ interface SettingsCategory {
     RouterLink,
     TaxSettingsSectionComponent,
     PaymentMethodsSectionComponent,
+    SubscriptionSectionComponent,
     PasswordChangeSectionComponent,
     PageHeaderComponent,
     ApiStateComponent,
@@ -468,6 +470,11 @@ interface SettingsCategory {
                 [settings]="{ cashEnabled: p.cashEnabled, upiEnabled: p.upiEnabled, upiHandle: p.upiHandle, upiMobile: p.upiMobile, posEnabled: p.posEnabled, orderPaymentFlowMode: p.orderPaymentFlowMode, shopName: p.shopName }"
                 (settingsChange)="applyPaymentSettings($event)"
               />
+            </section>
+
+            <!-- 3b. Subscription & Plan Entitlements -->
+            <section id="subscription" class="settings-block" data-settings-section aria-label="Plan and license entitlements">
+              <app-subscription-section />
             </section>
 
             <!-- 4. Invoice & Billing (prototype section; preview-only state) -->
@@ -987,6 +994,7 @@ export class BusinessSettingsPageComponent implements OnDestroy {
     { id: 'businessDay', label: 'Business Day', icon: 'reports' },
     { id: 'tax', label: 'Tax & FSSAI', icon: 'reports' },
     { id: 'payments', label: 'Payment Configuration', icon: 'payments' },
+    { id: 'subscription', label: 'Plan & Billing', icon: 'payments' },
     { id: 'invoice', label: 'Invoice & Billing', icon: 'orders' },
     { id: 'whatsapp', label: 'WhatsApp & SMS', icon: 'notifications' },
     { id: 'reviews', label: 'Review & Feedback', icon: 'flag' }

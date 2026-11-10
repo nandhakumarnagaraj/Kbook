@@ -120,6 +120,9 @@ public class BusinessWriteService {
     private final com.khanabook.saas.feature.auth.repository.RefreshTokenRepository refreshTokenRepository;
     private final PushNotificationService pushNotificationService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.khanabook.saas.feature.subscription.service.SubscriptionService subscriptionService;
+
     @org.springframework.beans.factory.annotation.Autowired
     public BusinessWriteService(UserRepository userRepository,
                                 CategoryRepository categoryRepository,
@@ -631,9 +634,13 @@ public class BusinessWriteService {
             throw new IllegalArgumentException("Terminal is not deactivated");
         }
 
-        long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
-        if (activeCount >= 5) {
-            throw new ResponseStatusException(CONFLICT, "MAX_ACTIVE_TERMINALS_REACHED");
+        if (subscriptionService != null) {
+            subscriptionService.assertTerminalLimit(restaurantId);
+        } else {
+            long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
+            if (activeCount >= 5) {
+                throw new ResponseStatusException(CONFLICT, "MAX_ACTIVE_TERMINALS_REACHED");
+            }
         }
 
         terminal.setStatus("ACTIVE");

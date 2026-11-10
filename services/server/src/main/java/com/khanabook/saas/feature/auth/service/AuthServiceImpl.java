@@ -50,6 +50,9 @@ public class AuthServiceImpl implements AuthService {
     @Autowired(required = false)
     private GoogleIdTokenVerifier googleIdTokenVerifier;
 
+    @Autowired(required = false)
+    private com.khanabook.saas.feature.subscription.service.SubscriptionService subscriptionService;
+
     private static final long REFRESH_TOKEN_DAYS = 30;
 
     private String normalizeLoginIdentifier(String raw) {
@@ -133,6 +136,9 @@ public class AuthServiceImpl implements AuthService {
         profile.setServerUpdatedAt(System.currentTimeMillis());
         profile.setCreatedAt(System.currentTimeMillis());
         restaurantProfileRepository.save(profile);
+        if (subscriptionService != null) {
+            subscriptionService.initializeTrialSubscription(newRestaurantId);
+        }
 
         String hashedPassword = passwordEncoder.encode(request.getPassword());
 
@@ -179,6 +185,9 @@ public class AuthServiceImpl implements AuthService {
         profile.setServerUpdatedAt(System.currentTimeMillis());
         profile.setCreatedAt(System.currentTimeMillis());
         restaurantProfileRepository.save(profile);
+        if (subscriptionService != null) {
+            subscriptionService.initializeTrialSubscription(newRestaurantId);
+        }
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         User user = new User();
         user.setName(request.getName());
@@ -313,6 +322,9 @@ public class AuthServiceImpl implements AuthService {
                             profile.setServerUpdatedAt(System.currentTimeMillis());
                             profile.setCreatedAt(System.currentTimeMillis());
                             restaurantProfileRepository.save(profile);
+        if (subscriptionService != null) {
+            subscriptionService.initializeTrialSubscription(newRestaurantId);
+        }
 
                             User user = new User();
                             user.setName(name != null ? name : "Google User");

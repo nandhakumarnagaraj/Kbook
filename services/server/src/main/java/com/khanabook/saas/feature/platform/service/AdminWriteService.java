@@ -35,6 +35,9 @@ public class AdminWriteService {
     private final SecurityAuditService securityAuditService;
     private final AdminReadService adminReadService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.khanabook.saas.feature.subscription.service.SubscriptionService subscriptionService;
+
     public AdminWriteService(RestaurantProfileRepository profileRepository) {
         this(profileRepository, null, null, null, null, null);
     }
@@ -96,6 +99,9 @@ public class AdminWriteService {
         profile.setUpdatedAt(now);
         profile.setServerUpdatedAt(now);
         profile = profileRepository.saveAndFlush(profile);
+        if (subscriptionService != null) {
+            subscriptionService.initializeTrialSubscription(restaurantId);
+        }
 
         // 2. Create Owner User
         User owner = new User();

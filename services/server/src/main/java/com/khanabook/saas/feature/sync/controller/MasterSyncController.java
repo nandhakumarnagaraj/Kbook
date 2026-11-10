@@ -94,6 +94,9 @@ public class MasterSyncController {
 	private final com.khanabook.saas.feature.staff.service.PermissionService permissionService;
 	private final com.khanabook.saas.feature.shifts.service.CashierShiftService cashierShiftService;
 
+	@org.springframework.beans.factory.annotation.Autowired(required = false)
+	private com.khanabook.saas.feature.subscription.service.SubscriptionService subscriptionService;
+
 	// Phase C strict mode and the legacy compatibility fallback (Correction 2).
 	// strict=true: a missing terminal token rejects terminal-operational pulls.
 	// compatibility=false: the legacy client-supplied terminal id is no longer trusted;
@@ -185,6 +188,13 @@ public class MasterSyncController {
 		// sent on page 0 once, omitted from follow-up pages.
 		if (page == 0) {
 			response.setEnabledFeatures(featureFlagService.resolveAllForRestaurant(tenantId));
+			if (subscriptionService != null) {
+				try {
+					response.setSubscription(subscriptionService.getSubscriptionSummary(tenantId));
+				} catch (Exception e) {
+					log.warn("Failed to populate subscription summary for tenantId={}: {}", tenantId, e.getMessage());
+				}
+			}
 			Long currentUserId = com.khanabook.saas.core.security.TenantContext.getCurrentUserId();
 			if (currentUserId != null) {
 				response.setGrantedPermissions(permissionService.getGrantedPermissions(tenantId, currentUserId));

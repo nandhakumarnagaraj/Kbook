@@ -29,6 +29,10 @@ public record AdminBusinessDetailResponse(
         long menuCount,
         long posOrderCount,
         BigDecimal totalRevenue,
+        String subscriptionPlan,
+        String subscriptionStatus,
+        Long subscriptionPeriodEnd,
+        Integer maxTerminals,
         Long createdAt,
         Long updatedAt
 ) {

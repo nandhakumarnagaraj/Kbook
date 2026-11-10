@@ -56,6 +56,9 @@ public class TerminalManagementService {
     @org.springframework.beans.factory.annotation.Autowired(required = false)
     private PushNotificationService pushNotificationService;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private com.khanabook.saas.feature.subscription.service.SubscriptionService subscriptionService;
+
     // ── Primary designation ─────────────────────────────────────────────────────
 
     /**
@@ -335,9 +338,13 @@ public class TerminalManagementService {
 
             // If transitioning from non-ACTIVE to ACTIVE, enforce the limit
             if (!"ACTIVE".equals(terminal.getStatus())) {
-                long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
-                if (activeCount >= MAX_ACTIVE_TERMINALS) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_LIMIT_REACHED");
+                if (subscriptionService != null) {
+                    subscriptionService.assertTerminalLimit(restaurantId);
+                } else {
+                    long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
+                    if (activeCount >= MAX_ACTIVE_TERMINALS) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_LIMIT_REACHED");
+                    }
                 }
             }
 
@@ -349,10 +356,14 @@ public class TerminalManagementService {
             ensurePrimaryAssigned(restaurantId, terminal);
             terminal = terminalRepository.save(terminal);
         } else {
-            // New terminal: check 5-terminal limit
-            long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
-            if (activeCount >= MAX_ACTIVE_TERMINALS) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_LIMIT_REACHED");
+            // New terminal: check terminal limit via subscription quota
+            if (subscriptionService != null) {
+                subscriptionService.assertTerminalLimit(restaurantId);
+            } else {
+                long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
+                if (activeCount >= MAX_ACTIVE_TERMINALS) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_LIMIT_REACHED");
+                }
             }
 
             // Allocate series
@@ -525,10 +536,14 @@ public class TerminalManagementService {
             boolean increasesActiveCount = !"ACTIVE".equals(terminal.getStatus());
 
             if (increasesActiveCount) {
-                // Enforce five-terminal limit: count current ACTIVE terminals
-                long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
-                if (activeCount >= MAX_ACTIVE_TERMINALS) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_LIMIT_REACHED");
+                // Enforce terminal limit via subscription quota
+                if (subscriptionService != null) {
+                    subscriptionService.assertTerminalLimit(restaurantId);
+                } else {
+                    long activeCount = terminalRepository.countByRestaurantIdAndStatus(restaurantId, "ACTIVE");
+                    if (activeCount >= MAX_ACTIVE_TERMINALS) {
+                        throw new ResponseStatusException(HttpStatus.CONFLICT, "TERMINAL_LIMIT_REACHED");
+                    }
                 }
             }
 

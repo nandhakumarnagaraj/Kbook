@@ -45,4 +45,7 @@ public class MasterSyncResponseDTO {
      * revalidation at push time. Null for OWNER/admin or when no user is resolved.
      */
     private Long permissionRevision;
+
+    /** Active subscription and entitlement summary for offline caching and UI display. */
+    private com.khanabook.saas.feature.subscription.dto.SubscriptionSummaryDTO subscription;
 }

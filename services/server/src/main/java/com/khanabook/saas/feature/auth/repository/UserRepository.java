@@ -53,6 +53,8 @@ public interface UserRepository extends SyncRepository<User, Long> {
 
 	List<User> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);
 
+	long countByRestaurantIdAndIsDeletedFalse(Long restaurantId);
+
 	long countByIsDeletedFalse();
 
 	// Per-restaurant staff counts for admin businesses list
