@@ -66,7 +66,8 @@ public class DailyClosingEmailScheduler {
         );
 
         String currentBusinessDate = BusinessDay.businessDate(
-                now.toInstant().toEpochMilli(), zone, cutoffTime, profile.getCutoffEffectiveFrom()
+                now.toInstant().toEpochMilli(), zone, cutoffTime, profile.getCutoffEffectiveFrom(),
+                openingTime, closingTime
         );
 
         // Determine if current local time is past closing time:
@@ -88,7 +89,8 @@ public class DailyClosingEmailScheduler {
         // Safety sweep for previous day in case server was restarting during cutoff/close
         ZonedDateTime yesterday = now.minusDays(1);
         String prevBusinessDate = BusinessDay.businessDate(
-                yesterday.toInstant().toEpochMilli(), zone, cutoffTime, profile.getCutoffEffectiveFrom()
+                yesterday.toInstant().toEpochMilli(), zone, cutoffTime, profile.getCutoffEffectiveFrom(),
+                openingTime, closingTime
         );
         if (!prevBusinessDate.equals(currentBusinessDate)) {
             dailyClosingReportService.generateAndSendReport(profile.getRestaurantId(), prevBusinessDate, false);

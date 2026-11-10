@@ -99,9 +99,11 @@ public class AnalyticsController {
         var dayContext = dayContext(restaurantId);
         LocalDate day = LocalDate.parse(date);
         long from = com.khanabook.saas.core.utility.BusinessDay.windowStart(
-                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom());
+                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom(),
+                dayContext.opening(), dayContext.closing());
         long to = com.khanabook.saas.core.utility.BusinessDay.windowEnd(
-                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom());
+                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom(),
+                dayContext.opening(), dayContext.closing());
 
         long[] buckets = new long[24];
         billItemRepository.findByRestaurantIdAndCreatedAtBetween(restaurantId, from, to)
@@ -192,9 +194,11 @@ public class AnalyticsController {
         var dayContext = dayContext(restaurantId);
         LocalDate day = LocalDate.parse(date);
         long from = com.khanabook.saas.core.utility.BusinessDay.windowStart(
-                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom());
+                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom(),
+                dayContext.opening(), dayContext.closing());
         long to = com.khanabook.saas.core.utility.BusinessDay.windowEnd(
-                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom());
+                day, dayContext.zone(), dayContext.cutoff(), dayContext.effectiveFrom(),
+                dayContext.opening(), dayContext.closing());
 
         // Payment mode breakdown: [mode, status, count]
         List<Object[]> modeStatus = billRepository.countByRestaurantIdAndModeAndStatusBetween(restaurantId, from, to);
@@ -325,7 +329,8 @@ public class AnalyticsController {
      * which stops matching the day the bills were numbered under as soon as a cutoff is
      * configured — the 01:00 sales would land in the wrong day's report.
      */
-    private record DayContext(ZoneId zone, java.time.LocalTime cutoff, Long effectiveFrom) {}
+    private record DayContext(ZoneId zone, java.time.LocalTime cutoff, Long effectiveFrom,
+                              java.time.LocalTime opening, java.time.LocalTime closing) {}
 
     private DayContext dayContext(Long restaurantId) {
         var profile = profileRepository.findByRestaurantId(restaurantId).orElse(null);
@@ -335,7 +340,9 @@ public class AnalyticsController {
                 profile != null && profile.getBusinessDayCutoffTime() != null
                         ? profile.getBusinessDayCutoffTime()
                         : java.time.LocalTime.MIDNIGHT,
-                profile != null ? profile.getCutoffEffectiveFrom() : null);
+                profile != null ? profile.getCutoffEffectiveFrom() : null,
+                profile != null ? profile.getOpeningTime() : null,
+                profile != null ? profile.getClosingTime() : null);
     }
 
     private static Range range(String from, String to, DayContext ctx) {
@@ -343,9 +350,9 @@ public class AnalyticsController {
         LocalDate t = LocalDate.parse(to);
         return new Range(
                 com.khanabook.saas.core.utility.BusinessDay.windowStart(
-                        f, ctx.zone(), ctx.cutoff(), ctx.effectiveFrom()),
+                        f, ctx.zone(), ctx.cutoff(), ctx.effectiveFrom(), ctx.opening(), ctx.closing()),
                 com.khanabook.saas.core.utility.BusinessDay.windowEnd(
-                        t, ctx.zone(), ctx.cutoff(), ctx.effectiveFrom()));
+                        t, ctx.zone(), ctx.cutoff(), ctx.effectiveFrom(), ctx.opening(), ctx.closing()));
     }
 
     private Long requireTenant() {

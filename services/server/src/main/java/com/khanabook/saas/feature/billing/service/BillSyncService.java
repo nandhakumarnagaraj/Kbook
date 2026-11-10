@@ -82,7 +82,10 @@ public class BillSyncService {
                 : java.time.LocalTime.MIDNIGHT;
         Long effectiveFrom = profile != null ? profile.getCutoffEffectiveFrom() : null;
 
-        String businessDate = BusinessDay.businessDate(bill.getCreatedAt(), zone, cutoff, effectiveFrom);
+        String businessDate = BusinessDay.businessDate(
+                bill.getCreatedAt(), zone, cutoff, effectiveFrom,
+                profile != null ? profile.getOpeningTime() : null,
+                profile != null ? profile.getClosingTime() : null);
         if (!businessDate.equals(bill.getLastResetDate())) {
             log.debug("Business date normalised for bill localId={} from '{}' to '{}' (zone={}, cutoff={})",
                     bill.getLocalId(), bill.getLastResetDate(), businessDate, zone, cutoff);

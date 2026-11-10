@@ -48,6 +48,25 @@ public final class BusinessDay {
         return effectiveFromMillis != null && !LocalTime.MIDNIGHT.equals(cutoff);
     }
 
+    /**
+     * The boundary a shop rolls its order numbering on when no cutoff is activated.
+     *
+     * <p>A shop still trading at 01:00 has no meaningful day change at midnight: an
+     * 18:00 to 02:10 service must keep one numbering series until it closes. So the closing
+     * time IS the boundary when it falls on the next calendar day (closing earlier than
+     * opening). A daytime shop (08:10 to 14:20) does not cross midnight, so it keeps the
+     * calendar day.
+     *
+     * <p>Identical to the Android {@code BusinessDate.closingBoundary}. If the two differ,
+     * {@code applyServerBusinessDate} rewrites pushed dates one day apart from the till.
+     */
+    public static LocalTime closingBoundary(LocalTime opening, LocalTime closing) {
+        if (opening == null || closing == null || LocalTime.MIDNIGHT.equals(closing)) {
+            return LocalTime.MIDNIGHT;
+        }
+        return closing.isBefore(opening) ? closing : LocalTime.MIDNIGHT;
+    }
+
     public static ZoneId zoneOf(String timezone) {
         if (timezone == null || timezone.isBlank()) {
             return ZoneId.of(AppConstants.DEFAULT_TIMEZONE);
@@ -62,11 +81,24 @@ public final class BusinessDay {
     /** Business date ({@code YYYY-MM-DD}) of {@code createdAtMillis} in {@code zone}. */
     public static String businessDate(long createdAtMillis, ZoneId zone, LocalTime cutoff,
                                       Long effectiveFromMillis) {
+        return businessDate(createdAtMillis, zone, cutoff, effectiveFromMillis, null, null);
+    }
+
+    /**
+     * Business date ({@code YYYY-MM-DD}) of {@code createdAtMillis} in {@code zone}, with the
+     * shop's opening and closing times so an overnight service rolls over when it closes.
+     */
+    public static String businessDate(long createdAtMillis, ZoneId zone, LocalTime cutoff,
+                                      Long effectiveFromMillis, LocalTime opening,
+                                      LocalTime closing) {
         var zoned = Instant.ofEpochMilli(createdAtMillis).atZone(zone);
         LocalDate calendarDate = zoned.toLocalDate();
 
         if (!isActive(cutoff, effectiveFromMillis)) {
-            return calendarDate.toString();
+            LocalTime boundary = closingBoundary(opening, closing);
+            return !LocalTime.MIDNIGHT.equals(boundary) && zoned.toLocalTime().isBefore(boundary)
+                    ? calendarDate.minusDays(1).toString()
+                    : calendarDate.toString();
         }
 
         // Only the DATE of cutoff_effective_from matters: it names the first business day
@@ -96,9 +128,22 @@ public final class BusinessDay {
      */
     public static long windowStart(LocalDate date, ZoneId zone, LocalTime cutoff,
                                    Long effectiveFromMillis) {
+        return windowStart(date, zone, cutoff, effectiveFromMillis, null, null);
+    }
+
+    /**
+     * First instant belonging to business day {@code date}, honouring the closing-time
+     * boundary of an overnight service.
+     */
+    public static long windowStart(LocalDate date, ZoneId zone, LocalTime cutoff,
+                                   Long effectiveFromMillis, LocalTime opening,
+                                   LocalTime closing) {
         long midnight = date.atStartOfDay(zone).toInstant().toEpochMilli();
         if (!isActive(cutoff, effectiveFromMillis)) {
-            return midnight;
+            LocalTime boundary = closingBoundary(opening, closing);
+            return LocalTime.MIDNIGHT.equals(boundary)
+                    ? midnight
+                    : date.atTime(boundary).atZone(zone).toInstant().toEpochMilli();
         }
         LocalDate effectiveDate = Instant.ofEpochMilli(effectiveFromMillis.longValue())
                 .atZone(zone)
@@ -117,6 +162,13 @@ public final class BusinessDay {
     /** Exclusive end of business day {@code date} — the start of the following day. */
     public static long windowEnd(LocalDate date, ZoneId zone, LocalTime cutoff,
                                  Long effectiveFromMillis) {
-        return windowStart(date.plusDays(1), zone, cutoff, effectiveFromMillis);
+        return windowEnd(date, zone, cutoff, effectiveFromMillis, null, null);
+    }
+
+    /** Exclusive end of business day {@code date}, honouring the closing-time boundary. */
+    public static long windowEnd(LocalDate date, ZoneId zone, LocalTime cutoff,
+                                 Long effectiveFromMillis, LocalTime opening,
+                                 LocalTime closing) {
+        return windowStart(date.plusDays(1), zone, cutoff, effectiveFromMillis, opening, closing);
     }
 }

@@ -147,6 +147,59 @@ class BusinessDayTest {
     }
 
     @Test
+    void overnightServiceRollsOverAtClosingTimeNotMidnight() {
+        LocalTime open = LocalTime.of(18, 0);
+        LocalTime close = LocalTime.of(2, 10);
+
+        // 01:00 is still the previous night's service.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 1, 0), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // The closing instant itself starts the next series.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 10), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 23, 0), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
+    void daytimeServiceKeepsTheCalendarDay() {
+        LocalTime open = LocalTime.of(8, 10);
+        LocalTime close = LocalTime.of(14, 20);
+
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 1, 0), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 15, 0), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
+    void activatedCutoffStillWinsOverTheClosingTime() {
+        LocalTime open = LocalTime.of(18, 0);
+        LocalTime close = LocalTime.of(2, 10);
+
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 59), IST, FOUR_AM, ACTIVATED_AT, open, close))
+                .isEqualTo("2026-11-09");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 4, 0), IST, FOUR_AM, ACTIVATED_AT, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
+    void overnightWindowsAreTheExactInverseOfTheClosingBoundary() {
+        LocalTime open = LocalTime.of(18, 0);
+        LocalTime close = LocalTime.of(2, 10);
+        LocalDate day = LocalDate.of(2026, 11, 10);
+
+        assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 10, 2, 10));
+        assertThat(BusinessDay.windowEnd(day, IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 11, 2, 10));
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 10), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 9), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+    }
+
+    @Test
     void legacyWindowsStayMidnightToMidnight() {
         LocalDate day = LocalDate.of(2026, 11, 6);
         assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null))

@@ -27,11 +27,15 @@ class BusinessDateTest {
     private fun profile(
         timezone: String = "Asia/Kolkata",
         cutoff: String = "00:00",
-        effectiveFrom: Long? = null
+        effectiveFrom: Long? = null,
+        opening: String = "08:00",
+        closing: String = "23:00"
     ) = RestaurantProfileEntity(
         timezone = timezone,
         businessDayCutoffTime = cutoff,
-        cutoffEffectiveFrom = effectiveFrom
+        cutoffEffectiveFrom = effectiveFrom,
+        openingTime = opening,
+        closingTime = closing
     )
 
     private val activatedAt4Am = at(2026, 11, 10, 0, 0)
@@ -158,6 +162,40 @@ class BusinessDateTest {
             BusinessDate.windowStart(effectiveDate, midnightActivation),
             BusinessDate.windowStart(effectiveDate, midDayActivation)
         )
+    }
+
+    @Test
+    fun `an overnight service rolls over at closing time not midnight`() {
+        val p = profile(opening = "18:00", closing = "02:10")
+        // 01:00 is still the previous night's service.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 1, 0), p))
+        // The closing instant itself starts the next series.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 2, 10), p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 23, 0), p))
+    }
+
+    @Test
+    fun `a daytime service keeps the calendar day`() {
+        val p = profile(opening = "08:10", closing = "14:20")
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 1, 0), p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 15, 0), p))
+    }
+
+    @Test
+    fun `an activated cutoff still wins over the closing time`() {
+        val p = profile(cutoff = "04:00", effectiveFrom = activatedAt4Am, opening = "18:00", closing = "02:10")
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 3, 59), p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 4, 0), p))
+    }
+
+    @Test
+    fun `overnight windows are the exact inverse of the closing boundary`() {
+        val p = profile(opening = "18:00", closing = "02:10")
+        val day = LocalDate.of(2026, 11, 10)
+        assertEquals(at(2026, 11, 10, 2, 10), BusinessDate.windowStart(day, p))
+        assertEquals(at(2026, 11, 11, 2, 10), BusinessDate.windowEnd(day, p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 2, 10), p))
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 2, 9), p))
     }
 
     @Test

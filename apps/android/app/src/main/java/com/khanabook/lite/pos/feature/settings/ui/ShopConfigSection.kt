@@ -521,6 +521,13 @@ fun ShopConfigView(
                 )
             }
             Spacer(modifier = Modifier.height(spacing.medium))
+            BusinessDayInfoCard(
+                cutoffTime = profile?.businessDayCutoffTime,
+                cutoffEffectiveFrom = profile?.cutoffEffectiveFrom,
+                openingTime = openingTime,
+                closingTime = closingTime
+            )
+            Spacer(modifier = Modifier.height(spacing.medium))
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
                 enabled = profile != null,

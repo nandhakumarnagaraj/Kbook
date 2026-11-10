@@ -46,6 +46,36 @@ object BusinessDate {
         }
     }
 
+    /**
+     * The boundary a shop rolls its order numbering on when no cutoff is activated.
+     *
+     * A shop still trading at 01:00 has no meaningful day change at midnight: a 18:00 to
+     * 02:10 service must keep one numbering series until it closes. So the closing time IS
+     * the boundary when it falls on the next calendar day (closing earlier than opening).
+     * A daytime shop (08:10 to 14:20) does not cross midnight, so it keeps the calendar day
+     * and its reports keep natural dates.
+     *
+     * The Java twin is `BusinessDay.closingBoundary`; the two must stay identical or
+     * `BillSyncService.applyServerBusinessDate` starts rewriting dates one day apart.
+     */
+    fun closingBoundary(openingTime: String?, closingTime: String?): LocalTime {
+        val opening = parseClock(openingTime) ?: return LocalTime.MIDNIGHT
+        val closing = parseClock(closingTime) ?: return LocalTime.MIDNIGHT
+        if (closing == LocalTime.MIDNIGHT) return LocalTime.MIDNIGHT
+        return if (closing < opening) closing else LocalTime.MIDNIGHT
+    }
+
+    /** `HH:mm`/`HH:mm:ss` to [LocalTime], or null when absent or unparseable. */
+    fun parseClock(raw: String?): LocalTime? {
+        if (raw.isNullOrBlank()) return null
+        val text = raw.trim()
+        return try {
+            LocalTime.parse(if (text.length == 5) "$text:00" else text)
+        } catch (e: RuntimeException) {
+            null
+        }
+    }
+
     fun zoneOf(timezone: String?): ZoneId {
         return try {
             if (timezone.isNullOrBlank()) ZoneId.of(AppConstants.DEFAULT_TIMEZONE) else ZoneId.of(timezone)
@@ -64,7 +94,9 @@ object BusinessDate {
             createdAtMillis = createdAtMillis,
             timezone = profile?.timezone,
             cutoffTime = profile?.businessDayCutoffTime,
-            effectiveFromMillis = profile?.cutoffEffectiveFrom
+            effectiveFromMillis = profile?.cutoffEffectiveFrom,
+            openingTime = profile?.openingTime,
+            closingTime = profile?.closingTime
         )
     }
 
@@ -72,14 +104,25 @@ object BusinessDate {
         createdAtMillis: Long,
         timezone: String?,
         cutoffTime: String?,
-        effectiveFromMillis: Long?
+        effectiveFromMillis: Long?,
+        openingTime: String? = null,
+        closingTime: String? = null
     ): String {
         val zone = zoneOf(timezone)
         val zoned = Instant.ofEpochMilli(createdAtMillis).atZone(zone)
         val calendarDate = zoned.toLocalDate()
         val cutoff = parseCutoff(cutoffTime)
 
-        if (!isCutoffActive(cutoff, effectiveFromMillis)) return calendarDate.toString()
+        if (!isCutoffActive(cutoff, effectiveFromMillis)) {
+            // No activated cutoff: the shop's closing time is the boundary when the service
+            // crosses midnight, otherwise the calendar day (unchanged legacy behaviour).
+            val rollover = closingBoundary(openingTime, closingTime)
+            return if (rollover != LocalTime.MIDNIGHT && zoned.toLocalTime() < rollover) {
+                calendarDate.minusDays(1).toString()
+            } else {
+                calendarDate.toString()
+            }
+        }
 
         // Only the DATE of cutoff_effective_from matters: it names the first business day
         // under the new rule. Comparing the activation instant instead (t < effectiveFrom)
@@ -99,13 +142,17 @@ object BusinessDate {
         return businessDate(System.currentTimeMillis(), profile)
     }
 
-    /** First instant belonging to business day [date]. */
-    fun windowStart(date: LocalDate, profile: RestaurantProfileEntity?): Long {
+    /** First instant belonging to business day [date]. */    fun windowStart(
+        date: LocalDate,
+        profile: RestaurantProfileEntity?
+    ): Long {
         return windowStart(
             date = date,
             timezone = profile?.timezone,
             cutoffTime = profile?.businessDayCutoffTime,
-            effectiveFromMillis = profile?.cutoffEffectiveFrom
+            effectiveFromMillis = profile?.cutoffEffectiveFrom,
+            openingTime = profile?.openingTime,
+            closingTime = profile?.closingTime
         )
     }
 
@@ -113,13 +160,23 @@ object BusinessDate {
         date: LocalDate,
         timezone: String?,
         cutoffTime: String?,
-        effectiveFromMillis: Long?
+        effectiveFromMillis: Long?,
+        openingTime: String? = null,
+        closingTime: String? = null
     ): Long {
         val zone = zoneOf(timezone)
         val midnight = date.atStartOfDay(zone).toInstant().toEpochMilli()
         val cutoff = parseCutoff(cutoffTime)
 
-        if (!isCutoffActive(cutoff, effectiveFromMillis)) return midnight
+        if (!isCutoffActive(cutoff, effectiveFromMillis)) {
+            // Exact inverse of businessDate(): an overnight day starts when the shop closes.
+            val rollover = closingBoundary(openingTime, closingTime)
+            return if (rollover == LocalTime.MIDNIGHT) {
+                midnight
+            } else {
+                date.atTime(rollover).atZone(zone).toInstant().toEpochMilli()
+            }
+        }
 
         val effectiveDate = Instant.ofEpochMilli(effectiveFromMillis!!).atZone(zone).toLocalDate()
         // Days before the effective date still start at midnight, so hours already recorded
@@ -143,8 +200,10 @@ object BusinessDate {
         date: LocalDate,
         timezone: String?,
         cutoffTime: String?,
-        effectiveFromMillis: Long?
+        effectiveFromMillis: Long?,
+        openingTime: String? = null,
+        closingTime: String? = null
     ): Long {
-        return windowStart(date.plusDays(1), timezone, cutoffTime, effectiveFromMillis)
+        return windowStart(date.plusDays(1), timezone, cutoffTime, effectiveFromMillis, openingTime, closingTime)
     }
 }

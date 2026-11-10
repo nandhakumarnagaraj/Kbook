@@ -1,8 +1,18 @@
 package com.khanabook.lite.pos.feature.settings.ui
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,14 +20,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -76,11 +86,6 @@ internal fun RestaurantPaymentFlowSelector(
                     color = PrimaryGold,
                     style = MaterialTheme.typography.titleSmall
                 )
-                Text(
-                    text = "Switch between Counter Billing and Dine-In Table Service",
-                    color = TextLight.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
         }
         PaymentFlowToggleSwitch(
@@ -97,26 +102,174 @@ internal fun PaymentFlowToggleSwitch(
     onModeSelected: (OrderPaymentFlowMode) -> Unit,
     enabled: Boolean = true
 ) {
-    val spacing = KhanaBookTheme.spacing
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+    val payAfterFood = selectedMode == OrderPaymentFlowMode.PAY_AFTER_FOOD
+    val thumbSize = 44.dp
+    val trackColor = if (enabled) PrimaryGold else PrimaryGold.copy(alpha = 0.45f)
+    val thumbColor = if (enabled) DarkBrown1 else DarkBrown1.copy(alpha = 0.55f)
+
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(CircleShape)
+            .background(trackColor)
+            .border(1.dp, PrimaryGold.copy(alpha = 0.55f), CircleShape)
+            .toggleable(
+                value = payAfterFood,
+                enabled = enabled,
+                onValueChange = { checked ->
+                    onModeSelected(
+                        if (checked) OrderPaymentFlowMode.PAY_AFTER_FOOD
+                        else OrderPaymentFlowMode.PAY_BEFORE_FOOD
+                    )
+                }
+            )
+            .padding(6.dp)
     ) {
-        OrderPaymentFlowMode.values().forEach { mode ->
-            val isSelected = mode == selectedMode
-            Button(
-                onClick = { onModeSelected(mode) },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSelected) PrimaryGold else DarkBrown1,
-                    contentColor = if (isSelected) DarkBrown1 else TextLight
+        val travel = (maxWidth - thumbSize).coerceAtLeast(0.dp)
+        val thumbOffset by animateDpAsState(
+            targetValue = if (payAfterFood) travel else 0.dp,
+            animationSpec = tween(durationMillis = 220),
+            label = "paymentFlowThumbOffset"
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(
+                    start = if (payAfterFood) 0.dp else thumbSize,
+                    end = if (payAfterFood) thumbSize else 0.dp
                 ),
-                enabled = enabled
-            ) {
-                Text(mode.displayLabel, style = MaterialTheme.typography.labelLarge)
-            }
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = selectedMode.displayLabel,
+                color = thumbColor,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(x = thumbOffset)
+                .size(thumbSize)
+                .background(thumbColor, CircleShape)
+        )
     }
+}
+
+/**
+ * Read-only view of when a bill's order number rolls over.
+ *
+ * The till cannot change this: the cutoff is server-owned (see [BusinessDate]) and is
+ * activated from the web dashboard, so this block exists to answer the two questions a
+ * shopkeeper actually asks — "when does my numbering restart?" and "why is it splitting
+ * tonight's service?". The warning only appears for a genuinely overnight service,
+ * because that is the case where the default midnight rollover silently produces two
+ * series inside one shift.
+ */
+@Composable
+internal fun BusinessDayInfoCard(
+    cutoffTime: String?,
+    cutoffEffectiveFrom: Long?,
+    openingTime: String?,
+    closingTime: String?
+) {
+    val spacing = KhanaBookTheme.spacing
+    val cutoff = cutoffTime?.trim()?.take(5)?.takeIf { it.isNotBlank() } ?: DEFAULT_CUTOFF
+    // Mirrors BusinessDate.isCutoffActive on this device: a 00:00 cutoff is the legacy
+    // calendar rule, and an unset activation date means the cutoff is not in force yet.
+    val cutoffActive = cutoffEffectiveFrom != null && cutoff != DEFAULT_CUTOFF
+    val overnight = isOvernightService(openingTime, closingTime)
+    // Must mirror BusinessDate.businessDate() exactly: an activated cutoff wins, otherwise
+    // an overnight service rolls over at its own closing time, and a daytime shop at
+    // midnight. If this drifts, the card tells the shopkeeper a lie.
+    val rollover = when {
+        cutoffActive -> cutoff
+        overnight -> closingTime?.trim()?.take(5)?.takeIf { it.isNotBlank() } ?: DEFAULT_CUTOFF
+        else -> DEFAULT_CUTOFF
+    }
+    val rolloverLabel = formatClockTime(rollover)
+    val closingLabel = formatClockTime(closingTime)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), KhanaRadii.lg)
+            .background(DarkBrown2.copy(alpha = 0.45f), KhanaRadii.lg)
+            .padding(spacing.medium),
+        verticalArrangement = Arrangement.spacedBy(spacing.small)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+        ) {
+            Icon(Icons.Default.Info, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+            Text(
+                text = "Business Day",
+                color = PrimaryGold,
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Text(
+            text = "Order numbers roll over at $rolloverLabel",
+            color = TextLight,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = when {
+                overnight -> "Follows your $closingLabel closing time, so a service that runs past midnight stays in one series."
+                cutoffActive -> "Bills taken before $rolloverLabel belong to the previous business day."
+                else -> "No day cutoff is set, so the order number restarts at $rolloverLabel."
+            },
+            color = TextGold.copy(alpha = 0.75f),
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+/** Legacy calendar rule — see [BusinessDate.DEFAULT_CUTOFF]. */
+private const val DEFAULT_CUTOFF = "00:00"
+
+/** Minutes past local midnight for an `HH:mm` or `HH:mm:ss` string, or null if unparseable. */
+private fun minutesOfDay(raw: String?): Int? {
+    val parts = raw?.trim()?.split(":") ?: return null
+    if (parts.size < 2) return null
+    val hour = parts[0].toIntOrNull() ?: return null
+    val minute = parts[1].toIntOrNull() ?: return null
+    if (hour !in 0..23 || minute !in 0..59) return null
+    return hour * 60 + minute
+}
+
+/**
+ * True when the closing time falls on the next calendar day, e.g. 18:00 → 02:10.
+ *
+ * Deliberately "closing earlier than opening" only: an early-morning open (00:00 → 05:00)
+ * does not cross midnight, and warning about it would be noise.
+ */
+private fun isOvernightService(openingTime: String?, closingTime: String?): Boolean {
+    val opening = minutesOfDay(openingTime) ?: return false
+    val closing = minutesOfDay(closingTime) ?: return false
+    return closing < opening
+}
+
+/** `"02:10"` → `"2:10 AM"`; unparseable input is echoed instead of throwing. */
+private fun formatClockTime(raw: String?): String {
+    val minutes = minutesOfDay(raw) ?: return raw?.trim()?.take(5) ?: "--:--"
+    val hour24 = minutes / 60
+    val minute = minutes % 60
+    val hour12 = when (hour24) {
+        0 -> 12
+        in 13..23 -> hour24 - 12
+        else -> hour24
+    }
+    val suffix = if (hour24 < 12) "AM" else "PM"
+    return "$hour12:${minute.toString().padStart(2, '0')} $suffix"
 }
 
 @Composable
