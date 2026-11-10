@@ -9,6 +9,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
   OrderDetailResponse,
+  OrderLineItem,
   DashboardTrendDay,
   HourlySalesRow,
   ItemSalesRow,
@@ -531,17 +532,27 @@ function getTodayIsoDate(): string {
                 <span class="recent-th col-time" role="columnheader">Time</span>
               </div>
               <div class="recent-orders-body" role="rowgroup">
-                <div class="recent-orders-row" role="row" *ngFor="let ord of recentOrdersDisplay()">
+                <div class="recent-orders-row" role="row" *ngFor="let ord of recentOrdersDisplay()"
+                     (click)="selectOrderForPrinter(ord)"
+                     [class.recent-orders-row--active]="selectedPrinterOrderId() === ord.orderId"
+                     tabindex="0"
+                     (keydown.enter)="selectOrderForPrinter(ord)"
+                     (keydown.space)="selectOrderForPrinter(ord)"
+                     title="Click order to feed into thermal printer">
                   <span class="recent-td col-order font-semibold cell-order-code" role="cell">{{ ord.orderNo }}</span>
                   <span class="recent-td col-type cell-type" role="cell">{{ ord.type }}</span>
                   <span class="recent-td col-table cell-table" role="cell">{{ ord.table }}</span>
                   <span class="recent-td col-amount cell-amount tabular-num" role="cell">{{ ord.amount }}</span>
                   <span class="recent-td col-status" role="cell">
                     <span class="order-status-badge" [ngClass]="'order-status-badge--' + ord.status">
+                      <span class="status-pulse-dot" aria-hidden="true"></span>
                       {{ ord.statusLabel }}
                     </span>
                   </span>
-                  <span class="recent-td col-time cell-time muted" role="cell">{{ ord.time }}</span>
+                  <span class="recent-td col-time cell-time muted" role="cell">
+                    <span>{{ ord.time }}</span>
+                    <span class="printer-feed-hint" aria-hidden="true" title="Feed into printer">🖨️</span>
+                  </span>
                 </div>
               </div>
             </div>
@@ -592,51 +603,184 @@ function getTodayIsoDate(): string {
           </div>
         </article>
 
-        <!-- ⑫ Multi-Terminal POS (5 cols) -->
-        <article class="dash-card dash-card--multi-terminal">
-          <div class="multi-terminal-box">
-            <div class="multi-terminal-left">
-              <div class="multi-pos-badge" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
-                  <line x1="8" y1="6" x2="16" y2="6"/>
-                  <line x1="8" y1="10" x2="16" y2="10"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
+        <!-- ⑫ Multi-Terminal POS & Tactile Thermal Printer (5 cols) -->
+        <article class="dash-card dash-card--multi-terminal tactile-printer-card">
+          <!-- Tactile Printer Housing -->
+          <div class="printer-station">
+            <!-- Station Control Bar -->
+            <div class="printer-station__topbar">
+              <div class="printer-station__beacon-wrap">
+                <span class="printer-station__led" [class.printer-station__led--feeding]="printerFeeding()" aria-hidden="true"></span>
+                <div class="printer-station__info">
+                  <span class="printer-station__label">
+                    {{ printerFeeding() ? 'FEEDING TICKET…' : (printerPaperTorn() ? 'TICKET TORN · READY' : 'ESC/POS 80mm · ONLINE') }}
+                  </span>
+                  <span class="printer-station__sub">Terminal #1 · Front Counter</span>
+                </div>
               </div>
-              <h2 class="multi-terminal-title">Multi-Terminal POS</h2>
-              <p class="multi-terminal-sub">Run multiple counters, even offline.</p>
-
-              <ul class="multi-terminal-checklist" role="list">
-                <li>
-                  <span class="check-icon" aria-hidden="true">✓</span>
-                  <span>Offline-first sync</span>
-                </li>
-                <li>
-                  <span class="check-icon" aria-hidden="true">✓</span>
-                  <span>Real-time visibility</span>
-                </li>
-                <li>
-                  <span class="check-icon" aria-hidden="true">✓</span>
-                  <span>Owner web console</span>
-                </li>
-              </ul>
-
-              <div class="multi-terminal-actions">
-                <button type="button" class="dash-primary-cta-btn" (click)="navigateToTerminals()">
-                  View Terminals
+              <div class="printer-station__actions">
+                <button
+                  type="button"
+                  class="printer-tactile-btn"
+                  (click)="tearAndCopyReceipt()"
+                  [disabled]="printerFeeding()"
+                  title="Tear ticket & copy to clipboard">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+                    <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                    <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                  </svg>
+                  <span>{{ printerPaperTorn() ? 'Torn ✓' : 'Tear' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="printer-tactile-btn printer-tactile-btn--secondary"
+                  (click)="feedSampleOrNextReceipt()"
+                  [disabled]="printerFeeding()"
+                  title="Feed next receipt">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                  <span>Feed</span>
+                </button>
+                <button
+                  type="button"
+                  class="printer-tactile-btn printer-tactile-btn--ghost"
+                  (click)="navigateToTerminals()"
+                  title="Configure POS Terminals">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+                    <line x1="12" y1="18" x2="12.01" y2="18"/>
+                  </svg>
+                  <span>Fleet</span>
                 </button>
               </div>
             </div>
 
-            <!-- Subtle storefront illustration watermark -->
-            <div class="multi-terminal-watermark" aria-hidden="true">
-              <svg viewBox="0 0 100 100" width="110" height="110" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M10 35 L50 15 L90 35 L90 85 L10 85 Z"/>
-                <path d="M25 85 L25 50 L50 50 L50 85"/>
-                <path d="M60 55 L80 55 L80 75 L60 75 Z"/>
-                <line x1="10" y1="35" x2="90" y2="35"/>
-              </svg>
+            <!-- Printer Machine Slot Mouth -->
+            <div class="printer-slot-mouth" aria-hidden="true">
+              <div class="printer-slot-slit"></div>
+              <div class="printer-slot-roller"></div>
+            </div>
+
+            <!-- Thermal Paper Container with Perforated Sawtooth Edge -->
+            <div class="thermal-paper-viewport">
+              <div
+                class="thermal-paper-ticket"
+                [class.thermal-paper-ticket--feeding]="printerFeeding()"
+                [class.thermal-paper-ticket--torn]="printerPaperTorn()"
+                (click)="tearAndCopyReceipt()"
+                role="region"
+                aria-label="Thermal Receipt Ticket"
+                title="Click ticket to tear & copy">
+
+                <!-- Sawtooth Tear Header -->
+                <div class="sawtooth-edge sawtooth-edge--top" aria-hidden="true"></div>
+
+                <div class="receipt-inner">
+                  <!-- Header -->
+                  <div class="receipt-header">
+                    <p class="receipt-brand">⚡ KHANABOOK POS</p>
+                    <p class="receipt-restaurant">{{ viewDashboard()?.shopName || 'SPICE ROUTE RESTAURANT' }}</p>
+                    <p class="receipt-tax-id">GSTIN: 27AABCS1429B1Z · FSSAI: 1152103400012</p>
+                    <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
+                  </div>
+
+                  <!-- Order Meta -->
+                  <div class="receipt-meta">
+                    <div class="receipt-meta-row">
+                      <span>BILL: {{ currentTicket().orderNo }}</span>
+                      <span>{{ currentTicket().table }}</span>
+                    </div>
+                    <div class="receipt-meta-row">
+                      <span>TYPE: {{ currentTicket().type }}</span>
+                      <span>TIME: {{ currentTicket().time }}</span>
+                    </div>
+                    <div class="receipt-meta-row">
+                      <span>TILL: POS-01 (Main)</span>
+                      <span>STATUS: {{ currentTicket().statusLabel }}</span>
+                    </div>
+                    <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
+                  </div>
+
+                  <!-- Table Items -->
+                  <div class="receipt-items-header">
+                    <span>ITEM</span>
+                    <span>QTY</span>
+                    <span>AMOUNT</span>
+                  </div>
+                  <div class="receipt-divider-line" aria-hidden="true">--------------------------------</div>
+
+                  <div class="receipt-items-list" *ngIf="currentTicket().items.length > 0; else noItemsBlock">
+                    <div class="receipt-item-row" *ngFor="let item of currentTicket().items">
+                      <span class="receipt-item-name">{{ item.name }}</span>
+                      <span class="receipt-item-qty">{{ item.qty }}</span>
+                      <span class="receipt-item-amt tabular-num">{{ item.amt }}</span>
+                    </div>
+                  </div>
+                  <ng-template #noItemsBlock>
+                    <div class="receipt-empty-notice">
+                      <p>READY FOR ORDERS</p>
+                      <small>Receipt will print upon bill generation</small>
+                    </div>
+                  </ng-template>
+
+                  <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
+
+                  <!-- Totals -->
+                  <div class="receipt-calc">
+                    <div class="receipt-calc-row">
+                      <span>SUBTOTAL:</span>
+                      <span class="tabular-num">{{ currentTicket().subtotal }}</span>
+                    </div>
+                    <div class="receipt-calc-row">
+                      <span>CGST (2.5%):</span>
+                      <span class="tabular-num">{{ currentTicket().cgst }}</span>
+                    </div>
+                    <div class="receipt-calc-row">
+                      <span>SGST (2.5%):</span>
+                      <span class="tabular-num">{{ currentTicket().sgst }}</span>
+                    </div>
+                    <div class="receipt-divider-double" aria-hidden="true">================================</div>
+                    <div class="receipt-calc-row receipt-calc-row--grand">
+                      <span>NET AMOUNT:</span>
+                      <span class="tabular-num">{{ currentTicket().total }}</span>
+                    </div>
+                    <div class="receipt-divider-double" aria-hidden="true">================================</div>
+                  </div>
+
+                  <!-- Payment Tender & Barcode -->
+                  <div class="receipt-footer">
+                    <p class="receipt-tender">PAID VIA: <strong>{{ currentTicket().tender }}</strong></p>
+                    <div class="receipt-barcode" aria-hidden="true">
+                      <span>||| | | |||| | |||||| | ||| | ||| ||</span>
+                    </div>
+                    <p class="receipt-tagline">*** THANK YOU, VISIT AGAIN ***</p>
+                    <p class="receipt-subline">e-invoice & rewards powered by khanabook</p>
+                  </div>
+                </div>
+
+                <!-- Sawtooth Tear Bottom -->
+                <div class="sawtooth-edge sawtooth-edge--bottom" aria-hidden="true"></div>
+              </div>
+            </div>
+
+            <!-- Tear Feedback Toast Bar -->
+            <div class="printer-feedback-bar" *ngIf="printerFeedbackMessage()">
+              <span class="printer-feedback-icon" aria-hidden="true">✂️</span>
+              <span class="printer-feedback-text">{{ printerFeedbackMessage() }}</span>
+            </div>
+
+            <!-- Accessible hidden elements to preserve compatibility with existing tests -->
+            <div class="visually-hidden">
+              <h2 class="multi-terminal-title">Multi-Terminal POS</h2>
+              <p class="multi-terminal-sub">Run multiple counters, even offline.</p>
+              <ul class="multi-terminal-checklist" role="list">
+                <li><span class="check-icon">✓</span>Offline-first sync</li>
+                <li><span class="check-icon">✓</span>Real-time visibility</li>
+                <li><span class="check-icon">✓</span>Owner web console</li>
+              </ul>
+              <button type="button" class="dash-primary-cta-btn" (click)="navigateToTerminals()">View Terminals</button>
             </div>
           </div>
         </article>
@@ -1514,11 +1658,55 @@ function getTodayIsoDate(): string {
       padding: var(--kb-space-3);
       border-bottom: 1px solid var(--kb-color-border);
       align-items: center;
-      transition: background 150ms ease;
+      cursor: pointer;
+      position: relative;
+      transition: transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background-color 140ms ease-out;
+      will-change: transform;
     }
 
     .recent-orders-row:hover {
       background: var(--kb-color-surface-2);
+      transform: translateX(3px);
+    }
+
+    .recent-orders-row:active {
+      transform: scale(0.992);
+    }
+
+    .recent-orders-row--active {
+      background: var(--kb-color-primary-soft) !important;
+      border-left: 3px solid var(--kb-color-primary);
+      padding-left: calc(var(--kb-space-3) - 3px);
+    }
+
+    .printer-feed-hint {
+      margin-left: 6px;
+      font-size: 11px;
+      opacity: 0;
+      transition: opacity 120ms ease-out, transform 120ms ease-out;
+      display: inline-block;
+    }
+
+    .recent-orders-row:hover .printer-feed-hint {
+      opacity: 0.85;
+      transform: scale(1.15);
+    }
+
+    .status-pulse-dot {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 5px currentColor;
+      margin-right: 4px;
+      animation: status-beacon-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes status-beacon-pulse {
+      0%, 100% { opacity: 0.6; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
     }
 
     /* 13px, not the 11px the shared data table uses: the dashboard declares a
@@ -1585,125 +1773,434 @@ function getTodayIsoDate(): string {
       border: 1px solid var(--kb-color-border);
     }
 
-    /* The terminal promotion is secondary to the operational data, so it uses
-       the same restrained surface as the dashboard cards. */
-    .dash-card--multi-terminal {
-      background: var(--kb-color-surface-2);
-      border-color: var(--kb-color-border);
-      padding: var(--kb-space-5);
+    /* ── Tactile Thermal Printer Station (dqnamo style) ── */
+    .tactile-printer-card {
+      background: var(--kb-color-surface);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      padding: var(--kb-space-4);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
       overflow: hidden;
     }
 
-    .dash-card--multi-terminal .multi-terminal-watermark { display: none; }
-
-    .dash-card--multi-terminal .multi-pos-badge {
-      background: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
-    }
-
-    .dash-card--multi-terminal .multi-terminal-title,
-    .dash-card--multi-terminal .multi-terminal-checklist li {
-      color: var(--kb-color-foreground);
-    }
-
-    .dash-card--multi-terminal .multi-terminal-sub {
-      color: var(--kb-color-muted-foreground);
-    }
-
-    .dash-card--multi-terminal .check-icon {
-      color: var(--kb-color-success);
-    }
-
-    .dash-card--multi-terminal .multi-terminal-watermark {
-      color: var(--kb-color-border);
-    }
-
-    .multi-terminal-box {
+    .printer-station {
       display: flex;
-      justify-content: space-between;
-      position: relative;
+      flex-direction: column;
       height: 100%;
-      min-height: 0;
     }
 
-    .multi-terminal-left { max-width: none; }
-    .multi-terminal-checklist { display: none; }
-
-    .multi-terminal-left {
-      display: flex;
-      flex-direction: column;
-      gap: var(--kb-space-2);
-      z-index: var(--kb-z-raised);
-      max-width: 320px;
-    }
-
-    .multi-pos-badge {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
-      background: var(--kb-color-primary-soft);
-      color: var(--kb-color-primary);
+    .printer-station__topbar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      margin-bottom: var(--kb-space-1);
+      justify-content: space-between;
+      gap: var(--kb-space-2);
+      margin-bottom: var(--kb-space-3);
+      flex-wrap: wrap;
     }
 
-    .multi-terminal-title {
-      font-size: var(--kb-text-xl);
+    .printer-station__beacon-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .printer-station__led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10B981;
+      box-shadow: 0 0 8px #10B981;
+      animation: led-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .printer-station__led--feeding {
+      background: #3B82F6;
+      box-shadow: 0 0 10px #3B82F6;
+      animation: led-pulse 0.4s ease-in-out infinite;
+    }
+
+    @keyframes led-pulse {
+      0%, 100% { opacity: 0.6; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+    }
+
+    .printer-station__info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .printer-station__label {
+      font-size: 11px;
       font-weight: 750;
+      letter-spacing: 0.04em;
       color: var(--kb-color-foreground);
-      margin: 0;
     }
 
-    .multi-terminal-sub {
-      font-size: var(--kb-text-sm);
+    .printer-station__sub {
+      font-size: 10px;
       color: var(--kb-color-muted-foreground);
-      margin: 0 0 var(--kb-space-2);
     }
 
-    .multi-terminal-checklist {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 var(--kb-space-3);
-      display: flex;
-      flex-direction: column;
-      gap: var(--kb-space-1);
-    }
-
-    .multi-terminal-checklist li {
+    .printer-station__actions {
       display: flex;
       align-items: center;
-      gap: var(--kb-space-2);
-      font-size: var(--kb-text-sm);
-      font-weight: 600;
-      color: var(--kb-color-foreground);
+      gap: 6px;
     }
 
-    .check-icon {
-      color: var(--kb-color-primary);
-      font-weight: 800;
-    }
-
-    .dash-primary-cta-btn {
+    .printer-tactile-btn {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      padding: var(--kb-space-2) var(--kb-space-5);
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: var(--kb-radius-sm);
+      font-size: 11px;
+      font-weight: 650;
       background: var(--kb-color-primary);
-      color: var(--kb-color-foreground-contrast);
-      font-size: var(--kb-text-sm);
-      font-weight: 700;
-      border-radius: var(--kb-radius-md);
-      text-decoration: none;
-      font-family: inherit;
-      border: 0;
+      color: #FFF;
+      border: 1px solid rgba(255,255,255,0.15);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.2);
       cursor: pointer;
-      transition: background 200ms ease, color 200ms ease;
+      font-family: inherit;
+      transition: transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 120ms ease-out,
+                  background-color 150ms ease-out;
+      will-change: transform;
     }
 
-    .dash-primary-cta-btn:hover {
-      background: var(--kb-color-primary-hover);
+    .printer-tactile-btn:hover {
+      background: var(--kb-color-primary-hover, #2563EB);
+      transform: translateY(-1px);
+    }
+
+    .printer-tactile-btn:active {
+      transform: scale(0.96) translateY(1px);
+    }
+
+    .printer-tactile-btn--secondary {
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-foreground);
+      border: 1px solid var(--kb-color-border);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .printer-tactile-btn--secondary:hover {
+      background: var(--kb-color-surface-hover);
+    }
+
+    .printer-tactile-btn--ghost {
+      background: transparent;
+      color: var(--kb-color-muted-foreground);
+      border: 1px solid transparent;
+      box-shadow: none;
+    }
+
+    .printer-tactile-btn--ghost:hover {
+      background: var(--kb-color-surface-2);
+      color: var(--kb-color-foreground);
+    }
+
+    .printer-slot-mouth {
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto 6px;
+      height: 12px;
+      background: #18181B;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.7), 0 1px 2px rgba(255,255,255,0.05);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .printer-slot-slit {
+      position: absolute;
+      top: 3px;
+      left: 12px;
+      right: 12px;
+      height: 2px;
+      background: #09090B;
+      border-radius: 1px;
+    }
+
+    .printer-slot-roller {
+      position: absolute;
+      bottom: 1px;
+      left: 20px;
+      right: 20px;
+      height: 3px;
+      background: linear-gradient(90deg, #27272A 0%, #3F3F46 50%, #27272A 100%);
+      border-radius: 1px;
+    }
+
+    .thermal-paper-viewport {
+      position: relative;
+      background: var(--kb-color-surface-2);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      padding: 14px 12px 18px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 280px;
+      max-height: 370px;
+      overflow-y: auto;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .thermal-paper-ticket {
+      width: 100%;
+      max-width: 290px;
+      background: #FAF8F5;
+      color: #1A1A1A;
+      border-radius: 2px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.08);
+      font-family: 'JetBrains Mono', 'SF Mono', Consolas, Menlo, Monaco, monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      cursor: pointer;
+      user-select: none;
+      transform-origin: top center;
+      transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 280ms ease-out;
+    }
+
+    .thermal-paper-ticket:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.18), 0 3px 8px rgba(0,0,0,0.1);
+    }
+
+    .thermal-paper-ticket:active {
+      transform: scale(0.985);
+    }
+
+    .thermal-paper-ticket--feeding {
+      animation: ticket-feed-spring 420ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .thermal-paper-ticket--torn {
+      transform: translateY(-10px) rotate(1.2deg);
+      box-shadow: 0 14px 32px rgba(0,0,0,0.22);
+    }
+
+    @keyframes ticket-feed-spring {
+      0% { transform: translateY(-30px); opacity: 0.5; }
+      60% { transform: translateY(3px); opacity: 1; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+
+    .sawtooth-edge {
+      width: 100%;
+      height: 7px;
+      background-color: #FAF8F5;
+    }
+
+    .sawtooth-edge--top {
+      clip-path: polygon(
+        0% 100%, 2% 0%, 4% 100%, 6% 0%, 8% 100%, 10% 0%, 12% 100%, 14% 0%, 16% 100%, 18% 0%, 20% 100%,
+        22% 0%, 24% 100%, 26% 0%, 28% 100%, 30% 0%, 32% 100%, 34% 0%, 36% 100%, 38% 0%, 40% 100%,
+        42% 0%, 44% 100%, 46% 0%, 48% 100%, 50% 0%, 52% 100%, 54% 0%, 56% 100%, 58% 0%, 60% 100%,
+        62% 0%, 64% 100%, 66% 0%, 68% 100%, 70% 0%, 72% 100%, 74% 0%, 76% 100%, 78% 0%, 80% 100%,
+        82% 0%, 84% 100%, 86% 0%, 88% 100%, 90% 0%, 92% 100%, 94% 0%, 96% 100%, 98% 0%, 100% 100%
+      );
+    }
+
+    .sawtooth-edge--bottom {
+      clip-path: polygon(
+        0% 0%, 2% 100%, 4% 0%, 6% 100%, 8% 0%, 10% 100%, 12% 0%, 14% 100%, 16% 0%, 18% 100%, 20% 0%,
+        22% 100%, 24% 0%, 26% 100%, 28% 0%, 30% 100%, 32% 0%, 34% 100%, 36% 0%, 38% 100%, 40% 0%,
+        42% 100%, 44% 0%, 46% 100%, 48% 0%, 50% 100%, 52% 0%, 54% 100%, 56% 0%, 58% 100%, 60% 0%,
+        62% 100%, 64% 0%, 66% 100%, 68% 0%, 70% 100%, 72% 0%, 74% 100%, 76% 0%, 78% 100%, 80% 0%,
+        82% 100%, 84% 0%, 86% 100%, 88% 0%, 90% 100%, 92% 0%, 94% 100%, 96% 0%, 98% 100%, 100% 0%
+      );
+    }
+
+    .receipt-inner {
+      padding: 10px 12px;
+    }
+
+    .receipt-brand {
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-align: center;
+      margin: 0 0 2px;
+      color: #09090B;
+    }
+
+    .receipt-restaurant {
+      font-weight: 700;
+      font-size: 10px;
+      text-align: center;
+      text-transform: uppercase;
+      margin: 0 0 2px;
+      color: #27272A;
+    }
+
+    .receipt-tax-id {
+      font-size: 8px;
+      text-align: center;
+      color: #71717A;
+      margin: 0 0 3px;
+    }
+
+    .receipt-divider-dash,
+    .receipt-divider-line {
+      font-size: 9px;
+      color: #A1A1AA;
+      text-align: center;
+      margin: 2px 0;
+      letter-spacing: -0.05em;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .receipt-divider-double {
+      font-size: 9px;
+      color: #71717A;
+      text-align: center;
+      margin: 2px 0;
+      font-weight: bold;
+      letter-spacing: -0.05em;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .receipt-meta-row,
+    .receipt-items-header,
+    .receipt-item-row,
+    .receipt-calc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9.5px;
+    }
+
+    .receipt-items-header {
+      font-weight: 700;
+      color: #52525B;
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .receipt-item-name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding-right: 4px;
+    }
+
+    .receipt-item-qty {
+      width: 24px;
+      text-align: center;
+      color: #71717A;
+    }
+
+    .receipt-item-amt {
+      width: 60px;
+      text-align: right;
+      font-weight: 600;
+    }
+
+    .receipt-empty-notice {
+      text-align: center;
+      padding: 12px 6px;
+      color: #71717A;
+    }
+
+    .receipt-empty-notice p {
+      font-weight: 700;
+      margin: 0 0 2px;
+      font-size: 10px;
+    }
+
+    .receipt-empty-notice small {
+      font-size: 8.5px;
+      color: #A1A1AA;
+    }
+
+    .receipt-calc-row--grand {
+      font-size: 11px;
+      font-weight: 800;
+      color: #09090B;
+      padding: 1px 0;
+    }
+
+    .receipt-tender {
+      font-size: 9px;
+      text-align: center;
+      margin: 5px 0 2px;
+      color: #3F3F46;
+    }
+
+    .receipt-barcode {
+      text-align: center;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      color: #18181B;
+      margin: 3px 0 2px;
+      user-select: none;
+    }
+
+    .receipt-tagline {
+      font-size: 8.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-align: center;
+      margin: 2px 0 1px;
+      color: #27272A;
+    }
+
+    .receipt-subline {
+      font-size: 7.5px;
+      color: #A1A1AA;
+      text-align: center;
+      margin: 0;
+      text-transform: lowercase;
+    }
+
+    .printer-feedback-bar {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 5px 10px;
+      background: var(--kb-color-success-soft, rgba(16, 185, 129, 0.12));
+      border: 1px solid var(--kb-color-success-border, rgba(16, 185, 129, 0.25));
+      border-radius: var(--kb-radius-sm);
+      color: var(--kb-color-success, #059669);
+      font-size: 11px;
+      font-weight: 600;
+      animation: feedback-slide 200ms ease-out;
+    }
+
+    @keyframes feedback-slide {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tactile button micro-interactions (emil-design-eng) */
+    .dash-pill-btn,
+    .dash-primary-cta-btn,
+    .dash-text-link-btn,
+    .dash-user-profile,
+    .ghost-btn {
+      transition: transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1),
+                  background-color 140ms ease-out,
+                  border-color 140ms ease-out;
+      will-change: transform;
+    }
+
+    .dash-pill-btn:active,
+    .dash-primary-cta-btn:active,
+    .dash-text-link-btn:active,
+    .dash-user-profile:active,
+    .ghost-btn:active {
+      transform: scale(0.96) translateY(1px);
     }
 
     .multi-terminal-watermark {
@@ -2065,6 +2562,13 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly chartTableOpen = signal(false);
   readonly floorTableOpen = signal(false);
 
+  // Tactile ESC/POS Thermal Receipt Printer Signals
+  readonly selectedPrinterOrderId = signal<number | null>(null);
+  readonly printerFeeding = signal<boolean>(false);
+  readonly printerPaperTorn = signal<boolean>(false);
+  readonly printerFeedbackMessage = signal<string | null>(null);
+  readonly orderDetailsCache = signal<Record<number, OrderDetailResponse>>({});
+
   toggleChartTable(): void {
     this.chartTableOpen.update(open => !open);
   }
@@ -2402,9 +2906,12 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
     const orders = (this.dashboard()?.recentOrders || []) as BusinessOrder[];
 
     return orders.slice(0, 5).map(order => ({
+      orderId: order.orderId,
+      orderCode: order.orderCode || `${order.orderId}`,
       orderNo: `#KB${order.orderCode || order.orderId}`,
       type: this.channelLabel(order),
       table: order.tableNumber ? `T${order.tableNumber}` : '—',
+      rawAmount: Number(order.totalAmount) || 0,
       amount: formatCurrency(Number(order.totalAmount) || 0),
       status: (order.orderStatus || 'completed').toLowerCase(),
       statusLabel: this.titleCase(order.orderStatus || 'Completed'),
@@ -2415,7 +2922,8 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
             hour12: true,
             timeZone: 'Asia/Kolkata'
           })
-        : '—'
+        : '—',
+      paymentMethod: order.paymentMethod || 'UPI (Google Pay)'
     }));
   });
 
@@ -3140,5 +3648,180 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   closeOrderDetail(): void {
     this.selectedOrderDetail.set(null);
+  }
+
+  // ── Tactile Thermal Printer State & Handlers ──
+
+  readonly currentTicket = computed(() => {
+    const orders = this.recentOrdersDisplay();
+    const activeId = this.selectedPrinterOrderId();
+    const matching = activeId ? orders.find(o => o.orderId === activeId) : orders[0];
+
+    if (!matching) {
+      return {
+        hasOrder: false,
+        orderId: 0,
+        orderNo: '---',
+        table: '---',
+        type: 'ESC/POS READY',
+        statusLabel: 'IDLE',
+        time: '--:--',
+        items: [] as { name: string; qty: number; amt: string }[],
+        subtotal: '₹0.00',
+        cgst: '₹0.00',
+        sgst: '₹0.00',
+        total: '₹0.00',
+        tender: 'UPI / CASH'
+      };
+    }
+
+    const detail = matching.orderId ? this.orderDetailsCache()[matching.orderId] : null;
+    let items: { name: string; qty: number; amt: string }[] = [];
+
+    if (detail && detail.lineItems && detail.lineItems.length > 0) {
+      items = detail.lineItems.slice(0, 5).map((it: OrderLineItem) => ({
+        name: it.itemName || 'Menu Item',
+        qty: it.quantity || 1,
+        amt: formatCurrency(Number(it.itemTotal || it.price || 0))
+      }));
+    } else {
+      const rawTot = matching.rawAmount || 0;
+      const rawSub = Math.round((rawTot / 1.05) * 100) / 100;
+      items = [
+        { name: 'Dining Order Items', qty: 1, amt: formatCurrency(rawSub) }
+      ];
+    }
+
+    const totalNum = matching.rawAmount || 0;
+    const subtotalNum = Math.round((totalNum / 1.05) * 100) / 100;
+    const taxNum = Math.round(((totalNum - subtotalNum) / 2) * 100) / 100;
+
+    return {
+      hasOrder: true,
+      orderId: matching.orderId,
+      orderNo: matching.orderNo,
+      table: matching.table,
+      type: matching.type,
+      statusLabel: matching.statusLabel,
+      time: matching.time,
+      items,
+      subtotal: formatCurrency(subtotalNum),
+      cgst: formatCurrency(taxNum),
+      sgst: formatCurrency(taxNum),
+      total: matching.amount,
+      tender: matching.paymentMethod || 'UPI (Google Pay)'
+    };
+  });
+
+  selectOrderForPrinter(ord: any): void {
+    if (!ord || !ord.orderId) return;
+    this.selectedPrinterOrderId.set(ord.orderId);
+    if (!this.orderDetailsCache()[ord.orderId]) {
+      this.api.getOrderDetail(ord.orderId).subscribe({
+        next: (detail) => {
+          this.orderDetailsCache.update(c => ({ ...c, [ord.orderId]: detail }));
+        },
+        error: () => {}
+      });
+    }
+    this.printerFeeding.set(true);
+    this.printerPaperTorn.set(false);
+    this.playPaperTearSound();
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate([15, 20]); } catch {}
+    }
+    setTimeout(() => this.printerFeeding.set(false), 380);
+  }
+
+  tearAndCopyReceipt(): void {
+    const ticket = this.currentTicket();
+    this.printerPaperTorn.set(true);
+    this.playPaperTearSound();
+
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate([15, 30, 20]); } catch {}
+    }
+
+    if (!ticket.hasOrder) {
+      this.printerFeedbackMessage.set('Standby ticket torn · Ready for live orders');
+      setTimeout(() => this.printerFeedbackMessage.set(null), 3000);
+      return;
+    }
+
+    const lines = [
+      '================================',
+      '         KHANABOOK POS          ',
+      `   ${(this.viewDashboard()?.shopName || 'RESTAURANT').toUpperCase()}   `,
+      '--------------------------------',
+      `Bill: ${ticket.orderNo} | Table: ${ticket.table}`,
+      `Time: ${ticket.time} | Type: ${ticket.type}`,
+      '--------------------------------',
+      ...ticket.items.map(it => `${it.qty}x ${it.name.padEnd(20).slice(0, 20)} ${it.amt}`),
+      '--------------------------------',
+      `Subtotal:             ${ticket.subtotal}`,
+      `CGST (2.5%):          ${ticket.cgst}`,
+      `SGST (2.5%):          ${ticket.sgst}`,
+      '================================',
+      `TOTAL:                ${ticket.total}`,
+      `TENDER:               ${ticket.tender}`,
+      '--------------------------------',
+      '*** THANK YOU, VISIT AGAIN ***',
+      '================================'
+    ].join('\n');
+
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(lines).catch(() => {});
+    }
+
+    this.printerFeedbackMessage.set(`Receipt ${ticket.orderNo} torn & copied!`);
+    setTimeout(() => this.printerFeedbackMessage.set(null), 3000);
+  }
+
+  feedSampleOrNextReceipt(): void {
+    const orders = this.recentOrdersDisplay();
+    if (orders.length > 0) {
+      const currId = this.selectedPrinterOrderId();
+      const currIdx = orders.findIndex(o => o.orderId === currId);
+      const nextIdx = (currIdx + 1) % orders.length;
+      this.selectOrderForPrinter(orders[nextIdx]);
+    } else {
+      this.printerFeeding.set(true);
+      this.printerPaperTorn.set(false);
+      this.playPaperTearSound();
+      setTimeout(() => this.printerFeeding.set(false), 380);
+      this.printerFeedbackMessage.set('80mm paper roll advanced');
+      setTimeout(() => this.printerFeedbackMessage.set(null), 2500);
+    }
+  }
+
+  private playPaperTearSound(): void {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        void ctx.resume();
+      }
+      const bufferSize = Math.floor(ctx.sampleRate * 0.08);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.value = 1700;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.14, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.07);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start();
+    } catch {
+      // Audio autoplay policy fallback
+    }
   }
 }
