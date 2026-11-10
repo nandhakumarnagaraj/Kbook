@@ -339,14 +339,6 @@ function formatInr(val: number | null | undefined): string {
                       </dd>
                     </div>
                     @if (selectedDetail(); as det) {
-                      <div><dt>Subscription Plan</dt><dd><strong>{{ det.subscriptionPlan || 'PRO (Complimentary)' }}</strong></dd></div>
-                      <div><dt>Subscription Status</dt><dd><span class="status-chip status-chip--active">{{ det.subscriptionStatus || 'ACTIVE' }}</span></dd></div>
-                      @if (det.maxTerminals) {
-                        <div><dt>Max Terminals</dt><dd>{{ det.maxTerminals }} device license(s)</dd></div>
-                      }
-                      @if (det.subscriptionPeriodEnd) {
-                        <div><dt>Renewal Date</dt><dd>{{ formatTimestamp(det.subscriptionPeriodEnd) }}</dd></div>
-                      }
                       <div>
                         <dt>GST Billing</dt>
                         <dd>
