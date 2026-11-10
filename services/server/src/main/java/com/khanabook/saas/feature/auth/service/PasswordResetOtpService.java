@@ -277,7 +277,47 @@ private void sendOtp(String challengeKey, String phoneNumber, String otp) {
 	 */
 	private void sendTemplateMessage(String phoneNumber, String templateName, String param, String label) {
 		String formattedPhoneNumber = formatWhatsappPhoneNumber(phoneNumber);
+		String lang = resolveLanguageCode(templateName);
 
+		try {
+			HttpResponse<String> response = postTemplateMessage(formattedPhoneNumber, templateName, param, lang);
+			// Auto-fallback if Meta rejects language (e.g. en vs en_US)
+			if (response.statusCode() >= 400 && response.body() != null && response.body().contains("does not exist in")) {
+				String altLang = "en".equals(lang) ? "en_US" : "en";
+				log.warn("WhatsApp template={} does not exist in {}; retrying with altLang={}", templateName, lang, altLang);
+				response = postTemplateMessage(formattedPhoneNumber, templateName, param, altLang);
+			}
+
+			if (response.statusCode() >= 300) {
+				log.error(
+						"WhatsApp send failed for type={} phone={} formattedPhone={} status={} body={}",
+						label,
+						phoneNumber,
+						formattedPhoneNumber,
+						response.statusCode(),
+						response.body());
+				throw new IllegalStateException("WhatsApp send failed with status " + response.statusCode());
+			}
+			log.info("WhatsApp template sent for type={} phone={} formattedPhone={} template={}",
+					label, phoneNumber, formattedPhoneNumber, templateName);
+		} catch (IllegalStateException e) {
+			throw e;
+		} catch (Exception e) {
+			log.error("Failed to send WhatsApp message for type={} phone={} formattedPhone={}",
+					label, phoneNumber, formattedPhoneNumber, e);
+			throw new IllegalStateException("Failed to send message. Please try again.", e);
+		}
+	}
+
+	private String resolveLanguageCode(String templateName) {
+		if (templateName != null && templateName.toLowerCase().contains("verify_code_password")) {
+			return "en_US";
+		}
+		return "en";
+	}
+
+	private HttpResponse<String> postTemplateMessage(String formattedPhoneNumber, String templateName, String param, String lang)
+			throws Exception {
 		String body = """
 					{
 					  "messaging_product": "whatsapp",
@@ -285,7 +325,7 @@ private void sendOtp(String challengeKey, String phoneNumber, String otp) {
 					  "type": "template",
 					  "template": {
 					    "name": "%s",
-					    "language": { "code": "en" },
+					    "language": { "code": "%s" },
 					    "components": [
 				      {
 				        "type": "body",
@@ -304,7 +344,7 @@ private void sendOtp(String challengeKey, String phoneNumber, String otp) {
 				    ]
 				  }
 				}
-				""".formatted(escapeJson(formattedPhoneNumber), escapeJson(templateName), escapeJson(param), escapeJson(param));
+				""".formatted(escapeJson(formattedPhoneNumber), escapeJson(templateName), escapeJson(lang), escapeJson(param), escapeJson(param));
 
 		HttpRequest request = HttpRequest.newBuilder()
 				.uri(URI.create("https://graph.facebook.com/v17.0/" + phoneNumberId + "/messages"))
@@ -314,26 +354,7 @@ private void sendOtp(String challengeKey, String phoneNumber, String otp) {
 				.POST(HttpRequest.BodyPublishers.ofString(body))
 				.build();
 
-		try {
-			HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-			if (response.statusCode() >= 300) {
-				log.error(
-						"WhatsApp send failed for type={} phone={} formattedPhone={} status={}",
-						label,
-						phoneNumber,
-						formattedPhoneNumber,
-						response.statusCode());
-				throw new IllegalStateException("WhatsApp send failed with status " + response.statusCode());
-			}
-			log.info("WhatsApp template sent for type={} phone={} formattedPhone={} template={}",
-					label, phoneNumber, formattedPhoneNumber, templateName);
-		} catch (IllegalStateException e) {
-			throw e;
-		} catch (Exception e) {
-			log.error("Failed to send WhatsApp message for type={} phone={} formattedPhone={}",
-					label, phoneNumber, formattedPhoneNumber, e);
-			throw new IllegalStateException("Failed to send message. Please try again.", e);
-		}
+		return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 	}
 
 	private String formatWhatsappPhoneNumber(String phoneNumber) {
