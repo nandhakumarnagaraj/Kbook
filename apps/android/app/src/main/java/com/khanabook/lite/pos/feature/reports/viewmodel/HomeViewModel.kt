@@ -317,12 +317,6 @@ class HomeViewModel @Inject constructor(
     }
 
     fun updateOrderPaymentFlowMode(mode: OrderPaymentFlowMode) {
-        if (!sessionManager.canWriteConfig()) {
-            viewModelScope.launch {
-                _message.emit(UiMessage("Only the owner can change billing mode (Pay Before/After Food).", ToastKind.Warning))
-            }
-            return
-        }
         viewModelScope.launch(Dispatchers.IO) {
             val current = restaurantRepository.getProfile()
             if (current == null) {

@@ -523,9 +523,8 @@ fun ShopConfigView(
             Spacer(modifier = Modifier.height(spacing.medium))
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
-                enabled = !readOnly && profile != null,
+                enabled = profile != null,
                 onModeSelected = { mode ->
-                    if (readOnly) return@RestaurantPaymentFlowSelector
                     if (mode == selectedPaymentFlowMode) return@RestaurantPaymentFlowSelector
                     pendingPaymentFlowMode = mode
                     if (isPinEnabled) {

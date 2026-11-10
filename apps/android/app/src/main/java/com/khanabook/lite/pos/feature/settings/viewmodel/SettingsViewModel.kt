@@ -1375,10 +1375,6 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateOrderPaymentFlowMode(mode: OrderPaymentFlowMode) {
-        if (!sessionManager.canWriteConfig()) {
-            _saveProfileError.value = "Only the owner can change billing mode (Pay Before/After Food)."
-            return
-        }
         viewModelScope.launch {
             val current = restaurantRepository.getProfile()
             current?.copy(orderPaymentFlowMode = mode.dbValue)?.let {

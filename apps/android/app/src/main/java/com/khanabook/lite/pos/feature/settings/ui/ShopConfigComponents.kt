@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -69,20 +69,18 @@ internal fun RestaurantPaymentFlowSelector(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(spacing.small)
         ) {
-            Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+            Icon(Icons.Default.Settings, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (enabled) "Billing Mode" else "Billing Mode (Owner Only)",
-                    color = if (enabled) PrimaryGold else TextGold.copy(alpha = 0.8f),
+                    text = "Billing Mode",
+                    color = PrimaryGold,
                     style = MaterialTheme.typography.titleSmall
                 )
-                if (!enabled) {
-                    Text(
-                        text = "Locked for staff • Managed by owner",
-                        color = TextLight.copy(alpha = 0.7f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+                Text(
+                    text = "Switch between Counter Billing and Dine-In Table Service",
+                    color = TextLight.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
         PaymentFlowToggleSwitch(
@@ -111,9 +109,7 @@ internal fun PaymentFlowToggleSwitch(
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isSelected) PrimaryGold else DarkBrown1,
-                    contentColor = if (isSelected) DarkBrown1 else TextLight,
-                    disabledContainerColor = if (isSelected) PrimaryGold.copy(alpha = 0.45f) else DarkBrown1.copy(alpha = 0.45f),
-                    disabledContentColor = if (isSelected) DarkBrown1.copy(alpha = 0.7f) else TextLight.copy(alpha = 0.35f)
+                    contentColor = if (isSelected) DarkBrown1 else TextLight
                 ),
                 enabled = enabled
             ) {
