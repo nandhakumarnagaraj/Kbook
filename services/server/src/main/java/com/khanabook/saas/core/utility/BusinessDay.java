@@ -44,6 +44,9 @@ public final class BusinessDay {
         }
     }
 
+    /** Default grace buffer (in minutes) for table settlement, bill printing, and drawer reconciliation. */
+    public static final int SETTLEMENT_BUFFER_MINUTES = 60;
+
     public static boolean isActive(LocalTime cutoff, Long effectiveFromMillis) {
         return effectiveFromMillis != null && !LocalTime.MIDNIGHT.equals(cutoff);
     }
@@ -52,10 +55,11 @@ public final class BusinessDay {
      * The boundary a shop rolls its order numbering on when no cutoff is activated.
      *
      * <p>A shop still trading at 01:00 has no meaningful day change at midnight: an
-     * 18:00 to 02:10 service must keep one numbering series until it closes. So the closing
-     * time IS the boundary when it falls on the next calendar day (closing earlier than
-     * opening). A daytime shop (08:10 to 14:20) does not cross midnight, so it keeps the
-     * calendar day.
+     * 18:00 to 02:10 service must keep one numbering series until it closes and settles.
+     * Table settlement, final bill printing, and cashier reconciliation take time past closing,
+     * so an automatic 60-minute settlement buffer is appended to closing time when the service
+     * crosses midnight (closing earlier than opening).
+     * A daytime shop (08:10 to 14:20) does not cross midnight, so it keeps the calendar day.
      *
      * <p>Identical to the Android {@code BusinessDate.closingBoundary}. If the two differ,
      * {@code applyServerBusinessDate} rewrites pushed dates one day apart from the till.
@@ -64,7 +68,7 @@ public final class BusinessDay {
         if (opening == null || closing == null || LocalTime.MIDNIGHT.equals(closing)) {
             return LocalTime.MIDNIGHT;
         }
-        return closing.isBefore(opening) ? closing : LocalTime.MIDNIGHT;
+        return closing.isBefore(opening) ? closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES) : LocalTime.MIDNIGHT;
     }
 
     public static ZoneId zoneOf(String timezone) {

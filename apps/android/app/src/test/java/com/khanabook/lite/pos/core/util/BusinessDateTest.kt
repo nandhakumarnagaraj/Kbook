@@ -169,8 +169,11 @@ class BusinessDateTest {
         val p = profile(opening = "18:00", closing = "02:10")
         // 01:00 is still the previous night's service.
         assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 1, 0), p))
-        // The closing instant itself starts the next series.
-        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 2, 10), p))
+        // 02:10 is closing, but 60m settlement buffer (until 03:10) keeps table settlements on previous day.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 2, 10), p))
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 3, 9), p))
+        // The settlement boundary (03:10) starts the next series.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 3, 10), p))
         assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 23, 0), p))
     }
 
@@ -192,10 +195,11 @@ class BusinessDateTest {
     fun `overnight windows are the exact inverse of the closing boundary`() {
         val p = profile(opening = "18:00", closing = "02:10")
         val day = LocalDate.of(2026, 11, 10)
-        assertEquals(at(2026, 11, 10, 2, 10), BusinessDate.windowStart(day, p))
-        assertEquals(at(2026, 11, 11, 2, 10), BusinessDate.windowEnd(day, p))
-        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 2, 10), p))
-        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 2, 9), p))
+        // With 60m settlement buffer, boundary is 03:10
+        assertEquals(at(2026, 11, 10, 3, 10), BusinessDate.windowStart(day, p))
+        assertEquals(at(2026, 11, 11, 3, 10), BusinessDate.windowEnd(day, p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 3, 10), p))
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 3, 9), p))
     }
 
     @Test

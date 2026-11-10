@@ -35,6 +35,12 @@ object BusinessDate {
 
     const val DEFAULT_CUTOFF: String = "00:00"
 
+    /**
+     * Default grace buffer (in minutes) for table settlement, bill printing, and drawer
+     * reconciliation after an overnight service closing time.
+     */
+    const val SETTLEMENT_BUFFER_MINUTES: Long = 60
+
     /** `HH:mm` or `HH:mm:ss`; anything unparseable falls back to midnight (legacy). */
     fun parseCutoff(raw: String?): LocalTime {
         if (raw.isNullOrBlank()) return LocalTime.MIDNIGHT
@@ -50,8 +56,10 @@ object BusinessDate {
      * The boundary a shop rolls its order numbering on when no cutoff is activated.
      *
      * A shop still trading at 01:00 has no meaningful day change at midnight: a 18:00 to
-     * 02:10 service must keep one numbering series until it closes. So the closing time IS
-     * the boundary when it falls on the next calendar day (closing earlier than opening).
+     * 02:10 service must keep one numbering series until it closes and settles.
+     * Table settlement, final bill printing, and cashier reconciliation take time past closing,
+     * so an automatic 60-minute settlement buffer is appended to closing time when the service
+     * crosses midnight (closing earlier than opening).
      * A daytime shop (08:10 to 14:20) does not cross midnight, so it keeps the calendar day
      * and its reports keep natural dates.
      *
@@ -62,7 +70,7 @@ object BusinessDate {
         val opening = parseClock(openingTime) ?: return LocalTime.MIDNIGHT
         val closing = parseClock(closingTime) ?: return LocalTime.MIDNIGHT
         if (closing == LocalTime.MIDNIGHT) return LocalTime.MIDNIGHT
-        return if (closing < opening) closing else LocalTime.MIDNIGHT
+        return if (closing < opening) closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES) else LocalTime.MIDNIGHT
     }
 
     /** `HH:mm`/`HH:mm:ss` to [LocalTime], or null when absent or unparseable. */

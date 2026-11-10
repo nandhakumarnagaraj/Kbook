@@ -189,7 +189,7 @@ internal fun BusinessDayInfoCard(
     // midnight. If this drifts, the card tells the shopkeeper a lie.
     val rollover = when {
         cutoffActive -> cutoff
-        overnight -> closingTime?.trim()?.take(5)?.takeIf { it.isNotBlank() } ?: DEFAULT_CUTOFF
+        overnight -> com.khanabook.lite.pos.core.util.BusinessDate.closingBoundary(openingTime, closingTime).toString().take(5)
         else -> DEFAULT_CUTOFF
     }
     val rolloverLabel = formatClockTime(rollover)
@@ -223,7 +223,7 @@ internal fun BusinessDayInfoCard(
         )
         Text(
             text = when {
-                overnight -> "Follows your $closingLabel closing time, so a service that runs past midnight stays in one series."
+                overnight -> "Includes a 60-minute settlement buffer after your $closingLabel closing time, so late table payments and reconciliation stay in one series."
                 cutoffActive -> "Bills taken before $rolloverLabel belong to the previous business day."
                 else -> "No day cutoff is set, so the order number restarts at $rolloverLabel."
             },

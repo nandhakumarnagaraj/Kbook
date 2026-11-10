@@ -154,8 +154,13 @@ class BusinessDayTest {
         // 01:00 is still the previous night's service.
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 1, 0), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
-        // The closing instant itself starts the next series.
+        // 02:10 is closing, but 60m settlement buffer (until 03:10) keeps table settlements on previous day.
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 10), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 9), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // The settlement boundary (03:10) starts the next series.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 10), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 23, 0), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
@@ -189,13 +194,14 @@ class BusinessDayTest {
         LocalTime close = LocalTime.of(2, 10);
         LocalDate day = LocalDate.of(2026, 11, 10);
 
+        // With 60m settlement buffer, boundary is 03:10
         assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo(at(2026, 11, 10, 2, 10));
+                .isEqualTo(at(2026, 11, 10, 3, 10));
         assertThat(BusinessDay.windowEnd(day, IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo(at(2026, 11, 11, 2, 10));
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 10), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 11, 3, 10));
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 10), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 9), IST, LocalTime.MIDNIGHT, null, open, close))
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 9), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
     }
 
