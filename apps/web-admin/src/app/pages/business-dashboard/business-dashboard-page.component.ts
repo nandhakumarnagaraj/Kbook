@@ -171,30 +171,6 @@ function getTodayIsoDate(): string {
             (retry)="loadNotifications()">
           </app-notification-bell>
 
-          <!-- Theme Switcher Pill -->
-          <button
-            type="button"
-            class="dash-pill-btn dash-theme-switch-btn"
-            (click)="theme.toggle()"
-            [attr.aria-label]="theme.mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-            [attr.title]="theme.mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
-            <svg *ngIf="theme.mode() === 'dark'" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="5"/>
-              <line x1="12" y1="1" x2="12" y2="3"/>
-              <line x1="12" y1="21" x2="12" y2="23"/>
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-              <line x1="1" y1="12" x2="3" y2="12"/>
-              <line x1="21" y1="12" x2="23" y2="12"/>
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-            </svg>
-            <svg *ngIf="theme.mode() !== 'dark'" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-            <span class="dash-pill-btn__text">{{ theme.mode() === 'dark' ? 'Light' : 'Dark' }}</span>
-          </button>
-
           <!-- Admin Profile Avatar & Role -->
           <button type="button" class="dash-user-profile" (click)="navigateToStaff()" title="View profile & staff" aria-label="Open profile and staff">
             <span class="dash-user-avatar">
@@ -984,20 +960,32 @@ function getTodayIsoDate(): string {
       display: inline-flex;
       align-items: center;
       gap: var(--kb-space-2);
-      font-size: var(--kb-text-sm);
-      font-weight: 700;
-      letter-spacing: 0.1em;
+      font-size: var(--kb-text-2xs);
+      font-weight: 750;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--kb-color-muted-foreground);
+      color: var(--kb-color-success);
+      background: var(--kb-color-success-soft);
+      border: 1px solid var(--kb-color-success-border);
+      padding: var(--kb-space-1) var(--kb-space-2);
+      border-radius: var(--kb-radius-full);
+      width: fit-content;
     }
 
     .pulse-indicator {
       display: inline-block;
       flex: none;
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: var(--kb-radius-full);
       background: var(--kb-color-success);
+      box-shadow: 0 0 6px var(--kb-color-success);
+      animation: live-beacon-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes live-beacon-pulse {
+      0%, 100% { opacity: 0.6; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.2); }
     }
 
     .dash-title {
@@ -1071,19 +1059,22 @@ function getTodayIsoDate(): string {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: var(--kb-color-surface-2);
+      background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
       padding: var(--kb-space-1) var(--kb-space-2);
       border-radius: var(--kb-radius-full);
       font-size: var(--kb-text-sm);
       color: var(--kb-color-foreground);
       cursor: pointer;
-      transition: background 180ms ease, transform 180ms ease, border-color 180ms ease;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      transition: background 180ms ease, transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
     }
 
     .dash-pill-btn:hover:not(:disabled) {
-      background: var(--kb-color-border);
+      background: var(--kb-color-surface-2);
       border-color: var(--kb-color-border-strong);
+      box-shadow: 0 2px 4px rgba(15, 23, 42, 0.06);
+      transform: translateY(-1px);
     }
 
     .dash-pill-btn:active:not(:disabled) {
@@ -1220,12 +1211,14 @@ function getTodayIsoDate(): string {
       gap: var(--kb-space-4);
       position: relative;
       min-width: 0;
-      box-shadow: var(--shadow-xs);
-      transition: border-color 180ms ease, box-shadow 180ms ease;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 6px 16px -4px rgba(15, 23, 42, 0.03);
+      transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
     }
 
     .dash-card:hover {
       border-color: var(--kb-color-border-strong);
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 12px 28px -4px rgba(15, 23, 42, 0.04);
+      transform: translateY(-2px);
     }
 
     .dash-card__header {
@@ -1666,10 +1659,11 @@ function getTodayIsoDate(): string {
       grid-template-columns: 1.2fr 1.4fr 0.8fr 1.1fr 1.3fr 1fr;
       padding: var(--kb-space-2) var(--kb-space-3);
       background: var(--kb-color-surface-2);
-      border-bottom: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
       font-weight: 700;
       color: var(--kb-color-muted-foreground);
       align-items: center;
+      margin-bottom: var(--kb-space-1);
     }
 
     .recent-orders-body {

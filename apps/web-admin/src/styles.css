@@ -322,36 +322,6 @@
   --pos-status-comp-text:   var(--kb-color-success);
 }
 
-[data-theme="dark"] {
-  color-scheme: dark;
-  --kb-color-bg-app:            #0B0F17; /* Deep midnight obsidian canvas */
-  --kb-color-foreground:        #F1F5F9; /* Crisp high-contrast off-white ink */
-  --kb-color-foreground-2:      #CBD5E1; /* Secondary slate ink */
-  --kb-color-foreground-contrast: #FFFFFF;
-  --kb-color-surface:           #131B26; /* Dark slate card surface */
-  --kb-color-surface-2:         #1B2433; /* Slightly raised surface, table header, well */
-  --kb-color-surface-3:         #232F42; /* Modals, raised tooltips, popovers */
-  --kb-color-muted:             #1B2433;
-  --kb-color-muted-foreground:  #94A3B8; /* Muted secondary cool slate */
-  --kb-color-border:            #263347; /* Hairline slate border */
-  --kb-color-border-strong:     #3B4E6B; /* Strong control border */
-  --kb-color-input:             #131B26;
-  --kb-border-control:          #3B4E6B;
-  --kb-color-surface-hover:     #1E293B;
-
-  /* Status soft backgrounds in dark mode - calibrated translucent luminescence */
-  --kb-color-primary-soft:      rgba(255, 90, 10, 0.16);
-  --kb-color-success-soft:      rgba(34, 197, 94, 0.16);
-  --kb-color-warning-soft:      rgba(245, 158, 11, 0.16);
-  --kb-color-danger-soft:       rgba(239, 68, 68, 0.16);
-
-  --kb-gradient-cream:          linear-gradient(180deg, #131B26 0%, #1B2433 100%);
-  --kb-shadow-xs:               0 1px 2px rgba(0,0,0,0.35);
-  --kb-shadow-sm:               0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.35);
-  --kb-shadow-md:               0 4px 6px -1px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.35);
-  --kb-shadow-lg:               0 10px 15px -3px rgba(0,0,0,0.55), 0 4px 6px -4px rgba(0,0,0,0.45);
-}
-
 * { box-sizing: border-box; }
 
 body {
