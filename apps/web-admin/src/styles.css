@@ -147,6 +147,19 @@
   --kb-chart-5:                 #475569; /* Reference line */
   --kb-color-saffron:           var(--kb-accent-money);
   --kb-color-burnt:             #B91C1C;
+  /* Thermal Printer Hardware & Ticket Tokens */
+  --kb-printer-paper:           #FAF8F5; /* Warm off-white receipt paper */
+  --kb-printer-ink:             #1A1A1A; /* Deep thermal carbon ink */
+  --kb-printer-slot:            #18181B; /* Recessed printer slot housing */
+  --kb-printer-slit:            #09090B; /* Deep slit orifice */
+  --kb-printer-metal:           #27272A; /* Brushed metal rim */
+  --kb-printer-roller:          #3F3F46; /* Feeder roller */
+  --kb-printer-meta:            #71717A; /* Receipt metadata secondary text */
+  --kb-printer-rule:            #A1A1AA; /* Receipt dashed rules */
+  --kb-printer-header:          #52525B; /* Receipt table header */
+  --kb-printer-led-online:      #10B981; /* Emerald green operational beacon */
+  --kb-printer-led-feeding:     #3B82F6; /* Azure feeding beacon */
+  --kb-printer-torn-bg:         #059669; /* Toast banner background */
   /* Primary is the logo violet: white on #552AAF is 9.0:1, so a filled action
      can carry its own label (the old orange fill measured 3.1:1 with white). */
   --kb-color-primary:           #FF5A0A; /* Primary action orange */
@@ -163,6 +176,7 @@
      (#34D399, #FBBF24, #F87171) sit at 1.9-2.4:1 on white and would vanish. */
   --kb-color-success:           #166534; /* Positive/success (deep step, >=6:1 on its chip) */
   --kb-color-success-soft:      rgba(22, 101, 52, 0.10);
+  --kb-color-success-border:    rgba(22, 101, 52, 0.35);
   --kb-color-warning:           #9A3F08; /* Warning/preparing (deep step, >=5:1 on its chip) */
   --kb-color-warning-soft:      rgba(154, 63, 8, 0.10);
   --kb-color-danger:            #B91C1C; /* Cancelled/error (deep step, >=5:1 on its chip) */
@@ -306,6 +320,36 @@
   --pos-status-serv-text:   var(--kb-color-info);
   --pos-status-comp-bg:     var(--kb-color-success-soft);
   --pos-status-comp-text:   var(--kb-color-success);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --kb-color-bg-app:            #0B0F17; /* Deep midnight obsidian canvas */
+  --kb-color-foreground:        #F1F5F9; /* Crisp high-contrast off-white ink */
+  --kb-color-foreground-2:      #CBD5E1; /* Secondary slate ink */
+  --kb-color-foreground-contrast: #FFFFFF;
+  --kb-color-surface:           #131B26; /* Dark slate card surface */
+  --kb-color-surface-2:         #1B2433; /* Slightly raised surface, table header, well */
+  --kb-color-surface-3:         #232F42; /* Modals, raised tooltips, popovers */
+  --kb-color-muted:             #1B2433;
+  --kb-color-muted-foreground:  #94A3B8; /* Muted secondary cool slate */
+  --kb-color-border:            #263347; /* Hairline slate border */
+  --kb-color-border-strong:     #3B4E6B; /* Strong control border */
+  --kb-color-input:             #131B26;
+  --kb-border-control:          #3B4E6B;
+  --kb-color-surface-hover:     #1E293B;
+
+  /* Status soft backgrounds in dark mode - calibrated translucent luminescence */
+  --kb-color-primary-soft:      rgba(255, 90, 10, 0.16);
+  --kb-color-success-soft:      rgba(34, 197, 94, 0.16);
+  --kb-color-warning-soft:      rgba(245, 158, 11, 0.16);
+  --kb-color-danger-soft:       rgba(239, 68, 68, 0.16);
+
+  --kb-gradient-cream:          linear-gradient(180deg, #131B26 0%, #1B2433 100%);
+  --kb-shadow-xs:               0 1px 2px rgba(0,0,0,0.35);
+  --kb-shadow-sm:               0 1px 3px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.35);
+  --kb-shadow-md:               0 4px 6px -1px rgba(0,0,0,0.45), 0 2px 4px -2px rgba(0,0,0,0.35);
+  --kb-shadow-lg:               0 10px 15px -3px rgba(0,0,0,0.55), 0 4px 6px -4px rgba(0,0,0,0.45);
 }
 
 * { box-sizing: border-box; }

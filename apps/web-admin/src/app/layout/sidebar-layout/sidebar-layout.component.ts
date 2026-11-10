@@ -7,6 +7,7 @@ import { IconComponent } from '../../shared/icon.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { PresenceService } from '../../core/services/presence.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -52,6 +53,26 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
             <span class="topbar__context" aria-live="polite">{{ currentPageLabel() }}</span>
           </div>
         </div>
+        <button
+          type="button"
+          class="topbar-theme-btn"
+          (click)="theme.toggle()"
+          [attr.aria-label]="theme.mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+          <svg *ngIf="theme.mode() === 'dark'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg *ngIf="theme.mode() !== 'dark'" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
       </header>
 
       <!-- Mobile backdrop -->
@@ -151,6 +172,29 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
               <span class="user-role">{{ roleLabel() }}</span>
             </div>
           </div>
+
+          <button
+            class="theme-toggle-btn"
+            (click)="theme.toggle()"
+            type="button"
+            [attr.aria-label]="theme.mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            [attr.title]="theme.mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+            <svg *ngIf="theme.mode() === 'dark'" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg *ngIf="theme.mode() !== 'dark'" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <span class="theme-toggle-label">{{ theme.mode() === 'dark' ? 'Light mode' : 'Dark mode' }}</span>
+          </button>
 
           <button class="logout-btn" (click)="logout()" type="button" aria-label="Sign out">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -458,6 +502,35 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
       outline-offset: 2px;
     }
 
+    /* Theme switcher button in sidebar footer */
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--kb-space-2);
+      padding: var(--kb-space-2) var(--kb-space-3);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--pos-sidebar-ink);
+      border: 1px solid var(--pos-sidebar-border);
+      border-radius: var(--kb-radius-md);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: var(--kb-text-sm);
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+    }
+    .theme-toggle-btn:hover {
+      background: var(--pos-sidebar-hover);
+      color: var(--kb-color-foreground-contrast);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .theme-toggle-btn:active {
+      transform: scale(0.97);
+    }
+    .theme-toggle-btn:focus-visible {
+      outline: 2px solid var(--kb-color-foreground-contrast);
+      outline-offset: 2px;
+    }
+
     /* Content */
     .content-shell { min-width: 0; width: 100%; flex: 1; }
     .content-shell:focus { outline: none; }
@@ -467,6 +540,23 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
     .topbar--mobile { width: 100%; box-sizing: border-box; }
     .topbar__brand { display: flex; align-items: center; gap: var(--kb-space-3); min-width: 0; }
     .topbar__brand-copy { display: grid; min-width: 0; gap: 0.1rem; }
+    .topbar-theme-btn {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
+      cursor: pointer;
+      transition: background 160ms ease, transform 160ms ease;
+    }
+    .topbar-theme-btn:active {
+      transform: scale(0.95);
+    }
 
     .hamburger {
       display: inline-flex;
@@ -643,6 +733,14 @@ type BottomActionBarItem = { label: string; iconKey: string; route: string; badg
         border-radius: 10px;
       }
       .sidebar--collapsed .logout-btn span { display: none; }
+      .sidebar--collapsed .theme-toggle-btn {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        margin-inline: auto;
+        border-radius: var(--kb-radius-lg);
+      }
+      .sidebar--collapsed .theme-toggle-btn .theme-toggle-label { display: none; }
 
       /* Hover peek chip: anchored to the fixed coords measured off the link rect.
          It follows the app's one tooltip pattern (staff's .tooltip-text): a plain
@@ -776,6 +874,7 @@ export class SidebarLayoutComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private  readonly businessApi = inject(BusinessApiService);
   readonly presence = inject(PresenceService);
+  readonly theme = inject(ThemeService);
   @ViewChild('menuButton') private menuButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('sidebar') private sidebar?: ElementRef<HTMLElement>;
 

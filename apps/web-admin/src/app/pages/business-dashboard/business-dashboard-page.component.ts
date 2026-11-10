@@ -7,6 +7,7 @@ import { catchError, map, switchMap, startWith } from 'rxjs/operators';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+import { ThemeService } from '../../core/services/theme.service';
 import {
   OrderDetailResponse,
   OrderLineItem,
@@ -169,6 +170,30 @@ function getTodayIsoDate(): string {
             [markingAllRead]="markingAllNotificationsRead()"
             (retry)="loadNotifications()">
           </app-notification-bell>
+
+          <!-- Theme Switcher Pill -->
+          <button
+            type="button"
+            class="dash-pill-btn dash-theme-switch-btn"
+            (click)="theme.toggle()"
+            [attr.aria-label]="theme.mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+            [attr.title]="theme.mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'">
+            <svg *ngIf="theme.mode() === 'dark'" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <svg *ngIf="theme.mode() !== 'dark'" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <span class="dash-pill-btn__text">{{ theme.mode() === 'dark' ? 'Light' : 'Dark' }}</span>
+          </button>
 
           <!-- Admin Profile Avatar & Role -->
           <button type="button" class="dash-user-profile" (click)="navigateToStaff()" title="View profile & staff" aria-label="Open profile and staff">
@@ -1660,8 +1685,8 @@ function getTodayIsoDate(): string {
       align-items: center;
       cursor: pointer;
       position: relative;
-      transition: transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                  background-color 140ms ease-out;
+      transition: transform var(--kb-motion-fast) cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background-color var(--kb-motion-fast) ease-out;
       will-change: transform;
     }
 
@@ -1681,10 +1706,10 @@ function getTodayIsoDate(): string {
     }
 
     .printer-feed-hint {
-      margin-left: 6px;
-      font-size: 11px;
+      margin-left: var(--kb-space-2);
+      font-size: var(--kb-text-2xs);
       opacity: 0;
-      transition: opacity 120ms ease-out, transform 120ms ease-out;
+      transition: opacity var(--kb-motion-fast) ease-out, transform var(--kb-motion-fast) ease-out;
       display: inline-block;
     }
 
@@ -1695,12 +1720,12 @@ function getTodayIsoDate(): string {
 
     .status-pulse-dot {
       display: inline-block;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
+      width: var(--kb-space-1);
+      height: var(--kb-space-1);
+      border-radius: var(--kb-radius-full);
       background: currentColor;
       box-shadow: 0 0 5px currentColor;
-      margin-right: 4px;
+      margin-right: var(--kb-space-1);
       animation: status-beacon-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 
@@ -1804,21 +1829,21 @@ function getTodayIsoDate(): string {
     .printer-station__beacon-wrap {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--kb-space-2);
     }
 
     .printer-station__led {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10B981;
-      box-shadow: 0 0 8px #10B981;
+      width: var(--kb-space-2);
+      height: var(--kb-space-2);
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-printer-led-online);
+      box-shadow: 0 0 8px var(--kb-printer-led-online);
       animation: led-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 
     .printer-station__led--feeding {
-      background: #3B82F6;
-      box-shadow: 0 0 10px #3B82F6;
+      background: var(--kb-printer-led-feeding);
+      box-shadow: 0 0 10px var(--kb-printer-led-feeding);
       animation: led-pulse 0.4s ease-in-out infinite;
     }
 
@@ -1833,45 +1858,45 @@ function getTodayIsoDate(): string {
     }
 
     .printer-station__label {
-      font-size: 11px;
+      font-size: var(--kb-text-2xs);
       font-weight: 750;
       letter-spacing: 0.04em;
       color: var(--kb-color-foreground);
     }
 
     .printer-station__sub {
-      font-size: 10px;
+      font-size: var(--kb-text-2xs);
       color: var(--kb-color-muted-foreground);
     }
 
     .printer-station__actions {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: var(--kb-space-2);
     }
 
     .printer-tactile-btn {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
+      gap: var(--kb-space-1);
+      padding: var(--kb-space-1) var(--kb-space-2);
       border-radius: var(--kb-radius-sm);
-      font-size: 11px;
+      font-size: var(--kb-text-2xs);
       font-weight: 650;
       background: var(--kb-color-primary);
-      color: #FFF;
+      color: var(--kb-color-foreground-contrast);
       border: 1px solid rgba(255,255,255,0.15);
       box-shadow: 0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.2);
       cursor: pointer;
       font-family: inherit;
-      transition: transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                  box-shadow 120ms ease-out,
-                  background-color 150ms ease-out;
+      transition: transform var(--kb-motion-fast) cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow var(--kb-motion-fast) ease-out,
+                  background-color var(--kb-motion-fast) ease-out;
       will-change: transform;
     }
 
     .printer-tactile-btn:hover {
-      background: var(--kb-color-primary-hover, #2563EB);
+      background: var(--kb-color-primary-hover);
       transform: translateY(-1px);
     }
 
@@ -1905,10 +1930,10 @@ function getTodayIsoDate(): string {
     .printer-slot-mouth {
       width: 100%;
       max-width: 320px;
-      margin: 0 auto 6px;
+      margin: 0 auto var(--kb-space-2);
       height: 12px;
-      background: #18181B;
-      border-radius: 4px;
+      background: var(--kb-printer-slot);
+      border-radius: var(--kb-radius-sm);
       border: 1px solid rgba(255,255,255,0.08);
       box-shadow: inset 0 3px 6px rgba(0,0,0,0.7), 0 1px 2px rgba(255,255,255,0.05);
       position: relative;
@@ -1918,21 +1943,21 @@ function getTodayIsoDate(): string {
     .printer-slot-slit {
       position: absolute;
       top: 3px;
-      left: 12px;
-      right: 12px;
+      left: var(--kb-space-3);
+      right: var(--kb-space-3);
       height: 2px;
-      background: #09090B;
-      border-radius: 1px;
+      background: var(--kb-printer-slit);
+      border-radius: var(--kb-radius-sm);
     }
 
     .printer-slot-roller {
       position: absolute;
       bottom: 1px;
-      left: 20px;
-      right: 20px;
+      left: var(--kb-space-5);
+      right: var(--kb-space-5);
       height: 3px;
-      background: linear-gradient(90deg, #27272A 0%, #3F3F46 50%, #27272A 100%);
-      border-radius: 1px;
+      background: linear-gradient(90deg, var(--kb-printer-metal) 0%, var(--kb-printer-roller) 50%, var(--kb-printer-metal) 100%);
+      border-radius: var(--kb-radius-sm);
     }
 
     .thermal-paper-viewport {
@@ -1940,7 +1965,7 @@ function getTodayIsoDate(): string {
       background: var(--kb-color-surface-2);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-md);
-      padding: 14px 12px 18px;
+      padding: var(--kb-space-3);
       display: flex;
       justify-content: center;
       align-items: flex-start;
@@ -1953,12 +1978,12 @@ function getTodayIsoDate(): string {
     .thermal-paper-ticket {
       width: 100%;
       max-width: 290px;
-      background: #FAF8F5;
-      color: #1A1A1A;
-      border-radius: 2px;
+      background: var(--kb-printer-paper);
+      color: var(--kb-printer-ink);
+      border-radius: var(--kb-radius-sm);
       box-shadow: 0 8px 24px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.08);
       font-family: 'JetBrains Mono', 'SF Mono', Consolas, Menlo, Monaco, monospace;
-      font-size: 11px;
+      font-size: var(--kb-text-2xs);
       line-height: 1.45;
       cursor: pointer;
       user-select: none;
@@ -1993,7 +2018,7 @@ function getTodayIsoDate(): string {
     .sawtooth-edge {
       width: 100%;
       height: 7px;
-      background-color: #FAF8F5;
+      background-color: var(--kb-printer-paper);
     }
 
     .sawtooth-edge--top {
@@ -2017,50 +2042,50 @@ function getTodayIsoDate(): string {
     }
 
     .receipt-inner {
-      padding: 10px 12px;
+      padding: var(--kb-space-2) var(--kb-space-3);
     }
 
     .receipt-brand {
       font-weight: 800;
-      font-size: 11px;
+      font-size: var(--kb-text-2xs);
       letter-spacing: 0.08em;
       text-align: center;
-      margin: 0 0 2px;
-      color: #09090B;
+      margin: 0 0 var(--kb-space-1);
+      color: var(--kb-printer-slit);
     }
 
     .receipt-restaurant {
       font-weight: 700;
-      font-size: 10px;
+      font-size: var(--kb-text-2xs);
       text-align: center;
       text-transform: uppercase;
-      margin: 0 0 2px;
-      color: #27272A;
+      margin: 0 0 var(--kb-space-1);
+      color: var(--kb-printer-metal);
     }
 
     .receipt-tax-id {
-      font-size: 8px;
+      font-size: var(--kb-text-2xs);
       text-align: center;
-      color: #71717A;
-      margin: 0 0 3px;
+      color: var(--kb-printer-meta);
+      margin: 0 0 var(--kb-space-1);
     }
 
     .receipt-divider-dash,
     .receipt-divider-line {
-      font-size: 9px;
-      color: #A1A1AA;
+      font-size: var(--kb-text-2xs);
+      color: var(--kb-printer-rule);
       text-align: center;
-      margin: 2px 0;
+      margin: var(--kb-space-1) 0;
       letter-spacing: -0.05em;
       overflow: hidden;
       white-space: nowrap;
     }
 
     .receipt-divider-double {
-      font-size: 9px;
-      color: #71717A;
+      font-size: var(--kb-text-2xs);
+      color: var(--kb-printer-meta);
       text-align: center;
-      margin: 2px 0;
+      margin: var(--kb-space-1) 0;
       font-weight: bold;
       letter-spacing: -0.05em;
       overflow: hidden;
@@ -2074,13 +2099,13 @@ function getTodayIsoDate(): string {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 9.5px;
+      font-size: var(--kb-text-2xs);
     }
 
     .receipt-items-header {
       font-weight: 700;
-      color: #52525B;
-      font-size: 9px;
+      color: var(--kb-printer-header);
+      font-size: var(--kb-text-2xs);
       text-transform: uppercase;
     }
 
@@ -2089,13 +2114,13 @@ function getTodayIsoDate(): string {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      padding-right: 4px;
+      padding-right: var(--kb-space-1);
     }
 
     .receipt-item-qty {
       width: 24px;
       text-align: center;
-      color: #71717A;
+      color: var(--kb-printer-meta);
     }
 
     .receipt-item-amt {
@@ -2106,73 +2131,73 @@ function getTodayIsoDate(): string {
 
     .receipt-empty-notice {
       text-align: center;
-      padding: 12px 6px;
-      color: #71717A;
+      padding: var(--kb-space-3) var(--kb-space-2);
+      color: var(--kb-printer-meta);
     }
 
     .receipt-empty-notice p {
       font-weight: 700;
-      margin: 0 0 2px;
-      font-size: 10px;
+      margin: 0 0 var(--kb-space-1);
+      font-size: var(--kb-text-2xs);
     }
 
     .receipt-empty-notice small {
-      font-size: 8.5px;
-      color: #A1A1AA;
+      font-size: var(--kb-text-2xs);
+      color: var(--kb-printer-rule);
     }
 
     .receipt-calc-row--grand {
-      font-size: 11px;
+      font-size: var(--kb-text-2xs);
       font-weight: 800;
-      color: #09090B;
-      padding: 1px 0;
+      color: var(--kb-printer-slit);
+      padding: var(--kb-space-1) 0;
     }
 
     .receipt-tender {
-      font-size: 9px;
+      font-size: var(--kb-text-2xs);
       text-align: center;
-      margin: 5px 0 2px;
-      color: #3F3F46;
+      margin: var(--kb-space-1) 0;
+      color: var(--kb-printer-roller);
     }
 
     .receipt-barcode {
       text-align: center;
-      font-size: 13px;
+      font-size: var(--kb-text-sm);
       letter-spacing: 0.12em;
-      color: #18181B;
-      margin: 3px 0 2px;
+      color: var(--kb-printer-slot);
+      margin: var(--kb-space-1) 0;
       user-select: none;
     }
 
     .receipt-tagline {
-      font-size: 8.5px;
+      font-size: var(--kb-text-2xs);
       font-weight: 700;
       letter-spacing: 0.05em;
       text-align: center;
-      margin: 2px 0 1px;
-      color: #27272A;
+      margin: var(--kb-space-1) 0;
+      color: var(--kb-printer-metal);
     }
 
     .receipt-subline {
-      font-size: 7.5px;
-      color: #A1A1AA;
+      font-size: var(--kb-text-2xs);
+      color: var(--kb-printer-rule);
       text-align: center;
       margin: 0;
       text-transform: lowercase;
     }
 
     .printer-feedback-bar {
-      margin-top: 8px;
+      margin-top: var(--kb-space-2);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      padding: 5px 10px;
-      background: var(--kb-color-success-soft, rgba(16, 185, 129, 0.12));
-      border: 1px solid var(--kb-color-success-border, rgba(16, 185, 129, 0.25));
+      gap: var(--kb-space-1);
+      padding: var(--kb-space-1) var(--kb-space-2);
+      background: var(--kb-color-success-soft);
+      border: 1px solid var(--kb-color-success-border);
       border-radius: var(--kb-radius-sm);
-      color: var(--kb-color-success, #059669);
-      font-size: 11px;
+      color: var(--kb-color-success);
+      font-size: var(--kb-text-2xs);
       font-weight: 600;
       animation: feedback-slide 200ms ease-out;
     }
@@ -2188,10 +2213,10 @@ function getTodayIsoDate(): string {
     .dash-text-link-btn,
     .dash-user-profile,
     .ghost-btn {
-      transition: transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                  box-shadow 120ms cubic-bezier(0.16, 1, 0.3, 1),
-                  background-color 140ms ease-out,
-                  border-color 140ms ease-out;
+      transition: transform var(--kb-motion-fast) cubic-bezier(0.34, 1.56, 0.64, 1),
+                  box-shadow var(--kb-motion-fast) cubic-bezier(0.16, 1, 0.3, 1),
+                  background-color var(--kb-motion-fast) ease-out,
+                  border-color var(--kb-motion-fast) ease-out;
       will-change: transform;
     }
 
@@ -2508,6 +2533,7 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  readonly theme = inject(ThemeService);
 
   private readonly refresh$ = new Subject<void>();
 
