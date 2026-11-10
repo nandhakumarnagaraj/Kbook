@@ -217,6 +217,7 @@ interface SettingsCategory {
                         [attr.aria-invalid]="errors()['closingTime'] ? 'true' : null"
                         [attr.aria-describedby]="errors()['closingTime'] ? 'err-closingTime' : null" />
                       <p class="field-error" id="err-closingTime" role="alert" *ngIf="errors()['closingTime']">{{ errors()['closingTime'] }}</p>
+                      <p class="muted">Kitchen closing time. For overnight shifts (e.g. 6:00 PM – 4:00 AM), set "Day rolls at" below 30–60 minutes later (e.g. 04:30 AM or 05:00 AM) so late-night orders settle cleanly into today's ledger.</p>
                     </div>
 
                     <div class="field">

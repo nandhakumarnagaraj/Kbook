@@ -145,6 +145,18 @@ function getTodayIsoDate(): string {
             <ng-template #terminalsCountUnavailable><span class="dash-pill-btn__text">Terminals {{ terminalsStatus() }}</span></ng-template>
           </button>
 
+          <!-- Ambient Pre-Closing Alert (Within 30 mins of closing) -->
+          <button
+            type="button"
+            class="dash-pill-btn dash-pill-btn--closing"
+            *ngIf="closingAlert() as alert"
+            (click)="navigateToOrders()"
+            [title]="alert.tooltip"
+            aria-label="Restaurant closing soon notification">
+            <span class="closing-pulse-dot" aria-hidden="true"></span>
+            <span class="dash-pill-btn__text"><strong>{{ alert.label }}</strong></span>
+          </button>
+
           <!-- Low Stock Warning Pill -->
           <button
             type="button"
@@ -1090,6 +1102,21 @@ function getTodayIsoDate(): string {
       border-color: rgba(var(--kb-color-warning-rgb), 0.4);
       background: var(--kb-color-warning-soft);
       color: var(--kb-color-warning);
+    }
+
+    .dash-pill-btn--closing {
+      border-color: rgba(var(--kb-color-warning-rgb), 0.4);
+      background: var(--kb-color-warning-soft);
+      color: var(--kb-color-warning);
+    }
+
+    .closing-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--kb-radius-full);
+      background: var(--kb-color-warning);
+      box-shadow: 0 0 6px rgba(var(--kb-color-warning-rgb), 0.6);
+      animation: live-beacon-pulse 2s infinite ease-in-out;
     }
 
     .dash-pill-btn__text {
@@ -2573,6 +2600,27 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   readonly topDishesData = signal<ItemSalesRow[]>([]);
   readonly lowStockMaterials = signal<any[]>([]);
   readonly inventoryStatus = signal<'loading' | 'available' | 'unavailable'>('loading');
+  readonly restaurantProfile = signal<{ openingTime?: string; closingTime?: string } | null>(null);
+
+  readonly closingAlert = computed(() => {
+    const profile = this.restaurantProfile();
+    const cl = profile?.closingTime;
+    if (!cl) return null;
+    const now = new Date(this.nowTick());
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const parts = cl.split(':').map(Number);
+    if (parts.length < 2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+    const closingMinutes = parts[0] * 60 + parts[1];
+    let diff = closingMinutes - nowMinutes;
+    if (diff < 0) diff += 1440; // overnight wrap
+    if (diff > 0 && diff <= 30) {
+      return {
+        label: `Closing in ${diff}m`,
+        tooltip: `Restaurant closing time is ${cl.slice(0, 5)}. Settle pending orders before shift close.`
+      };
+    }
+    return null;
+  });
   readonly terminals = signal<BusinessTerminal[]>([]);
   readonly dailyClosingData = signal<any>(null);
   readonly notifications = signal<NotificationItem[]>([]);
@@ -3175,6 +3223,12 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   private loadSupplementaryData(): void {
     const today = getTodayIsoDate();
+
+    this.api.getProfile().subscribe({
+      next: p => this.restaurantProfile.set(p),
+      error: () => {}
+    });
+
     this.inventoryStatus.set('loading');
 
     this.hourlySalesStatus.set('loading');
