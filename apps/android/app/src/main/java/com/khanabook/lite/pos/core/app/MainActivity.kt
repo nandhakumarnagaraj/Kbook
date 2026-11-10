@@ -67,6 +67,7 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var databaseProvider: com.khanabook.lite.pos.core.database.DatabaseProvider
     @Inject lateinit var menuRepository: com.khanabook.lite.pos.feature.menu.data.MenuRepository
     @Inject lateinit var notificationRepository: com.khanabook.lite.pos.feature.notifications.data.NotificationRepository
+    @Inject lateinit var restaurantDao: com.khanabook.lite.pos.feature.auth.data.RestaurantDao
     private var lastBackPressTime: Long = 0
 
     // Native splash is released at the first frame; the branded start frame
@@ -222,6 +223,18 @@ class MainActivity : FragmentActivity() {
         // banner while the app is running.
         lifecycleScope.launch {
             notificationRepository.watchForNoticeBanners()
+        }
+
+        // Schedule offline pre-closing shift reminders whenever profile is available or updated
+        lifecycleScope.launch {
+            restaurantDao.getProfileFlow().collectLatest { profile ->
+                if (profile != null) {
+                    com.khanabook.lite.pos.feature.notifications.worker.ClosingShiftScheduler.scheduleNext(
+                        this@MainActivity,
+                        profile
+                    )
+                }
+            }
         }
 
         setContent {

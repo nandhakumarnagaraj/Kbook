@@ -47,6 +47,10 @@ class ActiveOrdersViewModel @Inject constructor(
     private val _rows = MutableStateFlow<List<ActiveOrderSummaryRow>>(emptyList())
     val rows: StateFlow<List<ActiveOrderSummaryRow>> = _rows.asStateFlow()
 
+    val profile: StateFlow<com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity?> =
+        restaurantRepository.getProfileFlow()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 

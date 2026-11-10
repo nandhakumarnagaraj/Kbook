@@ -131,6 +131,12 @@ fun NewBillScreen(
     val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
     val activeDraftBills by billingViewModel.activeDraftBillsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
+    val closingAlert = remember(profile?.closingTime, profile?.timezone) {
+        com.khanabook.lite.pos.feature.notifications.domain.ClosingAlertCalculator.calculate(
+            closingTime = profile?.closingTime,
+            timezone = profile?.timezone
+        )
+    }
     val orderPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
     val context = androidx.compose.ui.platform.LocalContext.current
     val menuFeedbackPreferences = rememberMenuFeedbackPreferences()
@@ -351,6 +357,13 @@ fun NewBillScreen(
                     )
 
                     BillStepper(currentStep = step, quickMode = quickMode)
+
+                    ClosingAlertBanner(
+                        alert = closingAlert,
+                        onClick = if (navController != null) {
+                            { navController.navigate(Routes.ACTIVE_ORDERS) }
+                        } else null
+                    )
                 }
             }
         }

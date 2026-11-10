@@ -25,6 +25,7 @@ object NotificationHelper {
     const val CHANNEL_SETTLEMENT = "khanabook_settlement_v2"
     const val CHANNEL_SYSTEM = "khanabook_system_v2"
     const val CHANNEL_INVENTORY = "khanabook_inventory_v2"
+    const val CHANNEL_SHIFT = "khanabook_shift_v2"
 
     private const val GROUP_PAYMENTS = "khanabook_group_payments"
     private const val GROUP_SYSTEM = "khanabook_group_system"
@@ -42,7 +43,8 @@ object NotificationHelper {
         settlementChannel(context),
         kycChannel(context),
         systemChannel(context),
-        inventoryChannel(context)
+        inventoryChannel(context),
+        shiftChannel(context)
     )
 
     /**
@@ -170,6 +172,28 @@ object NotificationHelper {
             enableVibration(true)
             setShowBadge(true)
             group = GROUP_OPERATIONS
+        }
+        return channel
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun shiftChannel(context: Context): NotificationChannel {
+        val channel = NotificationChannel(
+            CHANNEL_SHIFT,
+            "Shift & Closing Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Alerts when closing time approaches to settle tables and close shift"
+            enableVibration(true)
+            setShowBadge(true)
+            group = GROUP_OPERATIONS
+            setSound(
+                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
         }
         return channel
     }

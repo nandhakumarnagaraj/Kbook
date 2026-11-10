@@ -3,8 +3,10 @@
 package com.khanabook.lite.pos.feature.billing.ui
 
 import com.khanabook.lite.pos.core.theme.KhanaRadii
+import com.khanabook.lite.pos.core.designsystem.ClosingAlertBanner
 import com.khanabook.lite.pos.core.designsystem.KhanaBookInputField
 import com.khanabook.lite.pos.core.util.CurrencyUtils
+import com.khanabook.lite.pos.feature.notifications.domain.ClosingAlertCalculator
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -95,6 +97,13 @@ fun ActiveOrdersScreen(
 ) {
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val filteredRows by viewModel.filteredRows.collectAsStateWithLifecycle()
+    val profile by viewModel.profile.collectAsStateWithLifecycle()
+    val closingAlert = remember(profile?.closingTime, profile?.timezone) {
+        ClosingAlertCalculator.calculate(
+            closingTime = profile?.closingTime,
+            timezone = profile?.timezone
+        )
+    }
     var searchExpanded by remember { mutableStateOf(false) }
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -108,39 +117,43 @@ fun ActiveOrdersScreen(
     Scaffold(
         containerColor = DarkBrown1,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "Active Orders",
-                        color = PrimaryGold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = PrimaryGold
+            Column(modifier = Modifier.background(DarkBrown1)) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "Active Orders",
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleLarge
                         )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            searchExpanded = !searchExpanded
-                            if (!searchExpanded) viewModel.setSearchQuery("")
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = PrimaryGold
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
-                            contentDescription = if (searchExpanded) "Close search" else "Search orders",
-                            tint = PrimaryGold
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
-            )
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = {
+                                searchExpanded = !searchExpanded
+                                if (!searchExpanded) viewModel.setSearchQuery("")
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (searchExpanded) Icons.Default.Close else Icons.Default.Search,
+                                contentDescription = if (searchExpanded) "Close search" else "Search orders",
+                                tint = PrimaryGold
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = DarkBrown1)
+                )
+
+                ClosingAlertBanner(alert = closingAlert)
+            }
         }
     ) { paddingValues ->
         Box(

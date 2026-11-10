@@ -71,7 +71,18 @@ internal fun RestaurantPaymentFlowSelector(
         ) {
             Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Billing Mode", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = if (enabled) "Billing Mode" else "Billing Mode (Owner Only)",
+                    color = if (enabled) PrimaryGold else TextGold.copy(alpha = 0.8f),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                if (!enabled) {
+                    Text(
+                        text = "Locked for staff • Managed by owner",
+                        color = TextLight.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
         PaymentFlowToggleSwitch(
@@ -100,7 +111,9 @@ internal fun PaymentFlowToggleSwitch(
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isSelected) PrimaryGold else DarkBrown1,
-                    contentColor = if (isSelected) DarkBrown1 else TextLight
+                    contentColor = if (isSelected) DarkBrown1 else TextLight,
+                    disabledContainerColor = if (isSelected) PrimaryGold.copy(alpha = 0.45f) else DarkBrown1.copy(alpha = 0.45f),
+                    disabledContentColor = if (isSelected) DarkBrown1.copy(alpha = 0.7f) else TextLight.copy(alpha = 0.35f)
                 ),
                 enabled = enabled
             ) {

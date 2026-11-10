@@ -49,6 +49,7 @@ object NotificationRouteManager {
      */
     fun routeForType(type: String): String = when (type) {
         "payment_received", "qr_order" -> Routes.ACTIVE_ORDERS
+        "shift_closing" -> Routes.ACTIVE_ORDERS
         "kyc" -> Routes.ONLINE_PAYMENTS_SETUP
         "fssai_expiry" -> Routes.COMPLIANCE_DOCUMENTS
         // refund, settlement, inventory_low, terminal, system and anything new
