@@ -82,13 +82,17 @@ object BusinessDate {
         val closing = parseClock(closingTime) ?: return null
 
         val buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES)
+        if (buffered == LocalTime.MIDNIGHT) {
+            return null
+        }
+
         val isOvernight = closing < opening || closing == LocalTime.MIDNIGHT
         if (isOvernight) {
             return buffered
         }
 
         // Late evening closing where adding the settlement buffer wraps past midnight into next morning
-        if (buffered < closing && buffered != LocalTime.MIDNIGHT) {
+        if (buffered < closing) {
             return buffered
         }
 

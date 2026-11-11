@@ -43,7 +43,6 @@ import com.khanabook.lite.pos.core.theme.TextLight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import com.khanabook.lite.pos.core.util.BusinessDate
-import java.time.LocalTime
 
 @Composable
 fun ReadOnlyConfigNotice(

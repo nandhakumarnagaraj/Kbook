@@ -3,10 +3,12 @@ package com.khanabook.lite.pos.core.util
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
 
 /**
@@ -269,14 +271,16 @@ class BusinessDateTest {
     @Test
     fun `closingBoundary returns null when no morning extension exists`() {
         // Default 23:00 has buffer ending at midnight -> null (calendar midnight rollover)
-        org.junit.Assert.assertNull(BusinessDate.closingBoundary("08:00", "23:00"))
+        assertNull(BusinessDate.closingBoundary("08:00", "23:00"))
+        // Overnight closing landing exactly on midnight 23:15 -> 23:00 -> null
+        assertNull(BusinessDate.closingBoundary("23:15", "23:00"))
         // Daytime closing -> null
-        org.junit.Assert.assertNull(BusinessDate.closingBoundary("08:00", "14:00"))
+        assertNull(BusinessDate.closingBoundary("08:00", "14:00"))
         // Overnight closing 02:10 -> 03:10
-        assertEquals(java.time.LocalTime.of(3, 10), BusinessDate.closingBoundary("18:00", "02:10"))
+        assertEquals(LocalTime.of(3, 10), BusinessDate.closingBoundary("18:00", "02:10"))
         // Midnight closing 00:00 -> 01:00
-        assertEquals(java.time.LocalTime.of(1, 0), BusinessDate.closingBoundary("12:00", "00:00"))
+        assertEquals(LocalTime.of(1, 0), BusinessDate.closingBoundary("12:00", "00:00"))
         // Late evening 23:30 -> 00:30
-        assertEquals(java.time.LocalTime.of(0, 30), BusinessDate.closingBoundary("11:00", "23:30"))
+        assertEquals(LocalTime.of(0, 30), BusinessDate.closingBoundary("11:00", "23:30"))
     }
 }

@@ -84,13 +84,17 @@ public final class BusinessDay {
         }
 
         LocalTime buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES);
+        if (LocalTime.MIDNIGHT.equals(buffered)) {
+            return null;
+        }
+
         boolean isOvernight = closing.isBefore(opening) || LocalTime.MIDNIGHT.equals(closing);
         if (isOvernight) {
             return buffered;
         }
 
         // Late evening closing where adding the settlement buffer wraps past midnight into next morning
-        if (buffered.isBefore(closing) && !LocalTime.MIDNIGHT.equals(buffered)) {
+        if (buffered.isBefore(closing)) {
             return buffered;
         }
 

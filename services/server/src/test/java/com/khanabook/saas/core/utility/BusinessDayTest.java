@@ -299,6 +299,8 @@ class BusinessDayTest {
     void closingBoundaryReturnsNullWhenNoMorningExtensionExists() {
         // Default 23:00 has buffer ending at midnight -> null (calendar midnight rollover)
         assertThat(BusinessDay.closingBoundary(LocalTime.of(8, 0), LocalTime.of(23, 0))).isNull();
+        // Overnight closing landing exactly on midnight 23:15 -> 23:00 -> null
+        assertThat(BusinessDay.closingBoundary(LocalTime.of(23, 15), LocalTime.of(23, 0))).isNull();
         // Daytime closing -> null
         assertThat(BusinessDay.closingBoundary(LocalTime.of(8, 0), LocalTime.of(14, 0))).isNull();
         // Overnight closing 02:10 -> 03:10
