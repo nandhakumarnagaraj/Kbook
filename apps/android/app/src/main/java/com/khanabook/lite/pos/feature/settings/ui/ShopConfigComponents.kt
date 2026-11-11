@@ -42,6 +42,8 @@ import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import com.khanabook.lite.pos.core.util.BusinessDate
+import java.time.LocalTime
 
 @Composable
 fun ReadOnlyConfigNotice(
@@ -183,8 +185,8 @@ internal fun BusinessDayInfoCard(
     // Mirrors BusinessDate.isCutoffActive on this device: a 00:00 cutoff is the legacy
     // calendar rule, and an unset activation date means the cutoff is not in force yet.
     val cutoffActive = cutoffEffectiveFrom != null && cutoff != DEFAULT_CUTOFF
-    val boundary = com.khanabook.lite.pos.core.util.BusinessDate.closingBoundary(openingTime, closingTime)
-    val hasBuffer = boundary != java.time.LocalTime.MIDNIGHT
+    val boundary = BusinessDate.closingBoundary(openingTime, closingTime)
+    val hasBuffer = boundary != LocalTime.MIDNIGHT
     // Must mirror BusinessDate.businessDate() exactly: an activated cutoff wins, otherwise
     // the closing boundary (with settlement buffer when crossing midnight), and a daytime shop at
     // midnight. If this drifts, the card tells the shopkeeper a lie.
@@ -224,8 +226,8 @@ internal fun BusinessDayInfoCard(
         )
         Text(
             text = when {
-                hasBuffer -> "Includes a 60-minute settlement buffer after your $closingLabel closing time, so late table payments and reconciliation stay in one series."
                 cutoffActive -> "Bills taken before $rolloverLabel belong to the previous business day."
+                hasBuffer -> "Includes a ${BusinessDate.SETTLEMENT_BUFFER_MINUTES}-minute settlement buffer after your $closingLabel closing time, so late table payments and reconciliation stay in one series."
                 else -> "No day cutoff is set, so the order number restarts at $rolloverLabel."
             },
             color = TextGold.copy(alpha = 0.75f),
@@ -245,18 +247,6 @@ private fun minutesOfDay(raw: String?): Int? {
     val minute = parts[1].toIntOrNull() ?: return null
     if (hour !in 0..23 || minute !in 0..59) return null
     return hour * 60 + minute
-}
-
-/**
- * True when the closing time falls on the next calendar day, e.g. 18:00 → 02:10.
- *
- * Deliberately "closing earlier than opening" only: an early-morning open (00:00 → 05:00)
- * does not cross midnight, and warning about it would be noise.
- */
-private fun isOvernightService(openingTime: String?, closingTime: String?): Boolean {
-    val opening = minutesOfDay(openingTime) ?: return false
-    val closing = minutesOfDay(closingTime) ?: return false
-    return closing < opening
 }
 
 /** `"02:10"` → `"2:10 AM"`; unparseable input is echoed instead of throwing. */

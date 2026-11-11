@@ -201,6 +201,31 @@ class BusinessDayTest {
     }
 
     @Test
+    void default23_00ClosingServiceRollsOverAtMidnight() {
+        LocalTime open = LocalTime.of(8, 0);
+        LocalTime close = LocalTime.of(23, 0);
+
+        // 23:59 is on Nov 09.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 9, 23, 59), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // 00:00 midnight rolls over to Nov 10.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 0), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
+    void lateEveningWrapAppliesEvenWhenOpeningIsNearMidnight() {
+        LocalTime open = LocalTime.of(0, 10);
+        LocalTime close = LocalTime.of(23, 50);
+
+        // 23:50 + 60m buffer = 00:50 AM boundary.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 45), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 50), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
     void daytimeServiceKeepsTheCalendarDay() {
         LocalTime open = LocalTime.of(8, 10);
         LocalTime close = LocalTime.of(14, 20);
@@ -237,6 +262,28 @@ class BusinessDayTest {
                 .isEqualTo("2026-11-10");
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 9), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
+    }
+
+    @Test
+    void midnightClosingWindowsAreInverseOfThe01_00AMBoundary() {
+        LocalTime open = LocalTime.of(12, 0);
+        LocalTime close = LocalTime.MIDNIGHT;
+        LocalDate day = LocalDate.of(2026, 11, 10);
+        assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 10, 1, 0));
+        assertThat(BusinessDay.windowEnd(day, IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 11, 1, 0));
+    }
+
+    @Test
+    void lateEveningClosingWindowsAreInverseOfThe00_30AMBoundary() {
+        LocalTime open = LocalTime.of(11, 0);
+        LocalTime close = LocalTime.of(23, 30);
+        LocalDate day = LocalDate.of(2026, 11, 10);
+        assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 10, 0, 30));
+        assertThat(BusinessDay.windowEnd(day, IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 11, 0, 30));
     }
 
     @Test

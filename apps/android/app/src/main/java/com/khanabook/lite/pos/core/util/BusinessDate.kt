@@ -55,13 +55,21 @@ object BusinessDate {
     /**
      * The boundary a shop rolls its order numbering on when no cutoff is activated.
      *
-     * A shop still trading at 01:00 has no meaningful day change at midnight: a 18:00 to
-     * 02:10 service must keep one numbering series until it closes and settles.
+     * A shop still trading late into the night has no meaningful day change at midnight: an
+     * 18:00 to 02:10 service, or a service closing at 00:00 (midnight) or late evening (e.g. 23:30),
+     * must keep one numbering series until it closes and settles.
      * Table settlement, final bill printing, and cashier reconciliation take time past closing,
-     * so an automatic 60-minute settlement buffer is appended to closing time when the service
-     * crosses midnight (closing earlier than opening).
-     * A daytime shop (08:10 to 14:20) does not cross midnight, so it keeps the calendar day
-     * and its reports keep natural dates.
+     * so an automatic 60-minute settlement buffer is appended:
+     * 1. Overnight shifts (closing < opening, e.g. 18:00 -> 02:10) or midnight closings (closing == 00:00):
+     *    buffer extends into early morning (02:10 -> 03:10; 00:00 -> 01:00).
+     * 2. Late-evening shifts (buffered < closing, e.g. 23:30 -> 00:30):
+     *    adding the 60-minute buffer wraps past midnight into the next morning.
+     * 3. Daytime shifts (closing + buffer <= 23:59 or closing == 23:00 -> buffered == 00:00):
+     *    buffer does not extend past midnight into the morning, so order numbering restarts
+     *    naturally at midnight.
+     *
+     * Note: Server-side `BillSyncService.applyServerBusinessDate` retains existing business dates
+     * for already-stamped bills, protecting past orders from retroactive shifts.
      *
      * The Java twin is `BusinessDay.closingBoundary`; the two must stay identical or
      * `BillSyncService.applyServerBusinessDate` starts rewriting dates one day apart.
@@ -70,14 +78,14 @@ object BusinessDate {
         val opening = parseClock(openingTime) ?: return LocalTime.MIDNIGHT
         val closing = parseClock(closingTime) ?: return LocalTime.MIDNIGHT
 
-        val buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES.toLong())
+        val buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES)
         val isOvernight = closing < opening || closing == LocalTime.MIDNIGHT
         if (isOvernight) {
             return buffered
         }
 
         // Late evening closing where adding the settlement buffer wraps past midnight into next morning
-        if (buffered < closing && buffered < opening) {
+        if (buffered < closing) {
             return buffered
         }
 

@@ -54,12 +54,23 @@ public final class BusinessDay {
     /**
      * The boundary a shop rolls its order numbering on when no cutoff is activated.
      *
-     * <p>A shop still trading at 01:00 has no meaningful day change at midnight: an
-     * 18:00 to 02:10 service must keep one numbering series until it closes and settles.
+     * <p>A shop still trading late into the night has no meaningful day change at midnight: an
+     * 18:00 to 02:10 service, or a service closing at 00:00 (midnight) or late evening (e.g. 23:30),
+     * must keep one numbering series until it closes and settles.
      * Table settlement, final bill printing, and cashier reconciliation take time past closing,
-     * so an automatic 60-minute settlement buffer is appended to closing time when the service
-     * crosses midnight (closing earlier than opening).
-     * A daytime shop (08:10 to 14:20) does not cross midnight, so it keeps the calendar day.
+     * so an automatic 60-minute settlement buffer is appended:
+     * <ol>
+     *   <li>Overnight shifts (closing &lt; opening, e.g. 18:00 &rarr; 02:10) or midnight closings (closing == 00:00):
+     *       buffer extends into early morning (02:10 &rarr; 03:10; 00:00 &rarr; 01:00).</li>
+     *   <li>Late-evening shifts (buffered &lt; closing, e.g. 23:30 &rarr; 00:30):
+     *       adding the 60-minute buffer wraps past midnight into the next morning.</li>
+     *   <li>Daytime shifts (closing + buffer &le; 23:59 or closing == 23:00 &rarr; buffered == 00:00):
+     *       buffer does not extend past midnight into the morning, so order numbering restarts
+     *       naturally at midnight.</li>
+     * </ol>
+     *
+     * <p>Note: Server-side {@code BillSyncService.applyServerBusinessDate} retains existing business dates
+     * for already-stamped bills, protecting past orders from retroactive shifts.
      *
      * <p>Identical to the Android {@code BusinessDate.closingBoundary}. If the two differ,
      * {@code applyServerBusinessDate} rewrites pushed dates one day apart from the till.
@@ -76,7 +87,7 @@ public final class BusinessDay {
         }
 
         // Late evening closing where adding the settlement buffer wraps past midnight into next morning
-        if (buffered.isBefore(closing) && buffered.isBefore(opening)) {
+        if (buffered.isBefore(closing)) {
             return buffered;
         }
 

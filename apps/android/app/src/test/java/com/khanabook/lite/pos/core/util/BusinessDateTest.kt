@@ -201,6 +201,23 @@ class BusinessDateTest {
     }
 
     @Test
+    fun `default 23_00 closing service rolls over at midnight`() {
+        val p = profile(opening = "08:00", closing = "23:00")
+        // 23:59 is on Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 9, 23, 59), p))
+        // 00:00 midnight rolls over to Nov 10.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 0), p))
+    }
+
+    @Test
+    fun `late evening wrap applies even when opening is near midnight`() {
+        val p = profile(opening = "00:10", closing = "23:50")
+        // 23:50 + 60m buffer = 00:50 AM boundary.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 45), p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 50), p))
+    }
+
+    @Test
     fun `a daytime service keeps the calendar day`() {
         val p = profile(opening = "08:10", closing = "14:20")
         assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 1, 0), p))
@@ -223,6 +240,22 @@ class BusinessDateTest {
         assertEquals(at(2026, 11, 11, 3, 10), BusinessDate.windowEnd(day, p))
         assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 3, 10), p))
         assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 3, 9), p))
+    }
+
+    @Test
+    fun `midnight closing windows are inverse of the 01_00 AM boundary`() {
+        val p = profile(opening = "12:00", closing = "00:00")
+        val day = LocalDate.of(2026, 11, 10)
+        assertEquals(at(2026, 11, 10, 1, 0), BusinessDate.windowStart(day, p))
+        assertEquals(at(2026, 11, 11, 1, 0), BusinessDate.windowEnd(day, p))
+    }
+
+    @Test
+    fun `late evening closing windows are inverse of the 00_30 AM boundary`() {
+        val p = profile(opening = "11:00", closing = "23:30")
+        val day = LocalDate.of(2026, 11, 10)
+        assertEquals(at(2026, 11, 10, 0, 30), BusinessDate.windowStart(day, p))
+        assertEquals(at(2026, 11, 11, 0, 30), BusinessDate.windowEnd(day, p))
     }
 
     @Test
