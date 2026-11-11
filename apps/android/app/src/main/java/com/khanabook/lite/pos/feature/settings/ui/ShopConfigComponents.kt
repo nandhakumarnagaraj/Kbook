@@ -183,13 +183,14 @@ internal fun BusinessDayInfoCard(
     // Mirrors BusinessDate.isCutoffActive on this device: a 00:00 cutoff is the legacy
     // calendar rule, and an unset activation date means the cutoff is not in force yet.
     val cutoffActive = cutoffEffectiveFrom != null && cutoff != DEFAULT_CUTOFF
-    val overnight = isOvernightService(openingTime, closingTime)
+    val boundary = com.khanabook.lite.pos.core.util.BusinessDate.closingBoundary(openingTime, closingTime)
+    val hasBuffer = boundary != java.time.LocalTime.MIDNIGHT
     // Must mirror BusinessDate.businessDate() exactly: an activated cutoff wins, otherwise
-    // an overnight service rolls over at its own closing time, and a daytime shop at
+    // the closing boundary (with settlement buffer when crossing midnight), and a daytime shop at
     // midnight. If this drifts, the card tells the shopkeeper a lie.
     val rollover = when {
         cutoffActive -> cutoff
-        overnight -> com.khanabook.lite.pos.core.util.BusinessDate.closingBoundary(openingTime, closingTime).toString().take(5)
+        hasBuffer -> boundary.toString().take(5)
         else -> DEFAULT_CUTOFF
     }
     val rolloverLabel = formatClockTime(rollover)
@@ -223,7 +224,7 @@ internal fun BusinessDayInfoCard(
         )
         Text(
             text = when {
-                overnight -> "Includes a 60-minute settlement buffer after your $closingLabel closing time, so late table payments and reconciliation stay in one series."
+                hasBuffer -> "Includes a 60-minute settlement buffer after your $closingLabel closing time, so late table payments and reconciliation stay in one series."
                 cutoffActive -> "Bills taken before $rolloverLabel belong to the previous business day."
                 else -> "No day cutoff is set, so the order number restarts at $rolloverLabel."
             },

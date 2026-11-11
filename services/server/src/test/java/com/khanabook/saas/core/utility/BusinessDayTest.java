@@ -167,6 +167,40 @@ class BusinessDayTest {
     }
 
     @Test
+    void midnightClosingServiceGets60mBufferUntil01_00AM() {
+        LocalTime open = LocalTime.of(12, 0);
+        LocalTime close = LocalTime.MIDNIGHT;
+
+        // 23:45 is on the previous day.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 9, 23, 45), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // 00:30 AM is within 60m settlement buffer (until 01:00 AM) and belongs to Nov 09.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 30), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 59), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // At 01:00 AM, the shift rolls over to Nov 10.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 1, 0), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
+    void lateEvening23_30ClosingGets60mBufferUntil00_30AM() {
+        LocalTime open = LocalTime.of(11, 0);
+        LocalTime close = LocalTime.of(23, 30);
+
+        // 23:45 is on Nov 09.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 9, 23, 45), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // 00:15 AM is within 60m buffer (until 00:30 AM) and belongs to Nov 09.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 15), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // At 00:30 AM, rolls over to Nov 10.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 30), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
     void daytimeServiceKeepsTheCalendarDay() {
         LocalTime open = LocalTime.of(8, 10);
         LocalTime close = LocalTime.of(14, 20);

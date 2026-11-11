@@ -69,8 +69,19 @@ object BusinessDate {
     fun closingBoundary(openingTime: String?, closingTime: String?): LocalTime {
         val opening = parseClock(openingTime) ?: return LocalTime.MIDNIGHT
         val closing = parseClock(closingTime) ?: return LocalTime.MIDNIGHT
-        if (closing == LocalTime.MIDNIGHT) return LocalTime.MIDNIGHT
-        return if (closing < opening) closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES) else LocalTime.MIDNIGHT
+
+        val buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES.toLong())
+        val isOvernight = closing < opening || closing == LocalTime.MIDNIGHT
+        if (isOvernight) {
+            return buffered
+        }
+
+        // Late evening closing where adding the settlement buffer wraps past midnight into next morning
+        if (buffered < closing && buffered < opening) {
+            return buffered
+        }
+
+        return LocalTime.MIDNIGHT
     }
 
     /** `HH:mm`/`HH:mm:ss` to [LocalTime], or null when absent or unparseable. */

@@ -65,10 +65,22 @@ public final class BusinessDay {
      * {@code applyServerBusinessDate} rewrites pushed dates one day apart from the till.
      */
     public static LocalTime closingBoundary(LocalTime opening, LocalTime closing) {
-        if (opening == null || closing == null || LocalTime.MIDNIGHT.equals(closing)) {
+        if (opening == null || closing == null) {
             return LocalTime.MIDNIGHT;
         }
-        return closing.isBefore(opening) ? closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES) : LocalTime.MIDNIGHT;
+
+        LocalTime buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES);
+        boolean isOvernight = closing.isBefore(opening) || LocalTime.MIDNIGHT.equals(closing);
+        if (isOvernight) {
+            return buffered;
+        }
+
+        // Late evening closing where adding the settlement buffer wraps past midnight into next morning
+        if (buffered.isBefore(closing) && buffered.isBefore(opening)) {
+            return buffered;
+        }
+
+        return LocalTime.MIDNIGHT;
     }
 
     public static ZoneId zoneOf(String timezone) {

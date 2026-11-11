@@ -178,6 +178,29 @@ class BusinessDateTest {
     }
 
     @Test
+    fun `midnight closing service gets 60m buffer until 01_00 AM`() {
+        val p = profile(opening = "12:00", closing = "00:00")
+        // 23:45 is on the previous day.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 9, 23, 45), p))
+        // 00:30 AM is within 60m settlement buffer (until 01:00 AM) and belongs to Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 30), p))
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 59), p))
+        // At 01:00 AM, the shift rolls over to Nov 10.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 1, 0), p))
+    }
+
+    @Test
+    fun `late evening 23_30 closing gets 60m buffer until 00_30 AM`() {
+        val p = profile(opening = "11:00", closing = "23:30")
+        // 23:45 is on Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 9, 23, 45), p))
+        // 00:15 AM is within 60m buffer (until 00:30 AM) and belongs to Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 15), p))
+        // At 00:30 AM, rolls over to Nov 10.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 30), p))
+    }
+
+    @Test
     fun `a daytime service keeps the calendar day`() {
         val p = profile(opening = "08:10", closing = "14:20")
         assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 1, 0), p))
