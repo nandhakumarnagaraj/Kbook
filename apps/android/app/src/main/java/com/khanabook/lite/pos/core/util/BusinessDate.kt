@@ -54,6 +54,7 @@ object BusinessDate {
 
     /**
      * The boundary a shop rolls its order numbering on when no cutoff is activated.
+     * Returns null when there is no morning extension past midnight (i.e. rollover at calendar midnight).
      *
      * A shop still trading late into the night has no meaningful day change at midnight: an
      * 18:00 to 02:10 service, or a service closing at 00:00 (midnight) or late evening (e.g. 23:30),
@@ -65,18 +66,20 @@ object BusinessDate {
      * 2. Late-evening shifts (buffered < closing, e.g. 23:30 -> 00:30):
      *    adding the 60-minute buffer wraps past midnight into the next morning.
      * 3. Daytime shifts (closing + buffer <= 23:59 or closing == 23:00 -> buffered == 00:00):
-     *    buffer does not extend past midnight into the morning, so order numbering restarts
-     *    naturally at midnight.
+     *    buffer does not extend past midnight into the morning, so returns null and order
+     *    numbering restarts naturally at calendar midnight.
      *
+     * Note: A late-evening shop that reopens near midnight continues the previous series until
+     * the buffer elapses, so late table payments and drawer reconciliation stay unified.
      * Note: Server-side `BillSyncService.applyServerBusinessDate` retains existing business dates
      * for already-stamped bills, protecting past orders from retroactive shifts.
      *
      * The Java twin is `BusinessDay.closingBoundary`; the two must stay identical or
      * `BillSyncService.applyServerBusinessDate` starts rewriting dates one day apart.
      */
-    fun closingBoundary(openingTime: String?, closingTime: String?): LocalTime {
-        val opening = parseClock(openingTime) ?: return LocalTime.MIDNIGHT
-        val closing = parseClock(closingTime) ?: return LocalTime.MIDNIGHT
+    fun closingBoundary(openingTime: String?, closingTime: String?): LocalTime? {
+        val opening = parseClock(openingTime) ?: return null
+        val closing = parseClock(closingTime) ?: return null
 
         val buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES)
         val isOvernight = closing < opening || closing == LocalTime.MIDNIGHT
@@ -85,11 +88,11 @@ object BusinessDate {
         }
 
         // Late evening closing where adding the settlement buffer wraps past midnight into next morning
-        if (buffered < closing) {
+        if (buffered < closing && buffered != LocalTime.MIDNIGHT) {
             return buffered
         }
 
-        return LocalTime.MIDNIGHT
+        return null
     }
 
     /** `HH:mm`/`HH:mm:ss` to [LocalTime], or null when absent or unparseable. */
@@ -144,7 +147,7 @@ object BusinessDate {
             // No activated cutoff: the shop's closing time is the boundary when the service
             // crosses midnight, otherwise the calendar day (unchanged legacy behaviour).
             val rollover = closingBoundary(openingTime, closingTime)
-            return if (rollover != LocalTime.MIDNIGHT && zoned.toLocalTime() < rollover) {
+            return if (rollover != null && zoned.toLocalTime() < rollover) {
                 calendarDate.minusDays(1).toString()
             } else {
                 calendarDate.toString()
@@ -198,7 +201,7 @@ object BusinessDate {
         if (!isCutoffActive(cutoff, effectiveFromMillis)) {
             // Exact inverse of businessDate(): an overnight day starts when the shop closes.
             val rollover = closingBoundary(openingTime, closingTime)
-            return if (rollover == LocalTime.MIDNIGHT) {
+            return if (rollover == null) {
                 midnight
             } else {
                 date.atTime(rollover).atZone(zone).toInstant().toEpochMilli()

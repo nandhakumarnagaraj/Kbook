@@ -186,13 +186,13 @@ internal fun BusinessDayInfoCard(
     // calendar rule, and an unset activation date means the cutoff is not in force yet.
     val cutoffActive = cutoffEffectiveFrom != null && cutoff != DEFAULT_CUTOFF
     val boundary = BusinessDate.closingBoundary(openingTime, closingTime)
-    val hasBuffer = boundary != LocalTime.MIDNIGHT
+    val hasBuffer = boundary != null
     // Must mirror BusinessDate.businessDate() exactly: an activated cutoff wins, otherwise
     // the closing boundary (with settlement buffer when crossing midnight), and a daytime shop at
     // midnight. If this drifts, the card tells the shopkeeper a lie.
     val rollover = when {
         cutoffActive -> cutoff
-        hasBuffer -> boundary.toString().take(5)
+        boundary != null -> boundary.toString().take(5)
         else -> DEFAULT_CUTOFF
     }
     val rolloverLabel = formatClockTime(rollover)

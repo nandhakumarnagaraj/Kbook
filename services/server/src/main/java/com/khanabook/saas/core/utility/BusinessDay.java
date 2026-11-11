@@ -53,6 +53,7 @@ public final class BusinessDay {
 
     /**
      * The boundary a shop rolls its order numbering on when no cutoff is activated.
+     * Returns null when there is no morning extension past midnight (i.e. rollover at calendar midnight).
      *
      * <p>A shop still trading late into the night has no meaningful day change at midnight: an
      * 18:00 to 02:10 service, or a service closing at 00:00 (midnight) or late evening (e.g. 23:30),
@@ -65,10 +66,12 @@ public final class BusinessDay {
      *   <li>Late-evening shifts (buffered &lt; closing, e.g. 23:30 &rarr; 00:30):
      *       adding the 60-minute buffer wraps past midnight into the next morning.</li>
      *   <li>Daytime shifts (closing + buffer &le; 23:59 or closing == 23:00 &rarr; buffered == 00:00):
-     *       buffer does not extend past midnight into the morning, so order numbering restarts
-     *       naturally at midnight.</li>
+     *       buffer does not extend past midnight into the morning, so returns null and order
+     *       numbering restarts naturally at calendar midnight.</li>
      * </ol>
      *
+     * <p>Note: A late-evening shop that reopens near midnight continues the previous series until
+     * the buffer elapses, so late table payments and drawer reconciliation stay unified.
      * <p>Note: Server-side {@code BillSyncService.applyServerBusinessDate} retains existing business dates
      * for already-stamped bills, protecting past orders from retroactive shifts.
      *
@@ -77,7 +80,7 @@ public final class BusinessDay {
      */
     public static LocalTime closingBoundary(LocalTime opening, LocalTime closing) {
         if (opening == null || closing == null) {
-            return LocalTime.MIDNIGHT;
+            return null;
         }
 
         LocalTime buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES);
@@ -87,11 +90,11 @@ public final class BusinessDay {
         }
 
         // Late evening closing where adding the settlement buffer wraps past midnight into next morning
-        if (buffered.isBefore(closing)) {
+        if (buffered.isBefore(closing) && !LocalTime.MIDNIGHT.equals(buffered)) {
             return buffered;
         }
 
-        return LocalTime.MIDNIGHT;
+        return null;
     }
 
     public static ZoneId zoneOf(String timezone) {
@@ -123,7 +126,7 @@ public final class BusinessDay {
 
         if (!isActive(cutoff, effectiveFromMillis)) {
             LocalTime boundary = closingBoundary(opening, closing);
-            return !LocalTime.MIDNIGHT.equals(boundary) && zoned.toLocalTime().isBefore(boundary)
+            return boundary != null && zoned.toLocalTime().isBefore(boundary)
                     ? calendarDate.minusDays(1).toString()
                     : calendarDate.toString();
         }
@@ -168,7 +171,7 @@ public final class BusinessDay {
         long midnight = date.atStartOfDay(zone).toInstant().toEpochMilli();
         if (!isActive(cutoff, effectiveFromMillis)) {
             LocalTime boundary = closingBoundary(opening, closing);
-            return LocalTime.MIDNIGHT.equals(boundary)
+            return boundary == null
                     ? midnight
                     : date.atTime(boundary).atZone(zone).toInstant().toEpochMilli();
         }
