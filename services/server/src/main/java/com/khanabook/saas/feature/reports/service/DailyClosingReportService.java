@@ -212,30 +212,50 @@ public class DailyClosingReportService {
             return null;
         }
 
-        if (!force && emailOutboxRepository.existsByRestaurantIdAndReportTypeAndReferenceKeyAndStatus(
-                restaurantId, EmailOutbox.REPORT_TYPE_DAILY_EOD, businessDate, EmailOutbox.STATUS_SENT)) {
-            log.info("Daily closing report for restaurant {} on {} already sent. Skipping.", restaurantId, businessDate);
-            return null;
+        // The outbox is unique on (report_type, reference_key, revision, recipient)
+        // [uq_email_outbox_revision]. A row therefore exists for at most one attempt per day and
+        // recipient, so a blind second INSERT throws a constraint violation. That is what happened
+        // on every sweep for any date that was not SENT: the old check only skipped STATUS_SENT,
+        // and every FAILED/DEAD_LETTER date was re-inserted each 15 minutes and rejected.
+        // Look the row up first and reuse it; never insert a duplicate.
+        final int revision = 1;
+        Optional<EmailOutbox> existingRow = emailOutboxRepository
+                .findByReportTypeAndReferenceKeyAndRevisionAndRecipient(
+                        EmailOutbox.REPORT_TYPE_DAILY_EOD, businessDate, revision, primaryRecipient);
+
+        if (existingRow.isPresent() && !force) {
+            EmailOutbox row = existingRow.get();
+            // PENDING/FAILED rows are owned by processOutboxRetries() (attempt cap + backoff), and
+            // DEAD_LETTER rows have already exhausted it. Regenerating here would reset attemptCount
+            // and resurrect an exhausted row every sweep, so leave the retry policy to the outbox.
+            log.info("Daily closing report for restaurant {} on {} already queued for {} (status={}). Skipping.",
+                    restaurantId, businessDate, primaryRecipient, row.getStatus());
+            return row;
         }
 
         DailyClosingReportData reportData = generateReportData(restaurantId, businessDate);
         String htmlBody = renderEmailHtml(reportData);
         String subject = "Daily Closing Report - " + reportData.getRestaurantName() + " (" + reportData.getBusinessDate() + ")";
 
-        EmailOutbox outbox = EmailOutbox.builder()
+        long now = System.currentTimeMillis();
+        // force=true (manual resend) reuses the existing row rather than inserting a revision 2,
+        // because revision is fixed at 1 and an insert would violate the same constraint.
+        EmailOutbox outbox = existingRow.orElseGet(() -> EmailOutbox.builder()
                 .restaurantId(restaurantId)
                 .reportType(EmailOutbox.REPORT_TYPE_DAILY_EOD)
                 .referenceKey(businessDate)
-                .revision(1)
+                .revision(revision)
                 .recipient(primaryRecipient)
-                .subject(subject)
-                .htmlBody(htmlBody)
-                .status(EmailOutbox.STATUS_PENDING)
-                .attemptCount(0)
                 .maxAttempts(5)
-                .createdAt(System.currentTimeMillis())
-                .updatedAt(System.currentTimeMillis())
-                .build();
+                .createdAt(now)
+                .build());
+        outbox.setSubject(subject);
+        outbox.setHtmlBody(htmlBody);
+        outbox.setStatus(EmailOutbox.STATUS_PENDING);
+        outbox.setAttemptCount(0);
+        outbox.setNextAttemptAt(null);
+        outbox.setLastError(null);
+        outbox.setUpdatedAt(now);
 
         outbox = emailOutboxRepository.save(outbox);
 

@@ -99,6 +99,15 @@ services:
       # any un-zoned LocalDate.now()/LocalDateTime.now() that slips through review still
       # resolves to IST rather than UTC.
       TZ: ${TZ:-Asia/Kolkata}
+      # Gmail SMTP, read by Spring as spring.mail.*. These were missing entirely, so the container
+      # booted with an EMPTY spring.mail.password regardless of what .env said: every send failed
+      # SMTP AUTH with "Authentication failed" and the daily closing reports piled up DEAD_LETTER.
+      # MAIL_PASSWORD is fail-closed on purpose; an unset app password must stop the deploy rather
+      # than silently boot a server that cannot send email.
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-khanabook.official@gmail.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?Set MAIL_PASSWORD to the Gmail app password}
       # Firebase push notifications (leave FIREBASE_CREDENTIALS_PATH empty to disable)
       FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-new-khanabook-li}

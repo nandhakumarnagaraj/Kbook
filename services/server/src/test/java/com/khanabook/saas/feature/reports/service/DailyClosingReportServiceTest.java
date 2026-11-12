@@ -141,8 +141,9 @@ class DailyClosingReportServiceTest {
     void generatesAndQueuesReportInOutbox() throws Exception {
         RestaurantProfile profile = createMockProfile();
         when(restaurantProfileRepository.findByRestaurantId(tenantId)).thenReturn(Optional.of(profile));
-        when(emailOutboxRepository.existsByRestaurantIdAndReportTypeAndReferenceKeyAndStatus(
-                tenantId, EmailOutbox.REPORT_TYPE_DAILY_EOD, businessDate, EmailOutbox.STATUS_SENT)).thenReturn(false);
+        when(emailOutboxRepository.findByReportTypeAndReferenceKeyAndRevisionAndRecipient(
+                EmailOutbox.REPORT_TYPE_DAILY_EOD, businessDate, 1, "owner@khanaparadise.com"))
+                .thenReturn(Optional.empty());
 
         when(billRepository.findByRestaurantIdAndLastResetDateAndIsDeletedFalse(tenantId, businessDate))
                 .thenReturn(List.of());
@@ -167,5 +168,44 @@ class DailyClosingReportServiceTest {
                 contains("Daily Closing Report"),
                 contains("<html>Daily Report</html>")
         );
+    }
+
+    /**
+     * Regression: the outbox is unique on (report_type, reference_key, revision, recipient), so a
+     * second INSERT for an already-recorded day throws on "uq_email_outbox_revision". The sweep used
+     * to re-insert every FAILED/DEAD_LETTER day every 15 minutes and produce that error endlessly.
+     * An existing row must be returned as-is, with no further insert and no second send.
+     */
+    @Test
+    void returnsExistingOutboxRowInsteadOfInsertingDuplicateForNonSentStatus() throws Exception {
+        RestaurantProfile profile = createMockProfile();
+        when(restaurantProfileRepository.findByRestaurantId(tenantId)).thenReturn(Optional.of(profile));
+
+        EmailOutbox existing = EmailOutbox.builder()
+                .id(42L)
+                .restaurantId(tenantId)
+                .reportType(EmailOutbox.REPORT_TYPE_DAILY_EOD)
+                .referenceKey(businessDate)
+                .revision(1)
+                .recipient("owner@khanaparadise.com")
+                .subject("existing")
+                .htmlBody("<html>existing</html>")
+                .status(EmailOutbox.STATUS_DEAD_LETTER)
+                .attemptCount(5)
+                .maxAttempts(5)
+                .createdAt(0L)
+                .updatedAt(0L)
+                .build();
+        when(emailOutboxRepository.findByReportTypeAndReferenceKeyAndRevisionAndRecipient(
+                EmailOutbox.REPORT_TYPE_DAILY_EOD, businessDate, 1, "owner@khanaparadise.com"))
+                .thenReturn(Optional.of(existing));
+
+        EmailOutbox result = service.generateAndSendReport(tenantId, businessDate, false);
+
+        assertThat(result.getId()).isEqualTo(42L);
+        assertThat(result.getStatus()).isEqualTo(EmailOutbox.STATUS_DEAD_LETTER);
+        assertThat(result.getAttemptCount()).isEqualTo(5);
+        verify(emailOutboxRepository, never()).save(any(EmailOutbox.class));
+        verifyNoInteractions(emailNotificationService);
     }
 }
