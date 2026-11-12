@@ -208,4 +208,52 @@ class DailyClosingReportServiceTest {
         verify(emailOutboxRepository, never()).save(any(EmailOutbox.class));
         verifyNoInteractions(emailNotificationService);
     }
+
+    /**
+     * A forced resend can reuse a row that was already delivered. If that resend fails, the row must
+     * not keep the old sentAt, otherwise a FAILED attempt reads as delivered in the outbox.
+     */
+    @Test
+    void failedForcedResendClearsStaleSentAt() throws Exception {
+        RestaurantProfile profile = createMockProfile();
+        when(restaurantProfileRepository.findByRestaurantId(tenantId)).thenReturn(Optional.of(profile));
+
+        EmailOutbox existing = EmailOutbox.builder()
+                .id(42L)
+                .restaurantId(tenantId)
+                .reportType(EmailOutbox.REPORT_TYPE_DAILY_EOD)
+                .referenceKey(businessDate)
+                .revision(1)
+                .recipient("owner@khanaparadise.com")
+                .subject("existing")
+                .htmlBody("<html>existing</html>")
+                .status(EmailOutbox.STATUS_SENT)
+                .attemptCount(1)
+                .maxAttempts(5)
+                .sentAt(1_000L)
+                .createdAt(0L)
+                .updatedAt(0L)
+                .build();
+        when(emailOutboxRepository.findByReportTypeAndReferenceKeyAndRevisionAndRecipient(
+                EmailOutbox.REPORT_TYPE_DAILY_EOD, businessDate, 1, "owner@khanaparadise.com"))
+                .thenReturn(Optional.of(existing));
+
+        when(billRepository.findByRestaurantIdAndLastResetDateAndIsDeletedFalse(tenantId, businessDate))
+                .thenReturn(List.of());
+        when(cashierShiftRepository.findByRestaurantIdAndBusinessDateAndIsDeletedFalseOrderByOpenedAtAsc(eq(tenantId), any(LocalDate.class)))
+                .thenReturn(List.of());
+        when(templateEngine.process(eq("email/daily-closing-report"), any(Context.class)))
+                .thenReturn("<html>Daily Report</html>");
+
+        when(emailOutboxRepository.save(any(EmailOutbox.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        doThrow(new RuntimeException("SMTP down"))
+                .when(emailNotificationService).sendDailyClosingReport(anyString(), anyString(), anyString());
+
+        EmailOutbox result = service.generateAndSendReport(tenantId, businessDate, true);
+
+        assertThat(result.getId()).isEqualTo(42L);
+        assertThat(result.getStatus()).isEqualTo(EmailOutbox.STATUS_FAILED);
+        assertThat(result.getSentAt()).isNull();
+        assertThat(result.getAttemptCount()).isEqualTo(1);
+    }
 }

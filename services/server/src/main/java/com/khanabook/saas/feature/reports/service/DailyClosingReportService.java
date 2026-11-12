@@ -255,6 +255,10 @@ public class DailyClosingReportService {
         outbox.setAttemptCount(0);
         outbox.setNextAttemptAt(null);
         outbox.setLastError(null);
+        // A forced resend can reuse a row that already has a sentAt from an earlier delivery. Leaving
+        // it set would record a FAILED attempt as if it had been delivered, so clear it; a successful
+        // send stamps a fresh one below.
+        outbox.setSentAt(null);
         outbox.setUpdatedAt(now);
 
         outbox = emailOutboxRepository.save(outbox);
