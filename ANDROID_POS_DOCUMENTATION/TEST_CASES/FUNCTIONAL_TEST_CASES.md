@@ -1,0 +1,8 @@
+# Functional Test Cases
+
+| Test Case ID | Module | Scenario | Preconditions | Actions | Expected Result | Actual Result | Status | Evidence |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **TC-FUNC-001** | Billing | Create Dine-in order with 2 items and fire KOT | Home screen active, table available | 1. Tap Create New Order<br>2. Pick TableOne<br>3. Add Livetest & webtest<br>4. Tap Send to Kitchen | Order saved as draft, KOT queued, table marked Occupied | Order #A04 created, returned to Home with 1 active Dine-in | **PASS** | `03_order_items_added.png` |
+| **TC-FUNC-002** | Payments | Settle running Dine-in order with Cash | Active order #A04 on TableOne | 1. Open Active Orders<br>2. Tap Payment<br>3. Select Cash<br>4. Tap Payment Successful | Invoice generated, table released | Invoice A000059 created, TableOne freed | **PASS** | `device_cash_settlement_success.png` |
+| **TC-FUNC-003** | Payments | Settle running Dine-in order with Dynamic UPI QR | Active order #A02 on TableOne | 1. Open Payment<br>2. Select UPI mode<br>3. Verify QR rendered<br>4. Tap Payment Successful | QR generated with merchant VPA & amount, bill settled | Invoice A000057 created, settled as Dine-in UPI | **PASS** | `device_upi_qr_screen.png`, `device_payment_success.png` |
+| **TC-FUNC-004** | Order History | Display sequential daily bills on Orders tab | Multiple bills created during current business day | 1. Tap Orders tab<br>2. Review list for Today | All orders appear in descending sequence (#A04, #A03, #A02, #A01) | Orders listed with correct tender badges and timestamps | **PASS** | `device_orders_screen_final.png` |

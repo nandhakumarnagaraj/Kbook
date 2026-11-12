@@ -6,3 +6,9 @@
 - Never add a file to `review.instructions_files` on your own. Ask the developer which files the reviewer may use, then set only what they name.
 - The report is in `.openqodex/reviews/`.
 <!-- openqodex:end -->
+
+## AI Engineering & Code Reality Standard
+- Every AI agent working on KhanaBook must strictly adhere to [AI_ENGINEERING_RULES.md](file:///C:/Users/nandh/Desktop/Khanabook/KhanaBook/AI_ENGINEERING_RULES.md).
+- **Implementation is the source of truth.** Comments describe what the code actually does, not what was intended.
+- Verify all boundary calculations and test assertions mathematically. Never write unverified or contradictory comments.
+
