@@ -558,7 +558,7 @@ fun ShopConfigView(
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
                                     enabled = isPhoneValid && !isUserChecking && userExistsError == null && !readOnly
                                 ) {
-                                    Text("Get Otp", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                    Text("Get OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                                 }
                             } else if (numberChanged && isOtpVerified) {
                                 Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
@@ -637,7 +637,7 @@ fun ShopConfigView(
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
                                     enabled = !readOnly
                                 ) {
-                                    Text("Get Otp", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                    Text("Get OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                                 }
                             } else if (!isGoogleAuth && emailChanged && isEmailOtpVerified) {
                                 Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
