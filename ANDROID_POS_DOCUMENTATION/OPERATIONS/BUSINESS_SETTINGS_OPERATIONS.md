@@ -7,6 +7,8 @@
 **Verification Status:** VERIFIED (Verified on device `ZA222J5KT7`)  
 **Last Tested:** 2026-11-11  
 
+> **Change notice (2026-11-12):** The standalone **Business Day** card no longer exists. Its rollover message is now the subtitle of the **Business Hours** card (*"Daily Order Number will reset at <time>"*). The observations below are preserved as historical evidence from 2026-11-11; re-verify against the current build before citing them.
+
 **Purpose:**  
 Verify the configured restaurant closing time, overnight shift handling, and the 30-minute settlement buffer that dictates when daily order numbers reset.
 

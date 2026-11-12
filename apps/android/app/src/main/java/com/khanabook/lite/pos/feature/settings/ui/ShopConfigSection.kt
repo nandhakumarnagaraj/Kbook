@@ -8,8 +8,14 @@ import com.khanabook.lite.pos.core.theme.KhanaRadii
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,6 +50,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
@@ -757,11 +765,19 @@ fun ShopConfigView(
                 shape = KhanaRadii.lg,
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
             ) {
+                // Opening/Closing times stay hidden until the header is tapped, so the
+                // card reads as one line (hours + rollover) until the shopkeeper wants them.
+                var isBusinessHoursExpanded by remember { mutableStateOf(false) }
                 Column(
                     modifier = Modifier.padding(spacing.large),
                     verticalArrangement = Arrangement.spacedBy(spacing.medium)
                 ) {
                     Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(KhanaRadii.md)
+                            .clickable { isBusinessHoursExpanded = !isBusinessHoursExpanded }
+                            .padding(vertical = spacing.extraSmall),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                     ) {
@@ -771,55 +787,64 @@ fun ShopConfigView(
                             tint = PrimaryGold,
                             modifier = Modifier.size(28.dp)
                         )
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Business Hours",
                                 color = TextLight,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "Set your restaurant operating hours",
+                                // Non-breaking space keeps "12:30 AM" on one line; it otherwise
+                                // wrapped between the minutes and the AM/PM suffix.
+                                text = "Daily Order Number will reset at " + businessDayRolloverLabel(
+                                    cutoffTime = profile?.businessDayCutoffTime,
+                                    cutoffEffectiveFrom = profile?.cutoffEffectiveFrom,
+                                    openingTime = openingTime,
+                                    closingTime = closingTime
+                                ).replace(' ', '\u00A0'),
                                 color = TextGold.copy(alpha = 0.7f),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
+                        Icon(
+                            imageVector = if (isBusinessHoursExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (isBusinessHoursExpanded) "Hide opening and closing time" else "Show opening and closing time",
+                            tint = PrimaryGold,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                    AnimatedVisibility(
+                        visible = isBusinessHoursExpanded,
+                        enter = expandVertically(animationSpec = tween(durationMillis = 220)) + fadeIn(animationSpec = tween(durationMillis = 220)),
+                        exit = shrinkVertically(animationSpec = tween(durationMillis = 180)) + fadeOut(animationSpec = tween(durationMillis = 180))
                     ) {
-                        KhanaTimePickerField(
-                            label = "Opening Time",
-                            time = openingTime,
-                            onTimeSelected = { openingTime = it },
-                            enabled = !readOnly,
-                            modifier = Modifier.weight(1f)
-                        )
-                        KhanaTimePickerField(
-                            label = "Closing Time",
-                            time = closingTime,
-                            onTimeSelected = { closingTime = it },
-                            enabled = !readOnly,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                        ) {
+                            KhanaTimePickerField(
+                                label = "Opening Time",
+                                time = openingTime,
+                                onTimeSelected = { openingTime = it },
+                                enabled = !readOnly,
+                                modifier = Modifier.weight(1f)
+                            )
+                            KhanaTimePickerField(
+                                label = "Closing Time",
+                                time = closingTime,
+                                onTimeSelected = { closingTime = it },
+                                enabled = !readOnly,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // Card 3: Business Day Info Card (Collapsible)
-            BusinessDayInfoCard(
-                cutoffTime = profile?.businessDayCutoffTime,
-                cutoffEffectiveFrom = profile?.cutoffEffectiveFrom,
-                openingTime = openingTime,
-                closingTime = closingTime
-            )
-
-            Spacer(modifier = Modifier.height(spacing.medium))
-
-            // Card 4: Billing Flow Mode Selector
+            // Card 3: Billing Flow Mode Selector
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
                 enabled = profile != null,

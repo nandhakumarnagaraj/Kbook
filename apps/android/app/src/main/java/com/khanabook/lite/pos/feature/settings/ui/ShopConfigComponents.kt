@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,14 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -40,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
 import com.khanabook.lite.pos.core.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.core.theme.BorderGold
+import com.khanabook.lite.pos.core.theme.CardBG
 import com.khanabook.lite.pos.core.theme.DarkBrown1
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
@@ -74,25 +69,32 @@ internal fun RestaurantPaymentFlowSelector(
     enabled: Boolean = true
 ) {
     val spacing = KhanaBookTheme.spacing
+    // Same surface as the other Restaurant Configuration cards (CardBG + 25% gold border);
+    // it previously painted its own DarkBrown2 wash and read as a different, darker panel.
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), KhanaRadii.lg)
-            .background(DarkBrown2.copy(alpha = 0.45f), KhanaRadii.lg)
-            .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.small)
+            .border(BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f)), KhanaRadii.lg)
+            .background(CardBG, KhanaRadii.lg)
+            .padding(spacing.large),
+        verticalArrangement = Arrangement.spacedBy(spacing.medium)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
         ) {
-            Icon(Icons.Default.Settings, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
+            Icon(Icons.Default.Settings, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(28.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Billing Mode",
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.titleSmall
+                    color = TextLight,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+                Text(
+                    text = "Choose when customers settle the bill",
+                    color = TextGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
@@ -170,104 +172,30 @@ internal fun PaymentFlowToggleSwitch(
 }
 
 /**
- * Read-only view of when a bill's order number rolls over.
+ * When the daily order number rolls over to 01, formatted for display (`12:30 AM`).
  *
- * The till cannot change this: the cutoff is server-owned (see [BusinessDate]) and is
- * activated from the web dashboard, so this block exists to answer the two questions a
- * shopkeeper actually asks — "when does my numbering restart?" and "why is it splitting
- * tonight's service?". The warning only appears for a genuinely overnight service,
- * because that is the case where the default midnight rollover silently produces two
- * series inside one shift.
+ * Must mirror [BusinessDate.businessDate] exactly: an activated server cutoff wins,
+ * otherwise the closing boundary (with the settlement buffer when the service crosses
+ * midnight), and finally calendar midnight for a daytime shop. If this drifts the
+ * Business Hours subtitle tells the shopkeeper a lie.
  */
-@Composable
-internal fun BusinessDayInfoCard(
+internal fun businessDayRolloverLabel(
     cutoffTime: String?,
     cutoffEffectiveFrom: Long?,
     openingTime: String?,
     closingTime: String?
-) {
-    val spacing = KhanaBookTheme.spacing
+): String {
     val cutoff = cutoffTime?.trim()?.take(5)?.takeIf { it.isNotBlank() } ?: DEFAULT_CUTOFF
     // Mirrors BusinessDate.isCutoffActive on this device: a 00:00 cutoff is the legacy
     // calendar rule, and an unset activation date means the cutoff is not in force yet.
     val cutoffActive = cutoffEffectiveFrom != null && cutoff != DEFAULT_CUTOFF
     val boundary = BusinessDate.closingBoundary(openingTime, closingTime)
-    val hasBuffer = boundary != null
-    // Must mirror BusinessDate.businessDate() exactly: an activated cutoff wins, otherwise
-    // the closing boundary (with settlement buffer when crossing midnight), and a daytime shop at
-    // midnight. If this drifts, the card tells the shopkeeper a lie.
     val rollover = when {
         cutoffActive -> cutoff
         boundary != null -> boundary.toString().take(5)
         else -> DEFAULT_CUTOFF
     }
-    val rolloverLabel = formatClockTime(rollover)
-    val closingLabel = formatClockTime(closingTime)
-    var isExpanded by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), KhanaRadii.lg)
-            .background(DarkBrown2.copy(alpha = 0.45f), KhanaRadii.lg)
-            .clip(KhanaRadii.lg)
-            .clickable { isExpanded = !isExpanded }
-            .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.small)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            Icon(Icons.Default.Info, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
-            Text(
-                text = "Business Day",
-                color = PrimaryGold,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.weight(1f)
-            )
-            Icon(
-                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (isExpanded) "Collapse" else "Expand",
-                tint = PrimaryGold,
-                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
-            )
-        }
-        Text(
-            text = "Daily order number will reset to 01 at $rolloverLabel",
-            color = TextLight,
-            style = MaterialTheme.typography.bodyMedium
-        )
-        AnimatedVisibility(visible = isExpanded) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = spacing.extraSmall)
-                    .background(DarkBrown1.copy(alpha = 0.5f), KhanaRadii.md)
-                    .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.15f)), KhanaRadii.md)
-                    .padding(spacing.small),
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(spacing.small)
-            ) {
-                Icon(
-                    Icons.Default.Info,
-                    contentDescription = null,
-                    tint = TextGold.copy(alpha = 0.7f),
-                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
-                )
-                Text(
-                    text = when {
-                        cutoffActive -> "Daily order number resets to 01 before $rolloverLabel (previous business day)."
-                        hasBuffer -> "Includes a ${BusinessDate.SETTLEMENT_BUFFER_MINUTES}-minute settlement buffer after your $closingLabel closing time."
-                        else -> "Daily order number will restart at $rolloverLabel."
-                    },
-                    color = TextGold.copy(alpha = 0.85f),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-    }
+    return formatClockTime(rollover)
 }
 
 /** Legacy calendar rule — see [BusinessDate.DEFAULT_CUTOFF]. */
@@ -284,7 +212,7 @@ private fun minutesOfDay(raw: String?): Int? {
 }
 
 /** `"02:10"` → `"2:10 AM"`; unparseable input is echoed instead of throwing. */
-private fun formatClockTime(raw: String?): String {
+internal fun formatClockTime(raw: String?): String {
     val minutes = minutesOfDay(raw) ?: return raw?.trim()?.take(5) ?: "--:--"
     val hour24 = minutes / 60
     val minute = minutes % 60

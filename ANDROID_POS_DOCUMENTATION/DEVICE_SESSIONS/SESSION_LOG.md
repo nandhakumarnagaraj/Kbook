@@ -1,5 +1,49 @@
 # Device Testing Session Log
 
+## Session 005: Business Day Card Merged Into Business Hours
+- **Session ID:** SES-20261112-005
+- **Date & Time:** 2026-11-12 (implementation verified by compile only)
+- **Target Device / Architecture:** Android POS (`ShopConfigSection.kt`, `ShopConfigComponents.kt`)
+- **Initial Screen:** Restaurant Configuration (`SCR-08`)
+- **Objective:** Remove the duplicated `Business Day` card; move the daily order-number rollover message into the `Business Hours` card subtitle, computed from the closing time.
+
+### Operations Performed
+1. `ShopConfigComponents.kt`: deleted the `BusinessDayInfoCard` composable (and its chevron/expanded drawer) and added `businessDayRolloverLabel(...)`, which mirrors `BusinessDate.businessDate()` (activated cutoff → closing boundary with settlement buffer → calendar midnight) and returns a formatted `h:mm AM/PM` label.
+2. `ShopConfigSection.kt`: removed the standalone `Business Day` card render block; the `Business Hours` subtitle now renders `"Daily Order Number will reset at " + businessDayRolloverLabel(...)`. Opening and Closing time pickers are untouched.
+3. Compiled via `./gradlew compileDebugKotlin`: **BUILD SUCCESSFUL**.
+4. Assembled debug APK via `./gradlew assembleDebug`: **BUILD SUCCESSFUL** (`app-debug.apk`, 42.75 MB, written 18:32:43 IST).
+5. Installed onto **Motorola moto g34 5G (`ZA222J5KT7`)** via `adb -s ZA222J5KT7 install -r` → `Success`; device `lastUpdateTime=2026-11-12 18:32:56`. Relaunched `MainActivity`, running with PID 31883.
+
+### Follow-up Change: Billing Mode Surface Aligned (2026-11-12 18:55 IST)
+- Developer observation: the **Billing Mode** card's background differed from the other cards.
+- Confirmed in code: `RestaurantPaymentFlowSelector` was not wrapped in a `Card` and painted `DarkBrown2.copy(alpha = 0.45f)` (dark maroon) with a 45% gold border, while Restaurant Details / Business Hours use `CardBG` (0xCC78461E) with 25% `BorderGold`.
+- Fixed in `ShopConfigComponents.kt`: `CardBG` fill, `BorderGold` 25%, `KhanaRadii.lg`, `spacing.large` padding, 28 dp gold icon, bold `titleMedium` title and a `bodySmall` subtitle for parity with the sibling cards.
+- Also fixed the Business Hours subtitle wrapping mid-time by using a non-breaking space in the rollover label.
+- **VERIFIED on device:** `artifacts/android-ui-tests/cards_aligned.png`.
+
+### Follow-up Change: Collapsible Business Hours (2026-11-12 18:43-18:44 IST)
+- Requested by the developer: hide Opening/Closing time by default and keep a dropdown under the header that reveals them on tap.
+- Implemented in `ShopConfigSection.kt`: `isBusinessHoursExpanded` state (default `false`), clickable header row with chevron, and `AnimatedVisibility(expandVertically + fadeIn / shrinkVertically + fadeOut)` around the two `KhanaTimePickerField`s.
+- **VERIFIED on device `ZA222J5KT7`:** collapsed state (`artifacts/android-ui-tests/after_restart.png`) shows only icon + title + subtitle + chevron; tapping the header expands and reveals `Opening Time 06:00 AM` and `Closing Time 12:00 AM` with the chevron flipped up (`artifacts/android-ui-tests/business_hours_expanded.png`).
+- **VERIFIED live recalculation:** tapping Closing Time opened the `KhanaTimePickerDialog` (`closing_time_picker.png`, `picker_minutes.png`); selecting `11:30 AM` + OK changed the field to `11:30 AM` and the subtitle immediately became **"Daily Order Number will reset at 12:00 AM"** (`closing_time_changed.png`). For a daytime service (closing after opening, buffer does not cross midnight) this is the correct calendar-midnight rule from `BusinessDate.closingBoundary`, i.e. the label matches the numbering rule rather than the closing time.
+- Note: the test changed only in-memory state — nothing was saved, so the shop's stored closing time is unchanged.
+- Note: the expanded/collapsed flag is a `remember` in the screen scope, so it returns to collapsed when the screen is recreated or the composable leaves composition.
+- Compiled `./gradlew compileDebugKotlin` → BUILD SUCCESSFUL; `assembleDebug` + `adb install -r` → Success.
+
+### Verification Status
+- **VERIFIED (on device, screenshot `artifacts/android-ui-tests/business_hours_screen.png`, 2026-11-12 18:36 IST):**
+  - The standalone `Business Day` card is gone.
+  - `Business Hours` renders: clock icon, title, subtitle **"Daily Order Number will reset at 12:30 AM"** with Opening Time `06:00 AM` and Closing Time `12:00 AM` side by side. The 12:30 AM label is the correct closing `12:00 AM` + 30-minute settlement buffer.
+  - No dropdown/chevron affordance: each time field is a read-only `ParchmentTextField` with a trailing clock icon, and tapping anywhere in the field opens the `KhanaTimePickerDialog` (Material clock dial + AM/PM), not a dropdown list. Reported by the developer as "that dropdown is missing".
+  - **Open request:** whether these fields should become a real dropdown (exposed menu of times) or keep the clock-dial dialog with an added chevron affordance.
+- **BUG OBSERVED DURING VERIFICATION (not fixed):** tapping `Get OTP` on the Email field produced the inline error **"Failed to send verification email. Please try again."** while the typed address was still being edited, i.e. the request failed at dispatch time rather than as a duplicate-account rejection, indicating a failing email send path (SMTP/mail configuration on the server build being used). A subsequent tap on a live address returned the expected `"This email is already related to another shop."` guard message.
+- **NOT VERIFIED:** changing Closing Time in the UI and watching the subtitle update live (only compilation + read-only rendering confirmed).
+- **NOT DEPLOYED:** OnePlus Nord was not connected during this session, so it still runs an older build.
+
+### Known Limitations / Notes
+- The subtitle is a single small line; long rollover labels (e.g. `12:30 AM`) fit, but this is unverified on narrow devices.
+- Historical evidence for the removed card remains in `OPERATIONS/BUSINESS_SETTINGS_OPERATIONS.md` (OP-005) and `artifacts/android-ui-tests/device_business_day_card.png`.
+
 ## Session 004: Restaurant Configuration Visual Redesign & Card Architecture
 - **Session ID:** SES-20261112-004
 - **Date & Time:** 2026-11-12 16:30 – 16:55 IST

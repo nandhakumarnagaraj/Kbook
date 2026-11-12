@@ -7,9 +7,10 @@
    - Verify Top Bar header is aligned with the back button `(←)`.
    - Verify Card 1 (Restaurant Details) displays storefront icon, subtitle, logo changer, and leading icons for all 6 inputs.
    - Verify compact gold pill `[ ➤ Send OTP ]` button inside Email field when email is modified.
-   - Verify Card 2 (Business Hours) displays clock icon, subtitle, and side-by-side Opening & Closing time pickers with internal clock icons.
-   - Verify Card 3 (Business Day) displays Info icon, rollover message, and collapsible settlement buffer drawer toggled via chevron.
-   - Verify Card 4 (Billing Mode) and the full-width rounded gold pill button for `Save Configuration`.
+   - Verify Card 2 (Business Hours) is collapsed by default (clock icon + title + `"Daily Order Number will reset at <time>"` + chevron only), and that tapping the header reveals side-by-side Opening & Closing time fields.
+   - Change Closing Time and confirm the collapsed subtitle updates live (+30 min buffer).
+   - Confirm the separate `Business Day` card is gone (merged into Business Hours).
+   - Verify Card 3 (Billing Mode) and the full-width rounded gold pill button for `Save Configuration`.
 2. **Verify Quick Start Screen UI on Device**:
    - Reset or trigger fresh user onboarding state.
    - Verify `[Skip]` button is invisible initially and smoothly fades in after 5 seconds.
