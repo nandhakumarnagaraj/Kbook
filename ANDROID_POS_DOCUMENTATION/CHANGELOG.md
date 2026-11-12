@@ -1,5 +1,25 @@
 # Changelog
 
+## [2026-11-12] - Restaurant Configuration Modern Card Architecture Redesign
+### Changed
+- Redesigned Restaurant Configuration screen (`ShopConfigSection.kt` and `ShopConfigComponents.kt`) matching high-craft visual spec:
+  - **Top Bar Header**: Aligned title `"Restaurant Configuration"` directly adjacent to the back button `(←)` using `titleAlignment = TextAlign.Start` in `KhanaBookScreenScaffold.kt` and `SettingsScreen.kt`.
+  - **Card 1 (Restaurant Details)**:
+    - Added bold title with gold Storefront hero icon and descriptive subtitle.
+    - Added compact logo thumbnail with "Change Logo" button.
+    - Integrated leading icons for all 6 inputs: `Storefront` (Shop Name), `LocationOn` (Shop Address), `Phone` (WhatsApp Number), `Email` (Email), `Link` (Review Link), `Description` (Invoice Footer).
+    - Compact gold pill button `[ ➤ Send OTP ]` positioned inside the Email trailing icon space.
+  - **Card 2 (Business Hours)**:
+    - Gold clock icon, descriptive subtitle, and side-by-side time picker fields (`KhanaTimePickerField`) for Opening and Closing time.
+  - **Card 3 (Business Day)**:
+    - Refactored `BusinessDayInfoCard` with gold Info icon, clean rollover summary, and collapsible settlement buffer drawer toggled via chevron (`KeyboardArrowDown` / `KeyboardArrowUp`).
+  - **Card 4 (Billing Mode)**:
+    - Retained PIN-protected `RestaurantPaymentFlowSelector` styled cohesively with card surface.
+  - **Bottom Action Button**:
+    - Replaced dual back/save row with a single full-width rounded gold pill button for `Save Configuration` (`height = 52.dp`, `shape = KhanaRadii.xl`).
+  - **Scrollbar**: Slender 3.dp vertical scrollbar thumb.
+- Updated `SCR-08` in `04_SCREEN_INVENTORY.md`.
+
 ## [2026-11-12] - Email OTP Protection & Quick Start Wizard Onboarding Polish
 ### Added
 - Backend Email OTP endpoints: `/api/v1/sync/config/users/update-email/request` and `/api/v1/sync/config/users/update-email`.

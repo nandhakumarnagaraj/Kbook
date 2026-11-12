@@ -1,5 +1,30 @@
 # Device Testing Session Log
 
+## Session 004: Restaurant Configuration Visual Redesign & Card Architecture
+- **Session ID:** SES-20261112-004
+- **Date & Time:** 2026-11-12 16:30 – 16:55 IST
+- **Target Device / Architecture:** Android POS (`ShopConfigSection.kt`, `ShopConfigComponents.kt`, `KhanaBookScreenScaffold.kt`)
+- **Initial Screen:** Restaurant Configuration (`SCR-08`)
+- **Objective:** Modernize Restaurant Configuration UI to eliminate monolithic container, improve information architecture, add leading icons to all 6 inputs, compact Send OTP action, side-by-side time pickers, collapsible business day buffer, and full-width gold pill save button.
+
+### Operations Performed
+1. Updated `CommonComponents.kt` (`ParchmentTextField`) to support `placeholder` and `leadingIcon`.
+2. Updated `KhanaBookScreenScaffold.kt` to accept `titleAlignment: TextAlign = TextAlign.Center`, allowing left-aligned headers next to the back button.
+3. Updated `SettingsScreen.kt` to pass `titleAlignment = TextAlign.Start` when viewing `shop`.
+4. Modernized `ShopConfigComponents.kt`: added expand/collapse chevron animation to `BusinessDayInfoCard`.
+5. Redesigned `ShopConfigSection.kt` into 4 dedicated cards:
+   - Card 1: Restaurant Details (Storefront icon, subtitle, logo changer, and 6 inputs with leading icons + compact gold `[ ➤ Send OTP ]` pill button).
+   - Card 2: Business Hours (Clock icon, subtitle, Opening & Closing time pickers side-by-side).
+   - Card 3: Business Day (Info icon, rollover time summary, collapsible settlement buffer explanation).
+   - Card 4: Billing Mode (`RestaurantPaymentFlowSelector` with PIN lock protection).
+   - Bottom CTA: Full-width rounded gold pill button for `Save Configuration` with loading spinner.
+6. Compiled Kotlin via `./gradlew compileDebugKotlin`: **BUILD SUCCESSFUL**.
+7. Ran Android unit tests via `./gradlew testDebugUnitTest --tests "com.khanabook.lite.pos.feature.auth.viewmodel.EmailOtpViewModelTest"`: **BUILD SUCCESSFUL** (3/3 passed).
+8. Assembled debug APK via `./gradlew assembleDebug`: **BUILD SUCCESSFUL** (`app-debug.apk` ready for hardware deployment).
+9. Updated documentation `04_SCREEN_INVENTORY.md`, `CHANGELOG.md`, `SESSION_LOG.md`, and `NEXT_ACTIONS.md`.
+
+---
+
 ## Session 003: Restaurant Configuration Email OTP Protection Implementation
 
 - **Session ID:** SES-20261112-003

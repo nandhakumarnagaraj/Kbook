@@ -16,6 +16,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +30,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.padding
@@ -38,10 +41,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
@@ -83,6 +95,8 @@ import com.khanabook.lite.pos.core.designsystem.KhanaToast
 import com.khanabook.lite.pos.core.designsystem.ToastKind
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import com.khanabook.lite.pos.core.theme.BorderGold
+import com.khanabook.lite.pos.core.theme.CardBG
 import com.khanabook.lite.pos.core.theme.DangerRed
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.DarkBrown1
@@ -138,6 +152,10 @@ fun ShopConfigView(
     val enteredPin by appLockViewModel.enteredPin.collectAsStateWithLifecycle()
     val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
     val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
+    val isPhoneValid = ValidationUtils.isValidPhone(whatsapp)
+    val numberChanged = whatsapp != (profile?.whatsappNumber ?: "")
+    val emailChanged = !isGoogleAuth && email.trim() != (profile?.email?.trim() ?: "")
+    val isEmailValid = ValidationUtils.isValidEmail(email.trim())
     val currentPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
     var selectedPaymentFlowMode by remember {
         mutableStateOf(currentPaymentFlowMode)
@@ -346,300 +364,446 @@ fun ShopConfigView(
                 .fillMaxSize()
                 .widthIn(max = layout.maxContentWidth)
                 .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))
-                .verticalScrollbar(scrollState)
+                .verticalScrollbar(scrollState, width = 3.dp)
                 .verticalScroll(scrollState)
                 .padding(layout.contentPadding)
         ) {
-        ConfigCard {
-            Text("Shop Profile", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(spacing.medium))
-            if (readOnly) {
-                com.khanabook.lite.pos.feature.settings.ui.ReadOnlyConfigNotice(
-                    "Read-only: only the restaurant owner can edit the shop configuration."
-                )
-            }
-
-            val logoContent = @Composable {
-                Box(
-                    modifier = Modifier
-                        .size(KhanaBookTheme.iconSize.hero)
-                        .background(Color.White)
-                        .border(1.dp, Color.LightGray),
-                    contentAlignment = Alignment.Center
+            // Card 1: Restaurant Details
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBG),
+                shape = KhanaRadii.lg,
+                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(spacing.large),
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium)
                 ) {
-                    // Same resilience contract as MenuItemThumbnail (dish
-                    // photos): pending pick -> remote logoUrl -> locally
-                    // stored logoPath, with a placeholder whenever nothing
-                    // can be resolved or every source fails to load.
-                    val pendingModel = pendingLogoUri?.toString()
-                    val remoteModel = logoUrl?.takeIf { it.isNotBlank() }
-                    val localModel = AppAssetStore.resolveAssetPath(logoPath)
-                    val logoModel = pendingModel ?: remoteModel ?: localModel
-                    if (!logoModel.isNullOrBlank()) {
-                        // Load stages: 0 = primary model, 1 = local fallback,
-                        // 2 = gave up (placeholder). Keyed to the model so a
-                        // new logo (upload/sync) restarts the whole sequence.
-                        var loadStage by remember(logoModel) { mutableIntStateOf(0) }
-                        var isLogoLoading by remember(logoModel) { mutableStateOf(true) }
-                        val canFallbackToLocal =
-                            pendingModel == null && remoteModel != null &&
-                                localModel != null && logoModel == remoteModel
-                        val effectiveModel = when (loadStage) {
-                            0 -> logoModel
-                            1 -> if (canFallbackToLocal) localModel else null
-                            else -> null
+                    // Header Row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Storefront,
+                            contentDescription = null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Restaurant Details",
+                                color = TextLight,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Text(
+                                text = "Configure your restaurant information",
+                                color = TextGold.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
-                        if (effectiveModel != null) {
-                            // Version in the cache keys so a replaced logo
-                            // served at the same URL invalidates immediately.
-                            val logoCacheKey = "$effectiveModel:${profile?.logoVersion ?: 0}"
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                AsyncImage(
-                                    model = ImageRequest.Builder(LocalContext.current)
-                                        .data(effectiveModel)
-                                        .crossfade(true)
-                                        .memoryCacheKey(logoCacheKey)
-                                        .diskCacheKey(logoCacheKey)
-                                        .diskCachePolicy(CachePolicy.ENABLED)
-                                        .memoryCachePolicy(CachePolicy.ENABLED)
-                                        .build(),
-                                    contentDescription = "Logo",
-                                    modifier = Modifier.fillMaxSize().padding(spacing.extraSmall),
-                                    onLoading = { isLogoLoading = true },
-                                    onSuccess = { isLogoLoading = false },
-                                    onError = {
-                                        isLogoLoading = false
-                                        // Remote logo failed (offline / stale
-                                        // CDN URL): retry with the locally
-                                        // stored copy before giving up.
-                                        loadStage =
-                                            if (loadStage == 0 && canFallbackToLocal) 1 else 2
+                    }
+
+                    if (readOnly) {
+                        com.khanabook.lite.pos.feature.settings.ui.ReadOnlyConfigNotice(
+                            "Read-only: only the restaurant owner can edit the shop configuration."
+                        )
+                    }
+
+                    // Logo Uploader Row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.medium),
+                        modifier = Modifier.padding(vertical = spacing.extraSmall)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(KhanaRadii.md)
+                                .background(Color.White)
+                                .border(1.dp, BorderGold.copy(alpha = 0.5f), KhanaRadii.md),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val pendingModel = pendingLogoUri?.toString()
+                            val remoteModel = logoUrl?.takeIf { it.isNotBlank() }
+                            val localModel = AppAssetStore.resolveAssetPath(logoPath)
+                            val logoModel = pendingModel ?: remoteModel ?: localModel
+                            if (!logoModel.isNullOrBlank()) {
+                                var loadStage by remember(logoModel) { mutableIntStateOf(0) }
+                                var isLogoLoading by remember(logoModel) { mutableStateOf(true) }
+                                val canFallbackToLocal =
+                                    pendingModel == null && remoteModel != null &&
+                                        localModel != null && logoModel == remoteModel
+                                val effectiveModel = when (loadStage) {
+                                    0 -> logoModel
+                                    1 -> if (canFallbackToLocal) localModel else null
+                                    else -> null
+                                }
+                                if (effectiveModel != null) {
+                                    val logoCacheKey = "$effectiveModel:${profile?.logoVersion ?: 0}"
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(LocalContext.current)
+                                                .data(effectiveModel)
+                                                .crossfade(true)
+                                                .memoryCacheKey(logoCacheKey)
+                                                .diskCacheKey(logoCacheKey)
+                                                .diskCachePolicy(CachePolicy.ENABLED)
+                                                .memoryCachePolicy(CachePolicy.ENABLED)
+                                                .build(),
+                                            contentDescription = "Logo",
+                                            modifier = Modifier.fillMaxSize().padding(spacing.extraSmall),
+                                            onLoading = { isLogoLoading = true },
+                                            onSuccess = { isLogoLoading = false },
+                                            onError = {
+                                                isLogoLoading = false
+                                                loadStage =
+                                                    if (loadStage == 0 && canFallbackToLocal) 1 else 2
+                                            }
+                                        )
+                                        if (isLogoLoading) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(iconSize.medium).align(Alignment.Center),
+                                                color = PrimaryGold,
+                                                strokeWidth = 2.dp
+                                            )
+                                        }
                                     }
+                                } else {
+                                    Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
+                                }
+                            } else if (logoUploadLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = PrimaryGold, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
+                            }
+                        }
+                        OutlinedButton(
+                            onClick = { logoLauncher.launch("image/*") },
+                            border = BorderStroke(1.dp, PrimaryGold),
+                            shape = KhanaRadii.xl,
+                            enabled = !logoUploadLoading && !readOnly
+                        ) {
+                            Text("Change Logo", color = PrimaryGold, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+
+                    // Field 1: Shop Name
+                    ParchmentTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = "Shop Name *",
+                        placeholder = "Enter Shop Name",
+                        leadingIcon = {
+                            Icon(Icons.Default.Storefront, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                        },
+                        enabled = !readOnly,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                    )
+
+                    // Field 2: Shop Address
+                    ParchmentTextField(
+                        value = address,
+                        onValueChange = { address = it },
+                        label = "Shop Address *",
+                        placeholder = "Enter Shop Address",
+                        leadingIcon = {
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                        },
+                        enabled = !readOnly,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                    )
+
+                    // Field 3: WhatsApp Number
+                    ParchmentTextField(
+                        value = whatsapp,
+                        onValueChange = {
+                            val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                            whatsapp = filtered
+                            if (filtered != (profile?.whatsappNumber ?: "")) {
+                                otpSent = false
+                                isOtpVerified = false
+                                otpValue = ""
+                                if (filtered.length == 10) {
+                                    viewModel.checkUserExists(filtered, profile?.whatsappNumber ?: "")
+                                }
+                            } else {
+                                isOtpVerified = true
+                                viewModel.clearUserCheck()
+                            }
+                        },
+                        label = "WhatsApp Number",
+                        placeholder = "Enter WhatsApp Number",
+                        leadingIcon = {
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                        },
+                        enabled = !readOnly,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+                        isError = (whatsapp.isNotEmpty() && !isPhoneValid) || userExistsError != null,
+                        supportingText = if (userExistsError != null) userExistsError else if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
+                        trailingIcon = {
+                            if (isUserChecking) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = PrimaryGold
                                 )
-                                if (isLogoLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(iconSize.medium).align(Alignment.Center),
-                                        color = PrimaryGold,
-                                        strokeWidth = 2.dp
+                            } else if (numberChanged && (!otpSent || otpTimer == 0)) {
+                                Button(
+                                    onClick = {
+                                        if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
+                                    },
+                                    modifier = Modifier.padding(end = 4.dp).height(36.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                    shape = KhanaRadii.xl,
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    enabled = isPhoneValid && !isUserChecking && userExistsError == null && !readOnly
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Send,
+                                            contentDescription = null,
+                                            tint = DarkBrown1,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                    }
+                                }
+                            } else if (numberChanged && isOtpVerified) {
+                                Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
+                            }
+                        }
+                    )
+
+                    if (otpSent && numberChanged) {
+                        ParchmentTextField(
+                            value = otpValue,
+                            onValueChange = {
+                                val filtered = it.filter { ch -> ch.isDigit() }.take(6)
+                                otpValue = filtered
+                                if (filtered.length == 6) {
+                                    authViewModel.confirmMobileNumberUpdate(whatsapp, filtered)
+                                } else {
+                                    isOtpVerified = false
+                                }
+                            },
+                            label = "Enter 6-digit OTP",
+                            placeholder = "6-digit OTP",
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                            },
+                            enabled = !readOnly,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                            isError = (otpValue.length == 6 && !isOtpVerified) || !otpFieldErrors["otp"].isNullOrBlank(),
+                            supportingText = otpFieldErrors["otp"] ?: if (otpValue.length == 6 && !isOtpVerified) "Invalid OTP code" else null,
+                            trailingIcon = {
+                                if (otpTimer > 0 && !isOtpVerified) {
+                                    Text(
+                                        String.format("%02d:%02d", otpTimer / 60, otpTimer % 60),
+                                        color = TextLight,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        modifier = Modifier.padding(end = spacing.medium)
                                     )
+                                } else if (isOtpVerified) {
+                                    Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
                                 }
                             }
-                        } else {
-                            Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
-                        }
-                    } else if (logoUploadLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = PrimaryGold, strokeWidth = 2.dp)
-                    } else {
-                        Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.xlarge))
-                    }
-                }
-                OutlinedButton(
-                    onClick = { logoLauncher.launch("image/*") },
-                    border = BorderStroke(1.dp, PrimaryGold),
-                    shape = KhanaRadii.xl,
-                    enabled = !logoUploadLoading && !readOnly
-                ) { Text("Change Logo", color = PrimaryGold) }
-            }
-
-            if (isCompactWidth) {
-                Column(verticalArrangement = Arrangement.spacedBy(spacing.medium)) { logoContent() }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing.medium)) { logoContent() }
-            }
-
-            Spacer(modifier = Modifier.height(spacing.large))
-            ParchmentTextField(value = name, onValueChange = { name = it }, label = "Shop Name", enabled = !readOnly, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
-            Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = address, onValueChange = { address = it }, label = "Shop Address", enabled = !readOnly, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
-            val isPhoneValid = ValidationUtils.isValidPhone(whatsapp)
-            val numberChanged = whatsapp != (profile?.whatsappNumber ?: "")
-
-            Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(
-                value = whatsapp,
-                onValueChange = {
-                    val filtered = it.filter { ch -> ch.isDigit() }.take(10)
-                    whatsapp = filtered
-                    if (filtered != (profile?.whatsappNumber ?: "")) {
-                        otpSent = false
-                        isOtpVerified = false
-                        otpValue = ""
-                        if (filtered.length == 10) {
-                            viewModel.checkUserExists(filtered, profile?.whatsappNumber ?: "")
-                        }
-                    } else {
-                        isOtpVerified = true
-                        viewModel.clearUserCheck()
-                    }
-                },
-                label = "Whatsapp Number",
-                enabled = !readOnly,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
-                isError = (whatsapp.isNotEmpty() && !isPhoneValid) || userExistsError != null,
-                supportingText = if (userExistsError != null) userExistsError else if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
-                trailingIcon = {
-                    if (isUserChecking) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = PrimaryGold
                         )
-                    } else if (numberChanged && (!otpSent || otpTimer == 0)) {
-                        Button(
-                            onClick = {
-                                if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
-                            },
-                            modifier = Modifier.padding(end = spacing.extraSmall).height(KhanaBookTheme.spacing.buttonHeightLarge),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                            shape = KhanaRadii.xl,
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-                            enabled = isPhoneValid && !isUserChecking && userExistsError == null && !readOnly
-                        ) {
-                            Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium)
-                        }
                     }
-                }
-            )
 
-            if (otpSent && numberChanged) {
-                Spacer(modifier = Modifier.height(spacing.medium))
-                ParchmentTextField(
-                    value = otpValue,
-                    onValueChange = {
-                        val filtered = it.filter { ch -> ch.isDigit() }.take(6)
-                        otpValue = filtered
-                        if (filtered.length == 6) {
-                            authViewModel.confirmMobileNumberUpdate(whatsapp, filtered)
-                        } else {
-                            isOtpVerified = false
+                    // Field 4: Email
+                    ParchmentTextField(
+                        value = email,
+                        onValueChange = {
+                            if (!isGoogleAuth) {
+                                email = it
+                                if (it.trim() != (profile?.email?.trim() ?: "")) {
+                                    isEmailOtpVerified = false
+                                    emailOtpSent = false
+                                } else {
+                                    isEmailOtpVerified = true
+                                }
+                            }
+                        },
+                        label = if (isGoogleAuth) "Email (Google account)" else "Email *",
+                        placeholder = "Enter Email Address",
+                        leadingIcon = {
+                            Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                        },
+                        enabled = !isGoogleAuth && !readOnly,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                        isError = (!isGoogleAuth && email.isNotBlank() && !isEmailValid) || !emailOtpFieldErrors["email"].isNullOrBlank(),
+                        supportingText = emailOtpFieldErrors["email"] ?: if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) "Enter valid email address" else null,
+                        trailingIcon = {
+                            if (!isGoogleAuth && emailChanged && isEmailValid && (!emailOtpSent || emailOtpTimer == 0) && !isEmailOtpVerified) {
+                                Button(
+                                    onClick = {
+                                        authViewModel.sendEmailUpdateOtp(email.trim())
+                                    },
+                                    modifier = Modifier.padding(end = 4.dp).height(36.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                    shape = KhanaRadii.xl,
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    enabled = !readOnly
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.AutoMirrored.Filled.Send,
+                                            contentDescription = null,
+                                            tint = DarkBrown1,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                    }
+                                }
+                            } else if (!isGoogleAuth && emailChanged && isEmailOtpVerified) {
+                                Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
+                            }
                         }
-                    },
-                    label = "Enter 6-digit OTP",
-                    enabled = !readOnly,
-                    isError = (otpValue.length == 6 && !isOtpVerified) || !otpFieldErrors["otp"].isNullOrBlank(),
-                    supportingText = otpFieldErrors["otp"] ?: if (otpValue.length == 6 && !isOtpVerified) "Invalid OTP code" else null,
-                    trailingIcon = {
-                        if (otpTimer > 0 && !isOtpVerified) {
-                            Text(
-                                String.format("%02d:%02d", otpTimer / 60, otpTimer % 60),
-                                color = com.khanabook.lite.pos.core.theme.TextLight,
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.padding(end = spacing.medium)
-                            )
-                        } else if (isOtpVerified) {
-                            Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
-                        }
+                    )
+
+                    if (!isGoogleAuth && emailOtpSent && emailChanged) {
+                        ParchmentTextField(
+                            value = emailOtpValue,
+                            onValueChange = {
+                                val filtered = it.filter { ch -> ch.isDigit() }.take(6)
+                                emailOtpValue = filtered
+                                if (filtered.length == 6) {
+                                    authViewModel.confirmEmailUpdate(email.trim(), filtered)
+                                } else {
+                                    isEmailOtpVerified = false
+                                }
+                            },
+                            label = "Enter 6-digit Email OTP",
+                            placeholder = "6-digit OTP",
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                            },
+                            enabled = !readOnly,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                            isError = (emailOtpValue.length == 6 && !isEmailOtpVerified) || !emailOtpFieldErrors["otp"].isNullOrBlank(),
+                            supportingText = emailOtpFieldErrors["otp"] ?: if (emailOtpValue.length == 6 && !isEmailOtpVerified) "Invalid OTP code" else null,
+                            trailingIcon = {
+                                if (emailOtpTimer > 0 && !isEmailOtpVerified) {
+                                    Text(
+                                        String.format("%02d:%02d", emailOtpTimer / 60, emailOtpTimer % 60),
+                                        color = TextLight,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        modifier = Modifier.padding(end = spacing.medium)
+                                    )
+                                } else if (isEmailOtpVerified) {
+                                    Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
+                                }
+                            }
+                        )
                     }
-                )
+
+                    // Field 5: Review Link
+                    ParchmentTextField(
+                        value = reviewUrl,
+                        onValueChange = { reviewUrl = it },
+                        label = "Review Link",
+                        placeholder = "Enter Review Link",
+                        leadingIcon = {
+                            Icon(Icons.Default.Link, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                        },
+                        enabled = !readOnly,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next)
+                    )
+
+                    // Field 6: Invoice Footer
+                    ParchmentTextField(
+                        value = invoiceFooter,
+                        onValueChange = { invoiceFooter = it },
+                        label = "Invoice Footer",
+                        placeholder = "Enter Invoice Footer",
+                        leadingIcon = {
+                            Icon(Icons.Default.Description, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
+                        },
+                        enabled = !readOnly,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done)
+                    )
+                }
             }
 
-            val emailChanged = !isGoogleAuth && email.trim() != (profile?.email?.trim() ?: "")
-            val isEmailValid = ValidationUtils.isValidEmail(email.trim())
+            Spacer(modifier = Modifier.height(spacing.medium))
 
-            Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(
-                value = email,
-                onValueChange = {
-                    if (!isGoogleAuth) {
-                        email = it
-                        if (it.trim() != (profile?.email?.trim() ?: "")) {
-                            isEmailOtpVerified = false
-                            emailOtpSent = false
-                        } else {
-                            isEmailOtpVerified = true
-                        }
-                    }
-                },
-                label = if (isGoogleAuth) "Email (Google account)" else "Email",
-                enabled = !isGoogleAuth && !readOnly,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                isError = (!isGoogleAuth && email.isNotBlank() && !isEmailValid) || !emailOtpFieldErrors["email"].isNullOrBlank(),
-                supportingText = emailOtpFieldErrors["email"] ?: if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) "Enter valid email address" else null,
-                trailingIcon = {
-                    if (!isGoogleAuth && emailChanged && isEmailValid && (!emailOtpSent || emailOtpTimer == 0) && !isEmailOtpVerified) {
-                        Button(
-                            onClick = {
-                                authViewModel.sendEmailUpdateOtp(email.trim())
-                            },
-                            modifier = Modifier.padding(end = spacing.extraSmall).height(KhanaBookTheme.spacing.buttonHeightLarge),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                            shape = KhanaRadii.xl,
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-                            enabled = !readOnly
-                        ) {
-                            Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium)
-                        }
-                    } else if (!isGoogleAuth && emailChanged && isEmailOtpVerified) {
-                        Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
-                    }
-                }
-            )
-
-            if (!isGoogleAuth && emailOtpSent && emailChanged) {
-                Spacer(modifier = Modifier.height(spacing.medium))
-                ParchmentTextField(
-                    value = emailOtpValue,
-                    onValueChange = {
-                        val filtered = it.filter { ch -> ch.isDigit() }.take(6)
-                        emailOtpValue = filtered
-                        if (filtered.length == 6) {
-                            authViewModel.confirmEmailUpdate(email.trim(), filtered)
-                        } else {
-                            isEmailOtpVerified = false
-                        }
-                    },
-                    label = "Enter 6-digit Email OTP",
-                    enabled = !readOnly,
-                    isError = (emailOtpValue.length == 6 && !isEmailOtpVerified) || !emailOtpFieldErrors["otp"].isNullOrBlank(),
-                    supportingText = emailOtpFieldErrors["otp"] ?: if (emailOtpValue.length == 6 && !isEmailOtpVerified) "Invalid OTP code" else null,
-                    trailingIcon = {
-                        if (emailOtpTimer > 0 && !isEmailOtpVerified) {
-                            Text(
-                                String.format("%02d:%02d", emailOtpTimer / 60, emailOtpTimer % 60),
-                                color = com.khanabook.lite.pos.core.theme.TextLight,
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.padding(end = spacing.medium)
-                            )
-                        } else if (isEmailOtpVerified) {
-                            Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
-                        }
-                    }
-                )
-            }
-            Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link", enabled = !readOnly, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next))
-            Spacer(modifier = Modifier.height(spacing.medium))
-            ParchmentTextField(value = invoiceFooter, onValueChange = { invoiceFooter = it }, label = "Invoice Footer", enabled = !readOnly, keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done))
-            Spacer(modifier = Modifier.height(spacing.medium))
-            Text("Business Hours", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
-            Spacer(modifier = Modifier.height(spacing.extraSmall))
-            Row(
+            // Card 2: Business Hours
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                colors = CardDefaults.cardColors(containerColor = CardBG),
+                shape = KhanaRadii.lg,
+                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
             ) {
-                KhanaTimePickerField(
-                    label = "Opening Time",
-                    time = openingTime,
-                    onTimeSelected = { openingTime = it },
-                    enabled = !readOnly,
-                    modifier = Modifier.weight(1f)
-                )
-                KhanaTimePickerField(
-                    label = "Closing Time",
-                    time = closingTime,
-                    onTimeSelected = { closingTime = it },
-                    enabled = !readOnly,
-                    modifier = Modifier.weight(1f)
-                )
+                Column(
+                    modifier = Modifier.padding(spacing.large),
+                    verticalArrangement = Arrangement.spacedBy(spacing.medium)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccessTime,
+                            contentDescription = null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Business Hours",
+                                color = TextLight,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Text(
+                                text = "Set your restaurant operating hours",
+                                color = TextGold.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                    ) {
+                        KhanaTimePickerField(
+                            label = "Opening Time",
+                            time = openingTime,
+                            onTimeSelected = { openingTime = it },
+                            enabled = !readOnly,
+                            modifier = Modifier.weight(1f)
+                        )
+                        KhanaTimePickerField(
+                            label = "Closing Time",
+                            time = closingTime,
+                            onTimeSelected = { closingTime = it },
+                            enabled = !readOnly,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
             }
+
             Spacer(modifier = Modifier.height(spacing.medium))
+
+            // Card 3: Business Day Info Card (Collapsible)
             BusinessDayInfoCard(
                 cutoffTime = profile?.businessDayCutoffTime,
                 cutoffEffectiveFrom = profile?.cutoffEffectiveFrom,
                 openingTime = openingTime,
                 closingTime = closingTime
             )
+
             Spacer(modifier = Modifier.height(spacing.medium))
+
+            // Card 4: Billing Flow Mode Selector
             RestaurantPaymentFlowSelector(
                 selectedMode = selectedPaymentFlowMode,
                 enabled = profile != null,
@@ -659,52 +823,76 @@ fun ShopConfigView(
 
             Spacer(modifier = Modifier.height(spacing.large))
 
-            ConfigActionButtons(
-                onSave = {
-                        if (numberChanged && !isOtpVerified) {
-                            toastScope.launch {
-                                KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
-                            }
-                        } else if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) {
-                            toastScope.launch {
-                                KhanaToast.show("Please enter a valid email address", ToastKind.Warning)
-                            }
-                        } else if (emailChanged && !isEmailOtpVerified) {
-                            toastScope.launch {
-                                KhanaToast.show(context.getString(R.string.toast_verify_new_email), ToastKind.Warning)
-                            }
-                        } else {
-                            val updatedProfile = profile?.copy(
-                                shopName = name,
-                                shopAddress = address,
-                                whatsappNumber = whatsapp,
-                                email = email,
-                                logoPath = profile?.logoPath,
-                                logoUrl = profile?.logoUrl,
-                                emailInvoiceConsent = consent,
-                                reviewUrl = reviewUrl,
-                                invoiceFooter = invoiceFooter,
-                                openingTime = openingTime,
-                                closingTime = closingTime,
-                                orderPaymentFlowMode = selectedPaymentFlowMode.dbValue,
-                                isSynced = false,
-                                updatedAt = System.currentTimeMillis()
-                            )
-                            updatedProfile?.let {
-                                focusManager.clearFocus()
-                                onSaved()
-                                viewModel.saveProfileWithLogo(context, it, pendingLogoUri)
-                                pendingLogoUri = null
-                            }
+            // Full-Width Gold Pill CTA: Save Configuration
+            Button(
+                onClick = {
+                    if (numberChanged && !isOtpVerified) {
+                        toastScope.launch {
+                            KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
                         }
+                    } else if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) {
+                        toastScope.launch {
+                            KhanaToast.show("Please enter a valid email address", ToastKind.Warning)
+                        }
+                    } else if (emailChanged && !isEmailOtpVerified) {
+                        toastScope.launch {
+                            KhanaToast.show(context.getString(R.string.toast_verify_new_email), ToastKind.Warning)
+                        }
+                    } else {
+                        val updatedProfile = profile?.copy(
+                            shopName = name,
+                            shopAddress = address,
+                            whatsappNumber = whatsapp,
+                            email = email,
+                            logoPath = profile?.logoPath,
+                            logoUrl = profile?.logoUrl,
+                            emailInvoiceConsent = consent,
+                            reviewUrl = reviewUrl,
+                            invoiceFooter = invoiceFooter,
+                            openingTime = openingTime,
+                            closingTime = closingTime,
+                            orderPaymentFlowMode = selectedPaymentFlowMode.dbValue,
+                            isSynced = false,
+                            updatedAt = System.currentTimeMillis()
+                        )
+                        updatedProfile?.let {
+                            focusManager.clearFocus()
+                            onSaved()
+                            viewModel.saveProfileWithLogo(context, it, pendingLogoUri)
+                            pendingLogoUri = null
+                        }
+                    }
                 },
-                onBack = onBack,
-                isSaving = saveProfileLoading,
-                saveEnabled = !readOnly
-            )
+                enabled = !readOnly && !saveProfileLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PrimaryGold,
+                    contentColor = DarkBrown1,
+                    disabledContainerColor = PrimaryGold.copy(alpha = 0.4f),
+                    disabledContentColor = DarkBrown1.copy(alpha = 0.5f)
+                ),
+                shape = KhanaRadii.xl
+            ) {
+                if (saveProfileLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = DarkBrown1,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(spacing.small))
+                }
+                Text(
+                    text = if (saveProfileLoading) "Saving..." else "Save Configuration",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = DarkBrown1
+                )
+            }
+
+            Spacer(modifier = Modifier.height(spacing.huge))
         }
     }
-}
 
     if (showModePinDialog) {
         AlertDialog(

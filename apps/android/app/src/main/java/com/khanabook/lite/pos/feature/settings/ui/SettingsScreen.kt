@@ -184,7 +184,8 @@ fun SettingsScreen(
                 }
             },
             titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
-            titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall
+            titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
+            titleAlignment = if (section == "shop") TextAlign.Start else TextAlign.Center
         ) {
             Box(modifier = Modifier.weight(1f)) {
                 val lastSyncTs = remember { viewModel.getLastSyncTimestamp() }

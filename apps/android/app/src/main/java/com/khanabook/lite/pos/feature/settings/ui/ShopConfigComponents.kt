@@ -21,8 +21,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -196,12 +203,15 @@ internal fun BusinessDayInfoCard(
     }
     val rolloverLabel = formatClockTime(rollover)
     val closingLabel = formatClockTime(closingTime)
+    var isExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), KhanaRadii.lg)
             .background(DarkBrown2.copy(alpha = 0.45f), KhanaRadii.lg)
+            .clip(KhanaRadii.lg)
+            .clickable { isExpanded = !isExpanded }
             .padding(spacing.medium),
         verticalArrangement = Arrangement.spacedBy(spacing.small)
     ) {
@@ -217,27 +227,45 @@ internal fun BusinessDayInfoCard(
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.weight(1f)
             )
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = PrimaryGold,
+                modifier = Modifier.size(KhanaBookTheme.iconSize.medium)
+            )
         }
         Text(
             text = "Daily order number will reset to 01 at $rolloverLabel",
             color = TextLight,
             style = MaterialTheme.typography.bodyMedium
         )
-        Text(
-            text = when {
-                cutoffActive -> "Daily order number resets to 01 before $rolloverLabel (previous business day)."
-                hasBuffer -> "Includes a ${BusinessDate.SETTLEMENT_BUFFER_MINUTES}-minute settlement buffer after your $closingLabel closing time, so the daily order number continues in the same series."
-                else -> "Daily order number will restart at $rolloverLabel."
-            },
-            color = TextGold.copy(alpha = 0.75f),
-            style = MaterialTheme.typography.bodySmall
-        )
-        if (hasBuffer) {
-            Text(
-                text = " (${BusinessDate.SETTLEMENT_BUFFER_MINUTES} min settlement buffer added after closing for overnight shifts)",
-                color = TextGold.copy(alpha = 0.45f),
-                style = MaterialTheme.typography.bodySmall
-            )
+        AnimatedVisibility(visible = isExpanded) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = spacing.extraSmall)
+                    .background(DarkBrown1.copy(alpha = 0.5f), KhanaRadii.md)
+                    .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.15f)), KhanaRadii.md)
+                    .padding(spacing.small),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(spacing.small)
+            ) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    tint = TextGold.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp).padding(top = 2.dp)
+                )
+                Text(
+                    text = when {
+                        cutoffActive -> "Daily order number resets to 01 before $rolloverLabel (previous business day)."
+                        hasBuffer -> "Includes a ${BusinessDate.SETTLEMENT_BUFFER_MINUTES}-minute settlement buffer after your $closingLabel closing time."
+                        else -> "Daily order number will restart at $rolloverLabel."
+                    },
+                    color = TextGold.copy(alpha = 0.85f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }
