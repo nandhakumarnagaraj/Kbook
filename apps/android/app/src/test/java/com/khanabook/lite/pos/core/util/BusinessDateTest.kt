@@ -171,35 +171,45 @@ class BusinessDateTest {
         val p = profile(opening = "18:00", closing = "02:10")
         // 01:00 is still the previous night's service.
         assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 1, 0), p))
-        // 02:10 is closing, but 60m settlement buffer (until 03:10) keeps table settlements on previous day.
+        // 02:10 is closing, but 30m settlement buffer (until 02:40) keeps table settlements on previous day.
         assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 2, 10), p))
-        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 3, 9), p))
-        // The settlement boundary (03:10) starts the next series.
-        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 3, 10), p))
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 2, 39), p))
+        // The settlement boundary (02:40) starts the next series.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 2, 40), p))
         assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 23, 0), p))
     }
 
     @Test
-    fun `midnight closing service gets 60m buffer until 01_00 AM`() {
+    fun `midnight closing service gets 30m buffer until 00_30 AM`() {
         val p = profile(opening = "12:00", closing = "00:00")
         // 23:45 is on the previous day.
         assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 9, 23, 45), p))
-        // 00:30 AM is within 60m settlement buffer (until 01:00 AM) and belongs to Nov 09.
-        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 30), p))
-        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 59), p))
-        // At 01:00 AM, the shift rolls over to Nov 10.
+        // 00:15 AM is within 30m settlement buffer (until 00:30 AM) and belongs to Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 15), p))
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 29), p))
+        // At 00:30 AM, the shift rolls over to Nov 10.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 30), p))
         assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 1, 0), p))
     }
 
     @Test
-    fun `late evening 23_30 closing gets 60m buffer until 00_30 AM`() {
+    fun `late evening 23_45 closing gets 30m buffer until 00_15 AM`() {
+        val p = profile(opening = "11:00", closing = "23:45")
+        // 23:55 is on Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 9, 23, 55), p))
+        // 00:10 AM is within 30m buffer (until 00:15 AM) and belongs to Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 10), p))
+        // At 00:15 AM, rolls over to Nov 10.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 15), p))
+    }
+
+    @Test
+    fun `late evening 23_30 closing with 30m buffer ends at midnight`() {
         val p = profile(opening = "11:00", closing = "23:30")
         // 23:45 is on Nov 09.
         assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 9, 23, 45), p))
-        // 00:15 AM is within 60m buffer (until 00:30 AM) and belongs to Nov 09.
-        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 15), p))
-        // At 00:30 AM, rolls over to Nov 10.
-        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 30), p))
+        // At 00:00 AM midnight, buffer has elapsed so it rolls over to Nov 10.
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 0), p))
     }
 
     @Test
@@ -214,9 +224,9 @@ class BusinessDateTest {
     @Test
     fun `late evening wrap applies even when opening is near midnight`() {
         val p = profile(opening = "00:10", closing = "23:50")
-        // 23:50 + 60m buffer = 00:50 AM boundary.
-        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 45), p))
-        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 50), p))
+        // 23:50 + 30m buffer = 00:20 AM boundary.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 0, 15), p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 20), p))
     }
 
     @Test
@@ -237,27 +247,27 @@ class BusinessDateTest {
     fun `overnight windows are the exact inverse of the closing boundary`() {
         val p = profile(opening = "18:00", closing = "02:10")
         val day = LocalDate.of(2026, 11, 10)
-        // With 60m settlement buffer, boundary is 03:10
-        assertEquals(at(2026, 11, 10, 3, 10), BusinessDate.windowStart(day, p))
-        assertEquals(at(2026, 11, 11, 3, 10), BusinessDate.windowEnd(day, p))
-        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 3, 10), p))
-        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 3, 9), p))
+        // With 30m settlement buffer, boundary is 02:40
+        assertEquals(at(2026, 11, 10, 2, 40), BusinessDate.windowStart(day, p))
+        assertEquals(at(2026, 11, 11, 2, 40), BusinessDate.windowEnd(day, p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 2, 40), p))
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 10, 2, 39), p))
     }
 
     @Test
-    fun `midnight closing windows are inverse of the 01_00 AM boundary`() {
+    fun `midnight closing windows are inverse of the 00_30 AM boundary`() {
         val p = profile(opening = "12:00", closing = "00:00")
-        val day = LocalDate.of(2026, 11, 10)
-        assertEquals(at(2026, 11, 10, 1, 0), BusinessDate.windowStart(day, p))
-        assertEquals(at(2026, 11, 11, 1, 0), BusinessDate.windowEnd(day, p))
-    }
-
-    @Test
-    fun `late evening closing windows are inverse of the 00_30 AM boundary`() {
-        val p = profile(opening = "11:00", closing = "23:30")
         val day = LocalDate.of(2026, 11, 10)
         assertEquals(at(2026, 11, 10, 0, 30), BusinessDate.windowStart(day, p))
         assertEquals(at(2026, 11, 11, 0, 30), BusinessDate.windowEnd(day, p))
+    }
+
+    @Test
+    fun `late evening closing windows are inverse of the 00_15 AM boundary`() {
+        val p = profile(opening = "11:00", closing = "23:45")
+        val day = LocalDate.of(2026, 11, 10)
+        assertEquals(at(2026, 11, 10, 0, 15), BusinessDate.windowStart(day, p))
+        assertEquals(at(2026, 11, 11, 0, 15), BusinessDate.windowEnd(day, p))
     }
 
     @Test
@@ -270,17 +280,21 @@ class BusinessDateTest {
 
     @Test
     fun `closingBoundary returns null when no morning extension exists`() {
-        // Default 23:00 has buffer ending at midnight -> null (calendar midnight rollover)
+        // Default 23:00 has buffer ending at 23:30 (before midnight) -> null (calendar midnight rollover)
         assertNull(BusinessDate.closingBoundary("08:00", "23:00"))
-        // Overnight closing landing exactly on midnight 23:15 -> 23:00 -> null
-        assertNull(BusinessDate.closingBoundary("23:15", "23:00"))
+        // 23:30 closing has buffer ending at midnight (00:00) -> null (calendar midnight rollover)
+        assertNull(BusinessDate.closingBoundary("11:00", "23:30"))
+        // Overnight closing landing exactly on midnight with 30m buffer: 23:45 -> 23:30 -> null
+        assertNull(BusinessDate.closingBoundary("23:45", "23:30"))
         // Daytime closing -> null
         assertNull(BusinessDate.closingBoundary("08:00", "14:00"))
-        // Overnight closing 02:10 -> 03:10
-        assertEquals(LocalTime.of(3, 10), BusinessDate.closingBoundary("18:00", "02:10"))
-        // Midnight closing 00:00 -> 01:00
-        assertEquals(LocalTime.of(1, 0), BusinessDate.closingBoundary("12:00", "00:00"))
-        // Late evening 23:30 -> 00:30
-        assertEquals(LocalTime.of(0, 30), BusinessDate.closingBoundary("11:00", "23:30"))
+        // Overnight closing 02:10 + 30m -> 02:40
+        assertEquals(LocalTime.of(2, 40), BusinessDate.closingBoundary("18:00", "02:10"))
+        // Midnight closing 00:00 + 30m -> 00:30
+        assertEquals(LocalTime.of(0, 30), BusinessDate.closingBoundary("12:00", "00:00"))
+        // Late evening 23:45 + 30m -> 00:15
+        assertEquals(LocalTime.of(0, 15), BusinessDate.closingBoundary("11:00", "23:45"))
+        // Late evening 23:50 + 30m -> 00:20
+        assertEquals(LocalTime.of(0, 20), BusinessDate.closingBoundary("00:10", "23:50"))
     }
 }

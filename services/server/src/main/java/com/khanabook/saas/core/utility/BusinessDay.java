@@ -45,7 +45,7 @@ public final class BusinessDay {
     }
 
     /** Default grace buffer (in minutes) for table settlement, bill printing, and drawer reconciliation. */
-    public static final int SETTLEMENT_BUFFER_MINUTES = 60;
+    public static final int SETTLEMENT_BUFFER_MINUTES = 30;
 
     public static boolean isActive(LocalTime cutoff, Long effectiveFromMillis) {
         return effectiveFromMillis != null && !LocalTime.MIDNIGHT.equals(cutoff);
@@ -56,16 +56,16 @@ public final class BusinessDay {
      * Returns null when there is no morning extension past midnight (i.e. rollover at calendar midnight).
      *
      * <p>A shop still trading late into the night has no meaningful day change at midnight: an
-     * 18:00 to 02:10 service, or a service closing at 00:00 (midnight) or late evening (e.g. 23:30),
+     * 18:00 to 02:10 service, or a service closing at 00:00 (midnight) or late evening (e.g. 23:45),
      * must keep one numbering series until it closes and settles.
      * Table settlement, final bill printing, and cashier reconciliation take time past closing,
-     * so an automatic 60-minute settlement buffer is appended:
+     * so an automatic 30-minute settlement buffer is appended:
      * <ol>
      *   <li>Overnight shifts (closing &lt; opening, e.g. 18:00 &rarr; 02:10) or midnight closings (closing == 00:00):
-     *       buffer extends into early morning (02:10 &rarr; 03:10; 00:00 &rarr; 01:00).</li>
-     *   <li>Late-evening shifts (buffered &lt; closing, e.g. 23:30 &rarr; 00:30):
-     *       adding the 60-minute buffer wraps past midnight into the next morning.</li>
-     *   <li>Daytime shifts (closing + buffer &le; 23:59 or closing == 23:00 &rarr; buffered == 00:00):
+     *       buffer extends into early morning (02:10 &rarr; 02:40; 00:00 &rarr; 00:30).</li>
+     *   <li>Late-evening shifts (buffered &lt; closing, e.g. 23:45 &rarr; 00:15):
+     *       adding the 30-minute buffer wraps past midnight into the next morning.</li>
+     *   <li>Daytime shifts (closing + buffer &le; 23:59 or closing == 23:30 &rarr; buffered == 00:00):
      *       buffer does not extend past midnight into the morning, so returns null and order
      *       numbering restarts naturally at calendar midnight.</li>
      * </ol>

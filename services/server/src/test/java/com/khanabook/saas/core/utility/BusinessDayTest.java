@@ -154,49 +154,64 @@ class BusinessDayTest {
         // 01:00 is still the previous night's service.
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 1, 0), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
-        // 02:10 is closing, but 60m settlement buffer (until 03:10) keeps table settlements on previous day.
+        // 02:10 is closing, but 30m settlement buffer (until 02:40) keeps table settlements on previous day.
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 10), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 9), IST, LocalTime.MIDNIGHT, null, open, close))
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 39), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
-        // The settlement boundary (03:10) starts the next series.
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 10), IST, LocalTime.MIDNIGHT, null, open, close))
+        // The settlement boundary (02:40) starts the next series.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 40), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 23, 0), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
     }
 
     @Test
-    void midnightClosingServiceGets60mBufferUntil01_00AM() {
+    void midnightClosingServiceGets30mBufferUntil00_30AM() {
         LocalTime open = LocalTime.of(12, 0);
         LocalTime close = LocalTime.MIDNIGHT;
 
         // 23:45 is on the previous day.
         assertThat(BusinessDay.businessDate(at(2026, 11, 9, 23, 45), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
-        // 00:30 AM is within 60m settlement buffer (until 01:00 AM) and belongs to Nov 09.
+        // 00:15 AM is within 30m settlement buffer (until 00:30 AM) and belongs to Nov 09.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 15), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 29), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // At 00:30 AM, the shift rolls over to Nov 10.
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 30), IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo("2026-11-09");
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 59), IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo("2026-11-09");
-        // At 01:00 AM, the shift rolls over to Nov 10.
+                .isEqualTo("2026-11-10");
         assertThat(BusinessDay.businessDate(at(2026, 11, 10, 1, 0), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
     }
 
     @Test
-    void lateEvening23_30ClosingGets60mBufferUntil00_30AM() {
+    void lateEvening23_45ClosingGets30mBufferUntil00_15AM() {
+        LocalTime open = LocalTime.of(11, 0);
+        LocalTime close = LocalTime.of(23, 45);
+
+        // 23:55 is on Nov 09.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 9, 23, 55), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // 00:10 AM is within 30m buffer (until 00:15 AM) and belongs to Nov 09.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 10), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        // At 00:15 AM, rolls over to Nov 10.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 15), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
+    void lateEvening23_30ClosingWith30mBufferEndsAtMidnight() {
         LocalTime open = LocalTime.of(11, 0);
         LocalTime close = LocalTime.of(23, 30);
 
         // 23:45 is on Nov 09.
         assertThat(BusinessDay.businessDate(at(2026, 11, 9, 23, 45), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
-        // 00:15 AM is within 60m buffer (until 00:30 AM) and belongs to Nov 09.
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 15), IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo("2026-11-09");
-        // At 00:30 AM, rolls over to Nov 10.
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 30), IST, LocalTime.MIDNIGHT, null, open, close))
+        // At 00:00 AM midnight, buffer has elapsed so it rolls over to Nov 10.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 0), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
     }
 
@@ -218,10 +233,10 @@ class BusinessDayTest {
         LocalTime open = LocalTime.of(0, 10);
         LocalTime close = LocalTime.of(23, 50);
 
-        // 23:50 + 60m buffer = 00:50 AM boundary.
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 45), IST, LocalTime.MIDNIGHT, null, open, close))
+        // 23:50 + 30m buffer = 00:20 AM boundary.
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 15), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 50), IST, LocalTime.MIDNIGHT, null, open, close))
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 20), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
     }
 
@@ -253,37 +268,37 @@ class BusinessDayTest {
         LocalTime close = LocalTime.of(2, 10);
         LocalDate day = LocalDate.of(2026, 11, 10);
 
-        // With 60m settlement buffer, boundary is 03:10
+        // With 30m settlement buffer, boundary is 02:40
         assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo(at(2026, 11, 10, 3, 10));
+                .isEqualTo(at(2026, 11, 10, 2, 40));
         assertThat(BusinessDay.windowEnd(day, IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo(at(2026, 11, 11, 3, 10));
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 10), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 11, 2, 40));
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 40), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-10");
-        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 3, 9), IST, LocalTime.MIDNIGHT, null, open, close))
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 2, 39), IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo("2026-11-09");
     }
 
     @Test
-    void midnightClosingWindowsAreInverseOfThe01_00AMBoundary() {
+    void midnightClosingWindowsAreInverseOfThe00_30AMBoundary() {
         LocalTime open = LocalTime.of(12, 0);
         LocalTime close = LocalTime.MIDNIGHT;
-        LocalDate day = LocalDate.of(2026, 11, 10);
-        assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo(at(2026, 11, 10, 1, 0));
-        assertThat(BusinessDay.windowEnd(day, IST, LocalTime.MIDNIGHT, null, open, close))
-                .isEqualTo(at(2026, 11, 11, 1, 0));
-    }
-
-    @Test
-    void lateEveningClosingWindowsAreInverseOfThe00_30AMBoundary() {
-        LocalTime open = LocalTime.of(11, 0);
-        LocalTime close = LocalTime.of(23, 30);
         LocalDate day = LocalDate.of(2026, 11, 10);
         assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo(at(2026, 11, 10, 0, 30));
         assertThat(BusinessDay.windowEnd(day, IST, LocalTime.MIDNIGHT, null, open, close))
                 .isEqualTo(at(2026, 11, 11, 0, 30));
+    }
+
+    @Test
+    void lateEveningClosingWindowsAreInverseOfThe00_15AMBoundary() {
+        LocalTime open = LocalTime.of(11, 0);
+        LocalTime close = LocalTime.of(23, 45);
+        LocalDate day = LocalDate.of(2026, 11, 10);
+        assertThat(BusinessDay.windowStart(day, IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 10, 0, 15));
+        assertThat(BusinessDay.windowEnd(day, IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo(at(2026, 11, 11, 0, 15));
     }
 
     @Test
@@ -297,20 +312,26 @@ class BusinessDayTest {
 
     @Test
     void closingBoundaryReturnsNullWhenNoMorningExtensionExists() {
-        // Default 23:00 has buffer ending at midnight -> null (calendar midnight rollover)
+        // Default 23:00 has buffer ending at 23:30 (before midnight) -> null (calendar midnight rollover)
         assertThat(BusinessDay.closingBoundary(LocalTime.of(8, 0), LocalTime.of(23, 0))).isNull();
-        // Overnight closing landing exactly on midnight 23:15 -> 23:00 -> null
-        assertThat(BusinessDay.closingBoundary(LocalTime.of(23, 15), LocalTime.of(23, 0))).isNull();
+        // 23:30 closing has buffer ending at midnight (00:00) -> null (calendar midnight rollover)
+        assertThat(BusinessDay.closingBoundary(LocalTime.of(11, 0), LocalTime.of(23, 30))).isNull();
+        // Degenerate overnight 23:15 -> 23:00 with a 30m buffer extends to 23:30 the same evening.
+        assertThat(BusinessDay.closingBoundary(LocalTime.of(23, 15), LocalTime.of(23, 0)))
+                .isEqualTo(LocalTime.of(23, 30));
         // Daytime closing -> null
         assertThat(BusinessDay.closingBoundary(LocalTime.of(8, 0), LocalTime.of(14, 0))).isNull();
-        // Overnight closing 02:10 -> 03:10
+        // Overnight closing 02:10 + 30m -> 02:40
         assertThat(BusinessDay.closingBoundary(LocalTime.of(18, 0), LocalTime.of(2, 10)))
-                .isEqualTo(LocalTime.of(3, 10));
-        // Midnight closing 00:00 -> 01:00
+                .isEqualTo(LocalTime.of(2, 40));
+        // Midnight closing 00:00 + 30m -> 00:30
         assertThat(BusinessDay.closingBoundary(LocalTime.of(12, 0), LocalTime.MIDNIGHT))
-                .isEqualTo(LocalTime.of(1, 0));
-        // Late evening 23:30 -> 00:30
-        assertThat(BusinessDay.closingBoundary(LocalTime.of(11, 0), LocalTime.of(23, 30)))
                 .isEqualTo(LocalTime.of(0, 30));
+        // Late evening 23:45 + 30m -> 00:15
+        assertThat(BusinessDay.closingBoundary(LocalTime.of(11, 0), LocalTime.of(23, 45)))
+                .isEqualTo(LocalTime.of(0, 15));
+        // Late evening 23:50 + 30m -> 00:20
+        assertThat(BusinessDay.closingBoundary(LocalTime.of(0, 10), LocalTime.of(23, 50)))
+                .isEqualTo(LocalTime.of(0, 20));
     }
 }

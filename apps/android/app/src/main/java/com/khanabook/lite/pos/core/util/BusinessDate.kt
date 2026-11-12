@@ -39,7 +39,7 @@ object BusinessDate {
      * Default grace buffer (in minutes) for table settlement, bill printing, and drawer
      * reconciliation after an overnight service closing time.
      */
-    const val SETTLEMENT_BUFFER_MINUTES: Long = 60
+    const val SETTLEMENT_BUFFER_MINUTES: Long = 30
 
     /** `HH:mm` or `HH:mm:ss`; anything unparseable falls back to midnight (legacy). */
     fun parseCutoff(raw: String?): LocalTime {
@@ -57,15 +57,15 @@ object BusinessDate {
      * Returns null when there is no morning extension past midnight (i.e. rollover at calendar midnight).
      *
      * A shop still trading late into the night has no meaningful day change at midnight: an
-     * 18:00 to 02:10 service, or a service closing at 00:00 (midnight) or late evening (e.g. 23:30),
+     * 18:00 to 02:10 service, or a service closing at 00:00 (midnight) or late evening (e.g. 23:45),
      * must keep one numbering series until it closes and settles.
      * Table settlement, final bill printing, and cashier reconciliation take time past closing,
-     * so an automatic 60-minute settlement buffer is appended:
+     * so an automatic 30-minute settlement buffer is appended:
      * 1. Overnight shifts (closing < opening, e.g. 18:00 -> 02:10) or midnight closings (closing == 00:00):
-     *    buffer extends into early morning (02:10 -> 03:10; 00:00 -> 01:00).
-     * 2. Late-evening shifts (buffered < closing, e.g. 23:30 -> 00:30):
-     *    adding the 60-minute buffer wraps past midnight into the next morning.
-     * 3. Daytime shifts (closing + buffer <= 23:59 or closing == 23:00 -> buffered == 00:00):
+     *    buffer extends into early morning (02:10 -> 02:40; 00:00 -> 00:30).
+     * 2. Late-evening shifts (buffered < closing, e.g. 23:45 -> 00:15):
+     *    adding the 30-minute buffer wraps past midnight into the next morning.
+     * 3. Daytime shifts (closing + buffer <= 23:59 or closing == 23:30 -> buffered == 00:00):
      *    buffer does not extend past midnight into the morning, so returns null and order
      *    numbering restarts naturally at calendar midnight.
      *

@@ -499,6 +499,10 @@ fun OrderTableRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 val detailsLabel = buildString {
+                    if (row.customerName.isNotBlank()) {
+                        append(row.customerName)
+                        append(" • ")
+                    }
                     if (row.orderType.isNotBlank()) {
                         val type = when (row.orderType.lowercase()) {
                             com.khanabook.lite.pos.domain.model.OrderType.DINE_IN -> "Dine-in"

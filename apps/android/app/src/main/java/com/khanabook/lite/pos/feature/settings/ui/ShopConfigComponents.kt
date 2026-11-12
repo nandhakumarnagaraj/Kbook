@@ -219,19 +219,26 @@ internal fun BusinessDayInfoCard(
             )
         }
         Text(
-            text = "Order numbers roll over at $rolloverLabel",
+            text = "Daily order number will reset to 01 at $rolloverLabel",
             color = TextLight,
             style = MaterialTheme.typography.bodyMedium
         )
         Text(
             text = when {
-                cutoffActive -> "Bills taken before $rolloverLabel belong to the previous business day."
-                hasBuffer -> "Includes a ${BusinessDate.SETTLEMENT_BUFFER_MINUTES}-minute settlement buffer after your $closingLabel closing time, so late table payments and reconciliation stay in one series."
-                else -> "No day cutoff is set, so the order number restarts at $rolloverLabel."
+                cutoffActive -> "Daily order number resets to 01 before $rolloverLabel (previous business day)."
+                hasBuffer -> "Includes a ${BusinessDate.SETTLEMENT_BUFFER_MINUTES}-minute settlement buffer after your $closingLabel closing time, so the daily order number continues in the same series."
+                else -> "Daily order number will restart at $rolloverLabel."
             },
             color = TextGold.copy(alpha = 0.75f),
             style = MaterialTheme.typography.bodySmall
         )
+        if (hasBuffer) {
+            Text(
+                text = " (${BusinessDate.SETTLEMENT_BUFFER_MINUTES} min settlement buffer added after closing for overnight shifts)",
+                color = TextGold.copy(alpha = 0.45f),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 

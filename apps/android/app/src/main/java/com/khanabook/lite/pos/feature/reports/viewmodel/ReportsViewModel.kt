@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.feature.reports.viewmodel
+import com.khanabook.lite.pos.core.util.BusinessDate
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
+import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,12 +19,15 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
 import java.util.*
 import javax.inject.Inject
 
 @HiltViewModel
 class ReportsViewModel @Inject constructor(
     private val billRepository: BillRepository,
+    private val restaurantRepository: RestaurantRepository,
     private val permissionManager: com.khanabook.lite.pos.feature.staff.domain.PermissionManager
 ) : ViewModel() {
 
@@ -81,6 +86,7 @@ class ReportsViewModel @Inject constructor(
 
     private var currentFrom: Long = System.currentTimeMillis() - 86400000L
     private var currentTo: Long = System.currentTimeMillis()
+    private var currentProfile: RestaurantProfileEntity? = null
 
     /** Window currently observed; Room re-emits it whenever the bills table changes.
      *
@@ -94,7 +100,13 @@ class ReportsViewModel @Inject constructor(
         // LaunchedEffect(Unit) re-ran on every tab re-entry and silently reset the
         // user's chosen filter back to "Today".
         observeReports()
-        setTimeFilter("Today")
+        viewModelScope.launch {
+            restaurantRepository.getProfileFlow().collect { profile ->
+                currentProfile = profile
+                updateDateRangeAndLoad(_timeFilter.value)
+            }
+        }
+        updateDateRangeAndLoad("Today")
     }
 
     fun setReportType(type: String) {
@@ -141,24 +153,24 @@ class ReportsViewModel @Inject constructor(
             loadReports(currentFrom, currentTo)
             return
         }
-        // Day boundaries use the shop timezone, not the device default, so Orders and Home
-        // agree about which bills belong to "today".
-        val cal = Calendar.getInstance(TimeZone.getTimeZone(AppConstants.DEFAULT_TIMEZONE))
+
+        val profile = currentProfile
+        val todayStr = BusinessDate.businessDate(System.currentTimeMillis(), profile)
+        val today = LocalDate.parse(todayStr)
 
         val (from, to) = when (filter) {
             "Yesterday" -> {
-                cal.add(Calendar.DAY_OF_YEAR, -1)
-                val from = startOfDay(cal)
-                val to = endOfDay(cal)
+                val yesterday = today.minusDays(1)
+                val from = BusinessDate.windowStart(yesterday, profile)
+                val to = BusinessDate.windowEnd(yesterday, profile) - 1
                 from to to
             }
             else -> {
                 // "Today" (legacy "Daily" treated the same).
-                // The upper bound is the END of the day, not "now": a bill taken after the
-                // screen opened used to fall outside the observed window, so Room emitted
-                // it but the BETWEEN clause filtered it out until the filter was re-applied.
-                val from = startOfDay(cal)
-                val to = endOfDay(cal)
+                // Uses the restaurant's business day window (accounting for closing time
+                // and settlement buffer), so midnight does not prematurely split the active shift.
+                val from = BusinessDate.windowStart(today, profile)
+                val to = BusinessDate.windowEnd(today, profile) - 1
                 from to to
             }
         }
@@ -167,31 +179,21 @@ class ReportsViewModel @Inject constructor(
 
     /**
      * Recomputes the current filter's window. Called when the screen resumes so "Today"
-     * rolls over at midnight and a re-opened screen never keeps a stale day window.
+     * rolls over when the business day closes and a re-opened screen never keeps a stale day window.
      */
     fun refreshCurrentFilter() {
         updateDateRangeAndLoad(_timeFilter.value)
     }
 
-    private fun startOfDay(cal: Calendar): Long {
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
-    }
-
-    private fun endOfDay(cal: Calendar): Long {
-        cal.set(Calendar.HOUR_OF_DAY, 23)
-        cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59)
-        cal.set(Calendar.MILLISECOND, 999)
-        return cal.timeInMillis
-    }
-
     fun setCustomDateRange(from: Long, to: Long) {
         _timeFilter.value = "Custom"
-        loadReports(normalizeStartOfDay(from), normalizeEndOfDay(to))
+        val profile = currentProfile
+        val zone = BusinessDate.zoneOf(profile?.timezone)
+        val fromDate = Instant.ofEpochMilli(from).atZone(zone).toLocalDate()
+        val toDate = Instant.ofEpochMilli(to).atZone(zone).toLocalDate()
+        val windowFrom = BusinessDate.windowStart(fromDate, profile)
+        val windowTo = BusinessDate.windowEnd(toDate, profile) - 1
+        loadReports(windowFrom, windowTo)
     }
 
     private data class DateRange(val from: Long, val to: Long)
@@ -233,26 +235,6 @@ class ReportsViewModel @Inject constructor(
         _isLoading.value = true
         _error.value = null
         rangeFlow.value = next
-    }
-
-    private fun normalizeEndOfDay(timestamp: Long): Long {
-        val cal = Calendar.getInstance(TimeZone.getTimeZone(AppConstants.DEFAULT_TIMEZONE))
-        cal.timeInMillis = timestamp
-        cal.set(Calendar.HOUR_OF_DAY, 23)
-        cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59)
-        cal.set(Calendar.MILLISECOND, 999)
-        return cal.timeInMillis
-    }
-
-    private fun normalizeStartOfDay(timestamp: Long): Long {
-        val cal = Calendar.getInstance(TimeZone.getTimeZone(AppConstants.DEFAULT_TIMEZONE))
-        cal.timeInMillis = timestamp
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
     }
 
     fun cancelOrder(billId: Long, reason: String) {
