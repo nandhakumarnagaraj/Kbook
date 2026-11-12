@@ -41,7 +41,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Email
@@ -556,21 +555,10 @@ fun ShopConfigView(
                                     modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                                     shape = KhanaRadii.xl,
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
                                     enabled = isPhoneValid && !isUserChecking && userExistsError == null && !readOnly
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.Send,
-                                            contentDescription = null,
-                                            tint = DarkBrown1,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-                                    }
+                                    Text("Get Otp", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                                 }
                             } else if (numberChanged && isOtpVerified) {
                                 Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
@@ -646,21 +634,10 @@ fun ShopConfigView(
                                     modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                                     shape = KhanaRadii.xl,
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
                                     enabled = !readOnly
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.Send,
-                                            contentDescription = null,
-                                            tint = DarkBrown1,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-                                    }
+                                    Text("Get Otp", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                                 }
                             } else if (!isGoogleAuth && emailChanged && isEmailOtpVerified) {
                                 Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
