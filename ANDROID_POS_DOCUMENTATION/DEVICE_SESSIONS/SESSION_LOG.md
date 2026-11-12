@@ -20,8 +20,11 @@
    - Bottom CTA: Full-width rounded gold pill button for `Save Configuration` with loading spinner.
 6. Compiled Kotlin via `./gradlew compileDebugKotlin`: **BUILD SUCCESSFUL**.
 7. Ran Android unit tests via `./gradlew testDebugUnitTest --tests "com.khanabook.lite.pos.feature.auth.viewmodel.EmailOtpViewModelTest"`: **BUILD SUCCESSFUL** (3/3 passed).
-8. Assembled debug APK via `./gradlew assembleDebug`: **BUILD SUCCESSFUL** (`app-debug.apk` ready for hardware deployment).
-9. Updated documentation `04_SCREEN_INVENTORY.md`, `CHANGELOG.md`, `SESSION_LOG.md`, and `NEXT_ACTIONS.md`.
+8. Assembled debug APK via `./gradlew assembleDebug`: **BUILD SUCCESSFUL** (`app-debug.apk`).
+9. Deployed and updated APK on both connected physical devices:
+   - **Motorola moto g34 5G (`ZA222J5KT7`)**: Streamed install **Success**, launched with PID 28519.
+   - **OnePlus Nord AC2001 (`adb-tls-connect`)**: Streamed install **Success**, launched with PID 1147.
+10. Updated documentation `04_SCREEN_INVENTORY.md`, `CHANGELOG.md`, `SESSION_LOG.md`, and `NEXT_ACTIONS.md`.
 
 ---
 
