@@ -22,6 +22,8 @@ import com.khanabook.saas.feature.billing.data.BillPaymentDTO;
 import com.khanabook.saas.feature.auth.data.UserDTO;
 import com.khanabook.saas.feature.auth.controller.UpdateMobileRequest;
 import com.khanabook.saas.feature.auth.controller.UpdateMobileOtpRequest;
+import com.khanabook.saas.feature.auth.controller.UpdateEmailRequest;
+import com.khanabook.saas.feature.auth.controller.UpdateEmailOtpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -74,6 +76,23 @@ public class UserController {
 			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
 		}
 		service.requestMobileNumberUpdateOtp(TenantContext.getCurrentTenant(), request.getNewMobileNumber());
+		return ResponseEntity.ok(Map.of("message", "OTP sent successfully."));
+	}
+
+	@PostMapping("/update-email")
+	public ResponseEntity<?> confirmEmailUpdate(@Valid @RequestBody UpdateEmailRequest request) {
+		service.confirmEmailUpdate(TenantContext.getCurrentTenant(), request.getNewEmail(), request.getOtp());
+		return ResponseEntity.ok(Map.of("message", "Email updated successfully."));
+	}
+
+	@PostMapping("/update-email/request")
+	public ResponseEntity<?> requestEmailUpdateOtp(@Valid @RequestBody UpdateEmailOtpRequest request) {
+		String email = request.getNewEmail().trim().toLowerCase(java.util.Locale.ROOT);
+		if (!otpRateLimiter.tryConsume(email) || !otpRateLimiterDb.tryConsume(email)) {
+			log.warn("OTP rate limit exceeded for update-email email={}", email);
+			return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+		}
+		service.requestEmailUpdateOtp(TenantContext.getCurrentTenant(), email);
 		return ResponseEntity.ok(Map.of("message", "OTP sent successfully."));
 	}
 }

@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.khanabook.saas.feature.auth.entity.OtpRequest;
 import com.khanabook.saas.feature.auth.repository.OtpRequestRepository;
+import com.khanabook.saas.feature.notifications.service.EmailNotificationService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.net.URI;
@@ -31,6 +32,7 @@ public class PasswordResetOtpService {
 	private static final String STAFF_INVITE_PREFIX = "staff-invite:";
 	private static final String WEB_PASSWORD_RESET_PREFIX = "web-password-reset:";
 	private static final String MOBILE_UPDATE_PREFIX = "mobile-update:";
+	private static final String EMAIL_UPDATE_PREFIX = "email-update:";
 
 	/** Legacy single-template fallback. Kept so an unconfigured operation degrades
 	 *  to today's behaviour instead of failing. */
@@ -54,11 +56,14 @@ public class PasswordResetOtpService {
 
 	private final OtpRequestRepository otpRequestRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final EmailNotificationService emailNotificationService;
 	private final HttpClient httpClient = HttpClient.newHttpClient();
 
-	public PasswordResetOtpService(OtpRequestRepository otpRequestRepository, PasswordEncoder passwordEncoder) {
+	public PasswordResetOtpService(OtpRequestRepository otpRequestRepository, PasswordEncoder passwordEncoder,
+			EmailNotificationService emailNotificationService) {
 		this.otpRequestRepository = otpRequestRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.emailNotificationService = emailNotificationService;
 	}
 
 	@Value("${whatsapp.meta.access-token:}")
@@ -128,6 +133,16 @@ public class PasswordResetOtpService {
 	}
 
 	@Transactional
+	public void issueEmailUpdateOtp(Long tenantId, String email) {
+		issueEmailOtp(EMAIL_UPDATE_PREFIX + tenantId, email, 6);
+	}
+
+	@Transactional
+	public void validateEmailUpdateOtpOrThrow(Long tenantId, String email, String otp) {
+		validateOtpOrThrow(EMAIL_UPDATE_PREFIX + tenantId, email, otp);
+	}
+
+	@Transactional
 	public void issueWebAdminOtp(String phoneNumber) {
 		issueOtp(WEB_PASSWORD_RESET_PREFIX + phoneNumber, phoneNumber, 6);
 	}
@@ -171,6 +186,31 @@ public class PasswordResetOtpService {
 		sendOtp(challengeKey, phoneNumber, otp);
 	}
 
+	private void issueEmailOtp(String challengeKey, String email, int digits) {
+		OtpRequest existing = otpRequestRepository.findByChallengeKey(challengeKey).orElse(null);
+		if (existing != null && existing.getCreatedAt() != null
+				&& existing.getCreatedAt() > System.currentTimeMillis() - 60_000L) {
+			throw new IllegalArgumentException("Please wait 60 seconds before requesting a new code.");
+		}
+
+		int upperBound = digits == 4 ? 10_000 : 1_000_000;
+		String format = digits == 4 ? "%04d" : "%06d";
+		String otp = String.format(format, OTP_RANDOM.nextInt(0, upperBound));
+
+		long now = System.currentTimeMillis();
+		OtpRequest request = existing != null ? existing
+				: OtpRequest.builder().challengeKey(challengeKey).build();
+
+		request.setPhoneNumber(email);
+		request.setOtp(passwordEncoder.encode(otp));
+		request.setExpiresAt(now + OTP_TTL_MILLIS);
+		request.setAttempts(0);
+		request.setCreatedAt(now);
+
+		otpRequestRepository.save(request);
+		emailNotificationService.sendVerificationOtp(email, otp);
+	}
+
 	private void validateOtpOrThrow(String challengeKey, String phoneNumber, String otp) {
 		OtpRequest challenge = otpRequestRepository.findByChallengeKey(challengeKey).orElse(null);
 
@@ -186,8 +226,11 @@ public class PasswordResetOtpService {
 			throw new IllegalArgumentException("Too many invalid OTP attempts. Please request a new code.");
 		}
 
-		if (!challenge.getPhoneNumber().equals(phoneNumber)) {
+		if (!challenge.getPhoneNumber().equalsIgnoreCase(phoneNumber)) {
 			otpRequestRepository.delete(challenge);
+			if (challengeKey != null && challengeKey.startsWith(EMAIL_UPDATE_PREFIX)) {
+				throw new IllegalArgumentException("OTP requested for a different email address. Please request a new code.");
+			}
 			throw new IllegalArgumentException("OTP requested for a different mobile number. Please request a new code.");
 		}
 

@@ -74,6 +74,11 @@ constructor(
     private val _otpFieldErrors = MutableStateFlow<Map<String, String>>(emptyMap())
     val otpFieldErrors: StateFlow<Map<String, String>> = _otpFieldErrors
 
+    private val _emailOtpVerificationStatus = MutableStateFlow<OtpVerificationResult?>(null)
+    val emailOtpVerificationStatus: StateFlow<OtpVerificationResult?> = _emailOtpVerificationStatus
+    private val _emailOtpFieldErrors = MutableStateFlow<Map<String, String>>(emptyMap())
+    val emailOtpFieldErrors: StateFlow<Map<String, String>> = _emailOtpFieldErrors
+
     private val _isUserChecking = MutableStateFlow(false)
     val isUserChecking: StateFlow<Boolean> = _isUserChecking
 
@@ -255,6 +260,40 @@ constructor(
         }
     }
 
+    fun sendEmailUpdateOtp(email: String) {
+        viewModelScope.launch {
+            _emailOtpFieldErrors.value = emptyMap()
+            val result = userRepository.requestEmailUpdateOtp(email)
+            result.onSuccess {
+                _emailOtpVerificationStatus.value = OtpVerificationResult.OtpSent
+            }.onFailure { e ->
+                val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to send OTP. Please try again.")
+                _emailOtpFieldErrors.value = sanitized.fieldErrors
+                _emailOtpVerificationStatus.value =
+                    OtpVerificationResult.Error(
+                        sanitized.message
+                    )
+            }
+        }
+    }
+
+    fun confirmEmailUpdate(email: String, otp: String) {
+        viewModelScope.launch {
+            _emailOtpFieldErrors.value = emptyMap()
+            val result = userRepository.confirmEmailUpdate(email, otp)
+            result.onSuccess {
+                _emailOtpVerificationStatus.value = OtpVerificationResult.Success
+            }.onFailure { e ->
+                val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to verify OTP.")
+                _emailOtpFieldErrors.value = sanitized.fieldErrors
+                _emailOtpVerificationStatus.value =
+                    OtpVerificationResult.Error(
+                        sanitized.message
+                    )
+            }
+        }
+    }
+
     fun signUp(name: String, phoneNumber: String, otp: String, password: String) {
         viewModelScope.launch {
             _signUpFieldErrors.value = emptyMap()
@@ -401,6 +440,11 @@ constructor(
     fun clearOtpStatus() {
         _otpVerificationStatus.value = null
         _otpFieldErrors.value = emptyMap()
+    }
+
+    fun clearEmailOtpStatus() {
+        _emailOtpVerificationStatus.value = null
+        _emailOtpFieldErrors.value = emptyMap()
     }
 
     sealed class LoginResult {        object Loading : LoginResult()

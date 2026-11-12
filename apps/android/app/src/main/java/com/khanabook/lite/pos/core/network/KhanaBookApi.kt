@@ -163,6 +163,12 @@ interface KhanaBookApi {
         @POST("api/v1/sync/config/users/update-mobile/request")
         suspend fun requestMobileNumberUpdateOtp(@Body request: UpdateMobileOtpRequest): retrofit2.Response<Unit>
 
+        @POST("api/v1/sync/config/users/update-email")
+        suspend fun updateEmail(@Body request: UpdateEmailRequest): retrofit2.Response<Unit>
+
+        @POST("api/v1/sync/config/users/update-email/request")
+        suspend fun requestEmailUpdateOtp(@Body request: UpdateEmailOtpRequest): retrofit2.Response<Unit>
+
         // ── File uploads ─────────────────────────────────────────────────────
         @Multipart
         @POST("api/v1/restaurants/logo")

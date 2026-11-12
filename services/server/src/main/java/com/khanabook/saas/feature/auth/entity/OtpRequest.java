@@ -26,7 +26,7 @@ public class OtpRequest {
     @Column(name = "challenge_key", nullable = false, unique = true)
     private String challengeKey;
 
-    @Column(name = "phone_number", nullable = false, length = 20)
+    @Column(name = "phone_number", nullable = false, length = 255)
     private String phoneNumber;
 
     @Column(name = "otp", nullable = false, length = 60)

@@ -219,6 +219,22 @@ fun ShopConfigView(
         }
     }
 
+    var otpValue by remember { mutableStateOf("") }
+    val otpStatus by authViewModel.otpVerificationStatus.collectAsStateWithLifecycle()
+    val otpFieldErrors by authViewModel.otpFieldErrors.collectAsStateWithLifecycle()
+
+    var otpSent by remember { mutableStateOf(false) }
+    var otpTimer by remember { mutableIntStateOf(120) }
+    var isOtpVerified by remember { mutableStateOf(false) }
+
+    var emailOtpValue by remember { mutableStateOf("") }
+    val emailOtpStatus by authViewModel.emailOtpVerificationStatus.collectAsStateWithLifecycle()
+    val emailOtpFieldErrors by authViewModel.emailOtpFieldErrors.collectAsStateWithLifecycle()
+
+    var emailOtpSent by remember { mutableStateOf(false) }
+    var emailOtpTimer by remember { mutableIntStateOf(120) }
+    var isEmailOtpVerified by remember { mutableStateOf(true) }
+
     LaunchedEffect(profile) {
         profile?.let {
             name = it.shopName ?: ""
@@ -231,6 +247,10 @@ fun ShopConfigView(
             openingTime = (it.openingTime ?: "08:00").take(5)
             closingTime = (it.closingTime ?: "23:00").take(5)
             selectedPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(it.orderPaymentFlowMode)
+            isOtpVerified = true
+            isEmailOtpVerified = true
+            otpSent = false
+            emailOtpSent = false
         }
     }
 
@@ -239,14 +259,6 @@ fun ShopConfigView(
             viewModel.clearUserCheck()
         }
     }
-
-    var otpValue by remember { mutableStateOf("") }
-    val otpStatus by authViewModel.otpVerificationStatus.collectAsStateWithLifecycle()
-    val otpFieldErrors by authViewModel.otpFieldErrors.collectAsStateWithLifecycle()
-
-    var otpSent by remember { mutableStateOf(false) }
-    var otpTimer by remember { mutableIntStateOf(120) }
-    var isOtpVerified by remember { mutableStateOf(false) }
 
     LaunchedEffect(otpStatus) {
         when (otpStatus) {
@@ -276,10 +288,45 @@ fun ShopConfigView(
         }
     }
 
+    LaunchedEffect(emailOtpStatus) {
+        when (emailOtpStatus) {
+            is AuthViewModel.OtpVerificationResult.OtpSent -> {
+                emailOtpSent = true
+                isEmailOtpVerified = false
+                emailOtpTimer = 120
+                toastScope.launch { KhanaToast.show(context.getString(R.string.toast_email_otp_sent), ToastKind.Info) }
+            }
+            is AuthViewModel.OtpVerificationResult.Success -> {
+                isEmailOtpVerified = true
+                toastScope.launch { KhanaToast.show(context.getString(R.string.toast_verified), ToastKind.Success) }
+                authViewModel.clearEmailOtpStatus()
+            }
+            is AuthViewModel.OtpVerificationResult.Error -> {
+                val errorMsg = (emailOtpStatus as? AuthViewModel.OtpVerificationResult.Error)?.message.orEmpty()
+                isEmailOtpVerified = false
+                toastScope.launch {
+                    KhanaToast.show(
+                        UserMessageSanitizer.sanitizeBackendMessage(errorMsg, "Couldn't verify OTP. Please try again."),
+                        ToastKind.Error,
+                    )
+                }
+                authViewModel.clearEmailOtpStatus()
+            }
+            else -> {}
+        }
+    }
+
     LaunchedEffect(otpSent, otpTimer) {
         if (otpSent && otpTimer > 0) {
             kotlinx.coroutines.delay(1000)
             otpTimer--
+        }
+    }
+
+    LaunchedEffect(emailOtpSent, emailOtpTimer) {
+        if (emailOtpSent && emailOtpTimer > 0) {
+            kotlinx.coroutines.delay(1000)
+            emailOtpTimer--
         }
     }
 
@@ -486,14 +533,79 @@ fun ShopConfigView(
                 )
             }
 
+            val emailChanged = !isGoogleAuth && email.trim() != (profile?.email?.trim() ?: "")
+            val isEmailValid = ValidationUtils.isValidEmail(email.trim())
+
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(
                 value = email,
-                onValueChange = { if (!isGoogleAuth) email = it },
+                onValueChange = {
+                    if (!isGoogleAuth) {
+                        email = it
+                        if (it.trim() != (profile?.email?.trim() ?: "")) {
+                            isEmailOtpVerified = false
+                            emailOtpSent = false
+                        } else {
+                            isEmailOtpVerified = true
+                        }
+                    }
+                },
                 label = if (isGoogleAuth) "Email (Google account)" else "Email",
                 enabled = !isGoogleAuth && !readOnly,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                isError = (!isGoogleAuth && email.isNotBlank() && !isEmailValid) || !emailOtpFieldErrors["email"].isNullOrBlank(),
+                supportingText = emailOtpFieldErrors["email"] ?: if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) "Enter valid email address" else null,
+                trailingIcon = {
+                    if (!isGoogleAuth && emailChanged && isEmailValid && (!emailOtpSent || emailOtpTimer == 0) && !isEmailOtpVerified) {
+                        Button(
+                            onClick = {
+                                authViewModel.sendEmailUpdateOtp(email.trim())
+                            },
+                            modifier = Modifier.padding(end = spacing.extraSmall).height(KhanaBookTheme.spacing.buttonHeightLarge),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = KhanaRadii.xl,
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                            enabled = !readOnly
+                        ) {
+                            Text("Send OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium)
+                        }
+                    } else if (!isGoogleAuth && emailChanged && isEmailOtpVerified) {
+                        Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
+                    }
+                }
             )
+
+            if (!isGoogleAuth && emailOtpSent && emailChanged) {
+                Spacer(modifier = Modifier.height(spacing.medium))
+                ParchmentTextField(
+                    value = emailOtpValue,
+                    onValueChange = {
+                        val filtered = it.filter { ch -> ch.isDigit() }.take(6)
+                        emailOtpValue = filtered
+                        if (filtered.length == 6) {
+                            authViewModel.confirmEmailUpdate(email.trim(), filtered)
+                        } else {
+                            isEmailOtpVerified = false
+                        }
+                    },
+                    label = "Enter 6-digit Email OTP",
+                    enabled = !readOnly,
+                    isError = (emailOtpValue.length == 6 && !isEmailOtpVerified) || !emailOtpFieldErrors["otp"].isNullOrBlank(),
+                    supportingText = emailOtpFieldErrors["otp"] ?: if (emailOtpValue.length == 6 && !isEmailOtpVerified) "Invalid OTP code" else null,
+                    trailingIcon = {
+                        if (emailOtpTimer > 0 && !isEmailOtpVerified) {
+                            Text(
+                                String.format("%02d:%02d", emailOtpTimer / 60, emailOtpTimer % 60),
+                                color = com.khanabook.lite.pos.core.theme.TextLight,
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(end = spacing.medium)
+                            )
+                        } else if (isEmailOtpVerified) {
+                            Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
+                        }
+                    }
+                )
+            }
             Spacer(modifier = Modifier.height(spacing.medium))
             ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link", enabled = !readOnly, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Next))
             Spacer(modifier = Modifier.height(spacing.medium))
@@ -552,6 +664,14 @@ fun ShopConfigView(
                         if (numberChanged && !isOtpVerified) {
                             toastScope.launch {
                                 KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
+                            }
+                        } else if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) {
+                            toastScope.launch {
+                                KhanaToast.show("Please enter a valid email address", ToastKind.Warning)
+                            }
+                        } else if (emailChanged && !isEmailOtpVerified) {
+                            toastScope.launch {
+                                KhanaToast.show(context.getString(R.string.toast_verify_new_email), ToastKind.Warning)
                             }
                         } else {
                             val updatedProfile = profile?.copy(

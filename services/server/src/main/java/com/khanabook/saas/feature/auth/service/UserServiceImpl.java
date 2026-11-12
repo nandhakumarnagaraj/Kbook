@@ -126,4 +126,76 @@ public class UserServiceImpl implements UserService {
 			restaurantProfileRepository.save(profile);
 		});
 	}
+
+	@Override
+	@Transactional
+	public void requestEmailUpdateOtp(Long tenantId, String newEmail) {
+		newEmail = newEmail.trim().toLowerCase(java.util.Locale.ROOT);
+		User currentUser = getPrimaryUser(tenantId);
+		if (currentUser.getAuthProvider() == AuthProvider.GOOGLE) {
+			throw new IllegalArgumentException("Email address cannot be changed for Google-authenticated accounts.");
+		}
+		if (newEmail.equalsIgnoreCase(currentUser.getEmail())) {
+			return;
+		}
+
+		ensureEmailAvailable(tenantId, newEmail);
+		passwordResetOtpService.issueEmailUpdateOtp(tenantId, newEmail);
+	}
+
+	@Override
+	@Transactional
+	public void confirmEmailUpdate(Long tenantId, String newEmail, String otp) {
+		newEmail = newEmail.trim().toLowerCase(java.util.Locale.ROOT);
+		User currentUser = getPrimaryUser(tenantId);
+		if (currentUser.getAuthProvider() == AuthProvider.GOOGLE) {
+			throw new IllegalArgumentException("Email address cannot be changed for Google-authenticated accounts.");
+		}
+		if (newEmail.equalsIgnoreCase(currentUser.getEmail())) {
+			return;
+		}
+
+		passwordResetOtpService.validateEmailUpdateOtpOrThrow(tenantId, newEmail, otp);
+		ensureEmailAvailable(tenantId, newEmail);
+		updatePrimaryEmail(tenantId, currentUser, newEmail);
+	}
+
+	private void ensureEmailAvailable(Long tenantId, String newEmail) {
+		Optional<User> existingUserByEmail = repository.findByEmail(newEmail);
+		if (existingUserByEmail.isPresent()) {
+			User existingUser = existingUserByEmail.get();
+			if (!existingUser.getRestaurantId().equals(tenantId)) {
+				throw new IllegalArgumentException("This email is already related to another shop.");
+			}
+		}
+
+		Optional<User> existingUserByLoginId = repository.findByLoginId(newEmail);
+		if (existingUserByLoginId.isPresent()) {
+			User existingUser = existingUserByLoginId.get();
+			if (!existingUser.getRestaurantId().equals(tenantId)) {
+				throw new IllegalArgumentException("This email is already related to another shop.");
+			}
+		}
+	}
+
+	private void updatePrimaryEmail(Long tenantId, User currentUser, String newEmail) {
+		long now = System.currentTimeMillis();
+		if (currentUser.getLoginId() != null && currentUser.getLoginId().contains("@")) {
+			currentUser.setLoginId(newEmail);
+		}
+		currentUser.setEmail(newEmail);
+		currentUser.setUpdatedAt(now);
+		currentUser.setServerUpdatedAt(now);
+		currentUser.setDeviceId("server");
+		repository.save(currentUser);
+
+		restaurantProfileRepository.findByRestaurantId(tenantId).ifPresent(profile -> {
+			profile.setEmail(newEmail);
+			profile.setUpdatedAt(now);
+			profile.setServerUpdatedAt(now);
+			profile.markFieldsChanged(now, "email");
+			profile.setDeviceId("server");
+			restaurantProfileRepository.save(profile);
+		});
+	}
 }

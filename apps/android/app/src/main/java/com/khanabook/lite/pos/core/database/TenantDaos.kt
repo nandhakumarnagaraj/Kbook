@@ -63,6 +63,16 @@ class TenantUserDao @Inject constructor(
         dao.updateIdentityAndWhatsappNumber(userId, newLoginId, newEmail, newPhone, isSynced, updatedAt, serverUpdatedAt)
     }
 
+    override suspend fun updateEmail(
+        userId: Long,
+        newEmail: String,
+        isSynced: Boolean,
+        updatedAt: Long,
+        serverUpdatedAt: Long
+    ) {
+        dao.updateEmail(userId, newEmail, isSynced, updatedAt, serverUpdatedAt)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun <T> runFlow(block: (AppDatabase) -> Flow<T>): Flow<T> {
         return databaseProvider.activeDatabaseFlow.flatMapLatest { block(it) }

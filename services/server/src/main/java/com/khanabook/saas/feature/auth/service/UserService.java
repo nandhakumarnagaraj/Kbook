@@ -13,4 +13,8 @@ public interface UserService {
 	void requestMobileNumberUpdateOtp(Long tenantId, String newMobileNumber);
 
 	void confirmMobileNumberUpdate(Long tenantId, String newMobileNumber, String otp);
+
+	void requestEmailUpdateOtp(Long tenantId, String newEmail);
+
+	void confirmEmailUpdate(Long tenantId, String newEmail, String otp);
 }

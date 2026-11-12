@@ -1,9 +1,12 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.feature.settings.ui
-import com.khanabook.lite.pos.core.designsystem.*
-import com.khanabook.lite.pos.core.theme.*
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -28,8 +32,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.khanabook.lite.pos.core.theme.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.core.designsystem.*
+import com.khanabook.lite.pos.core.theme.*
+import com.khanabook.lite.pos.core.util.ValidationUtils
+import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.feature.settings.viewmodel.QuickStartViewModel
 
 data class QuickMenuItem(
@@ -41,15 +50,35 @@ data class QuickMenuItem(
 fun QuickStartScreen(
     onComplete: () -> Unit,
     onSkip: () -> Unit,
-    viewModel: QuickStartViewModel = hiltViewModel()
+    viewModel: QuickStartViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
+    val iconSize = KhanaBookTheme.iconSize
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
 
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle(initialValue = null)
+    val initialPhone = remember(currentUser) {
+        currentUser?.whatsappNumber?.takeIf { it.isNotBlank() }
+            ?: currentUser?.phoneNumber?.takeIf { it.isNotBlank() }
+            ?: ""
+    }
+
     var shopName by remember { mutableStateOf("") }
+    var whatsappNumber by remember { mutableStateOf("") }
+    var isOtpVerified by remember { mutableStateOf(false) }
+    var otpSent by remember { mutableStateOf(false) }
+    var otpValue by remember { mutableStateOf("") }
+    var otpTimer by remember { mutableIntStateOf(60) }
+    var isSendingOtp by remember { mutableStateOf(false) }
+    var isVerifyingOtp by remember { mutableStateOf(false) }
+    var otpError by remember { mutableStateOf<String?>(null) }
+
     var menuItems by remember {
         mutableStateOf(
             listOf(
@@ -60,10 +89,77 @@ fun QuickStartScreen(
         )
     }
 
-    val canSubmit = shopName.isNotBlank() && menuItems.any { it.name.isNotBlank() && it.price.isNotBlank() }
+    // Pre-fill phone if user already has a verified number
+    LaunchedEffect(initialPhone) {
+        if (initialPhone.isNotBlank() && whatsappNumber.isBlank()) {
+            whatsappNumber = initialPhone
+            isOtpVerified = true
+        }
+    }
+
+    val otpStatus by authViewModel.otpVerificationStatus.collectAsStateWithLifecycle()
+
+    LaunchedEffect(otpStatus) {
+        when (otpStatus) {
+            is AuthViewModel.OtpVerificationResult.OtpSent -> {
+                isSendingOtp = false
+                isVerifyingOtp = false
+                otpSent = true
+                otpTimer = 60
+                otpError = null
+                coroutineScope.launch {
+                    KhanaToast.show(context.getString(R.string.toast_otp_sent), ToastKind.Info)
+                }
+            }
+            is AuthViewModel.OtpVerificationResult.Success -> {
+                isSendingOtp = false
+                isVerifyingOtp = false
+                isOtpVerified = true
+                otpSent = false
+                otpError = null
+                coroutineScope.launch {
+                    KhanaToast.show("WhatsApp number verified", ToastKind.Success)
+                }
+            }
+            is AuthViewModel.OtpVerificationResult.Error -> {
+                isSendingOtp = false
+                isVerifyingOtp = false
+                val msg = (otpStatus as? AuthViewModel.OtpVerificationResult.Error)?.message ?: "Verification failed"
+                otpError = msg
+                coroutineScope.launch {
+                    KhanaToast.show(msg, ToastKind.Error)
+                }
+            }
+            null -> {
+                isSendingOtp = false
+                isVerifyingOtp = false
+            }
+        }
+    }
+
+    LaunchedEffect(otpSent, otpTimer) {
+        if (otpSent && otpTimer > 0) {
+            delay(1000L)
+            otpTimer--
+        }
+    }
+
+    val isPhoneValid = whatsappNumber.isEmpty() || ValidationUtils.isValidPhone(whatsappNumber)
+    val phoneRequirementMet = whatsappNumber.isEmpty() || isOtpVerified
+    val canSubmit = shopName.isNotBlank() &&
+        menuItems.any { it.name.isNotBlank() && it.price.isNotBlank() } &&
+        phoneRequirementMet
+
+    var isSkipVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(5000L)
+        isSkipVisible = true
+    }
 
     LaunchedEffect(Unit) {
         viewModel.completionEvent.collect {
+            authViewModel.clearOtpStatus()
             onComplete()
         }
     }
@@ -80,7 +176,11 @@ fun QuickStartScreen(
                 .widthIn(max = layout.maxContentWidth)
                 .align(Alignment.TopCenter),
             bottomBar = {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = spacing.medium, vertical = spacing.smallMedium)
+                ) {
                     // Error display
                     if (error != null) {
                         Text(
@@ -91,44 +191,101 @@ fun QuickStartScreen(
                         )
                     }
 
-                    Button(
-                        onClick = {
-                            focusManager.clearFocus()
-                            val validItems = menuItems.filter { it.name.isNotBlank() && it.price.isNotBlank() }
-                            viewModel.completeQuickStart(shopName.trim(), validItems)
-                        },
-                        enabled = canSubmit && !isLoading,
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        shape = KhanaRadii.button,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryGold,
-                            disabledContainerColor = PrimaryGold.copy(alpha = 0.3f)
-                        )
+                            .height(54.dp),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.smallMedium),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                color = DarkBrown1,
-                                strokeWidth = 2.dp
+                        OutlinedButton(
+                            onClick = {
+                                val tutorialUrl = "https://kbook.iadv.cloud/cdn/tutorials/create-quickbill.webm"
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(tutorialUrl))
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    coroutineScope.launch {
+                                        KhanaToast.show("Unable to open tutorial video", ToastKind.Warning)
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            shape = KhanaRadii.button,
+                            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.7f)),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = TextGold
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(iconSize.small),
+                                tint = PrimaryGold
                             )
-                        } else {
+                            Spacer(modifier = Modifier.width(spacing.extraSmall))
                             Text(
-                                text = "Start Billing →",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = DarkBrown1,
-                                fontWeight = FontWeight.Bold,
+                                text = "Watch Tutorials",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+                        }
+
+                        Button(
+                            onClick = {
+                                focusManager.clearFocus()
+                                if (whatsappNumber.isNotBlank() && !isOtpVerified) {
+                                    coroutineScope.launch {
+                                        KhanaToast.show("Please verify WhatsApp number with OTP first", ToastKind.Warning)
+                                    }
+                                    return@Button
+                                }
+                                val validItems = menuItems.filter { it.name.isNotBlank() && it.price.isNotBlank() }
+                                viewModel.completeQuickStart(
+                                    shopName = shopName.trim(),
+                                    items = validItems,
+                                    whatsappNumber = whatsappNumber.trim().takeIf { it.isNotBlank() && isOtpVerified }
+                                )
+                            },
+                            enabled = canSubmit && !isLoading,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            shape = KhanaRadii.button,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryGold,
+                                disabledContainerColor = PrimaryGold.copy(alpha = 0.3f)
+                            ),
+                            contentPadding = PaddingValues(horizontal = 8.dp)
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = DarkBrown1,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "Start Billing",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = DarkBrown1,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(spacing.small))
 
                     Text(
-                        text = "You can always add categories, variants, GST, and printer settings later from the Profile tab.",
+                        text = "You can always add categories, variants, GST, and printer settings later from the Settings tab.",
                         style = MaterialTheme.typography.bodySmall,
                         color = TextLight.copy(alpha = 0.5f),
                         textAlign = TextAlign.Center,
@@ -157,8 +314,13 @@ fun QuickStartScreen(
                         color = PrimaryGold,
                         fontWeight = FontWeight.Bold
                     )
-                    TextButton(onClick = onSkip) {
-                        Text("Skip", color = TextGold)
+                    AnimatedVisibility(
+                        visible = isSkipVisible,
+                        enter = fadeIn(animationSpec = tween(400))
+                    ) {
+                        TextButton(onClick = onSkip) {
+                            Text("Skip", color = TextGold)
+                        }
                     }
                 }
 
@@ -172,7 +334,7 @@ fun QuickStartScreen(
 
                 Spacer(modifier = Modifier.height(spacing.large))
 
-                // Shop Name Card
+                // Shop Name & WhatsApp Card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = KhanaRadii.card,
@@ -208,6 +370,132 @@ fun QuickStartScreen(
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
+
+                        Spacer(modifier = Modifier.height(spacing.medium))
+
+                        val isPhone10 = whatsappNumber.length == 10
+
+                        KhanaBookInputField(
+                            value = whatsappNumber,
+                            onValueChange = { input ->
+                                val digits = input.filter { it.isDigit() }.take(10)
+                                whatsappNumber = digits
+                                if (digits != initialPhone) {
+                                    isOtpVerified = false
+                                    otpSent = false
+                                    otpValue = ""
+                                    otpError = null
+                                }
+                            },
+                            label = "WhatsApp number",
+                            placeholder = "10-digit mobile number",
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = if (otpSent) ImeAction.Next else ImeAction.Done
+                            ),
+                            supportingText = {
+                                Text(
+                                    text = when {
+                                        whatsappNumber.isNotEmpty() && !isPhoneValid -> "Enter valid 10-digit number"
+                                        isOtpVerified -> "Verified WhatsApp number"
+                                        else -> "Used for digital bills & customer updates"
+                                    },
+                                    color = when {
+                                        whatsappNumber.isNotEmpty() && !isPhoneValid -> ErrorPink
+                                        isOtpVerified -> SuccessGreen
+                                        else -> TextGold.copy(alpha = 0.7f)
+                                    },
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            isError = whatsappNumber.isNotEmpty() && !isPhoneValid,
+                            trailingIcon = {
+                                if (isOtpVerified) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = "Verified",
+                                        tint = SuccessGreen,
+                                        modifier = Modifier.size(iconSize.small)
+                                    )
+                                } else if (isPhone10 && isPhoneValid) {
+                                    if (isSendingOtp) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = PrimaryGold,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Button(
+                                            onClick = {
+                                                focusManager.clearFocus()
+                                                isSendingOtp = true
+                                                authViewModel.sendOtp(whatsappNumber, "update_whatsapp")
+                                            },
+                                            enabled = !isSendingOtp && (otpTimer == 0 || !otpSent),
+                                            shape = KhanaRadii.xl,
+                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                            modifier = Modifier.height(36.dp)
+                                        ) {
+                                            Text(
+                                                text = if (otpSent && otpTimer > 0) "${otpTimer}s" else "Get OTP",
+                                                color = DarkBrown1,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (otpSent && !isOtpVerified) {
+                            Spacer(modifier = Modifier.height(spacing.medium))
+
+                            KhanaBookInputField(
+                                value = otpValue,
+                                onValueChange = { input ->
+                                    val digits = input.filter { it.isDigit() }.take(6)
+                                    otpValue = digits
+                                    if (digits.length == 6) {
+                                        focusManager.clearFocus()
+                                        isVerifyingOtp = true
+                                        authViewModel.confirmMobileNumberUpdate(whatsappNumber, digits)
+                                    }
+                                },
+                                label = "Enter 6-digit OTP",
+                                placeholder = "• • • • • •",
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Number,
+                                    imeAction = ImeAction.Done
+                                ),
+                                supportingText = {
+                                    Text(
+                                        text = otpError ?: if (otpTimer > 0) "OTP expires in ${String.format("%02d:%02d", otpTimer / 60, otpTimer % 60)}" else "OTP expired. Tap Get OTP to resend.",
+                                        color = if (otpError != null) ErrorPink else TextGold.copy(alpha = 0.7f),
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                },
+                                isError = otpError != null,
+                                trailingIcon = {
+                                    if (isVerifyingOtp) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            color = PrimaryGold,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else if (otpTimer > 0) {
+                                        Text(
+                                            text = String.format("%02d:%02d", otpTimer / 60, otpTimer % 60),
+                                            color = TextGold,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
 

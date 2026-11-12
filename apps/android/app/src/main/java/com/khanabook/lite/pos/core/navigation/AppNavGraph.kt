@@ -145,7 +145,8 @@ internal fun AppNavGraph(
                     navController.navigate(authenticatedStartDestination()) {
                         popUpTo(Routes.QUICK_START) { inclusive = true }
                     }
-                }
+                },
+                authViewModel = authViewModel
             )
         }
         composable(Routes.LOGIN) {

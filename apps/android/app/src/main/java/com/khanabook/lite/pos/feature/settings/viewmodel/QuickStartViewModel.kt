@@ -10,6 +10,7 @@ import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.menu.data.CategoryRepository
 import com.khanabook.lite.pos.feature.menu.data.MenuRepository
 import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
+import com.khanabook.lite.pos.feature.auth.data.UserRepository
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.sync.domain.SyncManager
 import com.khanabook.lite.pos.feature.settings.ui.QuickMenuItem
@@ -30,6 +31,7 @@ class QuickStartViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository,
     private val restaurantRepository: RestaurantRepository,
+    private val userRepository: UserRepository,
     private val sessionManager: SessionManager,
     private val syncManager: SyncManager,
     private val databaseProvider: com.khanabook.lite.pos.core.database.DatabaseProvider
@@ -44,7 +46,13 @@ class QuickStartViewModel @Inject constructor(
     private val _completionEvent = MutableSharedFlow<Unit>()
     val completionEvent: SharedFlow<Unit> = _completionEvent.asSharedFlow()
 
-    fun completeQuickStart(shopName: String, items: List<QuickMenuItem>) {
+    val currentUser = userRepository.currentUser
+
+    fun completeQuickStart(
+        shopName: String,
+        items: List<QuickMenuItem>,
+        whatsappNumber: String? = null
+    ) {
         if (shopName.isBlank()) {
             _error.value = "Please enter your shop name"
             return
@@ -65,8 +73,8 @@ class QuickStartViewModel @Inject constructor(
                     // false. The user then retried and re-inserted the committed items as
                     // duplicates. One transaction makes the seed all-or-nothing.
                     databaseProvider.getDatabase().withTransaction {
-                        // 1. Save/update restaurant profile with shop name
-                        saveShopName(shopName)
+                        // 1. Save/update restaurant profile and user identity with shop details
+                        saveShopDetails(shopName, whatsappNumber)
 
                         // 2. Create a default "General" category
                         val categoryId = categoryRepository.insertCategory(
@@ -111,22 +119,36 @@ class QuickStartViewModel @Inject constructor(
         }
     }
 
-    private suspend fun saveShopName(shopName: String) {
+    private suspend fun saveShopDetails(shopName: String, whatsappNumber: String?) {
         val restaurantId = sessionManager.getRestaurantId()
         val existing = restaurantRepository.getProfile()
+        val normalizedWa = whatsappNumber?.takeIf { it.isNotBlank() }
         val profile = existing?.copy(
             shopName = shopName,
+            whatsappNumber = normalizedWa ?: existing.whatsappNumber,
             isSynced = false,
             updatedAt = System.currentTimeMillis()
         ) ?: RestaurantProfileEntity(
             id = restaurantId,
             shopName = shopName,
+            whatsappNumber = normalizedWa,
             restaurantId = restaurantId,
             deviceId = sessionManager.getDeviceId(),
             isSynced = false,
             updatedAt = System.currentTimeMillis()
         )
         restaurantRepository.saveProfile(profile)
+
+        if (!normalizedWa.isNullOrBlank()) {
+            val activeUserId = sessionManager.getActiveUserId()
+            if (activeUserId != null) {
+                userRepository.updateWhatsappNumber(activeUserId, normalizedWa)
+                val current = userRepository.currentUser.value
+                if (current != null) {
+                    userRepository.setCurrentUser(current.copy(whatsappNumber = normalizedWa))
+                }
+            }
+        }
     }
 
     companion object {

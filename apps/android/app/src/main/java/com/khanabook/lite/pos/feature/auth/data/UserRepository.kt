@@ -425,6 +425,53 @@ class UserRepository(
         }
     }
 
+    suspend fun requestEmailUpdateOtp(newEmail: String): Result<Unit> {
+        return try {
+            val request = UpdateEmailOtpRequest(newEmail.trim().lowercase())
+            val response = api.requestEmailUpdateOtp(request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(response.toBackendException("Failed to send OTP. Please try again."))
+            }
+        } catch (e: Exception) {
+            Result.failure(mapBackendException(e))
+        }
+    }
+
+    suspend fun confirmEmailUpdate(newEmail: String, otp: String): Result<Unit> {
+        return try {
+            val cleanEmail = newEmail.trim().lowercase()
+            val request = UpdateEmailRequest(cleanEmail, otp)
+            val response = api.updateEmail(request)
+            if (response.isSuccessful) {
+                val current = currentUser.value ?: userDao.getAnyUser()
+                if (current != null) {
+                    val now = System.currentTimeMillis()
+                    val updatedUser = current.copy(
+                        email = cleanEmail,
+                        isSynced = true,
+                        updatedAt = now,
+                        serverUpdatedAt = now
+                    )
+                    userDao.updateEmail(
+                        userId = current.id,
+                        newEmail = cleanEmail,
+                        isSynced = true,
+                        updatedAt = now,
+                        serverUpdatedAt = now
+                    )
+                    setCurrentUser(updatedUser)
+                }
+                Result.success(Unit)
+            } else {
+                Result.failure(response.toBackendException("Failed to update email address."))
+            }
+        } catch (e: Exception) {
+            Result.failure(mapBackendException(e))
+        }
+    }
+
     suspend fun updateWhatsappNumber(userId: Long, newPhone: String) {
         userDao.updateWhatsappNumber(userId, newPhone, System.currentTimeMillis())
         triggerBackgroundSync()
