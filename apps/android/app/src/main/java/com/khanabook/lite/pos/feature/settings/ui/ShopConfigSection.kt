@@ -251,9 +251,16 @@ fun ShopConfigView(
     var emailOtpSent by remember { mutableStateOf(false) }
     var emailOtpTimer by remember { mutableIntStateOf(120) }
     var isEmailOtpVerified by remember { mutableStateOf(true) }
+    var phoneServerError by remember { mutableStateOf<String?>(null) }
+    var emailServerError by remember { mutableStateOf<String?>(null) }
+
+    val isOtpLoading = otpStatus is AuthViewModel.OtpVerificationResult.Loading
+    val isEmailOtpLoading = emailOtpStatus is AuthViewModel.OtpVerificationResult.Loading
 
     LaunchedEffect(profile) {
         profile?.let {
+            phoneServerError = null
+            emailServerError = null
             name = it.shopName ?: ""
             address = it.shopAddress ?: ""
             whatsapp = it.whatsappNumber ?: ""
@@ -282,22 +289,23 @@ fun ShopConfigView(
             is AuthViewModel.OtpVerificationResult.OtpSent -> {
                 otpSent = true
                 isOtpVerified = false
+                phoneServerError = null
                 otpTimer = 120
                 toastScope.launch { KhanaToast.show(context.getString(R.string.toast_otp_sent), ToastKind.Info) }
             }
             is AuthViewModel.OtpVerificationResult.Success -> {
                 isOtpVerified = true
+                phoneServerError = null
                 toastScope.launch { KhanaToast.show(context.getString(R.string.toast_verified), ToastKind.Success) }
                 authViewModel.clearOtpStatus()
             }
             is AuthViewModel.OtpVerificationResult.Error -> {
                 val errorMsg = (otpStatus as? AuthViewModel.OtpVerificationResult.Error)?.message.orEmpty()
+                val sanitized = UserMessageSanitizer.sanitizeBackendMessage(errorMsg, "Couldn't verify OTP. Please try again.")
+                phoneServerError = sanitized
                 isOtpVerified = false
                 toastScope.launch {
-                    KhanaToast.show(
-                        UserMessageSanitizer.sanitizeBackendMessage(errorMsg, "Couldn't verify OTP. Please try again."),
-                        ToastKind.Error,
-                    )
+                    KhanaToast.show(sanitized, ToastKind.Error)
                 }
                 authViewModel.clearOtpStatus()
             }
@@ -310,22 +318,23 @@ fun ShopConfigView(
             is AuthViewModel.OtpVerificationResult.OtpSent -> {
                 emailOtpSent = true
                 isEmailOtpVerified = false
+                emailServerError = null
                 emailOtpTimer = 120
                 toastScope.launch { KhanaToast.show(context.getString(R.string.toast_email_otp_sent), ToastKind.Info) }
             }
             is AuthViewModel.OtpVerificationResult.Success -> {
                 isEmailOtpVerified = true
+                emailServerError = null
                 toastScope.launch { KhanaToast.show(context.getString(R.string.toast_verified), ToastKind.Success) }
                 authViewModel.clearEmailOtpStatus()
             }
             is AuthViewModel.OtpVerificationResult.Error -> {
                 val errorMsg = (emailOtpStatus as? AuthViewModel.OtpVerificationResult.Error)?.message.orEmpty()
+                val sanitized = UserMessageSanitizer.sanitizeBackendMessage(errorMsg, "Couldn't verify OTP. Please try again.")
+                emailServerError = sanitized
                 isEmailOtpVerified = false
                 toastScope.launch {
-                    KhanaToast.show(
-                        UserMessageSanitizer.sanitizeBackendMessage(errorMsg, "Couldn't verify OTP. Please try again."),
-                        ToastKind.Error,
-                    )
+                    KhanaToast.show(sanitized, ToastKind.Error)
                 }
                 authViewModel.clearEmailOtpStatus()
             }
@@ -519,6 +528,7 @@ fun ShopConfigView(
                         onValueChange = {
                             val filtered = it.filter { ch -> ch.isDigit() }.take(10)
                             whatsapp = filtered
+                            phoneServerError = null
                             if (filtered != (profile?.whatsappNumber ?: "")) {
                                 otpSent = false
                                 isOtpVerified = false
@@ -538,10 +548,10 @@ fun ShopConfigView(
                         },
                         enabled = !readOnly,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
-                        isError = (whatsapp.isNotEmpty() && !isPhoneValid) || userExistsError != null,
-                        supportingText = if (userExistsError != null) userExistsError else if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
+                        isError = (whatsapp.isNotEmpty() && !isPhoneValid) || userExistsError != null || phoneServerError != null,
+                        supportingText = phoneServerError ?: userExistsError ?: if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
                         trailingIcon = {
-                            if (isUserChecking) {
+                            if (isUserChecking || isOtpLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
@@ -550,13 +560,14 @@ fun ShopConfigView(
                             } else if (numberChanged && (!otpSent || otpTimer == 0)) {
                                 Button(
                                     onClick = {
+                                        phoneServerError = null
                                         if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
                                     },
                                     modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                                     shape = KhanaRadii.xl,
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
-                                    enabled = isPhoneValid && !isUserChecking && userExistsError == null && !readOnly
+                                    enabled = isPhoneValid && !isUserChecking && !isOtpLoading && userExistsError == null && !readOnly
                                 ) {
                                     Text("Get OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                                 }
@@ -595,6 +606,16 @@ fun ShopConfigView(
                                         style = MaterialTheme.typography.labelLarge,
                                         modifier = Modifier.padding(end = spacing.medium)
                                     )
+                                } else if (otpTimer == 0 && !isOtpVerified) {
+                                    TextButton(
+                                        onClick = {
+                                            if (isPhoneValid && !isOtpLoading) authViewModel.sendOtp(whatsapp, "update_whatsapp")
+                                        },
+                                        modifier = Modifier.padding(end = 4.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp)
+                                    ) {
+                                        Text("Resend", color = PrimaryGold, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                    }
                                 } else if (isOtpVerified) {
                                     Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
                                 }
@@ -608,6 +629,7 @@ fun ShopConfigView(
                         onValueChange = {
                             if (!isGoogleAuth) {
                                 email = it
+                                emailServerError = null
                                 if (it.trim() != (profile?.email?.trim() ?: "")) {
                                     isEmailOtpVerified = false
                                     emailOtpSent = false
@@ -623,19 +645,26 @@ fun ShopConfigView(
                         },
                         enabled = !isGoogleAuth && !readOnly,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                        isError = (!isGoogleAuth && email.isNotBlank() && !isEmailValid) || !emailOtpFieldErrors["email"].isNullOrBlank(),
-                        supportingText = emailOtpFieldErrors["email"] ?: if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) "Enter valid email address" else null,
+                        isError = (!isGoogleAuth && email.isNotBlank() && !isEmailValid) || !emailOtpFieldErrors["email"].isNullOrBlank() || emailServerError != null,
+                        supportingText = emailServerError ?: emailOtpFieldErrors["email"] ?: if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) "Enter valid email address" else null,
                         trailingIcon = {
-                            if (!isGoogleAuth && emailChanged && isEmailValid && (!emailOtpSent || emailOtpTimer == 0) && !isEmailOtpVerified) {
+                            if (!isGoogleAuth && isEmailOtpLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = PrimaryGold
+                                )
+                            } else if (!isGoogleAuth && emailChanged && isEmailValid && (!emailOtpSent || emailOtpTimer == 0) && !isEmailOtpVerified) {
                                 Button(
                                     onClick = {
+                                        emailServerError = null
                                         authViewModel.sendEmailUpdateOtp(email.trim())
                                     },
                                     modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                                     shape = KhanaRadii.xl,
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
-                                    enabled = !readOnly
+                                    enabled = !readOnly && !isEmailOtpLoading
                                 ) {
                                     Text("Get OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                                 }
@@ -674,6 +703,16 @@ fun ShopConfigView(
                                         style = MaterialTheme.typography.labelLarge,
                                         modifier = Modifier.padding(end = spacing.medium)
                                     )
+                                } else if (emailOtpTimer == 0 && !isEmailOtpVerified) {
+                                    TextButton(
+                                        onClick = {
+                                            if (isEmailValid && !isEmailOtpLoading) authViewModel.sendEmailUpdateOtp(email.trim())
+                                        },
+                                        modifier = Modifier.padding(end = 4.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp)
+                                    ) {
+                                        Text("Resend", color = PrimaryGold, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                    }
                                 } else if (isEmailOtpVerified) {
                                     Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
                                 }

@@ -130,6 +130,9 @@ fun QuickStartScreen(
                     KhanaToast.show(msg, ToastKind.Error)
                 }
             }
+            is AuthViewModel.OtpVerificationResult.Loading -> {
+                isSendingOtp = true
+            }
             null -> {
                 isSendingOtp = false
                 isVerifyingOtp = false

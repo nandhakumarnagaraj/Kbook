@@ -227,6 +227,7 @@ constructor(
 
             if (purpose == "update_whatsapp") {
                 _otpFieldErrors.value = emptyMap()
+                _otpVerificationStatus.value = OtpVerificationResult.Loading
                 val result = userRepository.requestMobileNumberUpdateOtp(phoneNumber)
                 result.onSuccess {
                     _otpVerificationStatus.value = OtpVerificationResult.OtpSent
@@ -263,6 +264,7 @@ constructor(
     fun sendEmailUpdateOtp(email: String) {
         viewModelScope.launch {
             _emailOtpFieldErrors.value = emptyMap()
+            _emailOtpVerificationStatus.value = OtpVerificationResult.Loading
             val result = userRepository.requestEmailUpdateOtp(email)
             result.onSuccess {
                 _emailOtpVerificationStatus.value = OtpVerificationResult.OtpSent
@@ -481,6 +483,7 @@ constructor(
     }
 
     sealed class OtpVerificationResult {
+        object Loading : OtpVerificationResult()
         object Success : OtpVerificationResult()
         object OtpSent : OtpVerificationResult()
         data class Error(val message: String) : OtpVerificationResult()

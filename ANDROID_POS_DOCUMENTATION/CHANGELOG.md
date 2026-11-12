@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-11-12] - In-Flight Loading State, Persistent Inline Errors & Inline Resend OTP
+### Added
+- Added `OtpVerificationResult.Loading` state in `AuthViewModel.kt` for reactive in-flight network observation.
+- Added in-flight loading spinners on both WhatsApp and Email `[ Get OTP ]` buttons (`isOtpLoading` / `isEmailOtpLoading`) to eliminate duplicate taps.
+- Added persistent inline field errors (`phoneServerError` / `emailServerError`) directly beneath the WhatsApp and Email inputs, maintaining red error borders until the input is edited.
+- Added inline `[ Resend ]` button inside the 6-digit OTP prompt trailing icon area when the 120-second countdown reaches `00:00`.
+
 ## [2026-11-12] - Restaurant Configuration Modern Card Architecture Redesign
 ### Changed
 - Redesigned Restaurant Configuration screen (`ShopConfigSection.kt` and `ShopConfigComponents.kt`) matching high-craft visual spec:
