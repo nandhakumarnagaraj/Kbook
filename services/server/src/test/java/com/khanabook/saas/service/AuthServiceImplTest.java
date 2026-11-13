@@ -276,6 +276,78 @@ class AuthServiceImplTest {
         assertThat(resp.getToken()).isEqualTo("google-jwt-token");
     }
 
+    @Test
+    void signup_deviceThatAlreadyRunsALiveShop_isRejected() {
+        RestaurantProfile existing = new RestaurantProfile();
+        existing.setRestaurantId(100L);
+        existing.setShopName("SR CAFE");
+        existing.setDeviceId("DEVICE_A");
+        when(restaurantProfileRepository.findLiveShopsForDevice("DEVICE_A"))
+                .thenReturn(java.util.List.of(existing));
+
+        assertThatThrownBy(() -> authService.signup(
+                new SignupRequest("9876543210", "Nandha", "pass123", "123456", "DEVICE_A")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already runs a shop");
+
+        verify(restaurantProfileRepository, never()).save(any());
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void signup_deviceWithOnlyASuspendedShop_isAllowed() {
+        // The repository query excludes suspended shops, so the guard never sees them.
+        when(restaurantProfileRepository.findLiveShopsForDevice("DEVICE_A"))
+                .thenReturn(java.util.List.of());
+        when(userRepository.findActiveByAnyIdentifier("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findDeletedHoldingIdentifier("9876543210")).thenReturn(java.util.List.of());
+        when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("signup-token");
+        when(userRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        doNothing().when(passwordResetOtpService).validateSignupOtpOrThrow("9876543210", "123456");
+
+        AuthResponse resp = authService.signup(
+                new SignupRequest("9876543210", "Nandha", "pass123", "123456", "DEVICE_A"));
+
+        assertThat(resp.getToken()).isEqualTo("signup-token");
+    }
+
+    @Test
+    void signup_sentinelDeviceIdIsNeverBlocked() {
+        when(userRepository.findActiveByAnyIdentifier("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findDeletedHoldingIdentifier("9876543210")).thenReturn(java.util.List.of());
+        when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("signup-token");
+        when(userRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        doNothing().when(passwordResetOtpService).validateSignupOtpOrThrow("9876543210", "123456");
+
+        AuthResponse resp = authService.signup(
+                new SignupRequest("9876543210", "Nandha", "pass123", "123456", "web-admin"));
+
+        assertThat(resp.getToken()).isEqualTo("signup-token");
+        // The guard must not have consulted the repository for a sentinel id.
+        verify(restaurantProfileRepository, never()).findLiveShopsForDevice("web-admin");
+    }
+
+    @Test
+    void signup_blankDeviceIdIsNeverBlocked() {
+        when(userRepository.findActiveByAnyIdentifier("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findDeletedHoldingIdentifier("9876543210")).thenReturn(java.util.List.of());
+        when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
+        when(jwtUtility.generateToken(anyString(), anyLong(), anyString(), any())).thenReturn("signup-token");
+        when(userRepository.saveAndFlush(any())).thenAnswer(i -> i.getArgument(0));
+        when(refreshTokenRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        doNothing().when(passwordResetOtpService).validateSignupOtpOrThrow("9876543210", "123456");
+
+        AuthResponse resp = authService.signup(
+                new SignupRequest("9876543210", "Nandha", "pass123", "123456", null));
+
+        assertThat(resp.getToken()).isEqualTo("signup-token");
+        verify(restaurantProfileRepository, never()).findLiveShopsForDevice(any());
+    }
+
     private User activeUser(String phone, String hash, Long restaurantId) {
         User u = new User();
         u.setEmail(phone);

@@ -104,6 +104,33 @@ public interface RestaurantProfileRepository extends SyncRepository<RestaurantPr
 
 	List<RestaurantProfile> findAllByIsDeletedFalseOrderByUpdatedAtDesc();
 
+	/**
+	 * Every live shop that this install is already running.
+	 *
+	 * <p>Signup carries no identity beyond the device it arrives from, so the device is
+	 * the only durable link between "a new business" and "the business this phone
+	 * already runs". The signup stub stores the requesting {@code deviceId}, which is
+	 * what makes the lookup exact.
+	 *
+	 * <p>Deleted and suspended shops are excluded: a retired duplicate must not stop its
+	 * install from ever signing up again, and a deleted shop holds nothing worth sending
+	 * the owner back to. {@code is_suspended} predates this column's NOT NULL default and
+	 * is still nullable for older rows, so the NULL branch is explicit — a derived
+	 * {@code IsSuspendedFalse} would drop those rows and let the fork through.
+	 *
+	 * <p>Oldest first, matching the rule that the earliest tenant is the one whose history
+	 * is real. Callers only read the first row.
+	 */
+	@Query("""
+			SELECT p FROM RestaurantProfile p
+			WHERE p.deviceId = :deviceId
+			  AND p.isDeleted = false
+			  AND (p.isSuspended = false OR p.isSuspended IS NULL)
+			ORDER BY p.createdAt ASC
+			""")
+	List<RestaurantProfile> findLiveShopsForDevice(
+			@org.springframework.data.repository.query.Param("deviceId") String deviceId);
+
 	// Atomic counter increment: resets daily_order_counter when the date rolls over.
 	@org.springframework.data.jpa.repository.Modifying
 	@Query(value = """

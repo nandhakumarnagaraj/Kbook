@@ -120,6 +120,10 @@ public class AuthServiceImpl implements AuthService {
         // indexes do not block this fresh signup. No live data is touched.
         releaseIdentifierFromDeletedUsers(request.getPhoneNumber());
 
+        // A device that already runs a live shop is not allowed to create a second one.
+        // See rejectSecondShopOnSameInstall for the rationale and the deliberate exclusions.
+        rejectSecondShopOnSameInstall(request.getDeviceId());
+
         Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
 
         RestaurantProfile profile = new RestaurantProfile();
@@ -305,6 +309,8 @@ public class AuthServiceImpl implements AuthService {
                         }).orElseGet(() -> {
                             Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
                             String deviceId = request.getDeviceId() != null ? request.getDeviceId().trim() : "web-admin";
+                            // Same guard as phone signup: this install already has a shop.
+                            rejectSecondShopOnSameInstall(deviceId);
                             RestaurantProfile profile = new RestaurantProfile();
                             profile.setRestaurantId(newRestaurantId);
                             profile.setDeviceId(deviceId);
@@ -526,6 +532,45 @@ public class AuthServiceImpl implements AuthService {
                 .or(() -> userRepository.findByLoginIdIgnoreCase(normalizeLoginIdentifier(phoneNumber)))
                 .or(() -> userRepository.findByEmailIgnoreCase(normalizeLoginIdentifier(phoneNumber)))
                 .or(() -> userRepository.findByWhatsappNumber(phoneNumber));
+    }
+
+    /**
+     * Phone signup and Google signup both mint a brand-new {@code restaurant_id}, so
+     * nothing in the data model stops the same owner from signing up twice and splitting
+     * their menu, bills and terminal history across two tenants. "SR cafe" ended up as
+     * four tenants from two installs that way.
+     *
+     * <p>The only identity the server holds at signup is the device id, so the guard
+     * keys on that. It is deliberately narrow:
+     * <ul>
+     *   <li>no shop-name check — signup derives the name from the OWNER's name
+     *       ("Ravi's Restaurant"), so it collides between different people;</li>
+     *   <li>no phone check — {@code phone_number} is already globally unique, so a
+     *       second signup with the same number is refused earlier;</li>
+     *   <li>suspended shops do not block — retiring a duplicate must not trap that
+     *       install out of signing up again;</li>
+     *   <li>blank, {@code server} and {@code web-admin} ids are skipped — those are
+     *       sentinels for non-install callers (web admin, server-side repair) and would
+     *       otherwise collide on the very first signup.</li>
+     * </ul>
+     */
+    private void rejectSecondShopOnSameInstall(String deviceId) {
+        if (deviceId == null || deviceId.isBlank()) {
+            return;
+        }
+        String install = deviceId.trim();
+        if ("server".equalsIgnoreCase(install) || "web-admin".equalsIgnoreCase(install)) {
+            return;
+        }
+        java.util.List<RestaurantProfile> existing =
+                restaurantProfileRepository.findLiveShopsForDevice(install);
+        if (existing != null && !existing.isEmpty()) {
+            RestaurantProfile shop = existing.get(0);
+            throw new IllegalArgumentException(
+                    "This device already runs a shop (" + shop.getShopName()
+                            + "). Sign in to that shop instead of creating a new one. "
+                            + "Contact support if you need a second business.");
+        }
     }
 
     private void ensurePhoneNumberAvailableForSignup(String phoneNumber) {
