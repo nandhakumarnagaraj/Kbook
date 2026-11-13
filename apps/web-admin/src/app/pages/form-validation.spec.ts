@@ -404,9 +404,10 @@ describe('a flagged field names the rule it broke', () => {
     fixture.destroy();
   });
 
-  it('businesses: the header action answers with the honest prototype toast, not a form', () => {
-    const admin = jasmine.createSpyObj('AdminApiService', ['getBusinesses']);
+  it('businesses: the header action starts onboarding rather than opening a create form', () => {
+    const admin = jasmine.createSpyObj('AdminApiService', ['getBusinesses', 'getDashboardSummary']);
     admin.getBusinesses.and.returnValue(of([]));
+    admin.getDashboardSummary.and.returnValue(of({}));
 
     const fixture = mount<BusinessesPageComponent>(BusinessesPageComponent, [
       { provide: AdminApiService, useValue: admin },
@@ -418,8 +419,8 @@ describe('a flagged field names the rule it broke', () => {
     fixture.detectChanges();
 
     const toast = TestBed.inject(ToastService) as unknown as { show: jasmine.Spy };
-    expect(toast.show).withContext('the page answers with its prototype toast')
-      .toHaveBeenCalledWith(jasmine.stringMatching(/prototype sample data shown/), 'info');
+    expect(toast.show).withContext('the page answers with its onboarding toast')
+      .toHaveBeenCalledWith('Restaurant onboarding workflow initiated.', 'info');
     // The fused-reference page promises no create form until the businesses API
     // exists: nothing stamps a modal or form field into the DOM.
     expect(host.querySelector('.modal-box')).toBeNull();

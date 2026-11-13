@@ -420,6 +420,7 @@ describe('background polls stay silent', () => {
       'getTerminals',
       'getDailyClosing',
       'getNotifications',
+      'getProfile',
     ]);
     api.getDashboard.and.returnValue(dashboard.stream);
     api.getDashboardTrends.and.returnValue(of({ yesterdayRevenue: 0, todayRevenue: 0 }));
@@ -430,6 +431,7 @@ describe('background polls stay silent', () => {
     api.getTerminals.and.returnValue(of([]));
     api.getDailyClosing.and.returnValue(of(null));
     api.getNotifications.and.returnValue(of({ status: 'ok', notifications: [], unreadCount: 0 }));
+    api.getProfile.and.returnValue(of({}));
 
     const fixture = mount<BusinessDashboardPageComponent>(BusinessDashboardPageComponent, [
       { provide: BusinessApiService, useValue: api },

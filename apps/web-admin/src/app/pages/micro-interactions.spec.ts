@@ -138,6 +138,7 @@ function withPages(visit: (label: string, host: HTMLElement) => void): void {
   const dashboardApi = jasmine.createSpyObj('BusinessApiService', [
     'getDashboard', 'getDashboardTrends', 'getOrdersPaginated', 'getHourlySales',
     'getItemSales', 'getInventoryMaterials', 'getTerminals', 'getDailyClosing', 'getNotifications',
+    'getProfile',
   ]);
   dashboardApi.getDashboard.and.returnValue(of({ posOrderCount: 4 }));
   dashboardApi.getDashboardTrends.and.returnValue(of({ yesterdayRevenue: 0, todayRevenue: 0 }));
@@ -150,6 +151,7 @@ function withPages(visit: (label: string, host: HTMLElement) => void): void {
   dashboardApi.getTerminals.and.returnValue(of([]));
   dashboardApi.getDailyClosing.and.returnValue(of(null));
   dashboardApi.getNotifications.and.returnValue(of({ status: 'ok', notifications: [], unreadCount: 0 }));
+  dashboardApi.getProfile.and.returnValue(of({}));
   const dashboard = mount<BusinessDashboardPageComponent>(BusinessDashboardPageComponent, [
     { provide: BusinessApiService, useValue: dashboardApi },
     { provide: Router, useValue: routerStub },

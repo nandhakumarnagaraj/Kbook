@@ -63,7 +63,8 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
       'getTerminals',
       'getDailyClosing',
       'getNotifications',
-      'getOrderDetail'
+      'getOrderDetail',
+      'getProfile'
     ]);
 
     auth = jasmine.createSpyObj<AuthService>('AuthService', ['session']);
@@ -81,6 +82,7 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
     api.getTerminals.and.returnValue(of([]));
     api.getDailyClosing.and.returnValue(of(null));
     api.getNotifications.and.returnValue(of({ status: 'ok', notifications: [], unreadCount: 0 }));
+    api.getProfile.and.returnValue(of({}));
 
     TestBed.configureTestingModule({
       imports: [BusinessDashboardPageComponent],
@@ -157,6 +159,10 @@ describe('BusinessDashboardPageComponent — states and resilience', () => {
         (node) => node.nodeType === Node.TEXT_NODE && (node.textContent || '').trim().length > 0
       );
       if (!ownsText) return;
+      // The receipt preview depicts 80mm thermal output, so its glyph sizes are
+      // part of the drawing rather than screen copy. Everything around it — headings,
+      // printer status, its tear/feed/fleet controls — stays under the floor check.
+      if (el.closest('.receipt-inner')) return;
       const size = parseFloat(getComputedStyle(el).fontSize);
       if (size < 13) {
         offenders.push(`${el.tagName.toLowerCase()}.${el.className || '(no class)'} → ${size}px "${(el.textContent || '').trim().slice(0, 24)}"`);

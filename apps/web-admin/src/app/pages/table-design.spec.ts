@@ -269,6 +269,7 @@ function measureDashboardLowStockModal(): { label: string; design: TableDesign }
   const api = jasmine.createSpyObj('BusinessApiService', [
     'getDashboard', 'getDashboardTrends', 'getOrdersPaginated', 'getHourlySales',
     'getItemSales', 'getInventoryMaterials', 'getTerminals', 'getDailyClosing', 'getNotifications',
+    'getProfile',
   ]);
   api.getDashboard.and.returnValue(of({ posOrderCount: 4 }));
   api.getDashboardTrends.and.returnValue(of({ yesterdayRevenue: 0, todayRevenue: 0 }));
@@ -282,6 +283,7 @@ function measureDashboardLowStockModal(): { label: string; design: TableDesign }
   api.getTerminals.and.returnValue(of([]));
   api.getDailyClosing.and.returnValue(of(null));
   api.getNotifications.and.returnValue(of({ status: 'ok', notifications: [], unreadCount: 0 }));
+  api.getProfile.and.returnValue(of({}));
 
   const fixture = mount<BusinessDashboardPageComponent>(BusinessDashboardPageComponent, [
     { provide: BusinessApiService, useValue: api },

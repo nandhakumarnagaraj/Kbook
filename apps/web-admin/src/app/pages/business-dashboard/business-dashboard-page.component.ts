@@ -972,7 +972,7 @@ function getTodayIsoDate(): string {
       display: inline-flex;
       align-items: center;
       gap: var(--kb-space-2);
-      font-size: var(--kb-text-2xs);
+      font-size: var(--kb-text-sm);
       font-weight: 750;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -1879,14 +1879,14 @@ function getTodayIsoDate(): string {
     }
 
     .printer-station__label {
-      font-size: var(--kb-text-2xs);
+      font-size: var(--kb-text-sm);
       font-weight: 750;
       letter-spacing: 0.04em;
       color: var(--kb-color-foreground);
     }
 
     .printer-station__sub {
-      font-size: var(--kb-text-2xs);
+      font-size: var(--kb-text-sm);
       color: var(--kb-color-muted-foreground);
     }
 
@@ -1902,7 +1902,7 @@ function getTodayIsoDate(): string {
       gap: var(--kb-space-1);
       padding: var(--kb-space-1) var(--kb-space-2);
       border-radius: var(--kb-radius-sm);
-      font-size: var(--kb-text-2xs);
+      font-size: var(--kb-text-sm);
       font-weight: 650;
       background: var(--kb-color-primary);
       color: var(--kb-color-foreground-contrast);
