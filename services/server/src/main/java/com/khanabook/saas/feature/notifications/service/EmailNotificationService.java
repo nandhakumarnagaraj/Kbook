@@ -29,6 +29,17 @@ public class EmailNotificationService {
     @Value("${khanabook.email.enabled:false}")
     private boolean emailEnabled;
 
+    /**
+     * SMTP password, empty when MAIL_PASSWORD is not supplied.
+     *
+     * application.properties defaults spring.mail.username to a real mailbox and leaves the
+     * password empty, so an unconfigured host still has mail.smtp.auth=true and the send fails
+     * with an authentication error instead of reporting "not configured". This field lets
+     * {@link #sendVerificationOtp} tell those two situations apart.
+     */
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
     @Async
     public void sendRefundConfirmation(String toEmail, String customerName, String orderCode,
                                         BigDecimal refundAmount, String reason) {
@@ -121,9 +132,32 @@ public class EmailNotificationService {
         }
     }
 
+    /**
+     * Delivers an email address-verification code.
+     *
+     * WHAT: sends the code over SMTP when mail is both enabled and configured; otherwise logs
+     * the generated code and returns without contacting the mail server.
+     *
+     * WHY: the caller (PasswordResetOtpService.issueEmailOtp) persists the OTP row and then calls
+     * this method inside the same transaction. Attempting a send on an unconfigured host throws,
+     * which rolls the OTP row back and surfaces "Failed to send verification email" to the POS
+     * even though the only real problem is a missing MAIL_PASSWORD.
+     *
+     * WHEN: never throws for missing configuration. A failure on a configured host still throws
+     * IllegalStateException so the operator hears about a genuine delivery outage.
+     *
+     * LIMITATIONS: the unconfigured branch writes the code to the log, which is only acceptable
+     * for local/staging. Production must set MAIL_PASSWORD; doing so takes this branch out of the
+     * execution path entirely.
+     */
     public void sendVerificationOtp(String toEmail, String otp) {
         if (!emailEnabled) {
             log.warn("Email sending disabled (khanabook.email.enabled=false). Generated email OTP for {}: {}", toEmail, otp);
+            return;
+        }
+        if (mailPassword == null || mailPassword.isBlank()) {
+            log.warn("Email OTP not delivered: spring.mail.password is empty (set MAIL_PASSWORD). "
+                    + "Generated email OTP for {}: {}", toEmail, otp);
             return;
         }
         try {
