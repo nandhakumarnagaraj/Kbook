@@ -18,6 +18,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Read-only token: this workflow only checks out and builds, so it must not
+    # inherit the repository's default (possibly write) token permissions.
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: apps/web-admin

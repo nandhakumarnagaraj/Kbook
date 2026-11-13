@@ -46,7 +46,8 @@ The audit's findings were then acted on. Nothing below was verified on a device.
 3. **Master-pull transaction poisoning fixed** (BUG-009): `getSubscriptionSummary` lazily inserts a default subscription row while running inside the pull's read-only transaction, aborting it so every later query in the request failed. Moved to `REQUIRES_NEW`. *Verified:* the five previously failing sync/bill integration classes pass.
 4. **Dead `completePasswordReset` deleted** from the server: it skipped OTP validation entirely, so exposing it would have been an authentication bypass. `/auth/reset-password` already resolves email logins, so nothing is lost.
 5. **`nosniff` re-enabled**; **CI de-duplicated** (`android-ci.yml` keeps lint + instrumented, `web-admin.yml` now enforces all ten `check:*` design gates plus the production build).
-6. **Not done, still open:** the `TerminalManagementConcurrencyTest` class still asserts a 5-terminal limit against a 3-terminal plan, and the full server suite was not observed green in a single run (it exceeds the 10-minute command cap).
+6. **`TerminalManagementConcurrencyTest` fixed:** its scenarios now pin the restaurant to a 5-terminal `ENTERPRISE` fixture plan, because `BaseIntegrationTest` uses `ddl-auto=create` and skips Flyway, so no plan rows exist in that context. Green.
+7. **Full server suite result:** 955 tests, 2 failures, 0 errors (down from 6 failures + 5 errors). The two remaining are order-dependent 401s in `ConcurrentBillPushTest` and `TerminalAccessControlGapTest`; both pass when run together in isolation, so this is cross-class test interference, not a product defect.
 
 ## Session 006: Read-Only Survey Of POS + Web Admin, BUG-004 Fix
 - **Session ID:** SES-20261113-006

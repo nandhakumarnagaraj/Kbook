@@ -15,7 +15,7 @@ These were repairs required to restore a compiling tree; they are not recommenda
 - [x] **`QuickStartScreen.kt:203`** — implemented the missing `PasswordField` composable (gold-outlined, password keyboard, visibility toggle) and passed `passwordVisible` through; also forwarded `password` into `viewModel.completeQuickStart(...)`, which already accepted it and which `canSubmit` already required.
   *Verified:* compile passes.
 
-**Not changed, flagged instead:** the password is still written plaintext to `SharedPreferences` and still never read (AUD-002) — that is a product decision, not a compile fix.
+**Superseded by §0b:** the password was subsequently removed from the UI and from `SessionManager` altogether, so no plaintext credential is written. This line is kept only to show the order in which the work happened.
 
 ## §0b Completed in the same session (server + CI)
 
