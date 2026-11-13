@@ -1,5 +1,31 @@
 # Changelog
 
+## [2026-11-13] - Web Admin Spec Suite Repaired (39 Failures → 0)
+### Fixed
+- `apps/web-admin` Karma suite reported **309 SUCCESS / 39 FAILED**; it now reports **350 SUCCESS / 0 FAILED** (`npx ng test --watch=false`, exit 0).
+- 38 failures were stale `AdminApiService` spy mocks: the specs never added `getProfile` (business dashboard) or `getDashboardSummary` (businesses), which the pages now call on load. The mocks now return `of({})` for both.
+- `feature-flags-page.component.spec.ts` asserted a hardcoded 28-flag catalogue that the page no longer contains — it renders `AdminApiService.getFeatureFlags()`. Rewritten against the API-driven behaviour rather than deleted.
+- `form-validation.spec.ts` expected a `/prototype sample data shown/` toast from the Businesses header action; the page now starts the real onboarding workflow and shows `'Restaurant onboarding workflow initiated.'`. The assertion was updated to the current message and the test renamed to match.
+- Dashboard legibility: `.dash-eyebrow`, `.printer-station__label`, `.printer-station__sub` and `.printer-tactile-btn` moved from `--kb-text-2xs` (11px) to `--kb-text-sm` (13px). The simulated 80mm receipt body (`.receipt-inner`) is exempted from the floor check because it draws thermal print output rather than screen copy.
+
+### Verified
+- `npm run build:dev` exit 0; all ten `check:*` design scripts exit 0; Karma 350/350.
+
+### Not Changed
+- No production behaviour was altered to make tests pass; only spec fixtures, one spec rewritten to the shipped behaviour, and four dashboard font sizes raised to the existing 13px floor.
+
+## [2026-11-13] - Email OTP No Longer Fails On Unconfigured SMTP (BUG-004)
+### Fixed
+- `EmailNotificationService.sendVerificationOtp` treated any configured-looking mail host as deliverable. Because `application.properties` defaults `khanabook.email.enabled=true` and a real `spring.mail.username` while leaving `spring.mail.password` empty, every Email `Get OTP` tap on such a server attempted an authenticated SMTP send, threw, and rolled back the OTP row inside `PasswordResetOtpService.issueEmailOtp` — surfacing "Failed to send verification email. Please try again." to the POS for a perfectly valid address.
+- The method now also checks `spring.mail.password`; when it is blank it logs the generated code with a warning that names `MAIL_PASSWORD` and returns without contacting the mail server, matching the documented development fallback. A send failure on a genuinely configured host still throws `IllegalStateException`.
+- Added `EmailNotificationServiceTest` covering all four branches (unconfigured, disabled, delivered, transport failure): 4/4 pass.
+
+### Not Changed
+- No Android code was modified; the POS already displays the server's message and needs no client-side change.
+
+### Remaining Deployment Action
+- Verified by unit test only. Actual delivery still requires `MAIL_PASSWORD` on the target server; until it is set, codes appear in the server log and never reach the inbox. End-to-end re-verification on device is pending.
+
 ## [2026-11-12] - Billing Mode Card Matched To The Other Cards
 ### Fixed
 - `ShopConfigComponents.kt` (`RestaurantPaymentFlowSelector`): the Billing Mode panel painted its own `DarkBrown2.copy(alpha = 0.45f)` surface with a 45%-alpha gold border, so it appeared as a darker maroon block next to the `CardBG` (`0xCC78461E`) Restaurant Details and Business Hours cards.

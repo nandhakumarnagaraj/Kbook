@@ -1,5 +1,38 @@
 # Device Testing Session Log
 
+## Session 006: Read-Only Survey Of POS + Web Admin, BUG-004 Fix
+- **Session ID:** SES-20261113-006
+- **Date & Time:** 2026-11-13
+- **Target Device / Architecture:** No device connected. Android POS + `apps/web-admin` + `services/server` source review.
+- **Initial Screen:** None — no UI operations performed.
+- **Objective:** Survey the current state of both client apps and fix the open findings from the 2026-11-12 sessions.
+
+### Operations Performed
+1. Read `01_APPLICATION_OVERVIEW.md`, `CHANGELOG.md`, `KNOWN_LIMITATIONS.md`, `UNVERIFIED_ASSUMPTIONS.md`, `NEXT_ACTIONS.md`, `BUG_REGISTER.md` and this log before inspecting code.
+2. Surveyed `apps/android` structure (11 feature modules, 194 feature sources, 97 test files, 22 screens) and `apps/web-admin` (127 TS sources, 46 specs, 27 page areas, 10 `check:*` design scripts).
+3. Ran `npm run build:dev` in `apps/web-admin`: **BUILD SUCCESSFUL** (13.9 s, initial bundle 1.64 MB).
+4. Fixed BUG-004 in `services/server/.../notifications/service/EmailNotificationService.java` (see `BUG_REGISTER.md`).
+5. Added `EmailNotificationServiceTest.java`; `./mvnw -Dtest=EmailNotificationServiceTest test` → **Tests run: 4, Failures: 0, Errors: 0**.
+6. Ran all ten `check:*` design scripts in `apps/web-admin` (motion, type, tokens, breakpoints, spacing, z-index, colors, contrast, accent-budget, inline-styles) → all exit 0.
+7. Ran the Karma suite `npx ng test --watch=false`. The first run reported **309 SUCCESS / 39 FAILED**; all 39 were repaired (details below) and the final run reported **350 SUCCESS / 0 FAILED** (exit 0).
+8. No Android build was run and no APK was installed in this session.
+
+### Web Admin Test Repairs (39 failures → 0)
+- **Stale API mocks (38 failures):** `business-dashboard-page.component.spec.ts`, `micro-interactions.spec.ts`, `table-design.spec.ts`, `refresh-reload.spec.ts` and `form-validation.spec.ts` built `AdminApiService` spy mocks that predated two calls the dashboard/businesses pages now make. Added `getProfile` → `of({})` (dashboard) and `getDashboardSummary` → `of({})` (businesses) to those mocks. No assertion was relaxed; the specs still assert the same rendered behaviour, they simply provide the newly required endpoints.
+- **Feature-flags spec rewritten:** `feature-flags-page.component.spec.ts` asserted a hardcoded 28-flag catalogue that no longer exists — the page now renders whatever `AdminApiService.getFeatureFlags()` returns. The spec was rewritten against the API-driven behaviour with a `flag()` fixture helper instead of being deleted.
+- **Outdated toast expectation:** `form-validation.spec.ts` expected the Businesses header action to answer with a `/prototype sample data shown/` toast. The page now calls `addBusiness()`, which shows `'Restaurant onboarding workflow initiated.'` the moment it starts the real onboarding workflow. The spec was renamed to "the header action starts onboarding rather than opening a create form" and now asserts that exact message, keeping its original guard that no `.modal-box` appears.
+- **Dashboard 13px floor:** the dashboard's own legibility spec caught eleven- and twelve-pixel text. `span.dash-eyebrow`, `.printer-station__label`, `.printer-station__sub` and `.printer-tactile-btn` were raised from `--kb-text-2xs` (11px) to `--kb-text-sm` (13px). The simulated 80mm receipt body inside `.receipt-inner` is exempted in the spec with a comment: it depicts thermal print output, so its glyph sizes are part of the drawing rather than screen copy. Nothing else was exempted.
+
+### Verification Status
+- **VERIFIED (by unit test):** blank `spring.mail.password` no longer sends and no longer throws; `emailEnabled=false` still short-circuits; a configured host still sends; a configured host whose transport fails still throws `IllegalStateException`.
+- **VERIFIED (by compiler):** `apps/web-admin` development build completes.
+- **NOT VERIFIED:** end-to-end Email OTP delivery on hardware — requires `MAIL_PASSWORD` on the server the POS talks to.
+- **ASSUMPTION (unchecked):** the 2026-11-12 observation was produced by a server build whose `MAIL_PASSWORD` was unset. The log line to confirm is `Email OTP not delivered: spring.mail.password is empty` (new) versus an SMTP `AuthenticationFailedException` (configured but wrong credentials).
+
+### Known Limitations / Notes
+- Android release is configured at `versionCode 38 / 1.0.38`, but only `1.0.35` and `1.0.36` AABs are present under `apps/android/`.
+- OnePlus Nord still runs a pre-Session-004 build.
+
 ## Session 005: Business Day Card Merged Into Business Hours
 - **Session ID:** SES-20261112-005
 - **Date & Time:** 2026-11-12 (implementation verified by compile only)
