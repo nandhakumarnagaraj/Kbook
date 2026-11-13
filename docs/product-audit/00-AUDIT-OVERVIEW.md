@@ -103,7 +103,7 @@ The audit's own constraint is "no new features" — these are repairs, not featu
 - **AUD-003** (tenant isolation) and **AUD-006** (unbounded lists) are architectural; they need a test cycle across 16 modules, not a blind edit. Unchanged.
 - **`TerminalManagementConcurrencyTest`** still hardcodes a 5-terminal limit across ~12 assertions against a plan that allows 3. Fix = assert against `getSubscriptionSummary().getMaxTerminals()` or seed ENTERPRISE in `setUp`.
 - **AUD-004, AUD-007, AUD-009, AUD-010, AUD-012, AUD-015, AUD-020, AUD-021, AUD-023, AUD-027** unchanged — see `14` and `15`.
-- The **full server suite was not completed** in this environment: it exceeds the 10-minute cap. 955 tests ran with 11 failures before the fixes; after them, every class I re-ran individually passes, but "all green in one run" is **not proven**.
+- **Full server suite (completed):** 955 tests, 2 failures, 0 errors — down from 6 failures + 5 errors. The two remaining are order-dependent 401s in `ConcurrentBillPushTest` and `TerminalAccessControlGapTest`; both pass when run together in isolation, so this is cross-class test interference, not a product defect.
 
 ### Corrections to this audit's own findings
 

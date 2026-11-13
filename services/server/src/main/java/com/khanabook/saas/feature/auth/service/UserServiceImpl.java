@@ -257,6 +257,12 @@ public class UserServiceImpl implements UserService {
 		if (previousEmail == null || previousEmail.isBlank()) {
 			return;
 		}
+		// PHONE accounts store the number itself in the email column, so the value here is
+		// often not a mailbox. Only a real address can be told about the change; sending to
+		// a bare number would just fail at SMTP on every mobile-number change.
+		if (!previousEmail.contains("@")) {
+			return;
+		}
 		if (previousEmail.equalsIgnoreCase(newLoginId)) {
 			return;
 		}
