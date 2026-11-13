@@ -172,6 +172,15 @@ public class SecurityConfig {
 						// Operational sync (bills, menu, payments, profile, stock, users, categories):
 						// every restaurant role may sync. The sync services + permission layer
 						// enforce per-key grant/revoke rules for non-owner actors.
+						//
+						// Login identity is the exception: the owner's mobile/email are the
+						// credentials used at sign-in, so only OWNER may move them. /sync/**
+						// below would otherwise let a SHOP_STAFF token re-point the owner's
+						// login identifier (UserController resolves the primary user by tenant,
+						// not by caller).
+						.requestMatchers("/sync/config/users/update-mobile", "/sync/config/users/update-mobile/**",
+								"/sync/config/users/update-email", "/sync/config/users/update-email/**")
+						.hasRole("OWNER")
 						.requestMatchers("/sync/**")
 						.hasAnyRole("OWNER", "SHOP_STAFF")
 						.requestMatchers("/restaurants/logo").hasAnyRole("OWNER", "KBOOK_ADMIN")

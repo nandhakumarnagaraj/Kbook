@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 private const val PREFS_NAME = "session_prefs"
 private const val SECURE_PREFS_NAME = "secure_session_prefs"
 private const val KEY_LAST_BACKGROUND_TIME = "last_background_time"
+    private const val KEY_PASSWORD = "google_password"
 
 /**
  * Restaurant staff roles the app treats as SHOP_STAFF. Legacy role names are
@@ -114,6 +115,16 @@ open class SessionManager @Inject constructor(@ApplicationContext private val co
 
     fun saveDeviceId(deviceId: String) {
         securePrefs.putString("device_id", deviceId)
+    }
+
+    fun getPassword(): String? {
+        return prefs.getString(KEY_PASSWORD, null)
+    }
+
+    fun savePassword(password: String) {
+        val editor = prefs.edit()
+        editor.putString(KEY_PASSWORD, password)
+        editor.apply()
     }
 
     fun getLastSyncTimestamp(): Long {

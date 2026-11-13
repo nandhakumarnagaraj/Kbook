@@ -38,6 +38,15 @@ import { Observable, of } from 'rxjs';
 
 const API_BASE_URL = environment.apiBaseUrl;
 
+/** GET /business/profile/identity — never contains the password hash. */
+export interface OwnerIdentity {
+  loginId: string | null;
+  whatsappNumber: string | null;
+  email: string | null;
+  authProvider: string | null;
+  identityEditable: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BusinessApiService {
   private readonly http = inject(HttpClient);
@@ -317,6 +326,29 @@ export class BusinessApiService {
 
   updateProfile(payload: any): Observable<any> {
     return this.http.put<any>(`${API_BASE_URL}/business/profile`, payload);
+  }
+
+  // ── Owner login identity (OTP-verified, OWNER only) ─────────────────────
+  // The login identifier is deliberately not writable through updateProfile();
+  // these endpoints are the only way to move it.
+  getOwnerIdentity(): Observable<OwnerIdentity> {
+    return this.http.get<OwnerIdentity>(`${API_BASE_URL}/business/profile/identity`);
+  }
+
+  requestOwnerMobileOtp(newMobileNumber: string): Observable<any> {
+    return this.http.post(`${API_BASE_URL}/business/profile/identity/mobile/request`, { newMobileNumber });
+  }
+
+  confirmOwnerMobileChange(newMobileNumber: string, otp: string): Observable<any> {
+    return this.http.post(`${API_BASE_URL}/business/profile/identity/mobile/confirm`, { newMobileNumber, otp });
+  }
+
+  requestOwnerEmailOtp(newEmail: string): Observable<any> {
+    return this.http.post(`${API_BASE_URL}/business/profile/identity/email/request`, { newEmail });
+  }
+
+  confirmOwnerEmailChange(newEmail: string, otp: string): Observable<any> {
+    return this.http.post(`${API_BASE_URL}/business/profile/identity/email/confirm`, { newEmail, otp });
   }
 
   getBusinessDay(): Observable<any> {

@@ -1,13 +1,13 @@
 package com.khanabook.saas.feature.auth.service;
 
-import com.khanabook.saas.feature.auth.entity.AuthProvider;
+import com.khanabook.saas.feature.auth.data.OwnerIdentityResponse;
 import com.khanabook.saas.feature.auth.entity.User;
-import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
-import com.khanabook.saas.feature.auth.service.PasswordResetOtpService;
-import com.khanabook.saas.feature.auth.service.UserService;
+import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.sync.data.PushSyncResponse;
 import com.khanabook.saas.feature.sync.service.GenericSyncService;
+import com.khanabook.saas.core.utility.PhoneNormalizer;
+import com.khanabook.saas.core.security.PasswordEncoder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,10 +18,20 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
 	private final UserRepository repository;
 	private final RestaurantProfileRepository restaurantProfileRepository;
 	private final GenericSyncService genericSyncService;
-	private final PasswordResetOtpService passwordResetOtpService;
+	private final PhoneNormalizer phoneNormalizer;
+	private final PasswordEncoder passwordEncoder;
+
+	@Override
+	public OwnerIdentityResponse getOwnerIdentity(Long tenantId) {
+		User owner = getPrimaryUser(tenantId);
+		AuthProvider provider = owner.getAuthProvider() == null ? AuthProvider.PHONE : owner.getAuthProvider();
+		return new OwnerIdentityResponse(owner.getLoginId(), owner.getWhatsappNumber(), owner.getEmail(),
+				provider.name(), provider != AuthProvider.GOOGLE);
+	}
 
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<User> payload) {
@@ -41,161 +51,73 @@ public class UserServiceImpl implements UserService {
 	@Override
 	@Transactional
 	public void requestMobileNumberUpdateOtp(Long tenantId, String newMobileNumber) {
-		newMobileNumber = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(newMobileNumber);
+		newMobileNumber = phoneNormalizer.normalize(newMobileNumber);
 		User currentUser = getPrimaryUser(tenantId);
 		if (newMobileNumber.equals(currentUser.getWhatsappNumber())) {
 			return;
 		}
 
-		ensureMobileNumberAvailable(tenantId, newMobileNumber);
+		ensureMobileNumberAvailable(tenantId, currentUser, newMobileNumber);
 		passwordResetOtpService.issueMobileUpdateOtp(tenantId, newMobileNumber);
 	}
 
 	@Override
 	@Transactional
 	public void confirmMobileNumberUpdate(Long tenantId, String newMobileNumber, String otp) {
-		newMobileNumber = com.khanabook.saas.core.utility.PhoneNormalizer.normalize(newMobileNumber);
+		newMobileNumber = phoneNormalizer.normalize(newMobileNumber);
 		User currentUser = getPrimaryUser(tenantId);
 		if (newMobileNumber.equals(currentUser.getWhatsappNumber())) {
 			return;
 		}
 
 		passwordResetOtpService.validateMobileUpdateOtpOrThrow(tenantId, newMobileNumber, otp);
-		ensureMobileNumberAvailable(tenantId, newMobileNumber);
+		ensureMobileNumberAvailable(tenantId, currentUser, newMobileNumber);
+		String previousEmail = currentUser.getEmail();
 		updatePrimaryMobileNumber(tenantId, currentUser, newMobileNumber);
-	}
-
-	private void ensureMobileNumberAvailable(Long tenantId, String newMobileNumber) {
-		Optional<User> existingUserByLoginId = repository.findByLoginId(newMobileNumber);
-		if (existingUserByLoginId.isPresent()) {
-			User existingUser = existingUserByLoginId.get();
-			if (!existingUser.getRestaurantId().equals(tenantId)) {
-				throw new IllegalArgumentException("This number is already related to another shop.");
-			}
-		}
-
-		Optional<User> existingUserByEmail = repository.findByEmail(newMobileNumber);
-		if (existingUserByEmail.isPresent()) {
-			User existingUser = existingUserByEmail.get();
-			if (!existingUser.getRestaurantId().equals(tenantId)) {
-				throw new IllegalArgumentException("This number is already related to another shop.");
-			}
-		}
-
-		Optional<User> existingUserByWhatsapp = repository.findByWhatsappNumber(newMobileNumber);
-		if (existingUserByWhatsapp.isPresent()) {
-			User existingUser = existingUserByWhatsapp.get();
-			if (!existingUser.getRestaurantId().equals(tenantId)) {
-				throw new IllegalArgumentException("This number is already related to another shop.");
-			}
-		}
-	}
-
-	private User getPrimaryUser(Long tenantId) {
-		List<User> users = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1L));
-		if (!users.isEmpty()) {
-			return users.get(0);
-		}
-		List<User> ownerUsers = repository.findByRestaurantIdAndRoleAndIsDeletedFalse(tenantId, com.khanabook.saas.feature.auth.entity.UserRole.OWNER);
-		if (ownerUsers.isEmpty()) {
-			throw new IllegalStateException("Primary user for restaurant not found.");
-		}
-		return ownerUsers.get(0);
-	}
-
-	private void updatePrimaryMobileNumber(Long tenantId, User currentUser, String newMobileNumber) {
-		long now = System.currentTimeMillis();
-
-		if (currentUser.getAuthProvider() == null || currentUser.getAuthProvider() == AuthProvider.PHONE) {
-			currentUser.setLoginId(newMobileNumber);
-			currentUser.setEmail(newMobileNumber);
-			currentUser.setAuthProvider(AuthProvider.PHONE);
-		}
-		currentUser.setWhatsappNumber(newMobileNumber);
-		currentUser.setUpdatedAt(now);
-		currentUser.setServerUpdatedAt(now);
-		currentUser.setDeviceId("server");
-		repository.save(currentUser);
-
-		restaurantProfileRepository.findByRestaurantId(tenantId).ifPresent(profile -> {
-			profile.setWhatsappNumber(newMobileNumber);
-			profile.setUpdatedAt(now);
-			profile.setServerUpdatedAt(now);
-			profile.markFieldsChanged(now, "whatsappnumber");
-			profile.setDeviceId("server");
-			restaurantProfileRepository.save(profile);
-		});
+		// The old address/identifier stays dead after this commit; tell whoever still
+		// owns the previous mailbox so a takeover is visible to the legitimate owner.
+		notifyIdentityChangedAfterCommit(previousEmail, currentUser.getLoginId());
 	}
 
 	@Override
 	@Transactional
 	public void requestEmailUpdateOtp(Long tenantId, String newEmail) {
-		newEmail = newEmail.trim().toLowerCase(java.util.Locale.ROOT);
+		newEmail = com.khanabook.saas.core.utility.EmailValidator.normalize(newEmail);
 		User currentUser = getPrimaryUser(tenantId);
-		if (currentUser.getAuthProvider() == AuthProvider.GOOGLE) {
-			throw new IllegalArgumentException("Email address cannot be changed for Google-authenticated accounts.");
-		}
-		if (newEmail.equalsIgnoreCase(currentUser.getEmail())) {
+		if (newEmail.equals(currentUser.getEmail())) {
 			return;
 		}
 
-		ensureEmailAvailable(tenantId, newEmail);
+		ensureEmailAvailable(tenantId, currentUser, newEmail);
 		passwordResetOtpService.issueEmailUpdateOtp(tenantId, newEmail);
 	}
 
 	@Override
 	@Transactional
 	public void confirmEmailUpdate(Long tenantId, String newEmail, String otp) {
-		newEmail = newEmail.trim().toLowerCase(java.util.Locale.ROOT);
+		newEmail = com.khanabook.saas.core.utility.EmailValidator.normalize(newEmail);
 		User currentUser = getPrimaryUser(tenantId);
-		if (currentUser.getAuthProvider() == AuthProvider.GOOGLE) {
-			throw new IllegalArgumentException("Email address cannot be changed for Google-authenticated accounts.");
-		}
-		if (newEmail.equalsIgnoreCase(currentUser.getEmail())) {
+		if (newEmail.equals(currentUser.getEmail())) {
 			return;
 		}
 
 		passwordResetOtpService.validateEmailUpdateOtpOrThrow(tenantId, newEmail, otp);
-		ensureEmailAvailable(tenantId, newEmail);
+		ensureEmailAvailable(tenantId, currentUser, newEmail);
+		String previousEmail = currentUser.getEmail();
 		updatePrimaryEmail(tenantId, currentUser, newEmail);
+		// The old address/identifier stays dead after this commit; tell whoever still
+		// owns the previous mailbox so a takeover is visible to the legitimate owner.
+		notifyIdentityChangedAfterCommit(previousEmail, currentUser.getLoginId());
 	}
 
-	private void ensureEmailAvailable(Long tenantId, String newEmail) {
-		Optional<User> existingUserByEmail = repository.findByEmail(newEmail);
-		if (existingUserByEmail.isPresent()) {
-			User existingUser = existingUserByEmail.get();
-			if (!existingUser.getRestaurantId().equals(tenantId)) {
-				throw new IllegalArgumentException("This email is already related to another shop.");
-			}
-		}
-
-		Optional<User> existingUserByLoginId = repository.findByLoginId(newEmail);
-		if (existingUserByLoginId.isPresent()) {
-			User existingUser = existingUserByLoginId.get();
-			if (!existingUser.getRestaurantId().equals(tenantId)) {
-				throw new IllegalArgumentException("This email is already related to another shop.");
-			}
-		}
-	}
-
-	private void updatePrimaryEmail(Long tenantId, User currentUser, String newEmail) {
-		long now = System.currentTimeMillis();
-		if (currentUser.getLoginId() != null && currentUser.getLoginId().contains("@")) {
-			currentUser.setLoginId(newEmail);
-		}
-		currentUser.setEmail(newEmail);
-		currentUser.setUpdatedAt(now);
-		currentUser.setServerUpdatedAt(now);
-		currentUser.setDeviceId("server");
-		repository.save(currentUser);
-
-		restaurantProfileRepository.findByRestaurantId(tenantId).ifPresent(profile -> {
-			profile.setEmail(newEmail);
-			profile.setUpdatedAt(now);
-			profile.setServerUpdatedAt(now);
-			profile.markFieldsChanged(now, "email");
-			profile.setDeviceId("server");
-			restaurantProfileRepository.save(profile);
-		});
+	@Override
+	@Transactional
+	public void completePasswordReset(String loginId, String otp, String newPassword) {
+		String encodedPassword = passwordEncoder.encode(newPassword);
+		User user = repository.findByLoginIdOrEmail(loginId)
+				.orElseThrow(() -> new IllegalArgumentException("User not found with loginId: " + loginId));
+		user.setPasswordHash(encodedPassword);
+		user.setUpdatedAt(System.currentTimeMillis());
+		repository.save(user);
 	}
 }

@@ -74,7 +74,11 @@ fun ChangePasswordView(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    val initialPhone = currentUser?.phoneNumber ?: currentUser?.whatsappNumber ?: ""
+    val initialPhone = when {
+        currentUser?.phoneNumber?.takeIf { it.isNotBlank() }
+            ?: currentUser?.loginId
+    else -> currentUser?.loginId  // Google/email accounts
+    }
     val resetStatus by authViewModel.resetPasswordStatus.collectAsStateWithLifecycle()
 
     var step by remember { mutableStateOf(1) }
@@ -204,11 +208,24 @@ fun ChangePasswordView(
                 TextButton(
                     onClick = {
                         localError = null
+                        if (isLoading) return@onClick
                         authViewModel.sendOtp(phone.trim(), "reset")
                     },
-                    enabled = !isLoading
+                    enabled = !isLoading && canResendOtp
                 ) {
-                    Text("Resend OTP", color = PrimaryGold.copy(alpha = 0.75f), style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        if (isLoading || otpTimer > 0) {
+                            if (otpTimer > 0) {
+                                "Resend OTP in ${otpTimer}s"
+                            } else {
+                                "Resend OTP"
+                            }
+                        } else {
+                            "Resend OTP"
+                        },
+                        color = PrimaryGold.copy(alpha = 0.75f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
 
@@ -216,6 +233,13 @@ fun ChangePasswordView(
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it },
+                    supportingText = {
+                        Text(
+                            "Minimum 6 characters, use letters & numbers",
+                            color = TextGold.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    },
                     label = { Text("New Password", color = TextGold) },
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     trailingIcon = {
@@ -285,7 +309,11 @@ fun ChangePasswordView(
                     when (step) {
                         1 -> {
                             val trimmed = phone.trim()
-                            if (trimmed.length < 10) {
+                            // Allow shorter identifiers for non-PHONE auth (Google uses loginId/email)
+                            val isPhoneAuth = currentUser?.authProvider?.equals("PHONE", ignoreCase = true) == true
+                            if (!isPhoneAuth && trimmed.length < 4) {
+                                localError = "Please enter a valid identifier."
+                            } else if (isPhoneAuth && trimmed.length < 10) {
                                 localError = "Please enter a valid phone number."
                             } else {
                                 authViewModel.sendOtp(trimmed, "reset")

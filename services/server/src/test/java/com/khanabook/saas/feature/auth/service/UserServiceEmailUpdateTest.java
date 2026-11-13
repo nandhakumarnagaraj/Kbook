@@ -3,6 +3,7 @@ package com.khanabook.saas.feature.auth.service;
 import com.khanabook.saas.feature.auth.entity.AuthProvider;
 import com.khanabook.saas.feature.auth.entity.User;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
+import com.khanabook.saas.feature.notifications.service.EmailNotificationService;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import com.khanabook.saas.feature.sync.service.GenericSyncService;
@@ -24,6 +25,7 @@ class UserServiceEmailUpdateTest {
     private RestaurantProfileRepository restaurantProfileRepository;
     private GenericSyncService genericSyncService;
     private PasswordResetOtpService passwordResetOtpService;
+    private EmailNotificationService emailNotificationService;
     private UserServiceImpl userService;
 
     @BeforeEach
@@ -32,7 +34,9 @@ class UserServiceEmailUpdateTest {
         restaurantProfileRepository = mock(RestaurantProfileRepository.class);
         genericSyncService = mock(GenericSyncService.class);
         passwordResetOtpService = mock(PasswordResetOtpService.class);
-        userService = new UserServiceImpl(userRepository, restaurantProfileRepository, genericSyncService, passwordResetOtpService);
+        emailNotificationService = mock(EmailNotificationService.class);
+        userService = new UserServiceImpl(userRepository, restaurantProfileRepository, genericSyncService, passwordResetOtpService,
+                emailNotificationService);
     }
 
     @Test
@@ -127,5 +131,29 @@ class UserServiceEmailUpdateTest {
 
         assertThat(profile.getEmail()).isEqualTo("new@khanabook.com");
         verify(restaurantProfileRepository).save(profile);
+
+        // The previous mailbox must learn that it can no longer sign in.
+        verify(emailNotificationService).sendLoginIdChangedNotice("old@khanabook.com", "9876543210");
+    }
+
+    @Test
+    void confirmEmailUpdate_doesNotNotifyWhenOldEmailIsNotAMailbox() {
+        Long tenantId = 100L;
+        User currentUser = new User();
+        currentUser.setId(1L);
+        currentUser.setRestaurantId(tenantId);
+        currentUser.setAuthProvider(AuthProvider.PHONE);
+        currentUser.setLoginId("9876543210");
+        currentUser.setEmail("9876543210"); // PHONE accounts store the number in email
+
+        when(userRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1L)))
+                .thenReturn(List.of(currentUser));
+        when(userRepository.findByEmail("new@khanabook.com")).thenReturn(Optional.empty());
+        when(userRepository.findByLoginId("new@khanabook.com")).thenReturn(Optional.empty());
+        when(restaurantProfileRepository.findByRestaurantId(tenantId)).thenReturn(Optional.empty());
+
+        userService.confirmEmailUpdate(tenantId, "new@khanabook.com", "123456");
+
+        verifyNoInteractions(emailNotificationService);
     }
 }

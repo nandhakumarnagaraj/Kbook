@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, HostListener, inject, OnD
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ToastService } from '../../core/services/toast.service';
-import { BusinessApiService } from '../../core/services/business-api.service';
+import { BusinessApiService, OwnerIdentity } from '../../core/services/business-api.service';
 import { TaxSettingsSectionComponent, TaxSettings } from './tax-settings-section.component';
 import { PaymentMethodsSectionComponent, PaymentMethodsSettings } from './payment-methods-section.component';
 import { PasswordChangeSectionComponent } from './password-change-section.component';
@@ -221,35 +221,153 @@ interface SettingsCategory {
                     </div>
 
                     <div class="field">
-                      <label for="field-email">Business email</label>
+                      <label for="field-email">Sign-in email</label>
                       <input
                         id="field-email"
                         class="field-control"
                         type="email"
-                        [(ngModel)]="p.email"
-                        (ngModelChange)="onFieldChange('email')"
-                        placeholder="billing@restaurant.com"
-                        autocomplete="email"
-                        [attr.aria-invalid]="errors()['email'] ? 'true' : null"
-                        [attr.aria-describedby]="errors()['email'] ? 'err-email' : null" />
-                      <p class="field-error" id="err-email" role="alert" *ngIf="errors()['email']">{{ errors()['email'] }}</p>
+                        [ngModel]="identityEmail(p)"
+                        readonly
+                        autocomplete="off"
+                        aria-describedby="hint-email" />
+                      <p class="field-hint" id="hint-email">This is your login identity. Change it under Login &amp; contact with a one-time code.</p>
                     </div>
 
                     <div class="field">
-                      <label for="field-whatsappNumber">WhatsApp number</label>
+                      <label for="field-whatsappNumber">Sign-in mobile</label>
                       <input
                         id="field-whatsappNumber"
                         class="field-control tabular-num"
+                        [ngModel]="identityMobile(p)"
+                        readonly
+                        autocomplete="off"
+                        aria-describedby="hint-whatsappNumber" />
+                      <p class="field-hint" id="hint-whatsappNumber">Used to sign in, for customer updates and account recovery. Change it under Login &amp; contact.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-group" id="login-contact">
+                  <h4 class="settings-group__title">Login &amp; contact</h4>
+                  <p class="muted login-contact__intro">
+                    This is how the owner signs in to KhanaBook. A change takes effect only after the
+                    one-time code sent to the new number or address is verified, and the old one stops
+                    working immediately.
+                  </p>
+
+                  <div class="login-contact__current" *ngIf="identity() as id">
+                    <span class="login-contact__label">Signing in as</span>
+                    <strong class="login-contact__value">{{ id.loginId || '—' }}</strong>
+                    <span class="login-contact__meta">{{ id.authProvider === 'GOOGLE' ? 'Google account' : 'Mobile + email' }}</span>
+                  </div>
+
+                  <div class="login-contact__grid">
+                    <div class="login-contact__card">
+                      <h5>Mobile number</h5>
+                      <p class="field-hint">A one-time code is sent by WhatsApp or SMS to the new number.</p>
+                      <label class="visually-hidden" for="identity-mobile-input">New mobile number</label>
+                      <input
+                        id="identity-mobile-input"
+                        class="field-control tabular-num"
                         inputmode="numeric"
-                        [ngModel]="p.whatsappNumber"
-                        (ngModelChange)="onPhoneChange($event)"
-                        placeholder="10-digit mobile number"
                         maxlength="10"
-                        autocomplete="tel-national"
-                        [attr.aria-invalid]="errors()['whatsappNumber'] ? 'true' : null"
-                        [attr.aria-describedby]="errors()['whatsappNumber'] ? 'err-whatsappNumber' : 'hint-whatsappNumber'" />
-                      <p class="field-hint" id="hint-whatsappNumber" *ngIf="!errors()['whatsappNumber']">Used for customer updates and account recovery.</p>
-                      <p class="field-error" id="err-whatsappNumber" role="alert" *ngIf="errors()['whatsappNumber']">{{ errors()['whatsappNumber'] }}</p>
+                        placeholder="10-digit mobile number"
+                        [ngModel]="mobileDraft()"
+                        (ngModelChange)="mobileDraft.set(onPhoneDigits($event))"
+                        [disabled]="identityBusy() || mobileOtpSent()"
+                        autocomplete="off" />
+                      <label class="visually-hidden" for="identity-mobile-otp">One-time code for the new mobile</label>
+                      <input
+                        *ngIf="mobileOtpSent()"
+                        id="identity-mobile-otp"
+                        class="field-control tabular-num"
+                        inputmode="numeric"
+                        maxlength="6"
+                        placeholder="6-digit code"
+                        [ngModel]="mobileOtp()"
+                        (ngModelChange)="mobileOtp.set(onOtpDigits($event))"
+                        autocomplete="one-time-code" />
+                      <div class="login-contact__actions">
+                        <button
+                          type="button"
+                          class="login-contact__btn"
+                          *ngIf="!mobileOtpSent()"
+                          [disabled]="identityBusy() || mobileDraft().length !== 10"
+                          (click)="requestMobileIdentityOtp()">
+                          {{ identityBusy() ? 'Sending...' : 'Send code' }}
+                        </button>
+                        <button
+                          type="button"
+                          class="login-contact__btn login-contact__btn--primary"
+                          *ngIf="mobileOtpSent()"
+                          [disabled]="identityBusy() || mobileOtp().length !== 6"
+                          (click)="confirmMobileIdentity()">
+                          {{ identityBusy() ? 'Updating...' : 'Verify &amp; update mobile' }}
+                        </button>
+                        <button
+                          type="button"
+                          class="login-contact__btn login-contact__btn--ghost"
+                          *ngIf="mobileOtpSent()"
+                          [disabled]="identityBusy()"
+                          (click)="cancelMobileIdentity()">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="login-contact__card">
+                      <h5>Email address</h5>
+                      <p class="field-hint" *ngIf="identity()?.authProvider !== 'GOOGLE'">A one-time code is sent to the new address.</p>
+                      <p class="field-hint" *ngIf="identity()?.authProvider === 'GOOGLE'">Google accounts sign in with Google. Add a separate contact email from support if the address is wrong.</p>
+                      <ng-container *ngIf="identity()?.authProvider !== 'GOOGLE'">
+                        <label class="visually-hidden" for="identity-email-input">New email address</label>
+                        <input
+                          id="identity-email-input"
+                          class="field-control"
+                          type="email"
+                          placeholder="name@restaurant.com"
+                          [ngModel]="emailDraft()"
+                          (ngModelChange)="emailDraft.set($event)"
+                          [disabled]="identityBusy() || emailOtpSent()"
+                          autocomplete="off" />
+                        <label class="visually-hidden" for="identity-email-otp">One-time code for the new email</label>
+                        <input
+                          *ngIf="emailOtpSent()"
+                          id="identity-email-otp"
+                          class="field-control tabular-num"
+                          inputmode="numeric"
+                          maxlength="6"
+                          placeholder="6-digit code"
+                          [ngModel]="emailOtp()"
+                          (ngModelChange)="emailOtp.set(onOtpDigits($event))"
+                          autocomplete="one-time-code" />
+                        <div class="login-contact__actions">
+                          <button
+                            type="button"
+                            class="login-contact__btn"
+                            *ngIf="!emailOtpSent()"
+                            [disabled]="identityBusy() || !emailDraft().trim()"
+                            (click)="requestEmailIdentityOtp()">
+                            {{ identityBusy() ? 'Sending...' : 'Send code' }}
+                          </button>
+                          <button
+                            type="button"
+                            class="login-contact__btn login-contact__btn--primary"
+                            *ngIf="emailOtpSent()"
+                            [disabled]="identityBusy() || emailOtp().length !== 6"
+                            (click)="confirmEmailIdentity()">
+                            {{ identityBusy() ? 'Updating...' : 'Verify &amp; update email' }}
+                          </button>
+                          <button
+                            type="button"
+                            class="login-contact__btn login-contact__btn--ghost"
+                            *ngIf="emailOtpSent()"
+                            [disabled]="identityBusy()"
+                            (click)="cancelEmailIdentity()">
+                            Cancel
+                          </button>
+                        </div>
+                      </ng-container>
                     </div>
                   </div>
                 </div>
@@ -968,6 +1086,43 @@ interface SettingsCategory {
     .opt-switch:checked { background: var(--kb-color-primary); border-color: var(--kb-color-primary); }
     .opt-switch:checked::after { left: calc(100% - 1.15rem); }
     .opt-switch:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
+
+    /* Login & contact: the owner's sign-in identity, OTP-gated. */
+    .login-contact__intro { margin: 0 0 var(--kb-space-3); max-width: 62ch; }
+    .login-contact__current {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--kb-space-2);
+      padding: var(--kb-space-3);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+      background: var(--kb-color-surface-2);
+      margin-bottom: var(--kb-space-4);
+    }
+    .login-contact__label { font-size: var(--kb-text-xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--kb-color-muted-foreground); }
+    .login-contact__value { font-size: var(--kb-text-md); word-break: break-all; }
+    .login-contact__meta { font-size: var(--kb-text-xs); color: var(--kb-color-muted-foreground); }
+    .login-contact__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--kb-space-4); }
+    .login-contact__card {
+      display: flex; flex-direction: column; gap: var(--kb-space-2);
+      padding: var(--kb-space-3);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-md);
+    }
+    .login-contact__card h5 { margin: 0; font-size: var(--kb-text-sm); font-weight: 600; }
+    .login-contact__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--kb-space-2); }
+    .login-contact__btn {
+      padding: var(--kb-space-2) var(--kb-space-3);
+      border-radius: var(--kb-radius-md);
+      border: 1px solid var(--kb-color-border-strong);
+      background: var(--kb-color-surface);
+      color: var(--kb-color-foreground);
+      font-size: var(--kb-text-sm);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .login-contact__btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .login-contact__btn--primary { background: var(--kb-color-primary); border-color: var(--kb-color-primary); color: var(--kb-color-primary-foreground); }
+    .login-contact__btn--ghost { border-color: transparent; background: transparent; color: var(--kb-color-primary); }
+    .login-contact__btn:focus-visible { outline: 2px solid var(--kb-color-primary); outline-offset: 2px; }
   `]
 })
 export class BusinessSettingsPageComponent implements OnDestroy {
@@ -1011,6 +1166,20 @@ export class BusinessSettingsPageComponent implements OnDestroy {
 
   readonly errors = signal<Record<string, string>>({});
 
+  /**
+   * Owner login identity. The mobile/email rendered in the profile form are
+   * mirrors of this record, never free text: moving the sign-in identifier is
+   * an OTP-verified operation owned by /business/profile/identity.
+   */
+  readonly identity = signal<OwnerIdentity | null>(null);
+  readonly identityBusy = signal(false);
+  readonly mobileDraft = signal('');
+  readonly mobileOtp = signal('');
+  readonly mobileOtpSent = signal(false);
+  readonly emailDraft = signal('');
+  readonly emailOtp = signal('');
+  readonly emailOtpSent = signal(false);
+
   private scrollFrame: number | null = null;
 
   readonly dirty = computed(() => {
@@ -1032,6 +1201,132 @@ export class BusinessSettingsPageComponent implements OnDestroy {
   readonly viewProfile = computed(() => (this.loading() ? null : this.profile()));
 
   constructor() { this.load(); }
+
+  /** Identity wins over the stored profile copy so drift is shown, not hidden. */
+  identityMobile(p: RestaurantProfile): string {
+    return this.identity()?.whatsappNumber ?? p.whatsappNumber ?? '';
+  }
+
+  identityEmail(p: RestaurantProfile): string {
+    return this.identity()?.email ?? p.email ?? '';
+  }
+
+  onOtpDigits(value: string): string {
+    return (value || '').replace(/\D/g, '').slice(0, 6);
+  }
+
+  onPhoneDigits(value: string): string {
+    let digits = (value || '').replace(/\D/g, '');
+    if (digits.length === 12 && digits.startsWith('91')) digits = digits.slice(2);
+    else if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
+    return digits.slice(0, 10);
+  }
+
+  private loadIdentity(): void {
+    this.businessApi.getOwnerIdentity().subscribe({
+      next: (id) => this.identity.set(id),
+      // The card is additive; a failure must not hide the rest of the page.
+      error: () => this.identity.set(null)
+    });
+  }
+
+  requestMobileIdentityOtp(): void {
+    const newMobileNumber = this.mobileDraft();
+    if (newMobileNumber.length !== 10) {
+      this.toast.show('Enter a 10-digit mobile number.', 'error');
+      return;
+    }
+    this.identityBusy.set(true);
+    this.businessApi.requestOwnerMobileOtp(newMobileNumber).subscribe({
+      next: () => {
+        this.identityBusy.set(false);
+        this.mobileOtpSent.set(true);
+        this.mobileOtp.set('');
+        this.toast.show(`Code sent to ${newMobileNumber}. It expires in 10 minutes.`, 'success');
+      },
+      error: (err) => {
+        this.identityBusy.set(false);
+        this.toast.show(err?.error?.message ?? 'Could not send the code. Try again.', 'error');
+      }
+    });
+  }
+
+  confirmMobileIdentity(): void {
+    const newMobileNumber = this.mobileDraft();
+    this.identityBusy.set(true);
+    this.businessApi.confirmOwnerMobileChange(newMobileNumber, this.mobileOtp()).subscribe({
+      next: () => {
+        this.identityBusy.set(false);
+        this.mobileOtpSent.set(false);
+        this.mobileDraft.set('');
+        this.mobileOtp.set('');
+        this.toast.show('Mobile number updated. Use it the next time you sign in.', 'success');
+        this.afterIdentityChange();
+      },
+      error: (err) => {
+        this.identityBusy.set(false);
+        this.toast.show(err?.error?.message ?? 'That code did not work. Request a new one.', 'error');
+      }
+    });
+  }
+
+  cancelMobileIdentity(): void {
+    this.mobileOtpSent.set(false);
+    this.mobileOtp.set('');
+    this.mobileDraft.set('');
+  }
+
+  requestEmailIdentityOtp(): void {
+    const newEmail = this.emailDraft().trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(newEmail)) {
+      this.toast.show('Enter a valid email address.', 'error');
+      return;
+    }
+    this.identityBusy.set(true);
+    this.businessApi.requestOwnerEmailOtp(newEmail).subscribe({
+      next: () => {
+        this.identityBusy.set(false);
+        this.emailOtpSent.set(true);
+        this.emailOtp.set('');
+        this.toast.show(`Code sent to ${newEmail}. It expires in 10 minutes.`, 'success');
+      },
+      error: (err) => {
+        this.identityBusy.set(false);
+        this.toast.show(err?.error?.message ?? 'Could not send the code. Try again.', 'error');
+      }
+    });
+  }
+
+  confirmEmailIdentity(): void {
+    const newEmail = this.emailDraft().trim().toLowerCase();
+    this.identityBusy.set(true);
+    this.businessApi.confirmOwnerEmailChange(newEmail, this.emailOtp()).subscribe({
+      next: () => {
+        this.identityBusy.set(false);
+        this.emailOtpSent.set(false);
+        this.emailDraft.set('');
+        this.emailOtp.set('');
+        this.toast.show('Email updated. Use it the next time you sign in.', 'success');
+        this.afterIdentityChange();
+      },
+      error: (err) => {
+        this.identityBusy.set(false);
+        this.toast.show(err?.error?.message ?? 'That code did not work. Request a new one.', 'error');
+      }
+    });
+  }
+
+  cancelEmailIdentity(): void {
+    this.emailOtpSent.set(false);
+    this.emailOtp.set('');
+    this.emailDraft.set('');
+  }
+
+  private afterIdentityChange(): void {
+    this.loadIdentity();
+    const p = this.profile();
+    if (p) this.profile.set({ ...p });
+  }
 
   @HostListener('window:scroll')
   onWindowScroll(): void {
@@ -1148,6 +1443,7 @@ export class BusinessSettingsPageComponent implements OnDestroy {
     this.loading.set(true);
     this.loadError.set('');
     this.loadBusinessDay();
+    this.loadIdentity();
     this.businessApi.getProfile().subscribe({
       next: (p) => {
         const loaded: RestaurantProfile = p ? {
@@ -1259,8 +1555,18 @@ export class BusinessSettingsPageComponent implements OnDestroy {
       return;
     }
 
+    // The sign-in mobile/email are read-only here and owned by the identity
+    // endpoints. Echoing the identity values keeps the stored profile copy in
+    // step (and satisfies the server's identity guard) without ever sending a
+    // value the owner did not verify.
+    const payload = {
+      ...p,
+      whatsappNumber: this.identityMobile(p),
+      email: this.identityEmail(p)
+    };
+
     this.saving.set(true);
-    this.businessApi.updateProfile(p).subscribe({
+    this.businessApi.updateProfile(payload).subscribe({
       next: (saved) => {
         this.saving.set(false);
         this.toast.show('Restaurant settings saved successfully.', 'success');
@@ -1348,15 +1654,8 @@ export class BusinessSettingsPageComponent implements OnDestroy {
 
     if (!p.shopName.trim()) errors['shopName'] = 'Restaurant name is required.';
 
-    const email = p.email.trim();
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      errors['email'] = 'Enter a valid email address, for example billing@restaurant.com.';
-    }
-
-    const phone = p.whatsappNumber.trim();
-    if (phone && !/^\d{10}$/.test(phone)) {
-      errors['whatsappNumber'] = 'Enter a 10-digit mobile number.';
-    }
+    // Sign-in mobile/email are read-only and OTP-verified under Login & contact,
+    // so they are not validated or editable as part of this form.
 
     const reviewUrl = p.reviewUrl.trim();
     if (reviewUrl && !this.isWebUrl(reviewUrl)) {

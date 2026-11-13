@@ -56,6 +56,17 @@ function businessDayResponse(overrides: Record<string, unknown> = {}): Record<st
 function apiStub(overrides: Record<string, unknown> = {}) {
   return {
     getProfile: jasmine.createSpy('getProfile').and.returnValue(of(profileResponse(overrides))),
+    getOwnerIdentity: jasmine.createSpy('getOwnerIdentity').and.returnValue(of({
+      loginId: '9876543210',
+      whatsappNumber: '9876543210',
+      email: 'owner@test.com',
+      authProvider: 'PHONE',
+      identityEditable: true
+    })),
+    requestOwnerMobileOtp: jasmine.createSpy('requestOwnerMobileOtp').and.returnValue(of(undefined)),
+    confirmOwnerMobileChange: jasmine.createSpy('confirmOwnerMobileChange').and.returnValue(of(undefined)),
+    requestOwnerEmailOtp: jasmine.createSpy('requestOwnerEmailOtp').and.returnValue(of(undefined)),
+    confirmOwnerEmailChange: jasmine.createSpy('confirmOwnerEmailChange').and.returnValue(of(undefined)),
     getBusinessDay: jasmine.createSpy('getBusinessDay').and.returnValue(of(businessDayResponse())),
     updateBusinessDay: jasmine.createSpy('updateBusinessDay').and.returnValue(of(businessDayResponse())),
     updateProfile: jasmine.createSpy('updateProfile').and.returnValue(of(profileResponse(overrides))),
@@ -180,6 +191,30 @@ describe('BusinessSettingsPageComponent — configuration shell', () => {
     expect(payload.shopName).toBe('Test Kitchen');
     expect(payload.reviewUrl).toBe('https://g.page/r/test/review');
     expect('country' in payload).toBeFalse();
+  });
+
+  it('shows the sign-in identity as read-only text, not an editable input', async () => {
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const email = root().querySelector('#field-email') as HTMLInputElement;
+    const mobile = root().querySelector('#field-whatsappNumber') as HTMLInputElement;
+    expect(email.readOnly).toBeTrue();
+    expect(mobile.readOnly).toBeTrue();
+    expect(email.value).toBe('owner@test.com');
+    expect(mobile.value).toBe('9876543210');
+  });
+
+  it('never sends an unverified identity change with the profile payload', async () => {
+    // The form cannot produce a different mobile/email; the payload echoes the
+    // identity so the server's guard passes and profile drift is corrected.
+    await fixture.whenStable();
+    fixture.detectChanges();
+    component.profile.update((p) => (p ? { ...p, whatsappNumber: '9999999999', email: 'stale@test.com' } : p));
+    component.saveProfile();
+
+    const payload = api.updateProfile.calls.mostRecent().args[0];
+    expect(payload.whatsappNumber).toBe('9876543210');
+    expect(payload.email).toBe('owner@test.com');
   });
 
   it('keeps digits only when a pasted phone number carries a country code', () => {

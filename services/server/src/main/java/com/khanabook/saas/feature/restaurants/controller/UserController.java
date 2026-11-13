@@ -33,6 +33,8 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import com.khanabook.saas.core.security.TenantContext;
+import com.khanabook.saas.core.security.RequireRole;
+import com.khanabook.saas.feature.auth.entity.UserRole;
 
 @RestController
 @RequestMapping("/sync/config/users")
@@ -63,12 +65,14 @@ public class UserController {
 		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId, ignoreDeviceId), UserDTO.class));
 	}
 
+		@RequireRole(UserRole.OWNER)
 	@PostMapping("/update-mobile")
 	public ResponseEntity<?> confirmMobileNumberUpdate(@Valid @RequestBody UpdateMobileRequest request) {
 		service.confirmMobileNumberUpdate(TenantContext.getCurrentTenant(), request.getNewMobileNumber(), request.getOtp());
 		return ResponseEntity.ok(Map.of("message", "Mobile number updated successfully."));
 	}
 
+		@RequireRole(UserRole.OWNER)
 	@PostMapping("/update-mobile/request")
 	public ResponseEntity<?> requestMobileNumberUpdateOtp(@Valid @RequestBody UpdateMobileOtpRequest request) {
 		if (!otpRateLimiter.tryConsume(request.getNewMobileNumber()) || !otpRateLimiterDb.tryConsume(request.getNewMobileNumber())) {
@@ -79,12 +83,16 @@ public class UserController {
 		return ResponseEntity.ok(Map.of("message", "OTP sent successfully."));
 	}
 
+		// Login identity is OWNER-only: the service targets the tenant primary user,
+	// so a staff token must not be able to re-point the owner's credentials.
+	@RequireRole(UserRole.OWNER)
 	@PostMapping("/update-email")
 	public ResponseEntity<?> confirmEmailUpdate(@Valid @RequestBody UpdateEmailRequest request) {
 		service.confirmEmailUpdate(TenantContext.getCurrentTenant(), request.getNewEmail(), request.getOtp());
 		return ResponseEntity.ok(Map.of("message", "Email updated successfully."));
 	}
 
+		@RequireRole(UserRole.OWNER)
 	@PostMapping("/update-email/request")
 	public ResponseEntity<?> requestEmailUpdateOtp(@Valid @RequestBody UpdateEmailOtpRequest request) {
 		String email = request.getNewEmail().trim().toLowerCase(java.util.Locale.ROOT);

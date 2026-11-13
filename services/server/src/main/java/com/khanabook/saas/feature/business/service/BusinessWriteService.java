@@ -9,6 +9,7 @@ import com.khanabook.saas.feature.billing.data.BillPayment;
 import com.khanabook.saas.feature.menu.data.MenuItem;
 import com.khanabook.saas.feature.menu.data.Category;
 import com.khanabook.saas.core.utility.PricingConstants;
+import com.khanabook.saas.core.utility.PhoneNormalizer;
 import com.khanabook.saas.feature.menu.data.ItemVariant;
 import com.khanabook.saas.feature.menu.data.ItemRecipe;
 import com.khanabook.saas.feature.menu.data.MenuExtractionJob;
@@ -66,6 +67,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.Objects;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 
@@ -736,6 +738,7 @@ public class BusinessWriteService {
 
     @Transactional
     public RestaurantProfileDTO updateProfile(Long restaurantId, RestaurantProfileDTO updateDto) {
+        assertIdentityUnchanged(restaurantId, updateDto);
         RestaurantProfile profile = profileRepository.findByRestaurantId(restaurantId)
                 .orElseGet(() -> {
                     RestaurantProfile p = new RestaurantProfile();
@@ -817,5 +820,48 @@ public class BusinessWriteService {
         profile.setServerUpdatedAt(now);
         RestaurantProfile saved = profileRepository.save(profile);
         return SyncMapper.map(saved, RestaurantProfileDTO.class);
+    }
+
+    /**
+     * Rejects a direct edit of the owner's login identity from the settings form.
+     *
+     * <p>{@code loginId} is what the owner types on the login screen, and it only
+     * changes through the OTP-verified flows ({@code /sync/config/users/update-mobile}
+     * and {@code update-email}). This endpoint writes the restaurant profile row, so
+     * accepting a raw value here would let the contact identity drift away from the
+     * credential that actually logs in, with no proof that the owner controls the new
+     * address. Non-identity fields stay writable in the same request; an identity
+     * field must either match the current owner value or be omitted.
+     */
+    private void assertIdentityUnchanged(Long restaurantId, RestaurantProfileDTO updateDto) {
+        if (updateDto == null) {
+            return;
+        }
+        boolean touchesWhatsapp = updateDto.getWhatsappNumber() != null;
+        boolean touchesEmail = updateDto.getEmail() != null;
+        if (!touchesWhatsapp && !touchesEmail) {
+            return;
+        }
+        User owner = userRepository.findByRestaurantIdAndRoleAndIsDeletedFalse(restaurantId, UserRole.OWNER)
+                .stream().findFirst().orElse(null);
+        if (owner == null) {
+            return;
+        }
+        if (touchesWhatsapp) {
+            String requested = PhoneNormalizer.normalize(updateDto.getWhatsappNumber());
+            String current = PhoneNormalizer.normalize(owner.getWhatsappNumber());
+            if (!Objects.equals(requested, current)) {
+                throw new ResponseStatusException(CONFLICT,
+                        "Verify the new WhatsApp number with the OTP sent to it before saving.");
+            }
+        }
+        if (touchesEmail) {
+            String requested = updateDto.getEmail().trim();
+            String current = owner.getEmail() == null ? null : owner.getEmail().trim();
+            if (current == null || !requested.equalsIgnoreCase(current)) {
+                throw new ResponseStatusException(CONFLICT,
+                        "Verify the new email address with the OTP sent to it before saving.");
+            }
+        }
     }
 }

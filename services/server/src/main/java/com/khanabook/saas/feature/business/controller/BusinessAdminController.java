@@ -2,6 +2,12 @@ package com.khanabook.saas.feature.business.controller;
 
 import com.khanabook.saas.feature.reports.dto.DashboardTrendsResponse;
 import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.auth.data.OwnerIdentityResponse;
+import com.khanabook.saas.feature.auth.service.UserService;
+import com.khanabook.saas.feature.auth.controller.UpdateEmailOtpRequest;
+import com.khanabook.saas.feature.auth.controller.UpdateEmailRequest;
+import com.khanabook.saas.feature.auth.controller.UpdateMobileOtpRequest;
+import com.khanabook.saas.feature.auth.controller.UpdateMobileRequest;
 import com.khanabook.saas.core.security.RequireRole;
 import com.khanabook.saas.core.security.TenantContext;
 import com.khanabook.saas.feature.business.dto.*;
@@ -9,6 +15,7 @@ import com.khanabook.saas.feature.business.service.BillEditService;
 import com.khanabook.saas.feature.business.service.BusinessReadService;
 import com.khanabook.saas.feature.business.service.BusinessWriteService;
 import jakarta.validation.Valid;
+import com.khanabook.saas.feature.auth.service.OtpRateLimiter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +41,8 @@ public class BusinessAdminController {
     private final BusinessDayConfigService businessDayConfigService;
     private final BillEditService billEditService;
     private final AssetStorageService assetStorageService;
+    private final UserService userService;
+  private final OtpRateLimiter otpRateLimiter;
 
     @GetMapping("/dashboard")
     public ResponseEntity<BusinessDashboardResponse> getDashboard(
@@ -340,6 +349,57 @@ public class BusinessAdminController {
     @RequireRole(UserRole.OWNER)
     public ResponseEntity<RestaurantProfileDTO> updateProfile(@RequestBody RestaurantProfileDTO dto) {
         return ResponseEntity.ok(businessWriteService.updateProfile(requireTenant(), dto));
+    }
+
+    // ─── Login identity (read + OTP-verified change) ────────────────────────────
+    // The settings form may not edit the owner's login identifier directly; it
+    // reads it here and changes it only after the OTP sent to the new value is
+    // verified. /business/** is already OWNER-only in SecurityConfig.
+
+    @GetMapping("/profile/identity")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<OwnerIdentityResponse> getOwnerIdentity() {
+        return ResponseEntity.ok(userService.getOwnerIdentity(requireTenant()));
+    }
+
+    @PostMapping("/profile/identity/mobile/request")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> requestMobileNumberUpdateOtp(@Valid @RequestBody UpdateMobileOtpRequest request) {
+        if (!otpRateLimiter.tryConsume(request.getNewMobileNumber())) {
+            return ResponseEntity.status(429).build();
+        }
+        userService.requestMobileNumberUpdateOtp(requireTenant(), request.getNewMobileNumber());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/profile/identity/mobile/confirm")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> confirmMobileNumberUpdate(@Valid @RequestBody UpdateMobileRequest request) {
+        if (!otpRateLimiter.tryConsume(request.getNewMobileNumber())) {
+            return ResponseEntity.status(429).build();
+        }
+        userService.confirmMobileNumberUpdate(requireTenant(), request.getNewMobileNumber(), request.getOtp());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/profile/identity/email/request")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> requestEmailUpdateOtp(@Valid @RequestBody UpdateEmailOtpRequest request) {
+        if (!otpRateLimiter.tryConsume(request.getNewEmail())) {
+            return ResponseEntity.status(429).build();
+        }
+        userService.requestEmailUpdateOtp(requireTenant(), request.getNewEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/profile/identity/email/confirm")
+    @RequireRole(UserRole.OWNER)
+    public ResponseEntity<Void> confirmEmailUpdate(@Valid @RequestBody UpdateEmailRequest request) {
+        if (!otpRateLimiter.tryConsume(request.getNewEmail())) {
+            return ResponseEntity.status(429).build();
+        }
+        userService.confirmEmailUpdate(requireTenant(), request.getNewEmail(), request.getOtp());
+        return ResponseEntity.ok().build();
     }
 
     /**

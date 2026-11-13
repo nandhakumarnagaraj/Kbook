@@ -71,7 +71,7 @@ public class UserProfileSyncService {
     /**
      * Preserves server-owned fields during LWW merge for User records.
      * Prevents a stale device push from overwriting password, login ID,
-     * auth provider, email, or Google email with null/empty values.
+     * auth provider, email, Google email, or phone number with null/empty values.
      *
      * Also enforces Google-linked identity preservation: when a synced
      * mobile/profile payload carries a phone number, the Google-linked
@@ -100,6 +100,13 @@ public class UserProfileSyncService {
 
         if (incoming.getGoogleEmail() == null || incoming.getGoogleEmail().trim().isEmpty()) {
             incoming.setGoogleEmail(existing.getGoogleEmail());
+        }
+
+        // phone_number is a server-owned login identifier: it is only changed by the
+        // OTP-verified mobile-update flow. The sync push DTO does not carry it, so a
+        // whole-record push would otherwise blank the verified value.
+        if (existing.getPhoneNumber() != null && !existing.getPhoneNumber().trim().isEmpty()) {
+            incoming.setPhoneNumber(existing.getPhoneNumber());
         }
     }
 

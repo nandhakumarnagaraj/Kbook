@@ -179,6 +179,45 @@ public class EmailNotificationService {
         }
     }
 
+    /**
+     * Tells the previous mailbox that the account's login identifier changed.
+     *
+     * <p>Best effort and fire-and-forget by contract: the identity change has already
+     * committed, so a disabled mailer, missing MAIL_PASSWORD or an SMTP error must
+     * never surface to the owner or undo the change. Missing configuration logs a
+     * warning instead of an error.
+     */
+    @Async
+    public void sendLoginIdChangedNotice(String previousEmail, String newLoginId) {
+        if (!emailEnabled) {
+            log.warn("Email disabled (khanabook.email.enabled=false). Login identity change notice for {} suppressed.",
+                    previousEmail);
+            return;
+        }
+        if (mailPassword == null || mailPassword.isBlank()) {
+            log.warn("Login identity change notice not delivered: spring.mail.password is empty (set MAIL_PASSWORD). "
+                    + "Previous address {}, new login identifier {}.", previousEmail, newLoginId);
+            return;
+        }
+        try {
+            String subject = "Your KhanaBook login ID was changed";
+            String safeLoginId = newLoginId == null ? "" : newLoginId;
+            String htmlContent = "<div style=\"font-family: sans-serif; padding: 20px; color: #1e293b;\">"
+                    + "<h2 style=\"color: #0f172a;\">Login ID changed</h2>"
+                    + "<p>The login ID on your KhanaBook account has been changed to:</p>"
+                    + "<div style=\"background-color: #f1f5f9; padding: 16px; border-radius: 8px; font-size: 20px; font-weight: bold; text-align: center; margin: 24px 0; color: #0284c7;\">"
+                    + safeLoginId + "</div>"
+                    + "<p>This email address can no longer be used to sign in. If you did not request this change, contact support immediately.</p>"
+                    + "<hr style=\"border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;\" />"
+                    + "<p style=\"font-size: 12px; color: #94a3b8;\">KhanaBook POS &bull; Smart Restaurant POS &amp; Management System</p>"
+                    + "</div>";
+            sendHtmlEmail(previousEmail, subject, htmlContent);
+            log.info("Login identity change notice sent to previous address {}", previousEmail);
+        } catch (Exception e) {
+            log.error("Failed to send login identity change notice to {}", previousEmail, e);
+        }
+    }
+
     public void sendDailyClosingReport(String toEmail, String subject, String htmlContent) throws MessagingException {
         if (!emailEnabled) {
             log.info("Email disabled (khanabook.email.enabled=false). Daily closing report suppressed for {}", toEmail);

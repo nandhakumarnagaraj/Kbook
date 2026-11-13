@@ -1595,6 +1595,15 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		// Preserve this server-owned switch for every mask, including legacy full-record pushes.
 		incomingP.setEasebuzzEnabled(existingP.getEasebuzzEnabled());
 
+		// Login identity belongs to the OWNER. Android staff profiles reach this path
+		// through the same sync push, so restore the owner's whatsapp/email for every
+		// non-owner actor BEFORE the mask early-returns — a SHOP_STAFF terminal must not
+		// be able to re-point the credential the owner signs in with.
+		if (!"OWNER".equals(TenantContext.getCurrentRole())) {
+			incomingP.setWhatsappNumber(existingP.getWhatsappNumber());
+			incomingP.setEmail(existingP.getEmail());
+		}
+
 		// Business-day configuration (V119): Cutoff, effective date, and report outbox switches
 		// are server-owned and web-admin managed. Restore unconditionally, for every mask.
 		// Opening and closing trading hours can be edited by both web admin and Android POS.
