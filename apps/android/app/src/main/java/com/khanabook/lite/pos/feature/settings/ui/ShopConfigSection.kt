@@ -155,13 +155,11 @@ fun ShopConfigView(
     val logoUploadError by viewModel.logoUploadError.collectAsStateWithLifecycle()
     val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
     val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
-    val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     val enteredPin by appLockViewModel.enteredPin.collectAsStateWithLifecycle()
     val pinError by appLockViewModel.errorMessage.collectAsStateWithLifecycle()
-    val isGoogleAuth = currentUser?.authProvider.equals("GOOGLE", ignoreCase = true)
     val isPhoneValid = ValidationUtils.isValidPhone(whatsapp)
     val numberChanged = whatsapp != (profile?.whatsappNumber ?: "")
-    val emailChanged = !isGoogleAuth && email.trim() != (profile?.email?.trim() ?: "")
+    val emailChanged = email.trim() != (profile?.email?.trim() ?: "")
     val isEmailValid = ValidationUtils.isValidEmail(email.trim())
     val currentPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(profile?.orderPaymentFlowMode)
     var selectedPaymentFlowMode by remember {
@@ -635,34 +633,32 @@ fun ShopConfigView(
                     ParchmentTextField(
                         value = email,
                         onValueChange = {
-                            if (!isGoogleAuth) {
-                                email = it
-                                emailServerError = null
-                                if (it.trim() != (profile?.email?.trim() ?: "")) {
-                                    isEmailOtpVerified = false
-                                    emailOtpSent = false
-                                } else {
-                                    isEmailOtpVerified = true
-                                }
+                            email = it
+                            emailServerError = null
+                            if (it.trim() != (profile?.email?.trim() ?: "")) {
+                                isEmailOtpVerified = false
+                                emailOtpSent = false
+                            } else {
+                                isEmailOtpVerified = true
                             }
                         },
-                        label = if (isGoogleAuth) "Email (Google account)" else "Email *",
+                        label = "Email *",
                         placeholder = "Enter Email Address",
                         leadingIcon = {
                             Icon(Icons.Default.Email, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
                         },
-                        enabled = !isGoogleAuth && !readOnly,
+                        enabled = !readOnly,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                        isError = (!isGoogleAuth && email.isNotBlank() && !isEmailValid) || !emailOtpFieldErrors["email"].isNullOrBlank() || emailServerError != null,
-                        supportingText = emailServerError ?: emailOtpFieldErrors["email"] ?: if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) "Enter valid email address" else null,
+                        isError = (email.isNotBlank() && !isEmailValid) || !emailOtpFieldErrors["email"].isNullOrBlank() || emailServerError != null,
+                        supportingText = emailServerError ?: emailOtpFieldErrors["email"] ?: if (email.isNotBlank() && !isEmailValid) "Enter valid email address" else null,
                         trailingIcon = {
-                            if (!isGoogleAuth && isEmailOtpLoading) {
+                            if (isEmailOtpLoading) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
                                     color = PrimaryGold
                                 )
-                            } else if (!isGoogleAuth && emailChanged && isEmailValid && (!emailOtpSent || emailOtpTimer == 0) && !isEmailOtpVerified) {
+                            } else if (emailChanged && isEmailValid && (!emailOtpSent || emailOtpTimer == 0) && !isEmailOtpVerified) {
                                 Button(
                                     onClick = {
                                         emailServerError = null
@@ -676,13 +672,13 @@ fun ShopConfigView(
                                 ) {
                                     Text("Get OTP", color = DarkBrown1, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
                                 }
-                            } else if (!isGoogleAuth && emailChanged && isEmailOtpVerified) {
+                            } else if (emailChanged && isEmailOtpVerified) {
                                 Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = spacing.medium))
                             }
                         }
                     )
 
-                    if (!isGoogleAuth && emailOtpSent && emailChanged) {
+                    if (emailOtpSent && emailChanged) {
                         ParchmentTextField(
                             value = emailOtpValue,
                             onValueChange = {
@@ -871,7 +867,7 @@ fun ShopConfigView(
                         toastScope.launch {
                             KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
                         }
-                    } else if (!isGoogleAuth && email.isNotBlank() && !isEmailValid) {
+                    } else if (email.isNotBlank() && !isEmailValid) {
                         toastScope.launch {
                             KhanaToast.show("Please enter a valid email address", ToastKind.Warning)
                         }
