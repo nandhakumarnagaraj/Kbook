@@ -40,22 +40,23 @@ class UserServiceEmailUpdateTest {
     }
 
     @Test
-    void requestEmailUpdateOtp_rejectsGoogleAuthUser() {
+    void requestEmailUpdateOtp_allowsGoogleAuthUser() {
         Long tenantId = 100L;
         User googleUser = new User();
         googleUser.setId(1L);
         googleUser.setRestaurantId(tenantId);
         googleUser.setAuthProvider(AuthProvider.GOOGLE);
+        googleUser.setGoogleEmail("google@khanabook.com");
         googleUser.setEmail("google@khanabook.com");
 
         when(userRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1L)))
                 .thenReturn(List.of(googleUser));
 
-        assertThatThrownBy(() -> userService.requestEmailUpdateOtp(tenantId, "new@khanabook.com"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Google-authenticated");
+        userService.requestEmailUpdateOtp(tenantId, "new@khanabook.com");
 
-        verifyNoInteractions(passwordResetOtpService);
+        // Google sign-in resolves the account through googleEmail (see AuthServiceImpl's
+        // login chain), so changing the profile email cannot lock the owner out.
+        verify(passwordResetOtpService).issueEmailUpdateOtp(tenantId, "new@khanabook.com");
     }
 
     @Test

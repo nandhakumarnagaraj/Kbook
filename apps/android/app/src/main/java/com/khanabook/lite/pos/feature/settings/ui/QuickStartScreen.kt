@@ -78,9 +78,6 @@ fun QuickStartScreen(
     var isSendingOtp by remember { mutableStateOf(false) }
     var isVerifyingOtp by remember { mutableStateOf(false) }
     var otpError by remember { mutableStateOf<String?>(null) }
-    var password by remember { mutableStateOf("") }
-
-    var passwordVisible by remember { mutableStateOf(false) }
     var menuItems by remember {
         mutableStateOf(
             listOf(
@@ -151,11 +148,11 @@ fun QuickStartScreen(
 
     val isPhoneValid = whatsappNumber.isEmpty() || ValidationUtils.isValidPhone(whatsappNumber)
     val phoneRequirementMet = whatsappNumber.isEmpty() || isOtpVerified
-    val isGoogleAuth = currentUser?.authProvider?.equals("GOOGLE", ignoreCase = true) == true
+    // No password is collected here: the server has no password-set endpoint for
+    // Google accounts, and the old field only wrote an unread value to prefs.
     val canSubmit = shopName.isNotBlank() &&
         menuItems.any { it.name.isNotBlank() && it.price.isNotBlank() } &&
-        phoneRequirementMet &&
-        (if (isGoogleAuth) password.isNotBlank() else true)
+        phoneRequirementMet
 
     var isSkipVisible by remember { mutableStateOf(false) }
 
@@ -195,15 +192,6 @@ fun QuickStartScreen(
                             color = ErrorPink,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(bottom = spacing.small)
-                        )
-                    }
-
-                    // Password field for Google users (shown only when isGoogleAuth is true)
-                    if (isGoogleAuth) {
-                        PasswordField(
-                            show = password,
-                            onPasswordChange = { password = it },
-                            onToggleVisibility = { passwordVisible = !passwordVisible }
                         )
                     }
 

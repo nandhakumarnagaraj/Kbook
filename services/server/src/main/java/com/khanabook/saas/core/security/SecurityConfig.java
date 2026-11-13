@@ -100,7 +100,10 @@ public class SecurityConfig {
 
 				.headers(headers -> headers
 						.frameOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig::deny)
-						.contentTypeOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.ContentTypeOptionsConfig::disable)
+						// nosniff is on again: it was disabled as a workaround, and it is the
+						// header that stops a browser from re-interpreting a user-influenced
+						// response (logo upload, invoice HTML) as a different content type.
+						.contentTypeOptions(org.springframework.security.config.Customizer.withDefaults())
 						.httpStrictTransportSecurity(hsts -> hsts
 								.includeSubDomains(true)
 								.maxAgeInSeconds(31536000))

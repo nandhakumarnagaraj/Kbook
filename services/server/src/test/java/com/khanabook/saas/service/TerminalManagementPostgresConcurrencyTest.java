@@ -95,17 +95,18 @@ class TerminalManagementPostgresConcurrencyTest {
     }
 
     @Test
-    @DisplayName("Two concurrent approvals for the 5th slot: only one succeeds, final count = 5")
-    void concurrentFifthSlotApproval_onlyOneSucceeds() throws Exception {
-        // Create 4 active terminals (fill 4 of 5 slots)
-        for (int i = 1; i <= 4; i++) {
+    @DisplayName("Two concurrent approvals for the last slot: only one succeeds, final count = 3")
+    void concurrentLastSlotApproval_onlyOneSucceeds() throws Exception {
+        // V120 seeds PRO with max_terminals = 3, and an unprovisioned restaurant
+        // resolves to PRO. Fill 2 of the 3 slots so one is left to race for.
+        for (int i = 1; i <= 2; i++) {
             DeviceRegistrationRequest req = terminalManagementService.createRegistrationRequest(
                     RESTAURANT_ID, 1L, "device-pre-" + i, "Model", "NEW_DEVICE", null);
             terminalManagementService.approveRequest(req.getId(), RESTAURANT_ID, 1L, "OWNER");
         }
-        assertThat(terminalRepository.countByRestaurantIdAndStatus(RESTAURANT_ID, "ACTIVE")).isEqualTo(4);
+        assertThat(terminalRepository.countByRestaurantIdAndStatus(RESTAURANT_ID, "ACTIVE")).isEqualTo(2);
 
-        // Create 2 pending requests that will race for the 5th slot
+        // Create 2 pending requests that will race for the last slot
         DeviceRegistrationRequest reqA = terminalManagementService.createRegistrationRequest(
                 RESTAURANT_ID, 1L, "device-race-A", "Model-A", "NEW_DEVICE", null);
         DeviceRegistrationRequest reqB = terminalManagementService.createRegistrationRequest(
@@ -157,9 +158,9 @@ class TerminalManagementPostgresConcurrencyTest {
         assertThat(successes.get()).isEqualTo(1);
         assertThat(limitReached.get()).isEqualTo(1);
 
-        // Final ACTIVE count is exactly 5 — never 6
+        // Final ACTIVE count is exactly 3 — never 4
         long finalActiveCount = terminalRepository.countByRestaurantIdAndStatus(RESTAURANT_ID, "ACTIVE");
-        assertThat(finalActiveCount).isEqualTo(5);
+        assertThat(finalActiveCount).isEqualTo(3);
 
         // Terminal series are unique
         List<RestaurantTerminal> allTerminals = terminalRepository.findByRestaurantIdOrderByIdAsc(RESTAURANT_ID);
@@ -175,26 +176,26 @@ class TerminalManagementPostgresConcurrencyTest {
 
         List<DeviceRegistrationRequest> approved = requestRepository
                 .findByRestaurantIdAndStatusOrderByRequestedAtDesc(RESTAURANT_ID, "APPROVED");
-        assertThat(approved).hasSize(5); // 4 pre-approved + 1 winner
+        assertThat(approved).hasSize(3); // 2 pre-approved + 1 winner
     }
 
     @Test
-    @DisplayName("Eight concurrent approvals never exceed 5 active terminals (PostgreSQL locks)")
-    void eightConcurrentApprovals_maxFiveActive() throws Exception {
-        // Create 8 pending requests
+    @DisplayName("Six concurrent approvals never exceed the 3 PRO terminals (PostgreSQL locks)")
+    void sixConcurrentApprovals_maxThreeActive() throws Exception {
+        // Create 6 pending requests for a plan that allows 3
         List<Long> requestIds = new ArrayList<>();
-        for (int i = 1; i <= 8; i++) {
+        for (int i = 1; i <= 6; i++) {
             DeviceRegistrationRequest req = terminalManagementService.createRegistrationRequest(
                     RESTAURANT_ID, 1L, "device-pg-" + i, "Model-" + i, "NEW_DEVICE", null);
             requestIds.add(req.getId());
         }
 
-        // Approve all 8 concurrently
-        ExecutorService executor = Executors.newFixedThreadPool(8);
-        CyclicBarrier barrier = new CyclicBarrier(8);
+        // Approve all 6 concurrently
+        ExecutorService executor = Executors.newFixedThreadPool(6);
+        CyclicBarrier barrier = new CyclicBarrier(6);
         AtomicInteger successes = new AtomicInteger(0);
         AtomicInteger failures = new AtomicInteger(0);
-        CountDownLatch done = new CountDownLatch(8);
+        CountDownLatch done = new CountDownLatch(6);
 
         for (Long requestId : requestIds) {
             executor.submit(() -> {
@@ -213,22 +214,22 @@ class TerminalManagementPostgresConcurrencyTest {
         done.await(60, TimeUnit.SECONDS);
         executor.shutdown();
 
-        // Exactly 5 succeeded
-        assertThat(successes.get()).isEqualTo(5);
+        // Exactly 3 succeeded, 3 were rejected by the limit
+        assertThat(successes.get()).isEqualTo(3);
         assertThat(failures.get()).isEqualTo(3);
 
-        // Final ACTIVE count is exactly 5
+        // Final ACTIVE count is exactly 3
         long finalActiveCount = terminalRepository.countByRestaurantIdAndStatus(RESTAURANT_ID, "ACTIVE");
-        assertThat(finalActiveCount).isEqualTo(5);
+        assertThat(finalActiveCount).isEqualTo(3);
 
-        // No sixth ACTIVE terminal row
+        // No fourth ACTIVE terminal row
         List<RestaurantTerminal> activeTerminals = terminalRepository.findByRestaurantIdAndStatus(RESTAURANT_ID, "ACTIVE");
-        assertThat(activeTerminals).hasSize(5);
+        assertThat(activeTerminals).hasSize(3);
 
         // All series unique
         Set<String> series = activeTerminals.stream()
                 .map(RestaurantTerminal::getTerminalSeries)
                 .collect(Collectors.toSet());
-        assertThat(series).hasSize(5);
+        assertThat(series).hasSize(3);
     }
 }

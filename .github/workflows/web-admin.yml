@@ -12,6 +12,9 @@ on:
       - 'apps/web-admin/**'
       - '.github/workflows/web-admin.yml'
 
+# `npm test` is not repeated here: ci.yml runs it on every push and PR, and
+# running the same Karma suite from two workflows only doubles the wait.
+# What this workflow owns is the production build and the design-system gates.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,8 +29,18 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web-admin/package-lock.json
       - run: npm ci
-      - run: npm test -- --watch=false --browsers=ChromeHeadless
       # The motion band is a whole-app rule, and a Karma run only sees the pages a spec
       # happens to mount — this reads every stylesheet and component template instead.
+      # The rest of the design-system checks existed as scripts but ran nowhere, so a
+      # token, contrast or spacing regression could only be caught by a human reviewer.
       - run: npm run check:motion
+      - run: npm run check:type
+      - run: npm run check:tokens
+      - run: npm run check:breakpoints
+      - run: npm run check:spacing
+      - run: npm run check:z-index
+      - run: npm run check:colors
+      - run: npm run check:contrast
+      - run: npm run check:accent-budget
+      - run: npm run check:inline-styles
       - run: npm run build

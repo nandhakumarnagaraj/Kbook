@@ -22,6 +22,5 @@ public interface UserService {
 
 	void confirmEmailUpdate(Long tenantId, String newEmail, String otp);
 
-	void completePasswordReset(String loginId, String otp, String newPassword);
 
 }

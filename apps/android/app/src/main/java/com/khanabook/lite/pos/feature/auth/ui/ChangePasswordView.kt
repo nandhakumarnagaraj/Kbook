@@ -41,6 +41,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -65,6 +66,9 @@ import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
 import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
+import kotlinx.coroutines.delay
+
+private const val OTP_RESEND_SECONDS = 60
 
 @Composable
 fun ChangePasswordView(
@@ -74,11 +78,10 @@ fun ChangePasswordView(
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
-    val initialPhone = when {
-        currentUser?.phoneNumber?.takeIf { it.isNotBlank() }
-            ?: currentUser?.loginId
-    else -> currentUser?.loginId  // Google/email accounts
-    }
+    // Phone-auth users reset by phone number; Google/email accounts fall back to loginId.
+    val initialPhone = currentUser?.phoneNumber?.takeIf { it.isNotBlank() }
+        ?: currentUser?.loginId
+        ?: ""
     val resetStatus by authViewModel.resetPasswordStatus.collectAsStateWithLifecycle()
 
     var step by remember { mutableStateOf(1) }
@@ -88,8 +91,18 @@ fun ChangePasswordView(
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
+    var otpTimer by remember { mutableIntStateOf(OTP_RESEND_SECONDS) }
 
     val isLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
+    val canResendOtp = otpTimer == 0
+
+    // Countdown for the step-2 "Resend OTP" button; restarts whenever a new OTP is sent.
+    LaunchedEffect(step, otpTimer) {
+        if (step == 2 && otpTimer > 0) {
+            delay(1000L)
+            otpTimer--
+        }
+    }
 
     LaunchedEffect(Unit) {
         authViewModel.clearResetStatus()
@@ -99,6 +112,7 @@ fun ChangePasswordView(
         when (resetStatus) {
             is AuthViewModel.ResetPasswordResult.OtpSent -> {
                 step = 2
+                otpTimer = OTP_RESEND_SECONDS
                 localError = null
             }
             is AuthViewModel.ResetPasswordResult.Success -> {
@@ -208,7 +222,7 @@ fun ChangePasswordView(
                 TextButton(
                     onClick = {
                         localError = null
-                        if (isLoading) return@onClick
+                        if (isLoading) return@TextButton
                         authViewModel.sendOtp(phone.trim(), "reset")
                     },
                     enabled = !isLoading && canResendOtp

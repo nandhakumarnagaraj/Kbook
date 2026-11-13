@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -30,8 +31,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final RestaurantTerminalRepository terminalRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Builds the summary, lazily creating the default subscription row when the
+     * restaurant has none — so this method writes, despite looking like a read.
+     *
+     * <p>Runs in its own transaction on purpose. Callers such as
+     * {@code MasterSyncController.pullMasterSync} execute inside
+     * {@code @Transactional(readOnly = true)}; a REQUIRED method would join that
+     * read-only transaction, the INSERT would fail, and PostgreSQL would leave the
+     * shared transaction aborted — which broke every later query in the same master
+     * pull with "current transaction is aborted".
+     */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public SubscriptionSummaryDTO getSubscriptionSummary(Long restaurantId) {
         if (restaurantId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Restaurant ID is required");
@@ -215,7 +227,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         plan.setDescription("Auto-provisioned default plan");
         plan.setPriceMonthly(new java.math.BigDecimal("1299.00"));
         plan.setPriceYearly(new java.math.BigDecimal("12990.00"));
-        plan.setMaxTerminals(5);
+        // Must match V120's seeded PRO row (max_terminals = 3); a fallback plan that
+        // grants more terminals than the real plan silently widens entitlements.
+        plan.setMaxTerminals(3);
         plan.setMaxStaffMembers(10);
         plan.setInventoryEnabled(true);
         plan.setAiMenuEnabled(false);

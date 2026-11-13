@@ -51,8 +51,7 @@ class QuickStartViewModel @Inject constructor(
     fun completeQuickStart(
         shopName: String,
         items: List<QuickMenuItem>,
-        whatsappNumber: String? = null,
-        password: String? = null
+        whatsappNumber: String? = null
     ) {
         if (shopName.isBlank()) {
             _error.value = "Please enter your shop name"
@@ -106,11 +105,6 @@ class QuickStartViewModel @Inject constructor(
                 // 4. Mark quick start as done
                 sessionManager.setQuickStartCompleted(true)
                 sessionManager.setInitialSyncCompleted(true)
-
-                // 5. Save password for Google accounts (if provided)
-                if (password?.isNotBlank() == true) {
-                    sessionManager.savePassword(password)
-                }
 
                 // 5. Trigger sync in background (non-blocking)
                 syncManager.triggerImmediateSync()

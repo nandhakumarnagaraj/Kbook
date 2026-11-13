@@ -479,32 +479,7 @@ constructor(
         object Success : ResetPasswordResult()
         
         object OtpSent : ResetPasswordResult()
-        
-
-    fun completePasswordReset(loginId: String, otp: String, newPassword: String) {
-        viewModelScope.launch {
-            _resetPasswordFieldErrors.value = emptyMap()
-            _resetPasswordStatus.value = ResetPasswordResult.Loading
-            try {
-                val result = userRepository.completePasswordReset(loginId, otp, newPassword)
-                result.onSuccess {
-                    _resetPasswordStatus.value = ResetPasswordResult.Success
-                }.onFailure { e ->
-                    val sanitized = UserMessageSanitizer.sanitizeWithDetails(e, "Failed to reset password.")
-                    _resetPasswordFieldErrors.value = sanitized.fieldErrors
-                    _resetPasswordStatus.value =
-                        ResetPasswordResult.Error(
-                            sanitized.message
-                        )
-                }
-            } catch (e: Exception) {
-                _resetPasswordStatus.value = ResetPasswordResult.Error(
-                    "Unexpected error. Please try again."
-                )
-            }
-        }
-    }
-    data class Error(val message: String) : ResetPasswordResult()
+        data class Error(val message: String) : ResetPasswordResult()
     }
 
     sealed class OtpVerificationResult {

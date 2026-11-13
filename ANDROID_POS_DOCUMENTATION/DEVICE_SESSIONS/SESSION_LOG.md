@@ -1,5 +1,53 @@
 # Device Testing Session Log
 
+## Session 007: Static Audit Of POS, Compile Repair, Three Bugs Registered
+- **Session ID:** SES-20261113-007
+- **Date & Time:** 2026-11-13
+- **Target Device / Architecture:** No device connected. Android POS source audit (`ChangePasswordView.kt`, `AuthViewModel.kt`, `QuickStartScreen.kt`, `ShopConfigSection.kt`, `SessionManager.kt`) plus `apps/web-admin` and `services/server` inspection.
+- **Initial Screen:** None — no UI operations performed.
+- **Objective:** Run the requested codebase/product audit, repair why `main` did not compile, and record findings in this knowledge base.
+
+### Operations Performed
+1. Read `README.md`, `NEXT_ACTIONS.md`, `KNOWN_LIMITATIONS.md` and this log before inspecting any code, per the AGENTS.md policy.
+2. Pulled `a733025b` (owner email editable via OTP) and ran `./gradlew :app:compileDebugKotlin --offline` in `apps/android`: **FAILED** — `ChangePasswordView.kt:79:36 Expecting '->'`, from commit `8a600882`, not from the pulled commit.
+3. Repaired four breakages in that commit (see BUG-007): the malformed `when`, the undeclared OTP resend timer, `completePasswordReset` pasted inside `sealed class ResetPasswordResult` and calling a non-existent repository method, and a call to a `PasswordField` composable that was never written.
+4. Re-ran `./gradlew :app:compileDebugKotlin --offline`: **BUILD SUCCESSFUL**.
+5. Ran `./gradlew :app:testDebugUnitTest --offline`: **PASS**, Gradle exit status 0 (captured via `PIPESTATUS`, not the pipe's exit status).
+6. Audited the three surfaces and wrote 16 documents under `docs/product-audit/` (overview, structure, modules, features, frontend, backend, database, API, security, architecture, performance, UI/UX, testing, debt, roadmap, checklist).
+7. Registered BUG-005 (plaintext Google password), BUG-006 (email verification state resets on profile refresh) and BUG-007 (non-compiling commit on `main`) in `BUG_REGISTER.md`.
+8. Added the audit-derived actions at the top of `NEXT_ACTIONS.md`; the pre-existing list was left untouched.
+
+### Newly Discovered UI Operations
+None. No device or emulator was used, so no new screen interaction was observed and no `OPERATIONS/` document needed an update.
+
+### Verification Status
+- **VERIFIED (by compiler):** the Android tree compiles again — `:app:compileDebugKotlin`, exit 0.
+- **VERIFIED (by test run):** `:app:testDebugUnitTest`, Gradle exit 0.
+- **VERIFIED (by source inspection):** the Quick Start password is written to `SharedPreferences` in plaintext (`SessionManager.kt:20,124-126`), is never sent to the server, and `getPassword()` has no callers.
+- **NOT VERIFIED:** any on-device behaviour — Change Password, Quick Start, and the email OTP path were not exercised. No screenshots were captured in this session; there is no image evidence to reference, and none is claimed.
+- **ASSUMPTION (unchecked):** that the `CI` workflow which runs `testDebugUnitTest` on every push to `main` actually executed for commit `8a600882`. The commit cannot compile, so the job could not have passed; whether it ran, failed-and-was-ignored, or never started is unconfirmed from this environment.
+
+### Evidence
+- Compile failure output: `e: .../ChangePasswordView.kt:79:36 Expecting '->'` followed by `Execution failed for task ':app:kspDebugKotlin'`.
+- Post-repair compile: empty output, exit 0.
+- Post-repair unit tests: `GRADLE_EXIT:0`.
+- Full findings and file:line references: `docs/product-audit/00-AUDIT-OVERVIEW.md`.
+
+### Known Limitations / Notes
+- OnePlus Nord still runs a pre-Session-004 build (carried over from Session 006).
+- `main` at `a733025b` still does not compile from a clean checkout until the BUG-007 repair is committed.
+
+### Addendum (same session, after product-owner sign-off)
+
+The audit's findings were then acted on. Nothing below was verified on a device.
+
+1. **Quick Start password removed entirely** (BUG-005): the field, the `canSubmit` gate, `SessionManager.savePassword/getPassword` and the `google_password` preference are gone. No plaintext credential is written any more. *Verified:* `:app:compileDebugKotlin` and `:app:testDebugUnitTest` exit 0; `grep -rn "google_password" apps/android` returns nothing.
+2. **Server compile break repaired** (BUG-008): the server did not compile at HEAD either — `UserServiceImpl` imported a non-existent `PasswordEncoder`, injected the non-bean `PhoneNormalizer`, and had lost six private helpers plus its OTP service field. Restored and re-implemented; `./mvnw -DskipTests compile` exit 0.
+3. **Master-pull transaction poisoning fixed** (BUG-009): `getSubscriptionSummary` lazily inserts a default subscription row while running inside the pull's read-only transaction, aborting it so every later query in the request failed. Moved to `REQUIRES_NEW`. *Verified:* the five previously failing sync/bill integration classes pass.
+4. **Dead `completePasswordReset` deleted** from the server: it skipped OTP validation entirely, so exposing it would have been an authentication bypass. `/auth/reset-password` already resolves email logins, so nothing is lost.
+5. **`nosniff` re-enabled**; **CI de-duplicated** (`android-ci.yml` keeps lint + instrumented, `web-admin.yml` now enforces all ten `check:*` design gates plus the production build).
+6. **Not done, still open:** the `TerminalManagementConcurrencyTest` class still asserts a 5-terminal limit against a 3-terminal plan, and the full server suite was not observed green in a single run (it exceeds the 10-minute command cap).
+
 ## Session 006: Read-Only Survey Of POS + Web Admin, BUG-004 Fix
 - **Session ID:** SES-20261113-006
 - **Date & Time:** 2026-11-13

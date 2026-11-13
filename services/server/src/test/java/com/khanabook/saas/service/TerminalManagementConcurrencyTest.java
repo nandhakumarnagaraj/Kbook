@@ -6,6 +6,10 @@ import com.khanabook.saas.BaseIntegrationTest;
 import com.khanabook.saas.feature.notifications.data.DeviceRegistrationRequest;
 import com.khanabook.saas.feature.restaurants.data.RestaurantTerminal;
 import com.khanabook.saas.feature.auth.entity.UserRole;
+import com.khanabook.saas.feature.subscription.data.RestaurantSubscription;
+import com.khanabook.saas.feature.subscription.data.RestaurantSubscriptionRepository;
+import com.khanabook.saas.feature.subscription.data.SubscriptionPlan;
+import com.khanabook.saas.feature.subscription.data.SubscriptionPlanRepository;
 import com.khanabook.saas.feature.notifications.data.DeviceRegistrationRequestRepository;
 import com.khanabook.saas.feature.restaurants.data.RestaurantTerminalRepository;
 import com.khanabook.saas.core.security.TenantContext;
@@ -38,6 +42,10 @@ class TerminalManagementConcurrencyTest extends BaseIntegrationTest {
     private RestaurantTerminalRepository terminalRepository;
     @Autowired
     private DeviceRegistrationRequestRepository requestRepository;
+    @Autowired
+    private RestaurantSubscriptionRepository subscriptionRepository;
+    @Autowired
+    private SubscriptionPlanRepository subscriptionPlanRepository;
 
     private Long restaurantId;
 
@@ -48,6 +56,34 @@ class TerminalManagementConcurrencyTest extends BaseIntegrationTest {
         if (userRepository.findByLoginId(loginId).isEmpty()) {
             persistUser(loginId, restaurantId, UserRole.OWNER);
         }
+        // These scenarios are written against a 5-terminal plan, so they pin the
+        // restaurant to one instead of depending on whatever the default entitlement
+        // happens to be. BaseIntegrationTest uses ddl-auto=create and skips Flyway, so
+        // no plan rows exist here: create the fixture plan when it is absent.
+        long now = System.currentTimeMillis();
+        SubscriptionPlan fiveTerminalPlan = subscriptionPlanRepository.findByCode("ENTERPRISE")
+                .orElseGet(() -> {
+                    SubscriptionPlan plan = new SubscriptionPlan();
+                    plan.setCode("ENTERPRISE");
+                    plan.setName("Enterprise Plan");
+                    plan.setDescription("Test fixture: plan with 5 terminals");
+                    plan.setMaxTerminals(5);
+                    plan.setMaxStaffMembers(50);
+                    plan.setSortOrder(4);
+                    plan.setCreatedAt(now);
+                    plan.setUpdatedAt(now);
+                    return subscriptionPlanRepository.save(plan);
+                });
+        RestaurantSubscription subscription = new RestaurantSubscription();
+        subscription.setRestaurantId(restaurantId);
+        subscription.setPlan(fiveTerminalPlan);
+        subscription.setStartedAt(now);
+        subscription.setCurrentPeriodStart(now);
+        subscription.setCurrentPeriodEnd(now + java.time.Duration.ofDays(30).toMillis());
+        subscription.setCreatedAt(now);
+        subscription.setUpdatedAt(now);
+        subscriptionRepository.save(subscription);
+
         TenantContext.setCurrentTenant(restaurantId);
         TenantContext.setCurrentRole("OWNER");
     }
