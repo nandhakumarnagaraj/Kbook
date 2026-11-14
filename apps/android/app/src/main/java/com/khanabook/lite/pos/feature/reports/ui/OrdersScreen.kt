@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -54,6 +55,8 @@ fun OrdersScreen(
 ) {
     val reportType by viewModel.reportType.collectAsStateWithLifecycle()
     val timeFilter by viewModel.timeFilter.collectAsStateWithLifecycle()
+    val windowCaption by viewModel.windowCaption.collectAsStateWithLifecycle()
+    val customRangeLabel by viewModel.customRangeLabel.collectAsStateWithLifecycle()
     val paymentBreakdown by viewModel.paymentBreakdown.collectAsStateWithLifecycle()
     val orderLevelRows by viewModel.orderLevelRows.collectAsStateWithLifecycle()
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
@@ -62,7 +65,9 @@ fun OrdersScreen(
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val context = LocalContext.current
-    val canViewFullReports = remember { viewModel.canViewFullReports() }
+    // Observable, so a `reports.full` grant arriving from sync widens the filter row; a plain
+    // `remember { … }` froze the answer for the lifetime of this screen.
+    val canViewFullReports by viewModel.canViewFullReportsFlow.collectAsStateWithLifecycle()
 
     LaunchedEffect(reportError) {
         reportError?.let { message ->
@@ -188,17 +193,38 @@ fun OrdersScreen(
 
             
             AnimatedVisibility(visible = contentVisible, enter = enterSpec, exit = exitSpec) {
-                OrderDateFilterComponent(
-                    selectedFilter = timeFilter,
-                    onFilterSelected = { filter ->
-                        if (filter == "Custom") {
-                            showDateRangePicker = true
-                        } else {
-                            viewModel.setTimeFilter(filter)
-                        }
-                    },
-                    canViewFullReports = canViewFullReports
-                )
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    OrderDateFilterComponent(
+                        selectedFilter = timeFilter,
+                        onFilterSelected = { filter ->
+                            if (filter == "Custom") {
+                                showDateRangePicker = true
+                            } else {
+                                viewModel.setTimeFilter(filter)
+                            }
+                        },
+                        canViewFullReports = canViewFullReports,
+                        customRangeLabel = customRangeLabel
+                    )
+                    // Only present when the window is not plain calendar midnight, or when
+                    // Custom is active — see ReportsViewModel.publishWindow.
+                    windowCaption?.let { caption ->
+                        Text(
+                            text = caption,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = spacing.medium,
+                                    end = spacing.medium,
+                                    top = spacing.extraSmall
+                                ),
+                            color = OrdersTextSecondary.copy(alpha = 0.75f),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
             }
 
             // One gap, not two. The search field used to sit between two unconditional
@@ -252,6 +278,13 @@ fun OrdersScreen(
                         profile = profile,
                         enabledModes = enabledModes,
                         compactLayout = !layout.isWideListDetail,
+                        // Today is a single business day, so hh:mm is unambiguous. Yesterday
+                        // and multi-day Custom ranges can repeat the same daily number, so the
+                        // row carries its date too (two lines in the same Time column).
+                        includeDate = timeFilter != "Today",
+                        // NOTE (real behaviour): these three are threaded down to the row but no
+                        // row action invokes them — order edits happen only in OrderDetailsDialog.
+                        // Deciding whether to wire them is NEXT_ACTIONS item K.
                         onStatusChange = { billId, newStatus ->
                             viewModel.updateOrderStatus(billId, newStatus)
                         },

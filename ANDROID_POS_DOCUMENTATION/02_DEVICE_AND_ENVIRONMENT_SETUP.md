@@ -7,9 +7,20 @@
 | **Model** | Motorola moto g34 5G | Physical hardware device |
 | **ADB Serial** | `ZA222J5KT7` | USB / Wireless interface |
 | **Display Resolution** | `720 x 1600 px` | 20:9 Aspect Ratio |
-| **Android Version** | Android 14 (API 34) | Target OS runtime |
+| **Android Version** | Android 15 (API 35) | Target OS runtime. Corrected 2026-11-14 - see note below |
 | **Application Package** | `com.piquantservices.khanabooklite.debug` | Development debug build |
-| **Launcher Activity** | `com.khanabook.lite.pos.MainActivity` | Single activity Jetpack Compose host |
+| **Launcher Activity** | `com.khanabook.lite.pos.core.app.MainActivity` | Single activity Jetpack Compose host. Corrected 2026-11-14 - see note below |
+
+> **Correction, 2026-11-14 (Session 008, `SES-20261114-008`).** Two values in the table above were
+> wrong until this date and were verified against the live device, not against a spec:
+> - **OS level:** `getprop ro.build.version.release` → `15`, `getprop ro.build.version.sdk` → `35`.
+>   The entry previously read "Android 14 (API 34)".
+> - **Launcher activity:** `cmd package resolve-activity --brief -c android.intent.category.LAUNCHER
+>   com.piquantservices.khanabooklite.debug` → `com.piquantservices.khanabooklite.debug/com.khanabook.lite.pos.core.app.MainActivity`.
+>   The entry previously read `com.khanabook.lite.pos.MainActivity`, which does **not** exist; `am start`
+>   against it fails with `Error type 3 / Activity class … does not exist`.
+>
+> Evidence and the full command log: `DEVICE_SESSIONS/SESSION_LOG.md` → Session 008.
 
 ---
 

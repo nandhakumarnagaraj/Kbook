@@ -1,5 +1,227 @@
 # Device Testing Session Log
 
+## Session 010: Orders Screen — Business-Window Caption, Date/Time Column, Custom Range Chip
+- **Session ID:** SES-20261114-010
+- **Date & Time:** 2026-11-14 (build 12:1x, install 12:13:05 device wall-clock, UI checks 12:2x)
+- **Target Device / Architecture:** Physical `ZA222J5KT7` — Motorola moto g34 5G, Android 15 / API 35, debug build `com.piquantservices.khanabooklite.debug`, launcher `com.khanabook.lite.pos.core.app.MainActivity`. Shop profile under test: closing `00:00`, settlement buffer 30 min → business-day boundary `12:30 AM`.
+- **Initial Screen:** Motorola launcher; app forced-stopped and relaunched for the install smoke test.
+- **Objective:** Implement the Session 009 suitability gaps H, I and J (make the business-hours window visible, add day context to the table, render row times in the shop timezone) without removing any existing Orders-screen feature, then verify on device.
+
+### Operations Performed
+1. Read `README.md`, `NEXT_ACTIONS.md`, `OPERATIONS/ORDER_HISTORY_OPERATIONS.md`, `OPERATIONS/BUSINESS_SETTINGS_OPERATIONS.md`, `02_DEVICE_AND_ENVIRONMENT_SETUP.md` and the head of this log before touching code, per the AGENTS.md policy.
+2. Source changes (all additive; no existing element removed):
+   - `feature/reports/viewmodel/ReportsViewModel.kt`
+     - `publishWindow(from, toInclusive, filter)` — builds the caption from the exact range handed to Room, in `BusinessDate.zoneOf(profile.timezone)`; suppressed when the window starts at calendar midnight and the filter is not `Custom`.
+     - `formatCustomRange(fromDate, toDate)` — `d MMM` or `d MMM – d MMM` chip label from the picked dates.
+     - New `windowCaption` / `customRangeLabel` StateFlows; caption published from `loadReports` **before** its same-range early return, chip label set in `setCustomDateRange`.
+   - `feature/reports/ui/ReportViews.kt`
+     - `FilterChip` text is now `maxLines = 1` + ellipsis, so a long Custom label cannot wrap.
+     - `OrderDateFilterComponent` / `OrderDateFilterTabs` accept `customRangeLabel` and substitute it for `Custom` **only while Custom is selected**.
+     - `formatOrderRowTime(row, profile, includeDate)` renders in the profile zone; two-line `dd MMM⏎hh:mm a` when a date is requested, `hh:mm a` otherwise; legacy `row.date` rows still fall back to `DateUtils.formatTableDate`.
+     - `includeDate` threaded through `OrderTableHeader` (`Time` → `Date/Time`), `OrderTableRow`, `OrderRowItem`, `OrderHistoryTableComponent`, `OrderHistoryTable`, `OrderLevelView`. Column weights untouched.
+   - `feature/reports/ui/OrdersScreen.kt`
+     - Collects `windowCaption` / `customRangeLabel`; caption rendered under the chips (`labelSmall`, `OrdersTextSecondary`, max 2 lines).
+     - `includeDate = timeFilter != "Today"`.
+     - `canViewFullReports` is now read live instead of `remember { … }`, so a role change widens the filter row without recreating the screen.
+3. `.\gradlew.bat :app:compileDebugKotlin` → BUILD SUCCESSFUL (25s).
+4. `.\gradlew.bat :app:testDebugUnitTest` → BUILD SUCCESSFUL (1m 31s), no failures.
+5. `.\gradlew.bat :app:assembleDebug` → BUILD SUCCESSFUL (6s). APK `apps/android/app/build/outputs/apk/debug/app-debug.apk`, 42,754,743 B, SHA-256 `56A89A9691A45D3CAC9E8342F5346D4C0E40D32A6CB29829CA2004B04384C94C` (previous session's APK was `85D13E8E…3F62FF`).
+6. `adb -s ZA222J5KT7 install -r <apk>` → `Performing Streamed Install` / `Success`. `lastUpdateTime` moved 2026-11-14 11:57:06 → **12:13:05**; `versionCode=38`, `versionName=1.0.38` unchanged (pinned in `local.properties`, so version is not evidence — the timestamp and hash are).
+7. Live UI verification on the installed build (uiautomator dumps read with UTF-8 decoding; the `→`, `–` and `₹` glyphs survive in the XML and are verified present, not missing):
+   - `Today`: chips `Today` / `Yesterday` / `Custom`; caption `Business day 14 Nov, 12:30 AM → 15 Nov, 12:30 AM`; header `OrderNo · Amount · Time · Action`.
+   - `Yesterday`: caption `Business day 13 Nov, 12:30 AM → 14 Nov, 12:30 AM`; header `Date/Time`.
+   - `Custom` (picker 12 Nov → 14 Nov, Apply): chip `12 Nov - 14 Nov`; caption `Business day 12 Nov, 12:30 AM → 15 Nov, 12:30 AM`; header `Date/Time`; rows `#A02` = `13 Nov⏎12:15 AM`, `#A01` = `12 Nov⏎10:48 PM`.
+   - Boundary sanity: `#A02` at `13 Nov 12:15 AM` (before the 12:30 AM boundary) appears inside the `12 Nov – 14 Nov` range, which is the expected business-day mapping.
+8. Docs updated: `OPERATIONS/ORDER_HISTORY_OPERATIONS.md` (change notice + verified 2026-11-14 table), `NEXT_ACTIONS.md` (H/I/J marked DONE, K/L/M still open), this log entry. No earlier entry modified.
+
+### Verification Status
+- **VERIFIED on device:** every UI result listed in step 7, on the APK identified in step 5/6.
+- **VERIFIED by build:** compile, unit tests and `assembleDebug` all exit 0 with no source/dependency/build-config workaround.
+- **VERIFIED by source:** caption suppression rule, profile-zone row times, `includeDate` plumbing, live permission read.
+- **NOT VERIFIED:** any shop whose closing time is not `00:00` (only the midnight-closing + 30-minute-buffer case was exercised). `NEXT_ACTIONS.md` item 2 (midnight crossover test) is still pending.
+- **NOT VERIFIED:** the row-level modification callbacks — still declared and still never invoked (item K).
+- **NOT DONE / NOT AUTHORISED:** nothing was committed or pushed; items K, L and M were not implemented.
+
+### Addendum 12:20 — Custom now re-derives its window from the current profile
+
+**Defect found while answering "is the window dynamic when the closing time changes?"**
+
+`updateDateRangeAndLoad("Custom")` used to return the cached instants (`currentFrom`/`currentTo`).
+Because this method also runs every time the saved profile re-emits, editing the closing time
+moved `Today`/`Yesterday` but left `Custom` on the **old** boundary — the caption then described
+a window the new configuration no longer produced.
+
+Fix: the picked calendar dates are now stored (`customFromDate`/`customToDate`) and the window is
+recomputed from `currentProfile` on every call, so `Custom` follows a closing-time edit exactly
+like `Today`/`Yesterday`. `setCustomDateRange` now feeds the same single path.
+
+Re-verified on `ZA222J5KT7` after reinstalling (APK SHA-256
+`3F44E90028617EA5C508441289D919457835F94B2F9D3F1E6AE45C546F4BD81C`, `lastUpdateTime`
+2026-11-14 12:20:55): Custom 12–14 Nov still renders chip `12 Nov - 14 Nov`, caption
+`Business day 12 Nov, 12:30 AM → 15 Nov, 12:30 AM`, header `Date/Time`, rows
+`13 Nov⏎12:15 AM` and `12 Nov⏎10:48 PM`. Compile and `:app:testDebugUnitTest` exit 0.
+
+**How the window tracks configuration (VERIFIED by source):**
+- `ReportsViewModel.init` collects `restaurantRepository.getProfileFlow()`, which is a Room
+  `@Query` returning `Flow` (`RestaurantDao.kt:27-28`). Any `restaurant_profile` write re-emits.
+- `SettingsViewModel.saveProfile` writes through `RestaurantRepository.saveProfile` →
+  `restaurantDao.saveProfile` (Room), so a closing-time edit invalidates the query.
+- Each emission calls `updateDateRangeAndLoad(_timeFilter.value)` → window recomputed from the
+  new profile → `loadReports` republishes the caption. No restart, no screen re-entry needed.
+- The caption is never hardcoded: on this shop (`closingTime = 00:00`) the boundary is
+  `12:30 AM`, which is what the device shows, not midnight.
+
+### Addendum 12:27 — self-review pass (observable permission, hoisted formatters)
+
+Second review of the same diff, same day. Build/install identity: SHA-256
+`F161B2D988F9CE0BBD8219B8B48D85B20BEB7C892D47BD74B16AB4B7C98DB4E2`, `lastUpdateTime`
+2026-11-14 12:27:36.
+
+1. **`canViewFullReports` was not actually live.** The first attempt just called
+   `viewModel.canViewFullReports()` from composition, which does not observe anything — the
+   answer only changed if some *other* state happened to recompose the screen. Replaced with
+   `ReportsViewModel.canViewFullReportsFlow` (`permissionManager.grantedPermissions.map { … }
+   .stateIn(..., Eagerly, …)`), and the screen now collects it, so a `reports.full` grant
+   arriving from sync widens the filter row.
+2. **Per-row formatter allocation removed.** `DateTimeFormatter.ofPattern(...)` was being
+   constructed inside `formatOrderRowTime`, i.e. once per visible row on every scroll frame.
+   Both patterns are now file-level `val`s (`ORDER_ROW_TIME_FORMAT`,
+   `ORDER_ROW_DATE_TIME_FORMAT`); `DateTimeFormatter` is immutable and thread-safe.
+3. Compile ✅, `:app:testDebugUnitTest` ✅, installed and smoke-checked: Orders still renders
+   chips + caption, no crash entry for `com.piquantservices.khanabooklite.debug` in
+   `logcat -b crash` or `dumpsys dropbox`.
+4. **Tightened the caption's invariant.** `loadReports` is now `private`: `publishWindow`
+   labels the range with `_timeFilter`, so a caller passing an unrelated range would have
+   printed a caption for the wrong window. No external caller existed (verified by search
+   across `apps/android`), so nothing broke. Also added the call-site note that
+   `onStatusChange`/`onPayModeChange`/`onRequestCancel` are still not invoked by any row
+   (item K), so the next reader is not misled by the wiring.
+
+Final build identity for this session: SHA-256
+`34805D6DC98451017622454FE5137AFE12B2634737473A6CF0E0A9EAA7E28CE9`, `lastUpdateTime`
+2026-11-14 12:29:55; `:app:testDebugUnitTest` re-run ✅; Orders screen re-checked on device
+(caption `Business day 14 Nov, 1:30 AM → 15 Nov, 1:30 AM`).
+
+**Incidental live proof that the window is config-derived, not cached.** Between the 12:20 and
+12:27 installs the shop's closing time changed from `00:00` to `01:00` (pulled by master sync —
+"Last sync: 14 Nov, 12:27 pm"; not edited by this session). No code change was involved, and:
+
+| Source | Value |
+| :--- | :--- |
+| `Restaurant Configuration` → Business Hours subtitle | `Daily Order Number will reset at 1:30 AM` |
+| Orders screen caption | `Business day 14 Nov, 1:30 AM → 15 Nov, 1:30 AM` |
+
+Both are derived from `BusinessDate.closingBoundary` = closing + 30-minute buffer, so the caption
+followed the configuration with no rebuild and no restart.
+
+### Evidence
+- Screenshots: `artifacts/android-ui-tests/orders-business-window-2026-11-14.png` (Today), `artifacts/android-ui-tests/orders-custom-range-2026-11-14.png` (Custom 12–14 Nov).
+- uiautomator dumps captured during the run (TextViews quoted above).
+
+### Known Limitations / Notes
+- A second device, OnePlus Nord `AC2001` (`adb` serial `adb-dbd06e58-N8yA4u._adb-tls-connect._tcp`, `transport_id:20`), is now attached wirelessly. Nothing was installed to it in this session; `NEXT_ACTIONS.md` item 5 (OnePlus Nord redeploy) is still open.
+- `versionName`/`versionCode` are pinned to `1.0.38`/`38` for every build type, so they cannot prove a deploy; use `lastUpdateTime` + APK SHA-256.
+
+## Session 009: Orders Screen Gap Review — Today / Yesterday / Custom vs Business Hours
+- **Session ID:** SES-20261114-009
+- **Date & Time:** 2026-11-14
+- **Target Device / Architecture:** No device used. Static source inspection of `apps/android/app/src/main/java/com/khanabook/lite/pos/feature/reports/**` and `core/util/BusinessDate.kt`.
+- **Initial Screen:** None — no UI operations performed.
+- **Objective:** Answer whether the Orders screen's Today/Yesterday/Custom list can be shown business-hours-aware, and what the current design does not cover. Review only; **no source change was authorised or made**.
+
+### Operations Performed
+1. Read `README.md`, `NEXT_ACTIONS.md`, `OPERATIONS/ORDER_HISTORY_OPERATIONS.md`, `OPERATIONS/BUSINESS_SETTINGS_OPERATIONS.md` and the head of this log before inspecting code, per the AGENTS.md policy.
+2. Read the Orders stack: `OrdersScreen.kt`, `ReportViews.kt`, `ReportsViewModel.kt`, `ReportModels.kt`, `CustomDateRangePickerDialog.kt`, `OrderDetailsDialog.kt`, `core/util/BusinessDate.kt`, `core/util/Utils.kt`.
+3. Compared each existing element against the requested behaviour and recorded the gaps below.
+
+### What already exists (verified by source)
+- **Filter chips Today / Yesterday / Custom** — `ReportViews.kt:96-123`. Non-`REPORTS_FULL` roles see only `Today` (`:103-107`).
+- **Filters are already business-hours-aware.** `ReportsViewModel.updateDateRangeAndLoad` (`:150-178`) maps `Today`/`Yesterday` through `BusinessDate.windowStart/windowEnd`, not calendar midnight, and `setCustomDateRange` (`:188-197`) maps the picked calendar dates through the same windows.
+- **Boundary rule** — `BusinessDate.closingBoundary` (`:80-100`) = closing time + `SETTLEMENT_BUFFER_MINUTES` (30, `:42`); overnight/midnight/late-evening closings roll over at that buffered time; `windowStart` (`:193-226`) is its exact inverse; `businessDate` (`:137-172`) is the forward mapping.
+- **Rollover on resume** — `OrdersScreen.kt:127-129` calls `refreshCurrentFilter` (`ReportsViewModel.kt:184-186`) so `Today` re-resolves after the boundary.
+- **Table** — header `OrderNo | Amount | Time | Action` (`ReportViews.kt:399-421`); row `:453-567`; live Room projection so edits appear without a manual refresh (`ReportsViewModel.kt:207-226`).
+- **Search** filters the loaded rows locally (`OrdersScreen.kt:102-120`).
+- **Order modifications** — `OrderDetailsDialog` (`OrderDetailsDialog.kt:45-55`) supports **change payment mode**, **cancel**, print and share.
+
+### Gaps against the requested feature
+1. **The active business window is never shown.** With a 12:20 AM close, `Today` actually begins at 12:50 AM the previous calendar day; nothing on screen states that, so the chip label misleads a cashier reconciling a late shift.
+2. **No Date column.** Rows show only `hh:mm a` (`ReportViews.kt:352-360`), so a multi-day Custom range renders several `#A01` rows with identical-looking times and no day.
+3. **Custom shows no chosen range** on the chip or anywhere else.
+4. **Row time uses the device zone**, not the profile's business zone (`ReportViews.kt:355`), so a non-matching terminal clock shows the wrong time while the window logic uses the profile zone (`BusinessDate.zoneOf`, `:113-119`).
+5. **Row-level modification callbacks are declared but never invoked.** `OrderTableRow` accepts `onStatusChange`, `onPayModeChange`, `onRequestCancel` (`ReportViews.kt:453-462`) and ignores all three — only `onViewDetails` is wired (`:561-563`). Edits therefore exist only inside the details dialog.
+6. **Status change is unreachable from this screen.** `ReportsViewModel.updateOrderStatus` (`:255-268`) exists, but `OrderDetailsDialog` has no status action and the row callback that would call it is dead.
+7. **Calendar-day presets in the picker** (`CustomDateRangePickerDialog.kt:465-501`) would contradict the business-day rule; they are currently disabled here (`OrdersScreen.kt:212 showQuickPresets = false`), so the trap is latent rather than live.
+8. **No period summary** (count / gross / cancelled) on the Order view, although the Payment view has a breakdown (`ReportViews.kt:165-225`).
+9. **Permission snapshot is taken once** — `OrdersScreen.kt:65 remember { … }` will not react to a role change without recomposition from scratch.
+
+### Verification Status
+- **VERIFIED (by source inspection):** every statement above cites file:line in the working tree at `HEAD=176b2b34`.
+- **NOT VERIFIED:** any on-device rendering. No APK was installed and no screen was opened in this session; the Session 008 build is the last artefact on `ZA222J5KT7`.
+- **NOT VERIFIED:** whether the 30-minute buffer matches the configured shop; `NEXT_ACTIONS.md` item 2 (midnight crossover test) is still pending.
+- **PROPOSAL ONLY:** the suitability changes listed in `NEXT_ACTIONS.md` under the 2026-11-14 heading were not implemented.
+
+### Evidence
+- Source references quoted inline above.
+
+### Known Limitations / Notes
+- No source, dependency or build-config file was modified; nothing was committed or pushed.
+
+## Session 008: Debug APK Build + Install On ZA222J5KT7
+- **Session ID:** SES-20261114-008
+- **Date & Time:** 2026-11-14 (build 11:56, install 11:57, screenshot 11:57:42 - all device/local wall-clock as printed by the tools)
+- **Target Device / Architecture:** Physical `ZA222J5KT7` - Motorola moto g34 5G (`ro.product.device=fogos`, `product:fogos_g`, `transport_id:12`), Android 15 / API 35. Debug build `com.piquantservices.khanabooklite.debug`.
+- **Initial Screen:** Unknown at session start (device was idle on the Motorola launcher, `mCurrentFocus=com.motorola.launcher3/...CustomizationPanelLauncher`). No UI operation was performed before the install.
+- **Objective:** Build the current debug APK from source, install/update it on the attached physical device, prove the new build landed, and record the evidence. No source, dependency or build-config change was authorised or made.
+
+### Operations Performed
+1. Read `README.md`, `02_DEVICE_AND_ENVIRONMENT_SETUP.md`, `NEXT_ACTIONS.md` and the head of this log before operating, per the AGENTS.md policy.
+2. `adb devices -l` confirmed the device still attached: `ZA222J5KT7 device product:fogos_g model:moto_g34_5G device:fogos transport_id:12`. No emulator was started.
+3. Recorded the pre-install baseline from `dumpsys package com.piquantservices.khanabooklite.debug`: `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-13 18:15:53`, `firstInstallTime=2026-11-03 01:36:47`.
+4. Ran `.\gradlew.bat :app:assembleDebug --console=plain` in `apps/android` with network available for dependency resolution (`--offline` deliberately *not* passed): **BUILD SUCCESSFUL in 2m 41s**, `43 actionable tasks: 6 executed, 37 up-to-date`, **GRADLE_EXIT:0**.
+   - Tasks that actually executed: `:app:kspDebugKotlin`, `:app:compileDebugKotlin`, `:app:transformDebugClassesWithAsm`, `:app:dexBuilderDebug`, `:app:mergeProjectDexDebug`, `:app:packageDebug`. The Kotlin compile was not up-to-date, so the APK was genuinely repackaged rather than reused.
+5. Artifact: `apps/android/app/build/outputs/apk/debug/app-debug.apk`, **42,754,743 bytes (40.77 MB)**, `LastWriteTime=2026-11-14 11:56:17`, SHA-256 `85D13E8E3D4D6C998FBA71445E311947D90CE9F6D8BC247DB02FD2949E3F62FF`.
+6. `adb -s ZA222J5KT7 install -r "…\app-debug.apk"` returned `Performing Streamed Install` then **`Success`**, ADB exit status 0.
+7. Post-install `dumpsys package`: `versionCode=38`, `versionName=1.0.38`, **`lastUpdateTime=2026-11-14 11:57:06`** (advanced from `2026-11-13 18:15:53`), `firstInstallTime` unchanged at `2026-11-03 01:36:47` - an in-place update, not a fresh install.
+8. Launched the app once and captured one screenshot (see *Documentation Corrections* for the activity path).
+9. Read the runtime state back with `dumpsys window`, `uiautomator dump`, `logcat -b crash`, `pidof`.
+
+### Versioning: the versionCode did not change
+`apps/android/local.properties` pins `RELEASE_VERSION_CODE=38` / `RELEASE_VERSION_NAME=1.0.38` (and `SIGN_DEBUG_WITH_RELEASE=true`), and `app/build.gradle.kts:44-45,90-91` feeds those into `defaultConfig` for every build type. A rebuilt debug APK therefore keeps **versionCode 38 / versionName 1.0.38**, so a version bump cannot be used to prove this deploy landed. The proof used instead is `lastUpdateTime` (advanced) plus the APK `LastWriteTime` (advanced) and SHA-256 above.
+
+The rebuilt APK is byte-length identical to the 2026-11-13 artifact (42,754,743 B), consistent with no source change under `apps/android` (`git status --porcelain -- apps/android` returned 0 lines at `HEAD=176b2b34`). Whether the previous artifact was byte-identical cannot be checked: its SHA-256 was never recorded and the file has been overwritten.
+
+### Documentation Corrections Found This Session
+Both are recorded here as verified corrections, not as edits to historical evidence:
+1. **Launcher activity.** `02_DEVICE_AND_ENVIRONMENT_SETUP.md` listed `com.khanabook.lite.pos.MainActivity`. The installed manifest resolves the launcher to **`com.khanabook.lite.pos.core.app.MainActivity`**; `am start` against the documented path failed with `Error type 3 / Activity class {com.piquantservices.khanabooklite.debug/com.khanabook.lite.pos.MainActivity} does not exist`. Confirmed independent of my intent string via `cmd package resolve-activity --brief -c android.intent.category.LAUNCHER com.piquantservices.khanabooklite.debug`, which returned `com.piquantservices.khanabooklite.debug/com.khanabook.lite.pos.core.app.MainActivity`.
+2. **OS level.** The same document listed "Android 14 (API 34)". The device reports `ro.build.version.release=15`, `ro.build.version.sdk=35` - **Android 15 / API 35**. (`minSdk=26 targetSdk=36` is unchanged and matches the build.)
+Both values were corrected in `02_DEVICE_AND_ENVIRONMENT_SETUP.md` with a dated note pointing back to this entry.
+
+### Newly Discovered UI Operations
+None. The app was started and its landing screen was captured and identified, but no tap, swipe or text entry was driven, so no `OPERATIONS/` document needs an update from this session.
+
+### Verification Status
+- **VERIFIED (by Gradle):** `:app:assembleDebug` succeeds on the current tree; exit status 0; six tasks executed including `kspDebugKotlin`, `compileDebugKotlin` and `packageDebug`.
+- **VERIFIED (by adb):** `install -r` returned `Success` for package `com.piquantservices.khanabooklite.debug`.
+- **VERIFIED (by dumpsys):** installed `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-14 11:57:06` - later than the pre-install baseline and later than the APK's own mtime, so the on-device copy is the artifact built this session.
+- **VERIFIED (by dumpsys window):** the app came to the foreground - `mCurrentFocus=Window{1ba641f u0 com.piquantservices.khanabooklite.debug/com.khanabook.lite.pos.core.app.MainActivity}`.
+- **VERIFIED (by process/crash buffers):** the process is alive (`pidof` → `26770`) and `logcat -b crash` contains no entry mentioning `khanabook`.
+- **VERIFIED (by uiautomator dump):** the foreground screen is **Restaurant Configuration**; the dump contains `Restaurant Configuration`, `Restaurant Details`, `Configure your restaurant information`, `Change Logo`, `Piquant Services's Restaurant`, `Shop Name *`, `Shop Address *`, `WhatsApp Number`, `nandhakumar@indiaadvocacy.com`, `Email *`, `Review Link`, `Invoice Footer`, `Business Hours`, `Daily Order Number will reset at 12:30 AM`.
+- **NOT VERIFIED:** the screenshot's *visual* appearance. The capturing agent cannot read PNG content, so the screen above was identified from the UI-hierarchy text dump only. A human should eyeball `install-smoke-2026-11-14.png` before it is cited as visual evidence.
+- **NOT VERIFIED:** any functional behaviour. A clean cold start is not evidence that billing, KOT, sync or payment flows work; nothing was exercised beyond launch.
+- **NOT VERIFIED:** `NEXT_ACTIONS.md` item 3 (Restaurant Configuration layout re-verification). Its trigger condition - "after the next APK install" - is now met, but the Business Hours collapse/expand behaviour and the Billing Mode card surface were not checked in this session.
+
+### Evidence
+- Gradle console log (full): `C:\Users\nandh\AppData\Local\Temp\opencode\assembleDebug.log`; final lines `BUILD SUCCESSFUL in 2m 41s` / `43 actionable tasks: 6 executed, 37 up-to-date`; wrapper exit status `0`.
+- APK: `apps/android/app/build/outputs/apk/debug/app-debug.apk` - 42,754,743 B, 2026-11-14 11:56:17, SHA-256 `85D13E8E3D4D6C998FBA71445E311947D90CE9F6D8BC247DB02FD2949E3F62FF`.
+- Install output: `Performing Streamed Install` / `Success`.
+- Screenshot: `artifacts/android-ui-tests/install-smoke-2026-11-14.png` (134,296 B, 2026-11-14 11:57:42).
+- Pre/post `dumpsys package` version and `lastUpdateTime` lines quoted above.
+
+### Known Limitations / Notes
+- OnePlus Nord redeploy (`NEXT_ACTIONS.md` item 5) is unaffected and still pending - no OnePlus device was attached this session.
+- No source, dependency or build-config file was modified; `apps/android` was clean at `HEAD=176b2b34` before and after.
+- Nothing was committed or pushed.
+
 ## Session 007: Static Audit Of POS, Compile Repair, Three Bugs Registered
 - **Session ID:** SES-20261113-007
 - **Date & Time:** 2026-11-13

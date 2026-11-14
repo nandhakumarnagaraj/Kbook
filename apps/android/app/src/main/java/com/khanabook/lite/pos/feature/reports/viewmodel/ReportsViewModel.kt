@@ -17,10 +17,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.inject.Inject
 
@@ -50,6 +54,20 @@ class ReportsViewModel @Inject constructor(
             com.khanabook.lite.pos.feature.staff.domain.PermissionManager.REPORTS_EXPORT
         )
 
+    /**
+     * [canViewFullReports] as an observable value.
+     *
+     * A permission sync can grant `reports.full` to an already signed-in staff user, and the
+     * Orders filter row must widen when that happens. Calling `canViewFullReports()` directly
+     * from composition (or caching it with `remember`) never observes that update, so the row
+     * stayed at `Today`-only until the screen was recreated. Seeded with the current answer and
+     * recomputed whenever the granted set changes.
+     */
+    val canViewFullReportsFlow: StateFlow<Boolean> =
+        permissionManager.grantedPermissions
+            .map { canViewFullReports() }
+            .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Eagerly, canViewFullReports())
+
     private val reportGenerator = ReportGenerator(billRepository)
 
     private val _paymentBreakdown = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -66,6 +84,17 @@ class ReportsViewModel @Inject constructor(
 
     private val _timeFilter = MutableStateFlow("Today") 
     val timeFilter: StateFlow<String> = _timeFilter
+
+    /**
+     * The queried window as concrete instants in the shop's zone, e.g.
+     * "13 Nov, 12:50 AM → 14 Nov, 12:50 AM". Null hides the caption (calendar-midnight shop).
+     */
+    private val _windowCaption = MutableStateFlow<String?>(null)
+    val windowCaption: StateFlow<String?> = _windowCaption
+
+    /** Dates last chosen in the Custom picker, shown on the Custom chip. */
+    private val _customRangeLabel = MutableStateFlow<String?>(null)
+    val customRangeLabel: StateFlow<String?> = _customRangeLabel
 
     private val _selectedBillDetails = MutableStateFlow<com.khanabook.lite.pos.feature.billing.data.BillWithItems?>(null)
     val selectedBillDetails: StateFlow<com.khanabook.lite.pos.feature.billing.data.BillWithItems?> = _selectedBillDetails
@@ -87,6 +116,13 @@ class ReportsViewModel @Inject constructor(
     private var currentFrom: Long = System.currentTimeMillis() - 86400000L
     private var currentTo: Long = System.currentTimeMillis()
     private var currentProfile: RestaurantProfileEntity? = null
+
+    /** Calendar dates the user picked in the Custom dialog, if any.
+     *
+     * Stored as dates, not millis, so a closing-time change can re-derive the window instead
+     * of pinning the instants that the old boundary produced. */
+    private var customFromDate: LocalDate? = null
+    private var customToDate: LocalDate? = null
 
     /** Window currently observed; Room re-emits it whenever the bills table changes.
      *
@@ -148,10 +184,21 @@ class ReportsViewModel @Inject constructor(
     }
 
     private fun updateDateRangeAndLoad(filter: String) {
-        // Custom keeps whatever range the user already picked.
-        if (filter == "Custom" && currentFrom > 0L && currentTo > 0L) {
-            loadReports(currentFrom, currentTo)
-            return
+        // Custom keeps the dates the user picked, but the window is re-derived from the
+        // CURRENT profile on every call. Caching the instants instead would leave the list
+        // (and the caption) on the old boundary after a closing-time edit, because this
+        // method also runs whenever the saved profile re-emits.
+        if (filter == "Custom") {
+            val fromDate = customFromDate
+            val toDate = customToDate
+            if (fromDate != null && toDate != null) {
+                val profile = currentProfile
+                loadReports(
+                    BusinessDate.windowStart(fromDate, profile),
+                    BusinessDate.windowEnd(toDate, profile) - 1
+                )
+                return
+            }
         }
 
         val profile = currentProfile
@@ -187,13 +234,54 @@ class ReportsViewModel @Inject constructor(
 
     fun setCustomDateRange(from: Long, to: Long) {
         _timeFilter.value = "Custom"
-        val profile = currentProfile
-        val zone = BusinessDate.zoneOf(profile?.timezone)
+        val zone = BusinessDate.zoneOf(currentProfile?.timezone)
         val fromDate = Instant.ofEpochMilli(from).atZone(zone).toLocalDate()
         val toDate = Instant.ofEpochMilli(to).atZone(zone).toLocalDate()
-        val windowFrom = BusinessDate.windowStart(fromDate, profile)
-        val windowTo = BusinessDate.windowEnd(toDate, profile) - 1
-        loadReports(windowFrom, windowTo)
+        customFromDate = fromDate
+        customToDate = toDate
+        // The chip only shows the range while Custom is selected, so storing it here cannot
+        // leak into Today/Yesterday. Picked calendar dates, not the business-window instants:
+        // the chip is the user's own selection echoed back, the caption states the real window.
+        _customRangeLabel.value = formatCustomRange(fromDate, toDate)
+        // One path for windows: also used when the profile re-emits after a closing-time edit.
+        updateDateRangeAndLoad("Custom")
+    }
+
+    /**
+     * Records the window actually handed to Room, so the screen can state which hours
+     * "Today"/"Yesterday"/"Custom" really cover.
+     *
+     * A shop whose closing time rolls the boundary past midnight has a "Today" that starts
+     * on the previous calendar date; without this caption the chip label reads as calendar
+     * midnight and a cashier reconciling a late shift looks at the wrong hours. A window that
+     * starts at plain midnight needs no explanation, so the caption stays hidden — except for
+     * Custom, where the user must always see that the filter is narrower than a full day.
+     *
+     * [toInclusive] is the last millisecond included in the query; the caption shows the
+     * exclusive end (that millisecond + 1) so the printed range does not end at 11:59:59.999.
+     */
+    private fun publishWindow(from: Long, toInclusive: Long, filter: String) {
+        val zone = BusinessDate.zoneOf(currentProfile?.timezone)
+        val start = Instant.ofEpochMilli(from).atZone(zone)
+        val end = Instant.ofEpochMilli(toInclusive + 1).atZone(zone)
+        val startsAtCalendarMidnight = start.toLocalTime() == LocalTime.MIDNIGHT
+        if (startsAtCalendarMidnight && filter != "Custom") {
+            _windowCaption.value = null
+            return
+        }
+        val formatter = DateTimeFormatter.ofPattern("d MMM, h:mm a", Locale.US)
+        _windowCaption.value =
+            "Business day ${start.format(formatter)} → ${end.format(formatter)}"
+    }
+
+    /** Short `d MMM` label for the Custom chip, e.g. `12 Nov` or `10 Nov – 12 Nov`. */
+    private fun formatCustomRange(fromDate: LocalDate, toDate: LocalDate): String {
+        val formatter = DateTimeFormatter.ofPattern("d MMM", Locale.US)
+        return if (fromDate == toDate) {
+            fromDate.format(formatter)
+        } else {
+            "${fromDate.format(formatter)} – ${toDate.format(formatter)}"
+        }
     }
 
     private data class DateRange(val from: Long, val to: Long)
@@ -225,9 +313,14 @@ class ReportsViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    fun loadReports(from: Long, to: Long) {
+    /** Private on purpose: `publishWindow` labels the range with `_timeFilter`, so every
+     *  caller must pass the window that filter actually maps to. */
+    private fun loadReports(from: Long, to: Long) {
         currentFrom = from
         currentTo = to
+        // Before the early return below: an unchanged range still needs the caption refreshed
+        // when only the filter label changed (e.g. Today -> Yesterday on a midnight window).
+        publishWindow(from, to, _timeFilter.value)
         val next = DateRange(from, to)
         // Same window: the flow is already observing it and will emit on any data change,
         // so raising the loading flag here would leave it stuck (no emission to clear it).

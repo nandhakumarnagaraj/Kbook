@@ -2,6 +2,53 @@
 
 Ordered by blocking value. Session references point at `DEVICE_SESSIONS/SESSION_LOG.md`.
 
+## From the 2026-11-14 Orders screen review (Session 009)
+
+Gap analysis from Session 009. **H, I, J implemented and verified on device in Session 010.**
+K, L, M remain open decisions — nothing in them was implemented.
+
+H. **Make the business window visible on the Orders screen** — DONE 2026-11-14 (Session 010):
+   - Caption under the chips states the window actually queried, e.g.
+     `Business day 14 Nov, 12:30 AM → 15 Nov, 12:30 AM`, resolved in the shop's timezone.
+   - Hidden when the window starts at calendar midnight and the filter is not `Custom`.
+   - `Custom` chip carries the picked range (`12 Nov - 14 Nov`) while Custom is selected.
+   - Source: `ReportsViewModel.publishWindow` / `formatCustomRange`, `windowCaption`,
+     `customRangeLabel`; `OrdersScreen.kt` renders the caption.
+   - The window is derived from the saved profile on every profile emission (Room `Flow`), so a
+     closing-time edit moves `Today`/`Yesterday`/`Custom` and the caption without a restart.
+
+I. **Add day context to the table** — DONE 2026-11-14 (Session 010):
+   - `Yesterday`/`Custom` render `dd MMM` + `hh:mm a` on two lines inside the existing
+     `Time` column and the header reads `Date/Time`; `Today` stays time-only.
+   - Column weights unchanged; verified live with a 12–14 Nov Custom range.
+
+J. **Fix the row time zone** — DONE 2026-11-14 (Session 010):
+   - Row timestamps now use `BusinessDate.zoneOf(profile.timezone)`, the same zone as the
+     window calculation, instead of `ZoneId.systemDefault()`.
+
+K. **Row-level modifications.** `OrderTableRow` still declares `onStatusChange`,
+   `onPayModeChange` and `onRequestCancel`; they are now threaded through
+   `OrderHistoryTableComponent(includeDate = …)` but still never invoked from the row.
+   Decide: wire them to a row action menu, or delete the dead parameters and keep edits
+   inside `OrderDetailsDialog`.
+   - Status: open decision. Do not add a second editing path without deciding where
+     authority lives.
+
+L. **Status change is unreachable** from this screen (`updateOrderStatus` has no caller here). Fold into K.
+   - Status: open decision.
+
+M. **Optional period summary** (orders billed / gross / cancelled) above the table for the selected window.
+   - Status: proposed; confirm value before building.
+
+N. **Closing-time edits are retroactive for historical windows.** `BusinessDate.windowStart(date)`
+   applies the *current* `openingTime`/`closingTime` to every business date, while
+   `businessDayCutoffTime` has `cutoffEffectiveFrom` to pin history. So changing the closing time
+   re-buckets past days in `Today`/`Yesterday`/`Custom` (an order after the old boundary can move
+   to the adjacent day's list), even though stored bills keep their stamped business date.
+   Decide: add an effective-from date for closing-time changes (Android + server
+   `BusinessDay.closingBoundary` must move together), or accept and document the re-bucketing.
+   - Status: open decision; **not implemented**, no behaviour changed in Session 010.
+
 ## From the 2026-11-13 product audit (Session 007)
 
 Findings and rationale: `docs/product-audit/`. These are additive; the pre-existing list below is unchanged.
@@ -60,6 +107,7 @@ Ordered by blocking value. Session references point at `DEVICE_SESSIONS/SESSION_
    - Business Hours card opens collapsed; tapping the header reveals Opening / Closing time; closing-time changes update the reset subtitle live.
    - Billing Mode card surface matches Restaurant Details and Business Hours (`CardBG`, 25% `BorderGold`, `KhanaRadii.lg`).
    - Status: verified on device 2026-11-12 (Sessions 004–005); re-check only after further edits to `ShopConfigSection.kt` / `ShopConfigComponents.kt`.
+   - **2026-11-14 (Session 008):** the install that triggers this re-check has now happened on `ZA222J5KT7` (versionCode 38 / 1.0.38, `lastUpdateTime 2026-11-14 11:57:06`, `apps/android` clean at `176b2b34`, so the shipped code is unchanged since Sessions 004–005). The app was confirmed to open on Restaurant Configuration, but the collapse/expand and Billing Mode surface assertions were **not** executed. Still open.
 
 4. **Verify Quick Start Screen UI on Device**:
    - Reset or trigger fresh onboarding state.

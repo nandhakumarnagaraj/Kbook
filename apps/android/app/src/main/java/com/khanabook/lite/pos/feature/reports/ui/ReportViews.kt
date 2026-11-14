@@ -42,6 +42,7 @@ import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.OrderType
 import com.khanabook.lite.pos.domain.model.PaymentMode
+import com.khanabook.lite.pos.core.util.BusinessDate
 import com.khanabook.lite.pos.core.util.CurrencyUtils
 import com.khanabook.lite.pos.core.util.DateUtils
 import com.khanabook.lite.pos.feature.billing.ui.HeaderCell
@@ -83,7 +84,9 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
         ) {
             Text(
                 text = label,
-                style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge
+                style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -91,12 +94,17 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
 
 /**
  * Date Filter Tab Bar (Today / Yesterday / Custom) for Orders Screen.
+ *
+ * [customRangeLabel] replaces the "Custom" chip text once a range is chosen, so the
+ * selected dates stay visible without reopening the picker. It is ignored while another
+ * filter is active, and never applied when the user has not picked a range yet.
  */
 @Composable
 fun OrderDateFilterComponent(
     selectedFilter: String,
     onFilterSelected: (String) -> Unit,
     canViewFullReports: Boolean = true,
+    customRangeLabel: String? = null,
     modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -112,8 +120,17 @@ fun OrderDateFilterComponent(
         horizontalArrangement = Arrangement.spacedBy(spacing.small)
     ) {
         availableFilters.forEach { filter ->
+            val label = if (
+                filter == "Custom" &&
+                selectedFilter == filter &&
+                !customRangeLabel.isNullOrBlank()
+            ) {
+                customRangeLabel
+            } else {
+                filter
+            }
             FilterChip(
-                label = filter,
+                label = label,
                 isSelected = selectedFilter == filter,
                 onClick = { onFilterSelected(filter) },
                 modifier = Modifier.weight(1f)
@@ -128,8 +145,15 @@ fun OrderDateFilterTabs(
     selectedFilter: String,
     onFilterSelected: (String) -> Unit,
     canViewFullReports: Boolean = true,
+    customRangeLabel: String? = null,
     modifier: Modifier = Modifier
-) = OrderDateFilterComponent(selectedFilter, onFilterSelected, canViewFullReports, modifier)
+) = OrderDateFilterComponent(
+    selectedFilter = selectedFilter,
+    onFilterSelected = onFilterSelected,
+    canViewFullReports = canViewFullReports,
+    customRangeLabel = customRangeLabel,
+    modifier = modifier
+)
 
 @Composable
 fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -348,15 +372,41 @@ private val COL_AMOUNT  = 1.05f
 private val COL_TIME    = 1.05f
 private val COL_ACTION  = 0.75f
 
-/** Time-of-day for the Orders table "Time" column. */
-private fun formatOrderRowTime(row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow): String {
+// Hoisted out of the row composable: these were built per row per recomposition, i.e. once per
+// visible row on every scroll frame. DateTimeFormatter is immutable and thread-safe.
+private val ORDER_ROW_TIME_FORMAT =
+    java.time.format.DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US)
+private val ORDER_ROW_DATE_TIME_FORMAT =
+    java.time.format.DateTimeFormatter.ofPattern("dd MMM\nhh:mm a", java.util.Locale.US)
+
+/**
+ * Timestamp shown in the Orders table "Time" column, rendered in the shop's zone.
+ *
+ * WHY the profile zone: every business-day window ([BusinessDate.windowStart]) is resolved in
+ * the restaurant's timezone, so rendering row times with the device zone showed a time that
+ * disagreed with the window when the terminal clock is set elsewhere.
+ *
+ * WHY [includeDate]: a single business day only needs hh:mm, but Yesterday and multi-day
+ * Custom ranges put several orders with the same number and similar times next to each other.
+ * The two-line `dd MMM` / `hh:mm a` form keeps the existing four-column layout.
+ */
+private fun formatOrderRowTime(
+    row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow,
+    profile: RestaurantProfileEntity?,
+    includeDate: Boolean
+): String {
     if (row.createdAt > 0L) {
+        val zone = BusinessDate.zoneOf(profile?.timezone)
         return java.time.Instant.ofEpochMilli(row.createdAt)
-            .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("hh:mm a", java.util.Locale.US))
+            .atZone(zone)
+            .format(if (includeDate) ORDER_ROW_DATE_TIME_FORMAT else ORDER_ROW_TIME_FORMAT)
     }
-    // Legacy rows: `date` already carries "dd MMM yyyy, hh:mm a"
-    return row.date.substringAfter(", ", row.date)
+    // Legacy rows: `date` already carries "dd MMM yyyy, hh:mm a".
+    return if (includeDate) {
+        DateUtils.formatTableDate(row.date)
+    } else {
+        row.date.substringAfter(", ", row.date)
+    }
 }
 
 /**
@@ -394,9 +444,15 @@ fun RowScope.OrderTableHeaderCell(
 
 /**
  * Table Header for Orders Data Table: OrderNo, Amount, Time, Action.
+ *
+ * [includeDate] widens the Time column's meaning once the list spans a business day that
+ * is not the current one; the column itself is unchanged so the layout weights stay put.
  */
 @Composable
-fun OrderTableHeader(modifier: Modifier = Modifier) {
+fun OrderTableHeader(
+    modifier: Modifier = Modifier,
+    includeDate: Boolean = false
+) {
     val spacing = KhanaBookTheme.spacing
     Surface(
         modifier = modifier
@@ -414,7 +470,11 @@ fun OrderTableHeader(modifier: Modifier = Modifier) {
         ) {
             OrderTableHeaderCell("OrderNo", COL_ORDER, align = TextAlign.Start, paddingStart = spacing.extraSmall)
             OrderTableHeaderCell("Amount", COL_AMOUNT, align = TextAlign.Center)
-            OrderTableHeaderCell("Time", COL_TIME, align = TextAlign.Center)
+            OrderTableHeaderCell(
+                if (includeDate) "Date/Time" else "Time",
+                COL_TIME,
+                align = TextAlign.Center
+            )
             OrderTableHeaderCell("Action", COL_ACTION, align = TextAlign.Center)
         }
     }
@@ -459,6 +519,7 @@ fun OrderTableRow(
     onStatusChange: (String) -> Unit = {},
     onPayModeChange: (PaymentMode) -> Unit = {},
     onRequestCancel: () -> Unit = {},
+    includeDate: Boolean = false,
     onViewDetails: (Long) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -543,16 +604,17 @@ fun OrderTableRow(
                 maxLines = 1
             )
 
-            // 3. Time (Center-aligned)
+            // 3. Time (Center-aligned). Two lines when the list spans more than the current
+            // business day, so a Custom range cannot show two different days' #A01 alike.
             Text(
-                text = formatOrderRowTime(row),
+                text = formatOrderRowTime(row, profile, includeDate),
                 modifier = Modifier.weight(COL_TIME),
                 color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextSecondary,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontFeatureSettings = "tnum"
                 ),
                 textAlign = TextAlign.Center,
-                maxLines = 1
+                maxLines = if (includeDate) 2 else 1
             )
 
             // 4. Action (View Eye icon button - Circular 36dp)
@@ -576,6 +638,7 @@ fun OrderRowItem(
     onStatusChange: (String) -> Unit = {},
     onPayModeChange: (PaymentMode) -> Unit = {},
     onRequestCancel: () -> Unit = {},
+    includeDate: Boolean = false,
     onViewDetails: (Long) -> Unit
 ) = OrderTableRow(
     row = row,
@@ -585,6 +648,7 @@ fun OrderRowItem(
     onStatusChange = onStatusChange,
     onPayModeChange = onPayModeChange,
     onRequestCancel = onRequestCancel,
+    includeDate = includeDate,
     onViewDetails = onViewDetails
 )
 
@@ -597,6 +661,7 @@ fun OrderHistoryTableComponent(
     profile: RestaurantProfileEntity?,
     enabledModes: List<PaymentMode> = emptyList(),
     compactLayout: Boolean = false,
+    includeDate: Boolean = false,
     onStatusChange: (Long, String) -> Unit = { _, _ -> },
     onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
     onRequestCancel: (Long) -> Unit = {},
@@ -605,7 +670,7 @@ fun OrderHistoryTableComponent(
 ) {
     val spacing = KhanaBookTheme.spacing
     Column(modifier = modifier.fillMaxSize()) {
-        OrderTableHeader()
+        OrderTableHeader(includeDate = includeDate)
 
         if (rows.isEmpty()) {
             Box(
@@ -641,6 +706,7 @@ fun OrderHistoryTableComponent(
                         onStatusChange = { newStatus -> onStatusChange(row.billId, newStatus) },
                         onPayModeChange = { newMode -> onPayModeChange(row.billId, newMode) },
                         onRequestCancel = { onRequestCancel(row.billId) },
+                        includeDate = includeDate,
                         onViewDetails = onViewDetails
                     )
                 }
@@ -656,6 +722,7 @@ fun OrderHistoryTable(
     profile: RestaurantProfileEntity?,
     enabledModes: List<PaymentMode> = emptyList(),
     compactLayout: Boolean = false,
+    includeDate: Boolean = false,
     onStatusChange: (Long, String) -> Unit = { _, _ -> },
     onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
     onRequestCancel: (Long) -> Unit = {},
@@ -666,6 +733,7 @@ fun OrderHistoryTable(
     profile = profile,
     enabledModes = enabledModes,
     compactLayout = compactLayout,
+    includeDate = includeDate,
     onStatusChange = onStatusChange,
     onPayModeChange = onPayModeChange,
     onRequestCancel = onRequestCancel,
@@ -680,6 +748,7 @@ fun OrderLevelView(
     profile: RestaurantProfileEntity?,
     enabledModes: List<PaymentMode> = emptyList(),
     compactLayout: Boolean = false,
+    includeDate: Boolean = false,
     onStatusChange: (Long, String) -> Unit = { _, _ -> },
     onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
     onRequestCancel: (Long) -> Unit = {},
@@ -689,6 +758,7 @@ fun OrderLevelView(
     profile = profile,
     enabledModes = enabledModes,
     compactLayout = compactLayout,
+    includeDate = includeDate,
     onStatusChange = onStatusChange,
     onPayModeChange = onPayModeChange,
     onRequestCancel = onRequestCancel,
