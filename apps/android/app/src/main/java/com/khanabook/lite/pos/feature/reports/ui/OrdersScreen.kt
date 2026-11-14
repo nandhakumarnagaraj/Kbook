@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -55,7 +54,6 @@ fun OrdersScreen(
 ) {
     val reportType by viewModel.reportType.collectAsStateWithLifecycle()
     val timeFilter by viewModel.timeFilter.collectAsStateWithLifecycle()
-    val windowCaption by viewModel.windowCaption.collectAsStateWithLifecycle()
     val customRangeLabel by viewModel.customRangeLabel.collectAsStateWithLifecycle()
     val paymentBreakdown by viewModel.paymentBreakdown.collectAsStateWithLifecycle()
     val orderLevelRows by viewModel.orderLevelRows.collectAsStateWithLifecycle()
@@ -193,38 +191,18 @@ fun OrdersScreen(
 
             
             AnimatedVisibility(visible = contentVisible, enter = enterSpec, exit = exitSpec) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    OrderDateFilterComponent(
-                        selectedFilter = timeFilter,
-                        onFilterSelected = { filter ->
-                            if (filter == "Custom") {
-                                showDateRangePicker = true
-                            } else {
-                                viewModel.setTimeFilter(filter)
-                            }
-                        },
-                        canViewFullReports = canViewFullReports,
-                        customRangeLabel = customRangeLabel
-                    )
-                    // Only present when the window is not plain calendar midnight, or when
-                    // Custom is active — see ReportsViewModel.publishWindow.
-                    windowCaption?.let { caption ->
-                        Text(
-                            text = caption,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    start = spacing.medium,
-                                    end = spacing.medium,
-                                    top = spacing.extraSmall
-                                ),
-                            color = OrdersTextSecondary.copy(alpha = 0.75f),
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                OrderDateFilterComponent(
+                    selectedFilter = timeFilter,
+                    onFilterSelected = { filter ->
+                        if (filter == "Custom") {
+                            showDateRangePicker = true
+                        } else {
+                            viewModel.setTimeFilter(filter)
+                        }
+                    },
+                    canViewFullReports = canViewFullReports,
+                    customRangeLabel = customRangeLabel
+                )
             }
 
             // One gap, not two. The search field used to sit between two unconditional

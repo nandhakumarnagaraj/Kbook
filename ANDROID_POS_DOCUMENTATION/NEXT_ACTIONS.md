@@ -5,17 +5,21 @@ Ordered by blocking value. Session references point at `DEVICE_SESSIONS/SESSION_
 ## From the 2026-11-14 Orders screen review (Session 009)
 
 Gap analysis from Session 009. **H, I, J implemented and verified on device in Session 010.**
+H was then superseded at 12:45 (caption removed at the owner's request); I and J stand.
 K, L, M remain open decisions — nothing in them was implemented.
 
-H. **Make the business window visible on the Orders screen** — DONE 2026-11-14 (Session 010):
-   - Caption under the chips states the window actually queried, e.g.
-     `Business day 14 Nov, 12:30 AM → 15 Nov, 12:30 AM`, resolved in the shop's timezone.
-   - Hidden when the window starts at calendar midnight and the filter is not `Custom`.
-   - `Custom` chip carries the picked range (`12 Nov - 14 Nov`) while Custom is selected.
-   - Source: `ReportsViewModel.publishWindow` / `formatCustomRange`, `windowCaption`,
-     `customRangeLabel`; `OrdersScreen.kt` renders the caption.
-   - The window is derived from the saved profile on every profile emission (Room `Flow`), so a
-     closing-time edit moves `Today`/`Yesterday`/`Custom` and the caption without a restart.
+H. **Make the business window visible on the Orders screen** — SUPERSEDED 2026-11-14 12:45
+   (Session 010 addendum): implemented in Session 010, then **removed at the product owner's
+   request for all filters**. `publishWindow`/`windowCaption` are gone. The business-hours-aware
+   queries and the `Date/Time` column remain, so the list still *is* business-day scoped — it is
+   just no longer annotated. If the ambiguity ever needs explaining again, restore a caption
+   from `BusinessDate.windowStart`; the picker/`Custom` chip code was kept.
+   - Historical description of what shipped between 12:20 and 12:45:
+     caption under the chips stating the queried window, e.g.
+     `Business day 14 Nov, 12:30 AM → 15 Nov, 12:30 AM`, resolved in the shop's timezone;
+     hidden when the window started at calendar midnight and the filter was not `Custom`;
+     `Custom` chip carried the picked range (`12 Nov - 14 Nov`).
+   - Still live from that work: `ReportsViewModel.formatCustomRange` / `customRangeLabel`.
 
 I. **Add day context to the table** — DONE 2026-11-14 (Session 010):
    - `Yesterday`/`Custom` render `dd MMM` + `hh:mm a` on two lines inside the existing

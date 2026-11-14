@@ -114,6 +114,44 @@ Final build identity for this session: SHA-256
 Both are derived from `BusinessDate.closingBoundary` = closing + 30-minute buffer, so the caption
 followed the configuration with no rebuild and no restart.
 
+### Addendum 12:45 — business-window caption removed (product decision)
+
+The product owner asked for the `Business day … → …` line to be removed **for all filters**,
+`Today` included. It is gone; the feature's other half (business-hours-aware queries, `Date/Time`
+column, shop-zone row times) is untouched.
+
+Removed from code:
+
+| Symbol | File | Fate |
+| :--- | :--- | :--- |
+| `_windowCaption`, `windowCaption` | `ReportsViewModel.kt` | deleted |
+| `publishWindow(from, toInclusive, filter)` | `ReportsViewModel.kt` | deleted (and its call in `loadReports`) |
+| `LocalTime` import | `ReportsViewModel.kt` | deleted (was only used by the midnight check) |
+| caption `Text` + wrapping `Column` | `OrdersScreen.kt` | deleted; the filter row is now the whole animated block |
+| `TextOverflow` import | `OrdersScreen.kt` | deleted (only the caption used it) |
+
+Kept on purpose: `customRangeLabel` + `formatCustomRange`, so the Custom chip still shows
+`12 Nov – 14 Nov`; `includeDate` / the `Date/Time` header; `BusinessDate`-derived query windows.
+
+Verified on `ZA222J5KT7` (build SHA-256
+`86F4691BE5432352744DCDD5DA4A52DEC32AE4DFD1989EF05F7F83526B7D5219`, `lastUpdateTime`
+2026-11-14 12:43:11), closing `01:00`:
+
+| Screen | Result |
+| :--- | :--- |
+| `Today` | `OrderNo/Amount/Time/Action` header at `y336` (was `y367` — 31 px reclaimed); row `#A01 / Quick Bill • Dine-in · UPI / ₹367.50 / 12:33 PM` at `y404` |
+| `Yesterday` | No caption; header `Date/Time` at `y336`; empty state `No orders in this period` at `y600` |
+| `Custom` | Tap still opens the picker (`November 2026`, `14 Nov - 14 Nov`, `1 day`) |
+| Crash buffers | No `com.piquantservices.khanabooklite.debug` entry in `logcat -b crash` |
+
+`:app:compileDebugKotlin` ✅ · `:app:testDebugUnitTest` ✅ · `:app:assembleDebug` ✅.
+
+Trade-off accepted, recorded so it stays a decision: an overnight shop's `Today` can contain two
+calendar dates and the screen no longer explains why. Filters that span days (`Yesterday`,
+`Custom`) still print `dd MMM` per row.
+
+Evidence: `artifacts/android-ui-tests/orders-no-caption-2026-11-14.png`.
+
 ### Evidence
 - Screenshots: `artifacts/android-ui-tests/orders-business-window-2026-11-14.png` (Today), `artifacts/android-ui-tests/orders-custom-range-2026-11-14.png` (Custom 12–14 Nov).
 - uiautomator dumps captured during the run (TextViews quoted above).

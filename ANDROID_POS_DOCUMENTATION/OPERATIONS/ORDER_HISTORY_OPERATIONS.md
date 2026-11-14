@@ -35,6 +35,10 @@ Bottom Navigation Bar → **`Orders`** Tab (`[244,1460][475,1600]`)
 
 ### 2026-11-14 additions (VERIFIED on `ZA222J5KT7`)
 
+> **Superseded in part at 12:45 the same day:** the business-window caption described in steps
+> 1–3 was **removed** at the product owner's request. Chips, the `Date/Time` column and the
+> timezone-correct row times are unchanged. See *"Caption removed"* below.
+
 Shop under test: closing `00:00` + 30-minute settlement buffer, so the business day
 boundary is `12:30 AM`, not midnight.
 
@@ -54,6 +58,27 @@ Notes:
   cancel, print, share). The table's row-level modification callbacks remain unwired by
   decision — see `NEXT_ACTIONS.md` item K.
 
+#### Caption removed — 2026-11-14 12:45 (VERIFIED on `ZA222J5KT7`)
+
+Requested by the product owner: the `Business day … → …` line is gone for **all** filters
+(`Today`, `Yesterday`, `Custom`). Nothing else about the table changed.
+
+| Step | User Action | Expected UI Result | Observed Result (12:45, closing `01:00`) |
+| :--- | :--- | :--- | :--- |
+| 1 | Open **`Orders`** | Chips, then the table header directly — no line between them | Header `OrderNo`, `Amount`, `Time`, `Action` at `y336`; previously `y367` (31 px reclaimed) |
+| 2 | Tap **`Yesterday`** | Still no caption; header becomes `Date/Time` | `Date/Time` at `y336`, empty state starts at `y600` |
+| 3 | Tap **`Custom`** | Date-range picker opens as before; range still appears on the chip after `Apply` | Picker `November 2026`, `14 Nov - 14 Nov`, `1 day` |
+| 4 | Scroll a long list | Filter chips scroll away with the content, unchanged | Chips remain inside the animated header block |
+
+Code: `ReportsViewModel.windowCaption` / `_windowCaption` / `publishWindow()` deleted, and the
+caption composable removed from `OrdersScreen.kt` (the filter row no longer needs a wrapping
+`Column`). `customRangeLabel` and `formatCustomRange` are **kept** — the Custom chip still echoes
+the picked dates.
+
+What was lost, recorded so it is a decision and not an oversight: with an overnight shop,
+`Today` can contain two calendar dates and the screen no longer says why. The `Date/Time` column
+on `Yesterday`/`Custom` still carries day context for those filters; `Today` shows time only.
+
 #### Does the window follow a closing-time change? (VERIFIED 2026-11-14)
 
 **Yes, at runtime — it is derived from the saved profile, never hardcoded.**
@@ -61,7 +86,7 @@ Notes:
 | Question | Answer |
 | :--- | :--- |
 | Is the boundary/business window hardcoded? | No. It comes from `openingTime`/`closingTime` (+30-minute settlement buffer) in the shop profile via `BusinessDate.closingBoundary` → `windowStart`. |
-| Does editing the closing time update the list without a restart? | Yes. `restaurant_profile` is a Room `Flow`; `ReportsViewModel` collects it and recomputes the active window on every emission, then republishes the caption. |
+| Does editing the closing time update the list without a restart? | Yes. `restaurant_profile` is a Room `Flow`; `ReportsViewModel` collects it and recomputes the active window on every emission, then re-queries. (Until 12:45 it also republished the caption; that caption no longer exists.) |
 | Which filters follow the change? | `Today`, `Yesterday` **and** `Custom` (Custom re-derives its window from the picked dates as of 2026-11-14). |
 | Does it rewrite already-recorded orders? | No. Stored bills keep their stamped business date; only the *query window* moves. |
 
