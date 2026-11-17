@@ -804,7 +804,7 @@ export class ReportsPageComponent {
         const billCount = Number(dashboard.posOrderCount) || 0;
         const pending = Number(dashboard.pendingPosPayments) || 0;
 
-        const sortedItems = [...(Array.isArray(itemSales) ? itemSales : [])].sort((a, b) => (Number(b.quantitySold) || 0) - (Number(a.quantitySold) || 0));
+        const sortedItems = (Array.isArray(itemSales) ? itemSales : []).toSorted((a, b) => (Number(b.quantitySold) || 0) - (Number(a.quantitySold) || 0));
         const orderRows = (Array.isArray(ordersPage?.content) ? ordersPage.content : [])
           .filter((o: { orderCode?: string }) => !!o && !!o.orderCode);
         const terminalRows = Array.isArray(terminals) ? terminals : [];

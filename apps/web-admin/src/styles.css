@@ -1004,6 +1004,13 @@ tbody tr[aria-selected="true"] {
   border-top: 1px solid var(--line);
 }
 
+/* Native <dialog>.showModal() makes the page behind it inert but does not stop
+   the body from scrolling, so lock it while any modal is open. This restores
+   the scroll lock the old focus-trap directive applied. */
+body:has(dialog[open]) {
+  overflow: hidden;
+}
+
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(6px) scale(0.97); }

@@ -156,7 +156,7 @@ function withPages(visit: (label: string, host: HTMLElement) => void): void {
     { provide: BusinessApiService, useValue: dashboardApi },
     { provide: Router, useValue: routerStub },
   ]);
-  dashboard.componentInstance.toggleLowStockModal();
+  dashboard.componentInstance.openLowStockModal();
   dashboard.detectChanges();
   visit('dashboard (bento buttons, tiles, modal close crosses)', dashboard.nativeElement);
 

@@ -7,7 +7,7 @@ import { IconComponent } from '../../shared/icon.component';
 import { AuthService } from '../../core/auth/auth.service';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { PresenceService } from '../../core/services/presence.service';
-import { ThemeService } from '../../core/services/theme.service';
+
 import { environment } from '../../../environments/environment';
 
 const API = environment.apiBaseUrl;
@@ -777,7 +777,6 @@ export class SidebarLayoutComponent implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private  readonly businessApi = inject(BusinessApiService);
   readonly presence = inject(PresenceService);
-  readonly theme = inject(ThemeService);
   @ViewChild('menuButton') private menuButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('sidebar') private sidebar?: ElementRef<HTMLElement>;
 

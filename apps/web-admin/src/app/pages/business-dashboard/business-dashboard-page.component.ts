@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, HostListener, inject, signal, computed, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, computed, OnDestroy, OnInit, viewChild, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { combineLatest, of, Subject, Subscription } from 'rxjs';
@@ -7,7 +7,7 @@ import { catchError, map, switchMap, startWith } from 'rxjs/operators';
 import { BusinessApiService } from '../../core/services/business-api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { ThemeService } from '../../core/services/theme.service';
+
 import {
   OrderDetailResponse,
   OrderLineItem,
@@ -21,7 +21,6 @@ import {
 import { formatCurrency, formatDate } from '../../shared/formatters';
 import { buildInvoiceLink } from '../../core/utils/invoice-link.util';
 import { OrderDetailModalComponent } from '../../shared/order-detail-modal.component';
-import { FocusTrapDirective } from '../../core/components/focus-trap.directive';
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { NotificationBellComponent } from '../../shared/notification-bell.component';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
@@ -97,828 +96,849 @@ function getTodayIsoDate(): string {
     CommonModule,
     FormsModule,
     OrderDetailModalComponent,
-    FocusTrapDirective,
     NotificationBellComponent,
     RefreshButtonComponent,
     KpiRowComponent
   ],
   template: `
-    <div class="page-shell kb-dashboard-shell" *ngIf="viewDashboard() as data; else loading">
-
-      <!-- ── ② Header: identity, live state and controls in one bar ── -->
-      <header class="dash-top-header" role="banner">
-        <div class="dash-top-header__identity">
-          <span class="dash-eyebrow">
-            <span class="pulse-indicator" aria-hidden="true"></span>
-            Live operations
-          </span>
-          <h1 class="dash-title">{{ timeGreeting() }}, {{ adminName() }}</h1>
-          <p class="dash-meta">
-            <span>{{ currentIstDate() }}</span>
-            <span class="dash-meta__sep" aria-hidden="true">·</span>
-            <span>{{ currentIstTime() }} IST</span>
-          </p>
-        </div>
-
-        <div class="dash-top-header__actions">
-          <!-- Freshness timestamp -->
-          <span
-            class="freshness-chip"
-            *ngIf="freshnessLabel()"
-            [title]="lastLoadedTime() ? 'Last successful refresh at ' + lastLoadedTime() : ''">
-            {{ freshnessLabel() }}
-          </span>
-
-          <!-- Refresh Button -->
-          <app-refresh-button (refresh)="refresh()" [loading]="isRefreshing()" ariaLabel="Refresh live metrics" />
-
-          <!-- Terminal Fleet Pill -->
-          <button
-            type="button"
-            class="dash-pill-btn"
-            (click)="toggleTerminalsModal()"
-            title="Manage POS terminals"
-            [disabled]="terminalsStatus() !== 'available'"
-            [attr.aria-label]="terminalsStatus() === 'available' ? onlineTerminalsCount() + ' active, ' + totalTerminalsCount() + ' registered terminals' : 'Terminal status ' + terminalsStatus()">
-            <span class="dot-beacon" [class.dot-beacon--active]="terminalsStatus() === 'available' && onlineTerminalsCount() > 0"></span>
-            <span class="dash-pill-btn__text" *ngIf="terminalsStatus() === 'available'; else terminalsCountUnavailable"><strong>{{ onlineTerminalsCount() }} active</strong> · {{ totalTerminalsCount() }} registered</span>
-            <ng-template #terminalsCountUnavailable><span class="dash-pill-btn__text">Terminals {{ terminalsStatus() }}</span></ng-template>
-          </button>
-
-          <!-- Ambient Pre-Closing Alert (Within 30 mins of closing) -->
-          <button
-            type="button"
-            class="dash-pill-btn dash-pill-btn--closing"
-            *ngIf="closingAlert() as alert"
-            (click)="navigateToOrders()"
-            [title]="alert.tooltip"
-            aria-label="Restaurant closing soon notification">
-            <span class="closing-pulse-dot" aria-hidden="true"></span>
-            <span class="dash-pill-btn__text"><strong>{{ alert.label }}</strong></span>
-          </button>
-
-          <!-- Low Stock Warning Pill -->
-          <button
-            type="button"
-            class="dash-pill-btn dash-pill-btn--alert"
-            *ngIf="lowStockMaterials().length > 0"
-            (click)="toggleLowStockModal()"
-            [title]="lowStockMaterials().length + ' raw materials below threshold'">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/>
-            </svg>
-            <span class="dash-pill-btn__text"><strong>{{ lowStockMaterials().length }}</strong> Low Stock</span>
-          </button>
-
-          <!-- Notifications Bell with Red Badge -->
-          <app-notification-bell
-            [notifications]="notifications()"
-            [unreadCount]="unreadNotifsCount()"
-            (markRead)="markNotificationAsRead($event)"
-            (markAllRead)="markAllNotificationsRead()"
-            [loadError]="notificationsError()"
-            [loading]="notificationsLoading()"
-            [markingReadId]="markingReadId()"
-            [markingAllRead]="markingAllNotificationsRead()"
-            (retry)="loadNotifications()">
-          </app-notification-bell>
-
-          <!-- Admin Profile Avatar & Role -->
-          <button type="button" class="dash-user-profile" (click)="navigateToStaff()" title="View profile & staff" aria-label="Open profile and staff">
-            <span class="dash-user-avatar">
-              <span>{{ adminInitials() }}</span>
+    @if (viewDashboard(); as data) {
+      <div class="page-shell kb-dashboard-shell">
+        <!-- ── ② Header: identity, live state and controls in one bar ── -->
+        <header class="dash-top-header" role="banner">
+          <div class="dash-top-header__identity">
+            <span class="dash-eyebrow">
+              <span class="pulse-indicator" aria-hidden="true"></span>
+              Live operations
             </span>
-            <span class="dash-user-info">
-              <span class="dash-user-name">{{ adminName() }}</span>
-              <span class="dash-user-role">{{ adminRole() }}</span>
-            </span>
-            <svg class="dash-user-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="m6 9 6 6 6-6"/>
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      <!-- Stale / offline banner: shown when a refresh fails but data is still on screen -->
-      <div *ngIf="staleError()" class="stale-banner" role="alert" aria-live="assertive">
-        <span class="stale-banner__icon" aria-hidden="true">!</span>
-        <span class="stale-banner__text">
-          <strong>Couldn't refresh.</strong> {{ staleError() }}
-          <span class="stale-banner__meta" *ngIf="lastLoadedTime()"> Showing figures from {{ lastLoadedTime() }}.</span>
-        </span>
-        <span class="stale-banner__spacer"></span>
-        <button type="button" class="ghost-btn" (click)="refresh()">Retry</button>
-      </div>
-
-      <!-- ── ③ First Row: 4 Equal-Width KPI Cards ── -->
-      <section class="dash-kpi-section" aria-label="Key Performance Indicators">
-        <app-kpi-row
-          [items]="dashboardKpis()"
-          ariaLabel="Key Performance Indicators"
-          (action)="onKpiAction($event)">
-        </app-kpi-row>
-      </section>
-
-      <!-- ── Row 2: 12-Column Grid (5 / 4 / 3) ── -->
-      <section class="dash-grid-row-2" aria-label="Analytics and Terminal Status">
-
-        <!-- ⑧ Sales Overview (5 cols) -->
-        <article class="dash-card dash-card--sales-overview">
-          <div class="dash-card__header">
-            <div class="dash-card__title-box">
-              <svg class="dash-card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="18" y1="20" x2="18" y2="10"/>
-                <line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/>
-              </svg>
-              <h2 class="dash-card__title">Sales Overview</h2>
-            </div>
-            <div class="dash-card__actions">
-              <div class="time-filter-select-wrap">
-                <select class="dash-select-filter" aria-label="Filter time range" [ngModel]="timeRange()" (ngModelChange)="timeRange.set($event)">
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                </select>
-              </div>
-              <button
-                type="button"
-                class="dash-text-link-btn"
-                [attr.aria-expanded]="chartTableOpen()"
-                aria-controls="hourly-chart-table"
-                (click)="toggleChartTable()">
-                {{ chartTableOpen() ? 'Hide table' : 'View table' }}
-              </button>
-            </div>
-          </div>
-
-          <span class="visually-hidden" role="status">{{ hourlySummaryText() }}</span>
-
-          <!-- SVG line chart, plotted from the live hourly series -->
-          <div class="chart-empty" *ngIf="hourlySalesStatus() === 'loading'" role="status">Loading hourly sales…</div>
-          <div class="chart-empty" *ngIf="hourlySalesStatus() === 'unavailable'" role="alert">
-            <p class="chart-empty__title">Hourly sales unavailable</p>
-            <p class="chart-empty__body">We couldn’t load this chart. Refresh to try again.</p>
-          </div>
-          <div class="sales-line-chart-wrap" *ngIf="hourlySalesStatus() === 'available' && hasHourlySales(); else hourlyEmpty">
-            <svg class="sales-line-chart-svg" viewBox="0 0 540 190" preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="var(--kb-chart-1)" stop-opacity="0.32"/>
-                  <stop offset="100%" stop-color="var(--kb-chart-1)" stop-opacity="0.0"/>
-                </linearGradient>
-              </defs>
-
-              <!-- Grid lines and a scale read from the busiest hour -->
-              <g class="chart-grid-group">
-                <g *ngFor="let tick of salesChart().yTicks">
-                  <text x="5" [attr.y]="tick.y + 4" class="chart-axis-label">{{ tick.label }}</text>
-                  <line x1="38" [attr.y1]="tick.y" x2="535" [attr.y2]="tick.y" class="chart-grid-line"/>
-                </g>
-              </g>
-
-              <!-- Area Gradient Polygon -->
-              <polygon [attr.points]="salesChart().area" fill="url(#salesGrad)"/>
-
-              <!-- Main Velocity Line -->
-              <polyline
-                [attr.points]="salesChart().line"
-                fill="none"
-                stroke="var(--kb-chart-1)"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-
-              <!-- Data Points -->
-              <circle
-                *ngFor="let point of salesChart().points"
-                [attr.cx]="point.x"
-                [attr.cy]="point.y"
-                [attr.r]="point.isPeak ? 5 : 3.5"
-                class="chart-point"
-                [class.chart-point--peak]="point.isPeak"/>
-
-              <!-- X-Axis Labels -->
-              <g class="chart-x-labels">
-                <text
-                  *ngFor="let tick of salesChart().xTicks"
-                  [attr.x]="tick.x"
-                  y="174"
-                  text-anchor="middle"
-                  class="chart-axis-label">{{ tick.label }}</text>
-              </g>
-            </svg>
-
-            <!-- Preserved accessible hourly bar track for test compliance -->
-            <div class="hourly-bars-track visually-hidden" role="presentation" aria-hidden="true">
-              <div
-                class="hourly-bar-node"
-                *ngFor="let bar of displayHourlyBars()"
-                [title]="bar.hourLabel + ': ' + bar.itemsSold + ' items sold'">
-                <div class="bar-pill-track">
-                  <div
-                    class="bar-pill-fill"
-                    [class.bar-pill-fill--peak]="bar.isPeak"
-                    [class.bar-pill-fill--current]="bar.isCurrent"
-                    [style.height.%]="bar.heightPct">
-                  </div>
-                </div>
-                <span class="bar-tick-label">{{ bar.hourLabel }}</span>
-              </div>
-            </div>
-          </div>
-
-          <ng-template #hourlyEmpty>
-            <div class="chart-empty" *ngIf="hourlySalesStatus() === 'available'">
-              <p class="chart-empty__title">No sales recorded yet today</p>
-              <p class="chart-empty__body">The curve appears as soon as your first bill is closed.</p>
-            </div>
-          </ng-template>
-
-          <!-- Bottom Velocity Metrics -->
-          <div class="velocity-summary-strip" *ngIf="hourlySalesStatus() !== 'unavailable'">
-            <div class="velocity-summary-tile">
-              <span class="vel-label">Busiest hour</span>
-              <strong class="vel-val">{{ busiestHourText() }}</strong>
-            </div>
-            <div class="velocity-summary-tile">
-              <span class="vel-label">Items sold today</span>
-              <strong class="vel-val">{{ itemsSoldToday() }}</strong>
-            </div>
-            <div class="velocity-summary-tile">
-              <span class="vel-label">Hours with sales</span>
-              <strong class="vel-val">{{ activeHourCount() }}</strong>
-            </div>
-          </div>
-
-          <!-- Data table alternative to the chart -->
-          <div class="metric-table-wrap" *ngIf="chartTableOpen() && hourlySalesStatus() === 'available'">
-            <table class="data-table" id="hourly-chart-table">
-              <caption class="visually-hidden">Items sold in each opening hour today</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Hour</th>
-                  <th scope="col" class="num-cell">Items sold</th>
-                  <th scope="col">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let bar of displayHourlyBars()">
-                  <td class="font-semibold">{{ bar.hourLabel }}</td>
-                  <td class="num-cell tabular-num">{{ bar.itemsSold }}</td>
-                  <td class="muted">{{ bar.isPeak ? 'Busiest hour' : (bar.isCurrent ? 'Current hour' : '') }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-
-        <!-- ⑨ Order Type (4 cols) -->
-        <article class="dash-card dash-card--order-type">
-          <div class="dash-card__header">
-            <div class="dash-card__title-box">
-              <svg class="dash-card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
-              </svg>
-              <h2 class="dash-card__title">Order Type</h2>
-            </div>
-          </div>
-
-          <ng-container *ngIf="orderTypeBreakdown() as ot">
-            <div class="order-type-content" *ngIf="ot.total > 0">
-            <!-- SVG Donut Chart -->
-            <div class="donut-chart-box">
-              <svg class="donut-svg" viewBox="0 0 160 160" width="130" height="130" aria-label="Order type distribution">
-                <!-- Background Ring -->
-                <circle cx="80" cy="80" r="54" fill="none" stroke="var(--kb-color-surface-2)" stroke-width="18"/>
-                <!-- One arc per order type, sized from the live split -->
-                <circle
-                  *ngFor="let seg of orderTypeSegments(); trackBy: trackBySegment"
-                  cx="80" cy="80" r="54"
-                  fill="none"
-                  [attr.stroke]="seg.color"
-                  stroke-width="18"
-                  [attr.stroke-dasharray]="seg.dash"
-                  [attr.stroke-dashoffset]="seg.offset"
-                  transform="rotate(-90 80 80)"/>
-                <!-- Center Total Text -->
-                <text x="80" y="76" text-anchor="middle" class="donut-center-val">{{ ot.total }}</text>
-                <text x="80" y="93" text-anchor="middle" class="donut-center-sub">Total Orders</text>
-              </svg>
-            </div>
-
-            <!-- Legend Cluster -->
-            <div class="order-type-legend-list">
-              <div class="ot-legend-item">
-                <span class="ot-dot ot-dot--dine-in" aria-hidden="true"></span>
-                <span class="ot-label">Dine-in</span>
-                <span class="ot-pct">{{ ot.dineIn.pct }}%</span>
-                <span class="ot-count">{{ ot.dineIn.count }}</span>
-              </div>
-
-              <div class="ot-legend-item">
-                <span class="ot-dot ot-dot--takeaway" aria-hidden="true"></span>
-                <span class="ot-label">Takeaway</span>
-                <span class="ot-pct">{{ ot.takeaway.pct }}%</span>
-                <span class="ot-count">{{ ot.takeaway.count }}</span>
-              </div>
-
-              <div class="ot-legend-item">
-                <span class="ot-dot ot-dot--online" aria-hidden="true"></span>
-                <span class="ot-label">Online <small>(Zomato/Swiggy)</small></span>
-                <span class="ot-pct">{{ ot.online.pct }}%</span>
-                <span class="ot-count">{{ ot.online.count }}</span>
-              </div>
-            </div>
-            </div>
-
-            <div class="order-type-empty" *ngIf="ot.total === 0">
-              <p class="card-empty__title">No orders to break down yet</p>
-              <p class="card-empty__body">Dine-in, takeaway and online shares appear after the first bill.</p>
-            </div>
-
-            <p class="dash-card__footnote" *ngIf="ot.total > 0">
-              Share of the {{ ot.total }} most recent bill{{ ot.total === 1 ? '' : 's' }}.
+            <h1 class="dash-title">{{ timeGreeting() }}, {{ adminName() }}</h1>
+            <p class="dash-meta">
+              <span>{{ currentIstDate() }}</span>
+              <span class="dash-meta__sep" aria-hidden="true">·</span>
+              <span>{{ currentIstTime() }} IST</span>
             </p>
-          </ng-container>
-        </article>
-
-        <!-- ⑩ Terminal Status (3 cols) -->
-        <article class="dash-card dash-card--terminals">
-          <div class="dash-card__header">
-            <div class="dash-card__title-box">
-              <svg class="dash-card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
-                <line x1="12" y1="18" x2="12.01" y2="18"/>
-              </svg>
-              <h2 class="dash-card__title">Terminal Status</h2>
-            </div>
-            <button type="button" class="dash-view-all-link" (click)="navigateToTerminals()">View All</button>
           </div>
-
-          <p class="dash-card__footnote" *ngIf="terminalsStatus() === 'unavailable'" role="status">Terminal status couldn’t be loaded.</p>
-          <div class="terminal-counter-list" *ngIf="terminalsStatus() !== 'loading'">
-            <div class="terminal-counter-row" *ngFor="let term of terminalWidgetList()">
-              <div class="terminal-counter-left">
-                <div class="terminal-device-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
-                    <line x1="12" y1="18" x2="12.01" y2="18"/>
-                  </svg>
-                </div>
-                <div class="terminal-device-details">
-                  <strong class="terminal-name">{{ term.name }}</strong>
-                  <div class="terminal-status-indicator">
-                    <span class="terminal-dot"
-                      [class.terminal-dot--online]="term.status.tone === 'active'"
-                      [class.terminal-dot--syncing]="term.status.tone === 'attention'"
-                      [class.terminal-dot--offline]="term.status.tone === 'offline'"></span>
-                    <span class="terminal-status-text"
-                      [class.text-active]="term.status.tone === 'active'"
-                      [class.text-attention]="term.status.tone === 'attention'">{{ term.status.label }}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="terminal-counter-right">
-                <span class="terminal-time-ago">{{ term.timeAgo }}</span>
-                <svg class="terminal-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
-              </div>
-            </div>
-
-            <div class="card-empty" *ngIf="terminalWidgetList().length === 0 && terminalsStatus() !== 'loading'">
-              <ng-container *ngIf="terminalsStatus() === 'available'; else terminalsUnavailable">
-                <p class="card-empty__title">No terminals registered yet</p>
-                <p class="card-empty__body">Pair a POS counter to see its connection state here.</p>
-                <button type="button" class="dash-view-all-link" (click)="navigateToTerminals()">Register a terminal</button>
-              </ng-container>
-              <ng-template #terminalsUnavailable>
-                <p class="card-empty__title">Terminal status unavailable</p>
-                <p class="card-empty__body">We couldn’t load the terminal list. Refresh to try again.</p>
-              </ng-template>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <!-- ── Row 3: 12-Column Grid (7 / 5) ── -->
-      <section class="dash-grid-row-3" aria-label="Operations and POS Features">
-
-        <!-- ⑪ Recent Orders (7 cols) -->
-        <article class="dash-card dash-card--recent-orders">
-          <div class="dash-card__header">
-            <div class="dash-card__title-box">
-              <svg class="dash-card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              <h2 class="dash-card__title">Recent Orders</h2>
-            </div>
-            <div class="dash-card__actions">
+          <div class="dash-top-header__actions">
+            <!-- Freshness timestamp -->
+            @if (freshnessLabel()) {
+              <span
+                class="freshness-chip"
+                [title]="lastLoadedTime() ? 'Last successful refresh at ' + lastLoadedTime() : ''">
+                {{ freshnessLabel() }}
+              </span>
+            }
+            <!-- Refresh Button -->
+            <app-refresh-button (refresh)="refresh()" [loading]="isRefreshing()" ariaLabel="Refresh live metrics" />
+            <!-- Terminal Fleet Pill -->
+            <button
+              type="button"
+              class="dash-pill-btn"
+              (click)="openTerminalsModal()"
+              title="Manage POS terminals"
+              [disabled]="terminalsStatus() !== 'available'"
+              [attr.aria-label]="terminalsStatus() === 'available' ? onlineTerminalsCount() + ' active, ' + totalTerminalsCount() + ' registered terminals' : 'Terminal status ' + terminalsStatus()">
+              <span class="dot-beacon" [class.dot-beacon--active]="terminalsStatus() === 'available' && onlineTerminalsCount() > 0"></span>
+              @if (terminalsStatus() === 'available') {
+                <span class="dash-pill-btn__text"><strong>{{ onlineTerminalsCount() }} active</strong> · {{ totalTerminalsCount() }} registered</span>
+              } @else {
+                <span class="dash-pill-btn__text">Terminals {{ terminalsStatus() }}</span>
+              }
+            </button>
+            <!-- Ambient Pre-Closing Alert (Within 30 mins of closing) -->
+            @if (closingAlert(); as alert) {
               <button
                 type="button"
-                class="dash-text-link-btn"
-                [attr.aria-expanded]="floorTableOpen()"
-                aria-controls="floor-table"
-                (click)="toggleFloorTable()">
-                {{ floorTableOpen() ? 'Hide floor' : 'Live floor' }}
+                class="dash-pill-btn dash-pill-btn--closing"
+                (click)="navigateToOrders()"
+                [title]="alert.tooltip"
+                aria-label="Restaurant closing soon notification">
+                <span class="closing-pulse-dot" aria-hidden="true"></span>
+                <span class="dash-pill-btn__text"><strong>{{ alert.label }}</strong></span>
               </button>
-              <button type="button" class="dash-view-all-link" (click)="navigateToOrders()">View All</button>
-            </div>
+            }
+            <!-- Low Stock Warning Pill -->
+            @if (lowStockMaterials().length > 0) {
+              <button
+                type="button"
+                class="dash-pill-btn dash-pill-btn--alert"
+                (click)="openLowStockModal()"
+                [title]="lowStockMaterials().length + ' raw materials below threshold'">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/>
+                </svg>
+                <span class="dash-pill-btn__text"><strong>{{ lowStockMaterials().length }}</strong> Low Stock</span>
+              </button>
+            }
+            <!-- Notifications Bell with Red Badge -->
+            <app-notification-bell
+              [notifications]="notifications()"
+              [unreadCount]="unreadNotifsCount()"
+              (markRead)="markNotificationAsRead($event)"
+              (markAllRead)="markAllNotificationsRead()"
+              [loadError]="notificationsError()"
+              [loading]="notificationsLoading()"
+              [markingReadId]="markingReadId()"
+              [markingAllRead]="markingAllNotificationsRead()"
+              (retry)="loadNotifications()">
+            </app-notification-bell>
+            <!-- Admin Profile Avatar & Role -->
+            <button type="button" class="dash-user-profile" (click)="navigateToStaff()" title="View profile & staff" aria-label="Open profile and staff">
+              <span class="dash-user-avatar">
+                <span>{{ adminInitials() }}</span>
+              </span>
+              <span class="dash-user-info">
+                <span class="dash-user-name">{{ adminName() }}</span>
+                <span class="dash-user-role">{{ adminRole() }}</span>
+              </span>
+              <svg class="dash-user-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </button>
           </div>
-
-          <!-- Orders Data Table -->
-          <div class="orders-table-wrapper">
-            <div class="recent-orders-grid" role="table" aria-label="Recent Orders" *ngIf="recentOrdersDisplay().length > 0">
-              <div class="recent-orders-header-row" role="row">
-                <span class="recent-th col-order" role="columnheader">Order No.</span>
-                <span class="recent-th col-type" role="columnheader">Type</span>
-                <span class="recent-th col-table" role="columnheader">Table</span>
-                <span class="recent-th col-amount" role="columnheader">Amount</span>
-                <span class="recent-th col-status" role="columnheader">Status</span>
-                <span class="recent-th col-time" role="columnheader">Time</span>
+        </header>
+        <!-- Stale / offline banner: shown when a refresh fails but data is still on screen -->
+        @if (staleError()) {
+          <div class="stale-banner" role="alert" aria-live="assertive">
+            <span class="stale-banner__icon" aria-hidden="true">!</span>
+            <span class="stale-banner__text">
+              <strong>Couldn't refresh.</strong> {{ staleError() }}
+              @if (lastLoadedTime()) {
+                <span class="stale-banner__meta"> Showing figures from {{ lastLoadedTime() }}.</span>
+              }
+            </span>
+            <span class="stale-banner__spacer"></span>
+            <button type="button" class="ghost-btn" (click)="refresh()">Retry</button>
+          </div>
+        }
+        <!-- ── ③ First Row: 4 Equal-Width KPI Cards ── -->
+        <section class="dash-kpi-section" aria-label="Key Performance Indicators">
+          <app-kpi-row
+            [items]="dashboardKpis()"
+            ariaLabel="Key Performance Indicators"
+            (action)="onKpiAction($event)">
+          </app-kpi-row>
+        </section>
+        <!-- ── Row 2: 12-Column Grid (5 / 4 / 3) ── -->
+        <section class="dash-grid-row-2" aria-label="Analytics and Terminal Status">
+          <!-- ⑧ Sales Overview (5 cols) -->
+          <article class="dash-card dash-card--sales-overview">
+            <div class="dash-card__header">
+              <div class="dash-card__title-box">
+                <svg class="dash-card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="20" x2="18" y2="10"/>
+                  <line x1="12" y1="20" x2="12" y2="4"/>
+                  <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+                <h2 class="dash-card__title">Sales Overview</h2>
               </div>
-              <div class="recent-orders-body" role="rowgroup">
-                <div class="recent-orders-row" role="row" *ngFor="let ord of recentOrdersDisplay()"
-                     (click)="selectOrderForPrinter(ord)"
-                     [class.recent-orders-row--active]="selectedPrinterOrderId() === ord.orderId"
-                     tabindex="0"
-                     (keydown.enter)="selectOrderForPrinter(ord)"
-                     (keydown.space)="selectOrderForPrinter(ord)"
-                     title="Click order to feed into thermal printer">
-                  <span class="recent-td col-order font-semibold cell-order-code" role="cell">{{ ord.orderNo }}</span>
-                  <span class="recent-td col-type cell-type" role="cell">{{ ord.type }}</span>
-                  <span class="recent-td col-table cell-table" role="cell">{{ ord.table }}</span>
-                  <span class="recent-td col-amount cell-amount tabular-num" role="cell">{{ ord.amount }}</span>
-                  <span class="recent-td col-status" role="cell">
-                    <span class="order-status-badge" [ngClass]="'order-status-badge--' + ord.status">
-                      <span class="status-pulse-dot" aria-hidden="true"></span>
-                      {{ ord.statusLabel }}
-                    </span>
-                  </span>
-                  <span class="recent-td col-time cell-time muted" role="cell">
-                    <span>{{ ord.time }}</span>
-                    <span class="printer-feed-hint" aria-hidden="true" title="Feed into printer">🖨️</span>
-                  </span>
+              <div class="dash-card__actions">
+                <div class="time-filter-select-wrap">
+                  <select class="dash-select-filter" aria-label="Filter time range" [ngModel]="timeRange()" (ngModelChange)="timeRange.set($event)">
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  class="dash-text-link-btn"
+                  [attr.aria-expanded]="chartTableOpen()"
+                  aria-controls="hourly-chart-table"
+                  (click)="toggleChartTable()">
+                  {{ chartTableOpen() ? 'Hide table' : 'View table' }}
+                </button>
+              </div>
+            </div>
+            <span class="visually-hidden" role="status">{{ hourlySummaryText() }}</span>
+            <!-- SVG line chart, plotted from the live hourly series -->
+            @if (hourlySalesStatus() === 'loading') {
+              <div class="chart-empty" role="status">Loading hourly sales…</div>
+            }
+            @if (hourlySalesStatus() === 'unavailable') {
+              <div class="chart-empty" role="alert">
+                <p class="chart-empty__title">Hourly sales unavailable</p>
+                <p class="chart-empty__body">We couldn’t load this chart. Refresh to try again.</p>
+              </div>
+            }
+            @if (hourlySalesStatus() === 'available' && hasHourlySales()) {
+              <div class="sales-line-chart-wrap">
+                <svg class="sales-line-chart-svg" viewBox="0 0 540 190" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="var(--kb-chart-1)" stop-opacity="0.32"/>
+                      <stop offset="100%" stop-color="var(--kb-chart-1)" stop-opacity="0.0"/>
+                    </linearGradient>
+                  </defs>
+                  <!-- Grid lines and a scale read from the busiest hour -->
+                  <g class="chart-grid-group">
+                    @for (tick of salesChart().yTicks; track tick) {
+                      <g>
+                        <text x="5" [attr.y]="tick.y + 4" class="chart-axis-label">{{ tick.label }}</text>
+                        <line x1="38" [attr.y1]="tick.y" x2="535" [attr.y2]="tick.y" class="chart-grid-line"/>
+                      </g>
+                    }
+                  </g>
+                  <!-- Area Gradient Polygon -->
+                  <polygon [attr.points]="salesChart().area" fill="url(#salesGrad)"/>
+                  <!-- Main Velocity Line -->
+                  <polyline
+                    [attr.points]="salesChart().line"
+                    fill="none"
+                    stroke="var(--kb-chart-1)"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    />
+                    <!-- Data Points -->
+                    @for (point of salesChart().points; track point) {
+                      <circle
+                        [attr.cx]="point.x"
+                        [attr.cy]="point.y"
+                        [attr.r]="point.isPeak ? 5 : 3.5"
+                        class="chart-point"
+                        [class.chart-point--peak]="point.isPeak"/>
+                    }
+                    <!-- X-Axis Labels -->
+                    <g class="chart-x-labels">
+                      @for (tick of salesChart().xTicks; track tick) {
+                        <text
+                          [attr.x]="tick.x"
+                          y="174"
+                          text-anchor="middle"
+                        class="chart-axis-label">{{ tick.label }}</text>
+                      }
+                    </g>
+                  </svg>
+                  <!-- Preserved accessible hourly bar track for test compliance -->
+                  <div class="hourly-bars-track visually-hidden" role="presentation" aria-hidden="true">
+                    @for (bar of displayHourlyBars(); track bar) {
+                      <div
+                        class="hourly-bar-node"
+                        [title]="bar.hourLabel + ': ' + bar.itemsSold + ' items sold'">
+                        <div class="bar-pill-track">
+                          <div
+                            class="bar-pill-fill"
+                            [class.bar-pill-fill--peak]="bar.isPeak"
+                            [class.bar-pill-fill--current]="bar.isCurrent"
+                            [style.height.%]="bar.heightPct">
+                          </div>
+                        </div>
+                        <span class="bar-tick-label">{{ bar.hourLabel }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              } @else {
+                @if (hourlySalesStatus() === 'available') {
+                  <div class="chart-empty">
+                    <p class="chart-empty__title">No sales recorded yet today</p>
+                    <p class="chart-empty__body">The curve appears as soon as your first bill is closed.</p>
+                  </div>
+                }
+              }
+              <!-- Bottom Velocity Metrics -->
+              @if (hourlySalesStatus() !== 'unavailable') {
+                <div class="velocity-summary-strip">
+                  <div class="velocity-summary-tile">
+                    <span class="vel-label">Busiest hour</span>
+                    <strong class="vel-val">{{ busiestHourText() }}</strong>
+                  </div>
+                  <div class="velocity-summary-tile">
+                    <span class="vel-label">Items sold today</span>
+                    <strong class="vel-val">{{ itemsSoldToday() }}</strong>
+                  </div>
+                  <div class="velocity-summary-tile">
+                    <span class="vel-label">Hours with sales</span>
+                    <strong class="vel-val">{{ activeHourCount() }}</strong>
+                  </div>
+                </div>
+              }
+              <!-- Data table alternative to the chart -->
+              @if (chartTableOpen() && hourlySalesStatus() === 'available') {
+                <div class="metric-table-wrap">
+                  <table class="data-table" id="hourly-chart-table">
+                    <caption class="visually-hidden">Items sold in each opening hour today</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Hour</th>
+                        <th scope="col" class="num-cell">Items sold</th>
+                        <th scope="col">Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (bar of displayHourlyBars(); track bar) {
+                        <tr>
+                          <td class="font-semibold">{{ bar.hourLabel }}</td>
+                          <td class="num-cell tabular-num">{{ bar.itemsSold }}</td>
+                          <td class="muted">{{ bar.isPeak ? 'Busiest hour' : (bar.isCurrent ? 'Current hour' : '') }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </article>
+            <!-- ⑨ Order Type (4 cols) -->
+            <article class="dash-card dash-card--order-type">
+              <div class="dash-card__header">
+                <div class="dash-card__title-box">
+                  <svg class="dash-card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                  </svg>
+                  <h2 class="dash-card__title">Order Type</h2>
                 </div>
               </div>
-            </div>
-
-            <!-- A failed orders feed is not the same fact as a quiet day: the
-                 generic empty state may only speak when the feed resolved. -->
-            <div class="card-empty" *ngIf="recentOrdersDisplay().length === 0 && activeOrdersStatus() !== 'unavailable'">
-              <p class="card-empty__title">No orders yet today</p>
-              <p class="card-empty__body">Bills appear here as soon as one of your counters rings one up.</p>
-            </div>
-            <div class="card-empty" *ngIf="recentOrdersDisplay().length === 0 && activeOrdersStatus() === 'unavailable'">
-              <p class="card-empty__title">Recent orders unavailable</p>
-              <p class="card-empty__body">We couldn't load today's bills. Tap Refresh to try again.</p>
-            </div>
-          </div>
-
-          <!-- Preserved Ledger Items & Floor table for spec assertion compliance -->
-          <div class="metric-table-wrap" *ngIf="floorTableOpen()">
-            <table class="data-table" id="floor-table">
-              <caption class="visually-hidden">Open bills by table</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Table</th>
-                  <th scope="col">Kitchen state</th>
-                  <th scope="col" class="num-cell">Amount</th>
-                  <th scope="col">Open for</th>
-                  <th scope="col">Bill</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let t of filteredFloorTables(); trackBy: trackByTable">
-                  <td class="font-semibold">{{ t.tableNumber }}</td>
-                  <td>{{ floorStatusLabel(t.status) }}</td>
-                  <td class="num-cell tabular-num">{{ t.amountFormatted }}</td>
-                  <td class="muted">{{ t.duration || '—' }}</td>
-                  <td class="muted">{{ t.tag }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Hidden ledger hook that feeds recentLedgerFeed to satisfy ledger test without polluting visual design -->
-          <div class="visually-hidden" *ngIf="recentLedgerFeed().length > 0">
-            <div *ngFor="let feed of recentLedgerFeed()">
-              <span>{{ feed.invoiceNo }}</span>
-              <span>{{ feed.tableAndChannel }}</span>
-            </div>
-          </div>
-        </article>
-
-        <!-- ⑫ Multi-Terminal POS & Tactile Thermal Printer (5 cols) -->
-        <article class="dash-card dash-card--multi-terminal tactile-printer-card">
-          <!-- Tactile Printer Housing -->
-          <div class="printer-station">
-            <!-- Station Control Bar -->
-            <div class="printer-station__topbar">
-              <div class="printer-station__beacon-wrap">
-                <span class="printer-station__led" [class.printer-station__led--feeding]="printerFeeding()" aria-hidden="true"></span>
-                <div class="printer-station__info">
-                  <span class="printer-station__label">
-                    {{ printerFeeding() ? 'FEEDING TICKET…' : (printerPaperTorn() ? 'TICKET TORN · READY' : 'ESC/POS 80mm · ONLINE') }}
-                  </span>
-                  <span class="printer-station__sub">Terminal #1 · Front Counter</span>
-                </div>
-              </div>
-              <div class="printer-station__actions">
-                <button
-                  type="button"
-                  class="printer-tactile-btn"
-                  (click)="tearAndCopyReceipt()"
-                  [disabled]="printerFeeding()"
-                  title="Tear ticket & copy to clipboard">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
-                    <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
-                    <line x1="8.12" y1="8.12" x2="12" y2="12"/>
-                  </svg>
-                  <span>{{ printerPaperTorn() ? 'Torn ✓' : 'Tear' }}</span>
-                </button>
-                <button
-                  type="button"
-                  class="printer-tactile-btn printer-tactile-btn--secondary"
-                  (click)="feedSampleOrNextReceipt()"
-                  [disabled]="printerFeeding()"
-                  title="Feed next receipt">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
-                  <span>Feed</span>
-                </button>
-                <button
-                  type="button"
-                  class="printer-tactile-btn printer-tactile-btn--ghost"
-                  (click)="navigateToTerminals()"
-                  title="Configure POS Terminals">
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              @if (orderTypeBreakdown(); as ot) {
+                @if (ot.total > 0) {
+                  <div class="order-type-content">
+                    <!-- SVG Donut Chart -->
+                    <div class="donut-chart-box">
+                      <svg class="donut-svg" viewBox="0 0 160 160" width="130" height="130" aria-label="Order type distribution">
+                        <!-- Background Ring -->
+                        <circle cx="80" cy="80" r="54" fill="none" stroke="var(--kb-color-surface-2)" stroke-width="18"/>
+                        <!-- One arc per order type, sized from the live split -->
+                        @for (seg of orderTypeSegments(); track trackBySegment($index, seg)) {
+                          <circle
+                            cx="80" cy="80" r="54"
+                            fill="none"
+                            [attr.stroke]="seg.color"
+                            stroke-width="18"
+                            [attr.stroke-dasharray]="seg.dash"
+                            [attr.stroke-dashoffset]="seg.offset"
+                            transform="rotate(-90 80 80)"/>
+                        }
+                        <!-- Center Total Text -->
+                        <text x="80" y="76" text-anchor="middle" class="donut-center-val">{{ ot.total }}</text>
+                        <text x="80" y="93" text-anchor="middle" class="donut-center-sub">Total Orders</text>
+                      </svg>
+                    </div>
+                    <!-- Legend Cluster -->
+                    <div class="order-type-legend-list">
+                      <div class="ot-legend-item">
+                        <span class="ot-dot ot-dot--dine-in" aria-hidden="true"></span>
+                        <span class="ot-label">Dine-in</span>
+                        <span class="ot-pct">{{ ot.dineIn.pct }}%</span>
+                        <span class="ot-count">{{ ot.dineIn.count }}</span>
+                      </div>
+                      <div class="ot-legend-item">
+                        <span class="ot-dot ot-dot--takeaway" aria-hidden="true"></span>
+                        <span class="ot-label">Takeaway</span>
+                        <span class="ot-pct">{{ ot.takeaway.pct }}%</span>
+                        <span class="ot-count">{{ ot.takeaway.count }}</span>
+                      </div>
+                      <div class="ot-legend-item">
+                        <span class="ot-dot ot-dot--online" aria-hidden="true"></span>
+                        <span class="ot-label">Online <small>(Zomato/Swiggy)</small></span>
+                        <span class="ot-pct">{{ ot.online.pct }}%</span>
+                        <span class="ot-count">{{ ot.online.count }}</span>
+                      </div>
+                    </div>
+                  </div>
+                }
+                @if (ot.total === 0) {
+                  <div class="order-type-empty">
+                    <p class="card-empty__title">No orders to break down yet</p>
+                    <p class="card-empty__body">Dine-in, takeaway and online shares appear after the first bill.</p>
+                  </div>
+                }
+                @if (ot.total > 0) {
+                  <p class="dash-card__footnote">
+                    Share of the {{ ot.total }} most recent bill{{ ot.total === 1 ? '' : 's' }}.
+                  </p>
+                }
+              }
+            </article>
+            <!-- ⑩ Terminal Status (3 cols) -->
+            <article class="dash-card dash-card--terminals">
+              <div class="dash-card__header">
+                <div class="dash-card__title-box">
+                  <svg class="dash-card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
                     <line x1="12" y1="18" x2="12.01" y2="18"/>
                   </svg>
-                  <span>Fleet</span>
-                </button>
+                  <h2 class="dash-card__title">Terminal Status</h2>
+                </div>
+                <button type="button" class="dash-view-all-link" (click)="navigateToTerminals()">View All</button>
               </div>
-            </div>
-
-            <!-- Printer Machine Slot Mouth -->
-            <div class="printer-slot-mouth" aria-hidden="true">
-              <div class="printer-slot-slit"></div>
-              <div class="printer-slot-roller"></div>
-            </div>
-
-            <!-- Thermal Paper Container with Perforated Sawtooth Edge -->
-            <div class="thermal-paper-viewport">
-              <div
-                class="thermal-paper-ticket"
-                [class.thermal-paper-ticket--feeding]="printerFeeding()"
-                [class.thermal-paper-ticket--torn]="printerPaperTorn()"
-                (click)="tearAndCopyReceipt()"
-                role="region"
-                aria-label="Thermal Receipt Ticket"
-                title="Click ticket to tear & copy">
-
-                <!-- Sawtooth Tear Header -->
-                <div class="sawtooth-edge sawtooth-edge--top" aria-hidden="true"></div>
-
-                <div class="receipt-inner">
-                  <!-- Header -->
-                  <div class="receipt-header">
-                    <p class="receipt-brand">⚡ KHANABOOK POS</p>
-                    <p class="receipt-restaurant">{{ viewDashboard()?.shopName || 'SPICE ROUTE RESTAURANT' }}</p>
-                    <p class="receipt-tax-id">GSTIN: 27AABCS1429B1Z · FSSAI: 1152103400012</p>
-                    <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
+              @if (terminalsStatus() === 'unavailable') {
+                <p class="dash-card__footnote" role="status">Terminal status couldn’t be loaded.</p>
+              }
+              @if (terminalsStatus() !== 'loading') {
+                <div class="terminal-counter-list">
+                  @for (term of terminalWidgetList(); track term) {
+                    <div class="terminal-counter-row">
+                      <div class="terminal-counter-left">
+                        <div class="terminal-device-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+                            <line x1="12" y1="18" x2="12.01" y2="18"/>
+                          </svg>
+                        </div>
+                        <div class="terminal-device-details">
+                          <strong class="terminal-name">{{ term.name }}</strong>
+                          <div class="terminal-status-indicator">
+                            <span class="terminal-dot"
+                              [class.terminal-dot--online]="term.status.tone === 'active'"
+                              [class.terminal-dot--syncing]="term.status.tone === 'attention'"
+                            [class.terminal-dot--offline]="term.status.tone === 'offline'"></span>
+                            <span class="terminal-status-text"
+                              [class.text-active]="term.status.tone === 'active'"
+                            [class.text-attention]="term.status.tone === 'attention'">{{ term.status.label }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="terminal-counter-right">
+                        <span class="terminal-time-ago">{{ term.timeAgo }}</span>
+                        <svg class="terminal-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="m9 18 6-6-6-6"/>
+                        </svg>
+                      </div>
+                    </div>
+                  }
+                  @if (terminalWidgetList().length === 0 && terminalsStatus() !== 'loading') {
+                    <div class="card-empty">
+                      @if (terminalsStatus() === 'available') {
+                        <p class="card-empty__title">No terminals registered yet</p>
+                        <p class="card-empty__body">Pair a POS counter to see its connection state here.</p>
+                        <button type="button" class="dash-view-all-link" (click)="navigateToTerminals()">Register a terminal</button>
+                      } @else {
+                        <p class="card-empty__title">Terminal status unavailable</p>
+                        <p class="card-empty__body">We couldn’t load the terminal list. Refresh to try again.</p>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </article>
+          </section>
+          <!-- ── Row 3: 12-Column Grid (7 / 5) ── -->
+          <section class="dash-grid-row-3" aria-label="Operations and POS Features">
+            <!-- ⑪ Recent Orders (7 cols) -->
+            <article class="dash-card dash-card--recent-orders">
+              <div class="dash-card__header">
+                <div class="dash-card__title-box">
+                  <svg class="dash-card-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <h2 class="dash-card__title">Recent Orders</h2>
+                </div>
+                <div class="dash-card__actions">
+                  <button
+                    type="button"
+                    class="dash-text-link-btn"
+                    [attr.aria-expanded]="floorTableOpen()"
+                    aria-controls="floor-table"
+                    (click)="toggleFloorTable()">
+                    {{ floorTableOpen() ? 'Hide floor' : 'Live floor' }}
+                  </button>
+                  <button type="button" class="dash-view-all-link" (click)="navigateToOrders()">View All</button>
+                </div>
+              </div>
+              <!-- Orders Data Table -->
+              <div class="orders-table-wrapper">
+                @if (recentOrdersDisplay().length > 0) {
+                  <div class="recent-orders-grid" role="table" aria-label="Recent Orders">
+                    <div class="recent-orders-header-row" role="row">
+                      <span class="recent-th col-order" role="columnheader">Order No.</span>
+                      <span class="recent-th col-type" role="columnheader">Type</span>
+                      <span class="recent-th col-table" role="columnheader">Table</span>
+                      <span class="recent-th col-amount" role="columnheader">Amount</span>
+                      <span class="recent-th col-status" role="columnheader">Status</span>
+                      <span class="recent-th col-time" role="columnheader">Time</span>
+                    </div>
+                    <div class="recent-orders-body" role="rowgroup">
+                      @for (ord of recentOrdersDisplay(); track ord) {
+                        <div class="recent-orders-row" role="row"
+                          (click)="selectOrderForPrinter(ord)"
+                          [class.recent-orders-row--active]="selectedPrinterOrderId() === ord.orderId"
+                          tabindex="0"
+                          (keydown.enter)="selectOrderForPrinter(ord)"
+                          (keydown.space)="selectOrderForPrinter(ord)"
+                          title="Click order to feed into thermal printer">
+                          <span class="recent-td col-order font-semibold cell-order-code" role="cell">{{ ord.orderNo }}</span>
+                          <span class="recent-td col-type cell-type" role="cell">{{ ord.type }}</span>
+                          <span class="recent-td col-table cell-table" role="cell">{{ ord.table }}</span>
+                          <span class="recent-td col-amount cell-amount tabular-num" role="cell">{{ ord.amount }}</span>
+                          <span class="recent-td col-status" role="cell">
+                            <span class="order-status-badge" [ngClass]="'order-status-badge--' + ord.status">
+                              <span class="status-pulse-dot" aria-hidden="true"></span>
+                              {{ ord.statusLabel }}
+                            </span>
+                          </span>
+                          <span class="recent-td col-time cell-time muted" role="cell">
+                            <span>{{ ord.time }}</span>
+                            <span class="printer-feed-hint" aria-hidden="true" title="Feed into printer">🖨️</span>
+                          </span>
+                        </div>
+                      }
+                    </div>
                   </div>
-
-                  <!-- Order Meta -->
-                  <div class="receipt-meta">
-                    <div class="receipt-meta-row">
-                      <span>BILL: {{ currentTicket().orderNo }}</span>
-                      <span>{{ currentTicket().table }}</span>
-                    </div>
-                    <div class="receipt-meta-row">
-                      <span>TYPE: {{ currentTicket().type }}</span>
-                      <span>TIME: {{ currentTicket().time }}</span>
-                    </div>
-                    <div class="receipt-meta-row">
-                      <span>TILL: POS-01 (Main)</span>
-                      <span>STATUS: {{ currentTicket().statusLabel }}</span>
-                    </div>
-                    <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
+                }
+                <!-- A failed orders feed is not the same fact as a quiet day: the
+                generic empty state may only speak when the feed resolved. -->
+                @if (recentOrdersDisplay().length === 0 && activeOrdersStatus() !== 'unavailable') {
+                  <div class="card-empty">
+                    <p class="card-empty__title">No orders yet today</p>
+                    <p class="card-empty__body">Bills appear here as soon as one of your counters rings one up.</p>
                   </div>
-
-                  <!-- Table Items -->
-                  <div class="receipt-items-header">
-                    <span>ITEM</span>
-                    <span>QTY</span>
-                    <span>AMOUNT</span>
+                }
+                @if (recentOrdersDisplay().length === 0 && activeOrdersStatus() === 'unavailable') {
+                  <div class="card-empty">
+                    <p class="card-empty__title">Recent orders unavailable</p>
+                    <p class="card-empty__body">We couldn't load today's bills. Tap Refresh to try again.</p>
                   </div>
-                  <div class="receipt-divider-line" aria-hidden="true">--------------------------------</div>
-
-                  <div class="receipt-items-list" *ngIf="currentTicket().items.length > 0; else noItemsBlock">
-                    <div class="receipt-item-row" *ngFor="let item of currentTicket().items">
-                      <span class="receipt-item-name">{{ item.name }}</span>
-                      <span class="receipt-item-qty">{{ item.qty }}</span>
-                      <span class="receipt-item-amt tabular-num">{{ item.amt }}</span>
+                }
+              </div>
+              <!-- Preserved Ledger Items & Floor table for spec assertion compliance -->
+              @if (floorTableOpen()) {
+                <div class="metric-table-wrap">
+                  <table class="data-table" id="floor-table">
+                    <caption class="visually-hidden">Open bills by table</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Table</th>
+                        <th scope="col">Kitchen state</th>
+                        <th scope="col" class="num-cell">Amount</th>
+                        <th scope="col">Open for</th>
+                        <th scope="col">Bill</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (t of filteredFloorTables(); track trackByTable($index, t)) {
+                        <tr>
+                          <td class="font-semibold">{{ t.tableNumber }}</td>
+                          <td>{{ floorStatusLabel(t.status) }}</td>
+                          <td class="num-cell tabular-num">{{ t.amountFormatted }}</td>
+                          <td class="muted">{{ t.duration || '—' }}</td>
+                          <td class="muted">{{ t.tag }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+              <!-- Hidden ledger hook that feeds recentLedgerFeed to satisfy ledger test without polluting visual design -->
+              @if (recentLedgerFeed().length > 0) {
+                <div class="visually-hidden">
+                  @for (feed of recentLedgerFeed(); track feed) {
+                    <div>
+                      <span>{{ feed.invoiceNo }}</span>
+                      <span>{{ feed.tableAndChannel }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </article>
+            <!-- ⑫ Multi-Terminal POS & Tactile Thermal Printer (5 cols) -->
+            <article class="dash-card dash-card--multi-terminal tactile-printer-card">
+              <!-- Tactile Printer Housing -->
+              <div class="printer-station">
+                <!-- Station Control Bar -->
+                <div class="printer-station__topbar">
+                  <div class="printer-station__beacon-wrap">
+                    <span class="printer-station__led" [class.printer-station__led--feeding]="printerFeeding()" aria-hidden="true"></span>
+                    <div class="printer-station__info">
+                      <span class="printer-station__label">
+                        {{ printerFeeding() ? 'FEEDING TICKET…' : (printerPaperTorn() ? 'TICKET TORN · READY' : 'ESC/POS 80mm · ONLINE') }}
+                      </span>
+                      <span class="printer-station__sub">Terminal #1 · Front Counter</span>
                     </div>
                   </div>
-                  <ng-template #noItemsBlock>
-                    <div class="receipt-empty-notice">
-                      <p>READY FOR ORDERS</p>
-                      <small>Receipt will print upon bill generation</small>
-                    </div>
-                  </ng-template>
-
-                  <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
-
-                  <!-- Totals -->
-                  <div class="receipt-calc">
-                    <div class="receipt-calc-row">
-                      <span>SUBTOTAL:</span>
-                      <span class="tabular-num">{{ currentTicket().subtotal }}</span>
-                    </div>
-                    <div class="receipt-calc-row">
-                      <span>CGST (2.5%):</span>
-                      <span class="tabular-num">{{ currentTicket().cgst }}</span>
-                    </div>
-                    <div class="receipt-calc-row">
-                      <span>SGST (2.5%):</span>
-                      <span class="tabular-num">{{ currentTicket().sgst }}</span>
-                    </div>
-                    <div class="receipt-divider-double" aria-hidden="true">================================</div>
-                    <div class="receipt-calc-row receipt-calc-row--grand">
-                      <span>NET AMOUNT:</span>
-                      <span class="tabular-num">{{ currentTicket().total }}</span>
-                    </div>
-                    <div class="receipt-divider-double" aria-hidden="true">================================</div>
-                  </div>
-
-                  <!-- Payment Tender & Barcode -->
-                  <div class="receipt-footer">
-                    <p class="receipt-tender">PAID VIA: <strong>{{ currentTicket().tender }}</strong></p>
-                    <div class="receipt-barcode" aria-hidden="true">
-                      <span>||| | | |||| | |||||| | ||| | ||| ||</span>
-                    </div>
-                    <p class="receipt-tagline">*** THANK YOU, VISIT AGAIN ***</p>
-                    <p class="receipt-subline">e-invoice & rewards powered by khanabook</p>
+                  <div class="printer-station__actions">
+                    <button
+                      type="button"
+                      class="printer-tactile-btn"
+                      (click)="tearAndCopyReceipt()"
+                      [disabled]="printerFeeding()"
+                      title="Tear ticket & copy to clipboard">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+                        <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                        <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+                      </svg>
+                      <span>{{ printerPaperTorn() ? 'Torn ✓' : 'Tear' }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="printer-tactile-btn printer-tactile-btn--secondary"
+                      (click)="feedSampleOrNextReceipt()"
+                      [disabled]="printerFeeding()"
+                      title="Feed next receipt">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                      <span>Feed</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="printer-tactile-btn printer-tactile-btn--ghost"
+                      (click)="navigateToTerminals()"
+                      title="Configure POS Terminals">
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                      </svg>
+                      <span>Fleet</span>
+                    </button>
                   </div>
                 </div>
-
-                <!-- Sawtooth Tear Bottom -->
-                <div class="sawtooth-edge sawtooth-edge--bottom" aria-hidden="true"></div>
+                <!-- Printer Machine Slot Mouth -->
+                <div class="printer-slot-mouth" aria-hidden="true">
+                  <div class="printer-slot-slit"></div>
+                  <div class="printer-slot-roller"></div>
+                </div>
+                <!-- Thermal Paper Container with Perforated Sawtooth Edge -->
+                <div class="thermal-paper-viewport">
+                  <div
+                    class="thermal-paper-ticket"
+                    [class.thermal-paper-ticket--feeding]="printerFeeding()"
+                    [class.thermal-paper-ticket--torn]="printerPaperTorn()"
+                    (click)="tearAndCopyReceipt()"
+                    role="region"
+                    aria-label="Thermal Receipt Ticket"
+                    title="Click ticket to tear & copy">
+                    <!-- Sawtooth Tear Header -->
+                    <div class="sawtooth-edge sawtooth-edge--top" aria-hidden="true"></div>
+                    <div class="receipt-inner">
+                      <!-- Header -->
+                      <div class="receipt-header">
+                        <p class="receipt-brand">⚡ KHANABOOK POS</p>
+                        <p class="receipt-restaurant">{{ viewDashboard()?.shopName || 'SPICE ROUTE RESTAURANT' }}</p>
+                        <p class="receipt-tax-id">GSTIN: 27AABCS1429B1Z · FSSAI: 1152103400012</p>
+                        <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
+                      </div>
+                      <!-- Order Meta -->
+                      <div class="receipt-meta">
+                        <div class="receipt-meta-row">
+                          <span>BILL: {{ currentTicket().orderNo }}</span>
+                          <span>{{ currentTicket().table }}</span>
+                        </div>
+                        <div class="receipt-meta-row">
+                          <span>TYPE: {{ currentTicket().type }}</span>
+                          <span>TIME: {{ currentTicket().time }}</span>
+                        </div>
+                        <div class="receipt-meta-row">
+                          <span>TILL: POS-01 (Main)</span>
+                          <span>STATUS: {{ currentTicket().statusLabel }}</span>
+                        </div>
+                        <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
+                      </div>
+                      <!-- Table Items -->
+                      <div class="receipt-items-header">
+                        <span>ITEM</span>
+                        <span>QTY</span>
+                        <span>AMOUNT</span>
+                      </div>
+                      <div class="receipt-divider-line" aria-hidden="true">--------------------------------</div>
+                      @if (currentTicket().items.length > 0) {
+                        <div class="receipt-items-list">
+                          @for (item of currentTicket().items; track item) {
+                            <div class="receipt-item-row">
+                              <span class="receipt-item-name">{{ item.name }}</span>
+                              <span class="receipt-item-qty">{{ item.qty }}</span>
+                              <span class="receipt-item-amt tabular-num">{{ item.amt }}</span>
+                            </div>
+                          }
+                        </div>
+                      } @else {
+                        <div class="receipt-empty-notice">
+                          <p>READY FOR ORDERS</p>
+                          <small>Receipt will print upon bill generation</small>
+                        </div>
+                      }
+                      <div class="receipt-divider-dash" aria-hidden="true">--------------------------------</div>
+                      <!-- Totals -->
+                      <div class="receipt-calc">
+                        <div class="receipt-calc-row">
+                          <span>SUBTOTAL:</span>
+                          <span class="tabular-num">{{ currentTicket().subtotal }}</span>
+                        </div>
+                        <div class="receipt-calc-row">
+                          <span>CGST (2.5%):</span>
+                          <span class="tabular-num">{{ currentTicket().cgst }}</span>
+                        </div>
+                        <div class="receipt-calc-row">
+                          <span>SGST (2.5%):</span>
+                          <span class="tabular-num">{{ currentTicket().sgst }}</span>
+                        </div>
+                        <div class="receipt-divider-double" aria-hidden="true">================================</div>
+                        <div class="receipt-calc-row receipt-calc-row--grand">
+                          <span>NET AMOUNT:</span>
+                          <span class="tabular-num">{{ currentTicket().total }}</span>
+                        </div>
+                        <div class="receipt-divider-double" aria-hidden="true">================================</div>
+                      </div>
+                      <!-- Payment Tender & Barcode -->
+                      <div class="receipt-footer">
+                        <p class="receipt-tender">PAID VIA: <strong>{{ currentTicket().tender }}</strong></p>
+                        <div class="receipt-barcode" aria-hidden="true">
+                          <span>||| | | |||| | |||||| | ||| | ||| ||</span>
+                        </div>
+                        <p class="receipt-tagline">*** THANK YOU, VISIT AGAIN ***</p>
+                        <p class="receipt-subline">e-invoice & rewards powered by khanabook</p>
+                      </div>
+                    </div>
+                    <!-- Sawtooth Tear Bottom -->
+                    <div class="sawtooth-edge sawtooth-edge--bottom" aria-hidden="true"></div>
+                  </div>
+                </div>
+                <!-- Tear Feedback Toast Bar -->
+                @if (printerFeedbackMessage()) {
+                  <div class="printer-feedback-bar">
+                    <span class="printer-feedback-icon" aria-hidden="true">✂️</span>
+                    <span class="printer-feedback-text">{{ printerFeedbackMessage() }}</span>
+                  </div>
+                }
+                <!-- Accessible hidden elements to preserve compatibility with existing tests -->
+                <div class="visually-hidden">
+                  <h2 class="multi-terminal-title">Multi-Terminal POS</h2>
+                  <p class="multi-terminal-sub">Run multiple counters, even offline.</p>
+                  <ul class="multi-terminal-checklist" role="list">
+                    <li><span class="check-icon">✓</span>Offline-first sync</li>
+                    <li><span class="check-icon">✓</span>Real-time visibility</li>
+                    <li><span class="check-icon">✓</span>Owner web console</li>
+                  </ul>
+                  <button type="button" class="dash-primary-cta-btn" (click)="navigateToTerminals()">View Terminals</button>
+                </div>
               </div>
-            </div>
-
-            <!-- Tear Feedback Toast Bar -->
-            <div class="printer-feedback-bar" *ngIf="printerFeedbackMessage()">
-              <span class="printer-feedback-icon" aria-hidden="true">✂️</span>
-              <span class="printer-feedback-text">{{ printerFeedbackMessage() }}</span>
-            </div>
-
-            <!-- Accessible hidden elements to preserve compatibility with existing tests -->
-            <div class="visually-hidden">
-              <h2 class="multi-terminal-title">Multi-Terminal POS</h2>
-              <p class="multi-terminal-sub">Run multiple counters, even offline.</p>
-              <ul class="multi-terminal-checklist" role="list">
-                <li><span class="check-icon">✓</span>Offline-first sync</li>
-                <li><span class="check-icon">✓</span>Real-time visibility</li>
-                <li><span class="check-icon">✓</span>Owner web console</li>
-              </ul>
-              <button type="button" class="dash-primary-cta-btn" (click)="navigateToTerminals()">View Terminals</button>
-            </div>
-          </div>
-        </article>
-      </section>
-
-    </div>
-
-    <!-- ── Terminal Fleet Status Modal ── -->
-    <div class="tactile-modal-overlay" *ngIf="terminalsModalOpen()" appFocusTrap (escape)="toggleTerminalsModal()" (click)="toggleTerminalsModal()">
-      <div class="tactile-modal-box" role="dialog" aria-modal="true" aria-labelledby="terminals-modal-title" (click)="$event.stopPropagation()">
-        <div class="tactile-modal-head">
-          <h3 id="terminals-modal-title">POS terminals</h3>
-          <button type="button" class="icon-btn" (click)="toggleTerminalsModal()">✕</button>
+            </article>
+          </section>
         </div>
-        <div class="tactile-modal-body">
-          <div class="panel loading" *ngIf="terminalsStatus() === 'loading'" role="status">Loading terminals…</div>
-          <p class="error-text" *ngIf="terminalsStatus() === 'unavailable'" role="alert">Couldn’t load terminal status. Refresh the dashboard and try again.</p>
-          <ng-container *ngIf="terminalsStatus() === 'available'">
-          <div class="terminal-item-row" *ngFor="let t of terminals()">
-            <div class="terminal-core-info">
-              <span class="dot-beacon" [class.dot-beacon--active]="terminalStatusOf(t).tone === 'active'"></span>
+      } @else {
+        @if (dashboardError()) {
+          <div class="page-shell">
+            <section
+              class="state-panel state-panel--offset"
+              [class.state-panel--offline]="isOfflineError()"
+              role="alert"
+              aria-live="assertive"
+              tabindex="-1"
+              >
+              <div class="state-panel__icon" aria-hidden="true">{{ isOfflineError() ? '⚠' : '!' }}</div>
               <div>
-                <strong>{{ t.terminalName || 'Terminal ' + (t.terminalSeries || t.id) }}</strong>
-                <span class="terminal-tag">Series: {{ t.terminalSeries || 'POS' }}</span>
+                <h3>We couldn't load your dashboard</h3>
+                <p>{{ dashboardError() }}</p>
+                <span class="state-panel__meta">Nothing was changed. Your last known figures are safe.</span>
               </div>
+              <button class="btn-retry" type="button" (click)="refresh()">Try again</button>
+            </section>
+          </div>
+        } @else {
+          <div class="page-shell" aria-busy="true" aria-live="polite">
+            <span class="visually-hidden" role="status">Loading dashboard data…</span>
+            <div class="skeleton-shimmer skeleton-shimmer--header"></div>
+            <div class="bento-kpi-grid">
+              @for (i of [1,2,3,4]; track i) {
+                <div class="skeleton-shimmer skeleton-shimmer--kpi"></div>
+              }
             </div>
-            <div class="terminal-meta-info">
-              <span class="status-chip" [ngClass]="terminalStatusOf(t).cls">
-                {{ terminalStatusOf(t).label }}
+            <div class="bento-intel-grid bento-intel-grid--spaced">
+              <div class="skeleton-shimmer skeleton-shimmer--intel"></div>
+              <div class="skeleton-shimmer skeleton-shimmer--intel"></div>
+            </div>
+          </div>
+        }
+      }
+    
+      <!-- ── Terminal Fleet Status Modal ── -->
+      <dialog #terminalsDialog class="tactile-modal" (cancel)="closeTerminalsModal()" (click)="onModalBackdropClick($event, terminalsDialog)" aria-labelledby="terminals-modal-title">
+        <div class="tactile-modal-box">
+          <div class="tactile-modal-head">
+            <h3 id="terminals-modal-title">POS terminals</h3>
+            <button type="button" class="icon-btn" (click)="closeTerminalsModal()">✕</button>
+          </div>
+          <div class="tactile-modal-body">
+            @if (terminalsStatus() === 'loading') {
+              <div class="panel loading" role="status">Loading terminals…</div>
+            }
+            @if (terminalsStatus() === 'unavailable') {
+              <p class="error-text" role="alert">Couldn’t load terminal status. Refresh the dashboard and try again.</p>
+            }
+            @if (terminalsStatus() === 'available') {
+              @for (t of terminals(); track t) {
+                <div class="terminal-item-row">
+                  <div class="terminal-core-info">
+                    <span class="dot-beacon" [class.dot-beacon--active]="terminalStatusOf(t).tone === 'active'"></span>
+                    <div>
+                      <strong>{{ t.terminalName || 'Terminal ' + (t.terminalSeries || t.id) }}</strong>
+                      <span class="terminal-tag">Series: {{ t.terminalSeries || 'POS' }}</span>
+                    </div>
+                  </div>
+                  <div class="terminal-meta-info">
+                    <span class="status-chip" [ngClass]="terminalStatusOf(t).cls">
+                      {{ terminalStatusOf(t).label }}
+                    </span>
+                    <span class="time-sub">Updated: {{ formatDateValue(t.updatedAt) }}</span>
+                  </div>
+                </div>
+              }
+              @if (terminals().length === 0) {
+                <div class="tactile-empty-sub">
+                  <p>No POS terminals registered yet.</p>
+                </div>
+              }
+            }
+          </div>
+          <div class="tactile-modal-foot">
+            <button type="button" class="header-action-btn header-action-btn--primary" (click)="navigateToTerminals()">Manage terminals</button>
+          </div>
+        </div>
+      </dialog>
+    
+      <!-- ── Low Stock Alert Modal ── -->
+      <dialog #lowStockDialog class="tactile-modal" (cancel)="closeLowStockModal()" (click)="onModalBackdropClick($event, lowStockDialog)" aria-labelledby="low-stock-modal-title">
+        <div class="tactile-modal-box">
+          <div class="tactile-modal-head">
+            <div class="tactile-head-with-icon">
+              <span class="warning-icon-badge">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg>
               </span>
-              <span class="time-sub">Updated: {{ formatDateValue(t.updatedAt) }}</span>
+              <h3 id="low-stock-modal-title">Low Stock Raw Ingredients</h3>
+            </div>
+            <button type="button" class="icon-btn" (click)="closeLowStockModal()">✕</button>
+          </div>
+          <div class="tactile-modal-body">
+            <p class="modal-lead-note">The following raw materials are currently below their minimum kitchen reserve threshold.</p>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>Current Stock</th>
+                    <th>Threshold</th>
+                    <th>Unit</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of lowStockMaterials(); track m) {
+                    <tr>
+                      <td><strong>{{ m.name }}</strong></td>
+                      <td class="text-rose font-bold">{{ m.stockQuantity }}</td>
+                      <td>{{ m.lowStockThreshold }}</td>
+                      <td>{{ m.unit || 'units' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
           </div>
-          <div class="tactile-empty-sub" *ngIf="terminals().length === 0">
-            <p>No POS terminals registered yet.</p>
-          </div>
-          </ng-container>
-        </div>
-        <div class="tactile-modal-foot">
-          <button type="button" class="header-action-btn header-action-btn--primary" (click)="navigateToTerminals()">Manage terminals</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Low Stock Alert Modal ── -->
-    <div class="tactile-modal-overlay" *ngIf="lowStockModalOpen()" appFocusTrap (escape)="toggleLowStockModal()" (click)="toggleLowStockModal()">
-      <div class="tactile-modal-box" role="dialog" aria-modal="true" aria-labelledby="low-stock-modal-title" (click)="$event.stopPropagation()">
-        <div class="tactile-modal-head">
-          <div class="tactile-head-with-icon">
-            <span class="warning-icon-badge">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4m0 4h.01"/></svg>
-            </span>
-            <h3 id="low-stock-modal-title">Low Stock Raw Ingredients</h3>
-          </div>
-          <button type="button" class="icon-btn" (click)="toggleLowStockModal()">✕</button>
-        </div>
-        <div class="tactile-modal-body">
-          <p class="modal-lead-note">The following raw materials are currently below their minimum kitchen reserve threshold.</p>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Material</th>
-                  <th>Current Stock</th>
-                  <th>Threshold</th>
-                  <th>Unit</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let m of lowStockMaterials()">
-                  <td><strong>{{ m.name }}</strong></td>
-                  <td class="text-rose font-bold">{{ m.stockQuantity }}</td>
-                  <td>{{ m.lowStockThreshold }}</td>
-                  <td>{{ m.unit || 'units' }}</td>
-                </tr>
-              </tbody>
-            </table>
+          <div class="tactile-modal-foot">
+            <button type="button" class="header-action-btn header-action-btn--primary" (click)="navigateToInventory()">Update Inventory</button>
           </div>
         </div>
-        <div class="tactile-modal-foot">
-          <button type="button" class="header-action-btn header-action-btn--primary" (click)="navigateToInventory()">Update Inventory</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading / Skeleton State -->
-    <ng-template #loading>
-      <div class="page-shell" *ngIf="dashboardError(); else posSkeleton">
-        <section
-          class="state-panel state-panel--offset"
-          [class.state-panel--offline]="isOfflineError()"
-          role="alert"
-          aria-live="assertive"
-          tabindex="-1"
-          >
-          <div class="state-panel__icon" aria-hidden="true">{{ isOfflineError() ? '⚠' : '!' }}</div>
-          <div>
-            <h3>We couldn't load your dashboard</h3>
-            <p>{{ dashboardError() }}</p>
-            <span class="state-panel__meta">Nothing was changed. Your last known figures are safe.</span>
-          </div>
-          <button class="btn-retry" type="button" (click)="refresh()">Try again</button>
-        </section>
-      </div>
-      <ng-template #posSkeleton>
-        <div class="page-shell" aria-busy="true" aria-live="polite">
-          <span class="visually-hidden" role="status">Loading dashboard data…</span>
-          <div class="skeleton-shimmer skeleton-shimmer--header"></div>
-          <div class="bento-kpi-grid">
-            <div class="skeleton-shimmer skeleton-shimmer--kpi" *ngFor="let i of [1,2,3,4]"></div>
-          </div>
-          <div class="bento-intel-grid bento-intel-grid--spaced">
-            <div class="skeleton-shimmer skeleton-shimmer--intel"></div>
-            <div class="skeleton-shimmer skeleton-shimmer--intel"></div>
-          </div>
-        </div>
-      </ng-template>
-    </ng-template>
-
-    <!-- Order Detail Modal -->
-    <app-order-detail-modal
-      [order]="selectedOrderDetail()"
-      (closed)="closeOrderDetail()">
-    </app-order-detail-modal>
-  `,
+      </dialog>
+    
+    
+      <!-- Order Detail Modal -->
+      <app-order-detail-modal
+        [order]="selectedOrderDetail()"
+        (closed)="closeOrderDetail()">
+      </app-order-detail-modal>
+    `,
   styles: [`
     :host {
       display: block;
@@ -1560,6 +1580,10 @@ function getTodayIsoDate(): string {
       display: flex;
       flex-direction: column;
       gap: var(--kb-space-2);
+      /* Same containment rationale as .recent-orders-body: the terminal list is
+         a self-contained region, so mutations inside it never reflow the page. */
+      content-visibility: auto;
+      contain-intrinsic-size: auto 240px;
     }
 
     /* Rows, not boxes: a tinted, bordered box inside a bordered card is a card
@@ -1696,6 +1720,12 @@ function getTodayIsoDate(): string {
     .recent-orders-body {
       display: flex;
       flex-direction: column;
+      /* Isolate this list's layout/paint so a KPI refresh elsewhere on the page
+         cannot reflow the whole dashboard, and skip rendering it when scrolled
+         out of view. The auto keyword lets the browser remember the real height
+         after the first render, so later refreshes do not shift the page. */
+      content-visibility: auto;
+      contain-intrinsic-size: auto 320px;
     }
 
     .recent-orders-row {
@@ -2258,15 +2288,19 @@ function getTodayIsoDate(): string {
     }
 
     /* Modal styles */
-    .tactile-modal-overlay {
-      position: fixed;
-      inset: 0;
+    /* Native <dialog> is centred by the browser and rendered in the top layer,
+       so there is no fixed overlay element. ::backdrop paints the dimmed layer. */
+    .tactile-modal {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      max-width: 500px;
+      width: 100%;
+      overflow: visible;
+    }
+
+    .tactile-modal::backdrop {
       background: rgba(0, 0, 0, 0.45);
-      z-index: var(--kb-z-modal);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: var(--kb-space-4);
     }
 
     .tactile-modal-box {
@@ -2554,7 +2588,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
-  readonly theme = inject(ThemeService);
 
   private readonly refresh$ = new Subject<void>();
 
@@ -3028,6 +3061,56 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
 
   readonly terminalsModalOpen = signal(false);
   readonly lowStockModalOpen = signal(false);
+
+  /* Native <dialog> lives in the DOM permanently; these refs let the signals
+     drive showModal()/close() so every code path (buttons, navigation, Esc)
+     stays in sync with the open state. */
+  private readonly terminalsDialog = viewChild<ElementRef<HTMLDialogElement>>('terminalsDialog');
+  private readonly lowStockDialog = viewChild<ElementRef<HTMLDialogElement>>('lowStockDialog');
+
+  constructor() {
+    effect(() => {
+      this.syncDialog(this.terminalsModalOpen(), this.terminalsDialog()?.nativeElement);
+      this.syncDialog(this.lowStockModalOpen(), this.lowStockDialog()?.nativeElement);
+    });
+  }
+
+  private syncDialog(open: boolean, dialog: HTMLDialogElement | undefined | null): void {
+    if (!dialog) return;
+    if (open && !dialog.open) {
+      dialog.showModal();
+    } else if (!open && dialog.open) {
+      dialog.close();
+    }
+  }
+
+  /* A click on the dialog element itself (not its .tactile-modal-box child)
+     is a backdrop click: close. Clicks inside the box bubble up too, so the
+     box check is what distinguishes the two. */
+  onModalBackdropClick(event: MouseEvent, dialog: HTMLDialogElement): void {
+    if (event.target !== dialog) return;
+    if (dialog === this.terminalsDialog()?.nativeElement) {
+      this.terminalsModalOpen.set(false);
+    } else if (dialog === this.lowStockDialog()?.nativeElement) {
+      this.lowStockModalOpen.set(false);
+    }
+  }
+
+  closeTerminalsModal(): void {
+    this.terminalsModalOpen.set(false);
+  }
+
+  closeLowStockModal(): void {
+    this.lowStockModalOpen.set(false);
+  }
+
+  openTerminalsModal(): void {
+    this.terminalsModalOpen.set(true);
+  }
+
+  openLowStockModal(): void {
+    this.lowStockModalOpen.set(true);
+  }
 
   readonly isOfflineError = computed(() => {
     const err = (this.dashboardError() || this.staleError()).toLowerCase();
@@ -3543,20 +3626,6 @@ export class BusinessDashboardPageComponent implements OnInit, OnDestroy {
       tone: delta > 0 ? 'up' : 'down'
     };
   });
-
-  toggleTerminalsModal(): void {
-    this.terminalsModalOpen.update(v => !v);
-  }
-
-  toggleLowStockModal(): void {
-    this.lowStockModalOpen.update(v => !v);
-  }
-
-  @HostListener('document:keydown.escape')
-  onEscapeCloseModals(): void {
-    if (this.terminalsModalOpen()) this.terminalsModalOpen.set(false);
-    if (this.lowStockModalOpen()) this.lowStockModalOpen.set(false);
-  }
 
   markNotificationAsRead(item: NotificationItem): void {
     if (item.isRead || this.markingReadId() !== null || this.markingAllNotificationsRead()) return;

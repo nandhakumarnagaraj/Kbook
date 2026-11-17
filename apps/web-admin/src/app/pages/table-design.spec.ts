@@ -289,7 +289,7 @@ function measureDashboardLowStockModal(): { label: string; design: TableDesign }
     { provide: BusinessApiService, useValue: api },
     { provide: Router, useValue: routerStub },
   ]);
-  fixture.componentInstance.toggleLowStockModal();
+  fixture.componentInstance.openLowStockModal();
   fixture.detectChanges();
   const result = { label: 'dashboard low-stock modal (was the global .orders-tactile-table)', design: designOf(fixture.nativeElement, 'dashboard modal') };
   fixture.destroy();

@@ -322,8 +322,8 @@ export class SalesOverviewPageComponent implements OnInit {
       ];
     }
 
-    return [...list]
-      .sort((a, b) => (b.orderCount || 0) - (a.orderCount || 0))
+    return list
+      .toSorted((a, b) => (b.orderCount || 0) - (a.orderCount || 0))
       .slice(0, 5)
       .map((b, idx) => ({
         rank: idx + 1,

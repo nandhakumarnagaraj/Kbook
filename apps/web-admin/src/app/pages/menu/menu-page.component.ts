@@ -1654,7 +1654,7 @@ export class MenuPageComponent implements OnDestroy {
 
   /** Mirrors the server ordering so a newly starred row visibly moves to the top. */
   private sortCategoriesFavouritesFirst(): void {
-    this.categories = [...this.categories].sort((a, b) => {
+    this.categories = this.categories.toSorted((a, b) => {
       const byFavourite = Number(!!b.isFavourite) - Number(!!a.isFavourite);
       return byFavourite !== 0 ? byFavourite : a.name.localeCompare(b.name);
     });
