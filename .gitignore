@@ -252,3 +252,6 @@ apps/android/app/khanabook-release-key.jks
 /.cursor/
 /.gemini/
 /*.apk
+
+# Local AI model API config at repo root (contains a live API key — never commit)
+/configuration.js
