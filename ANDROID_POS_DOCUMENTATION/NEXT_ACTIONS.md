@@ -2,6 +2,67 @@
 
 Ordered by blocking value. Session references point at `DEVICE_SESSIONS/SESSION_LOG.md`.
 
+## From the 2026-11-14 lint cleanup (addendum 18:0x)
+
+S. **Launcher icon warnings** — **DONE 2026-11-14 19:0x.** Adaptive icon merged into `res/mipmap/`
+   (the `v26` folder is gone), monochrome layer added, legacy square PNGs removed, duplicate logo
+   drawable deduped. All icon warnings are at 0. Remaining gap: themed-icon rendering was not
+   visually confirmed because this launcher exposes no themed-icon toggle; re-check on an
+   Android 13+ launcher with themed icons enabled before claiming that behaviour.
+
+T. **Deprecated Google sign-in** — `CredentialManagerSignInWithGoogle` (2). Lint points at the
+   Credential Manager migration for the auth flow; out of scope for a cleanup pass and needs its own
+   test plan against the backend.
+
+U. **Remaining style-only warnings** — `UseKtx` (76), `UseTomlInstead` (14). Mechanical churn with no
+   behaviour change; do only when touching those files.
+
+## From the 2026-11-14 dead-code audit (Session 011 addendum 17:0x)
+
+Full verified list: `DEVICE_SESSIONS/SESSION_LOG.md` → "Addendum 17:0x". Nothing was deleted in
+the audit; both items below are decisions.
+
+Q. **Delete the verified-dead UI symbols.** 20 declarations with no caller anywhere, including
+   `ReportDownloadBottomBar`, the four `ReportViews` aliases (`OrderHistoryTable`, `OrderLevelView`,
+   `OrderRowItem`, `OrderDateFilterTabs`), `KhanaInvoiceShareSheet`, `SignaturePad`, `directPrint`,
+   `payModeColor` / `getPayModeIconTint`, `BillInfoHeader` / `ActiveOrderItemCard` /
+   `CompactMenuSection`, `TableHeader`, `BillSummaryDisplay` / `PaymentModeSelector` /
+   `loadShopLogoBlockingSection`, `AppInfoSection`, `CustomerNumberCollectorSelector`,
+   `NotStartedContent`, `DetailStatusRow`, `loginTextFieldColors`, three `AppLockScreen` callbacks.
+   - Status: **DONE (2026-11-14 17:2x)** — owner approved all groups; deleted and verified. See
+     `DEVICE_SESSIONS/SESSION_LOG.md` addendum 17:2x. One audit entry was a false positive and was
+     kept: the three `AppLockScreen` biometric callbacks are framework overrides.
+
+R. **Decide the hidden functionality before deleting it.** Some dead symbols are the *only* route
+   to a feature, so deleting them removes that feature rather than dead weight:
+   - `exportReport` + `buildShareText` + `ReportDownloadBottomBar` — PDF/CSV export and share text
+     have no button anywhere. Delete, or surface a download/share action on the Orders screen?
+   - `DetailStatusRow` — no order status is shown in `OrderDetailsDialog`.
+   - `BillInfoHeader` / `ActiveOrderItemCard` / `CompactMenuSection` — the active-order detail screen
+     does not render them.
+   - `AppInfoSection` and `CustomerNumberCollectorSelector` — no settings entry for about/app info
+     and none for customer-number collection.
+   - Status: **DONE (2026-11-14 17:2x)** — owner chose delete for all five groups. Consequence:
+     report PDF/CSV export and share text no longer exist anywhere in the app; order status is still
+     not shown in the details dialog (its status row was removed with the dead component); the
+     active-order detail screen and settings are unchanged visually because none of the removed
+     pieces were rendered. If export is wanted later it must be rebuilt on top of `ReportGenerator`
+     (the exporter was deleted too).
+
+## From the 2026-11-14 Orders screen cleanup (Session 011)
+
+O. **Verify the new chip labels on device** — DONE 2026-11-14 16:1x (Session 011 addendum):
+   `Today` → `14 Nov`, `Yesterday` → `13 Nov` observed on `ZA222J5KT7` (PKG installed 16:10:35);
+   the table was the only content in every state and the Custom picker still opens.
+   - Still unscheduled: re-pick a Custom range after `Apply` and check the label fits one line at
+     the largest type scale (`FilterChip` is `maxLines = 1` with ellipsis).
+
+P. **Fate of the unreachable `PaymentLevelView`** — DONE 2026-11-14 16:10 (Session 011
+   addendum): deleted, together with its orphaned `PaymentModeItem` / `PartPaymentCard` /
+   `ReportTypeToggle` helpers, `_reportType` / `reportType` / `setReportType`, and the `reportType`
+   parameter of `ReportExporter.exportToPdf` / `exportToCsv`. `paymentBreakdown` was kept because
+   it feeds the live payment summary inside both exports.
+
 ## From the 2026-11-14 Orders screen review (Session 009)
 
 Gap analysis from Session 009. **H, I, J implemented and verified on device in Session 010.**
@@ -24,7 +85,12 @@ H. **Make the business window visible on the Orders screen** — SUPERSEDED 2026
 I. **Add day context to the table** — DONE 2026-11-14 (Session 010):
    - `Yesterday`/`Custom` render `dd MMM` + `hh:mm a` on two lines inside the existing
      `Time` column and the header reads `Date/Time`; `Today` stays time-only.
-   - Column weights unchanged; verified live with a 12–14 Nov Custom range.
+   - Column weights unchanged (1.15 / 1.05 / 1.05 / 0.75); verified live with a
+     12–14 Nov Custom range.
+   - Note (14 Nov 2026): per product request, `includeDate` is now `false` for all
+     filters, so the header always reads `Time` and rows show only `hh:mm a` — no
+     date prefix in any filter.
+     (`dd MMM / hh:mm a`) and the header reads `Date/Time`.
 
 J. **Fix the row time zone** — DONE 2026-11-14 (Session 010):
    - Row timestamps now use `BusinessDate.zoneOf(profile.timezone)`, the same zone as the
@@ -35,8 +101,13 @@ K. **Row-level modifications.** `OrderTableRow` still declares `onStatusChange`,
    `OrderHistoryTableComponent(includeDate = …)` but still never invoked from the row.
    Decide: wire them to a row action menu, or delete the dead parameters and keep edits
    inside `OrderDetailsDialog`.
-   - Status: open decision. Do not add a second editing path without deciding where
-     authority lives.
+   - Status: **CLOSED 2026-11-14 17:2x** — owner chose to delete the dead parameters. The row no
+     longer carries status/payment/cancel callbacks; `OrderDetailsDialog` is the only editing path.
+   - 2026-11-14 16:2x: the visible row action is a `MoreVert` (⋮) button described as
+     "More options", but it opens `OrderDetailsDialog` exactly like a row tap. Either it becomes
+     the real menu this item needs, or it should read as a "view" affordance. Not changed.
+   - **Filter freeze:** `Today` / `Yesterday` / `Custom` were approved as shipped on 2026-11-14
+     and are not to be edited again.
 
 L. **Status change is unreachable** from this screen (`updateOrderStatus` has no caller here). Fold into K.
    - Status: open decision.

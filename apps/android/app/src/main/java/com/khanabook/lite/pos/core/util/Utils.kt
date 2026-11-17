@@ -125,7 +125,7 @@ private fun showAppToast(message: String, kind: ToastKind = ToastKind.Info) {
  */
 object CurrencyUtils {
     fun formatPrice(amount: Double, currency: String = "\u20b9"): String {
-        return "$currency ${String.format("%.2f", amount)}"
+        return "$currency ${String.format(Locale.US, "%.2f", amount)}"
     }
 
     fun formatPrice(amount: String?, currency: String = "\u20b9"): String {
@@ -141,7 +141,7 @@ object CurrencyUtils {
     fun formatPriceCompact(amount: Double, currency: String = "\u20b9"): String {
         val whole = amount.toLong()
         return if (amount == whole.toDouble()) "$currency $whole"
-        else "$currency ${String.format("%.2f", amount)}"
+        else "$currency ${String.format(Locale.US, "%.2f", amount)}"
     }
 }
 
@@ -469,37 +469,3 @@ fun openBillToPrint(context: Context, billWithItems: BillWithItems, profile: Res
     }
 }
 
-/**
- * Direct print functionality using the [BluetoothPrinterManager].
- */
-fun directPrint(
-    context: Context, 
-    billWithItems: BillWithItems, 
-    profile: RestaurantProfileEntity?, 
-    printerManager: com.khanabook.lite.pos.feature.printing.domain.BluetoothPrinterManager
-) {
-    if (profile?.printerEnabled != true) {
-        openBillToPrint(context, billWithItems, profile)
-        return
-    }
-
-    val scope = (context.findActivity() as? androidx.lifecycle.LifecycleOwner)?.lifecycleScope 
-        ?: (context as? androidx.lifecycle.LifecycleOwner)?.lifecycleScope
-        ?: CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-
-    scope.launch(Dispatchers.IO) {
-        if (!printerManager.isConnected() && !profile.printerMac.isNullOrBlank()) {
-            printerManager.connect(profile.printerMac)
-        }
-        
-        if (printerManager.isConnected()) {
-            val bytes = InvoiceFormatter.formatForThermalPrinter(billWithItems, profile, context)
-            printerManager.printBytes(bytes)
-        } else {
-            kotlinx.coroutines.withContext(Dispatchers.Main) {
-                KhanaToast.show(context.getString(R.string.toast_printer_opening_pdf), ToastKind.Warning)
-                openBillToPrint(context, billWithItems, profile)
-            }
-        }
-    }
-}

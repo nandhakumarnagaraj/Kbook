@@ -55,40 +55,6 @@ import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
 
 @Composable
-internal fun AppInfoSection() {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val toastScope = rememberCoroutineScope()
-    val spacing = KhanaBookTheme.spacing
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.medium),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
-    ) {
-        Text(
-            "KBook v${BuildConfig.VERSION_NAME}",
-            color = TextGold.copy(alpha = 0.5f),
-            style = MaterialTheme.typography.labelSmall,
-            textAlign = TextAlign.Center
-        )
-        TextButton(onClick = {
-            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:kbook@pcts.tech")
-                putExtra(Intent.EXTRA_SUBJECT, "KhanaBook Lite Support")
-            }
-            try {
-                context.startActivity(intent)
-            } catch (_: Exception) {
-                toastScope.launch {
-                    KhanaToast.show("No email app is available", ToastKind.Error)
-                }
-            }
-        }) {
-            Text("Contact Support", color = PrimaryGold.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
-        }
-    }
-}
-
-@Composable
 fun LogoutSection(viewModel: com.khanabook.lite.pos.feature.auth.viewmodel.LogoutViewModel) {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize

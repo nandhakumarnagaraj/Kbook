@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -476,7 +477,7 @@ fun QuickStartScreen(
                                 ),
                                 supportingText = {
                                     Text(
-                                        text = otpError ?: if (otpTimer > 0) "OTP expires in ${String.format("%02d:%02d", otpTimer / 60, otpTimer % 60)}" else "OTP expired. Tap Get OTP to resend.",
+                                        text = otpError ?: if (otpTimer > 0) "OTP expires in ${String.format(Locale.US, "%02d:%02d", otpTimer / 60, otpTimer % 60)}" else "OTP expired. Tap Get OTP to resend.",
                                         color = if (otpError != null) ErrorPink else TextGold.copy(alpha = 0.7f),
                                         style = MaterialTheme.typography.labelSmall
                                     )
@@ -491,7 +492,7 @@ fun QuickStartScreen(
                                         )
                                     } else if (otpTimer > 0) {
                                         Text(
-                                            text = String.format("%02d:%02d", otpTimer / 60, otpTimer % 60),
+                                            text = String.format(Locale.US, "%02d:%02d", otpTimer / 60, otpTimer % 60),
                                             color = TextGold,
                                             style = MaterialTheme.typography.labelSmall
                                         )

@@ -84,6 +84,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
+import java.util.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.net.Uri
 import com.khanabook.lite.pos.R
@@ -382,7 +383,7 @@ fun ShopConfigView(
                 .verticalScroll(scrollState)
                 .padding(layout.contentPadding)
         ) {
-            // Card 1: Restaurant Details
+            // Card 1: logo, shop identity and contact fields
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
@@ -393,34 +394,24 @@ fun ShopConfigView(
                     modifier = Modifier.padding(spacing.large),
                     verticalArrangement = Arrangement.spacedBy(spacing.medium)
                 ) {
-                    // Header Row
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(spacing.medium)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Storefront,
-                            contentDescription = null,
-                            tint = PrimaryGold,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Restaurant Details",
-                                color = TextLight,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            Text(
-                                text = "Configure your restaurant information",
-                                color = TextGold.copy(alpha = 0.7f),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-
                     if (readOnly) {
                         com.khanabook.lite.pos.feature.settings.ui.ReadOnlyConfigNotice(
                             "Read-only: only the restaurant owner can edit the shop configuration."
+                        )
+                    }
+
+                    // Logo section header — the card now starts with the logo itself, so it
+                    // needs a label saying what the logo is for.
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "Shop Logo",
+                            color = TextLight,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = "Shown on bills and receipts",
+                            color = TextGold.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
 
@@ -607,7 +598,7 @@ fun ShopConfigView(
                             trailingIcon = {
                                 if (otpTimer > 0 && !isOtpVerified) {
                                     Text(
-                                        String.format("%02d:%02d", otpTimer / 60, otpTimer % 60),
+                                        String.format(Locale.US, "%02d:%02d", otpTimer / 60, otpTimer % 60),
                                         color = TextLight,
                                         style = MaterialTheme.typography.labelLarge,
                                         modifier = Modifier.padding(end = spacing.medium)
@@ -702,7 +693,7 @@ fun ShopConfigView(
                             trailingIcon = {
                                 if (emailOtpTimer > 0 && !isEmailOtpVerified) {
                                     Text(
-                                        String.format("%02d:%02d", emailOtpTimer / 60, emailOtpTimer % 60),
+                                        String.format(Locale.US, "%02d:%02d", emailOtpTimer / 60, emailOtpTimer % 60),
                                         color = TextLight,
                                         style = MaterialTheme.typography.labelLarge,
                                         modifier = Modifier.padding(end = spacing.medium)

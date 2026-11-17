@@ -36,8 +36,7 @@ object NotificationHelper {
      * The single source of truth: the OS channel's own name and description are reused by
      * the in-app notifications preferences screen, so the two can never disagree.
      */
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun registeredChannels(context: Context): List<NotificationChannel> = listOf(
+        fun registeredChannels(context: Context): List<NotificationChannel> = listOf(
         paymentChannel(context),
         refundChannel(context),
         settlementChannel(context),
@@ -53,8 +52,7 @@ object NotificationHelper {
      * or Application.onCreate().
      */
     fun createChannels(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
+        
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         // Create notification channel groups first to avoid "NotificationChannelGroup doesn't exist" crash
@@ -76,8 +74,7 @@ object NotificationHelper {
      * instead of us reporting a stale "on".
      */
     fun isChannelEnabled(context: Context, channelId: String): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val existing = manager.getNotificationChannel(channelId) ?: return true
         return existing.importance != NotificationManager.IMPORTANCE_NONE
     }
@@ -95,8 +92,7 @@ object NotificationHelper {
      * why those two remain configurable in Android Settings rather than here.
      */
     fun setChannelEnabled(context: Context, channelId: String, enabled: Boolean) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val designed = registeredChannels(context).firstOrNull { it.id == channelId } ?: return
         if (enabled) {
             manager.deleteNotificationChannel(designed.id)
@@ -117,8 +113,7 @@ object NotificationHelper {
 
     // ── Channel Definitions ─────────────────────────────────────
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun paymentChannel(context: Context): NotificationChannel {
+        private fun paymentChannel(context: Context): NotificationChannel {
         val channel = NotificationChannel(
             CHANNEL_PAYMENT,
             "Payment Received",
@@ -139,8 +134,7 @@ object NotificationHelper {
         return channel
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun refundChannel(context: Context): NotificationChannel {
+        private fun refundChannel(context: Context): NotificationChannel {
         val channel = NotificationChannel(
             CHANNEL_REFUND,
             "Refund Updates",
@@ -161,8 +155,7 @@ object NotificationHelper {
         return channel
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun inventoryChannel(context: Context): NotificationChannel {
+        private fun inventoryChannel(context: Context): NotificationChannel {
         val channel = NotificationChannel(
             CHANNEL_INVENTORY,
             "Low Stock Alerts",
@@ -176,8 +169,7 @@ object NotificationHelper {
         return channel
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun shiftChannel(context: Context): NotificationChannel {
+        private fun shiftChannel(context: Context): NotificationChannel {
         val channel = NotificationChannel(
             CHANNEL_SHIFT,
             "Shift & Closing Alerts",
@@ -198,8 +190,7 @@ object NotificationHelper {
         return channel
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun kycChannel(context: Context): NotificationChannel {        val channel = NotificationChannel(
+        private fun kycChannel(context: Context): NotificationChannel {        val channel = NotificationChannel(
             CHANNEL_KYC,
             "KYC Verification",
             NotificationManager.IMPORTANCE_HIGH
@@ -219,8 +210,7 @@ object NotificationHelper {
         return channel
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun settlementChannel(context: Context): NotificationChannel {
+        private fun settlementChannel(context: Context): NotificationChannel {
         val channel = NotificationChannel(
             CHANNEL_SETTLEMENT,
             "Settlements",
@@ -241,8 +231,7 @@ object NotificationHelper {
         return channel
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun systemChannel(context: Context): NotificationChannel {
+        private fun systemChannel(context: Context): NotificationChannel {
         val channel = NotificationChannel(
             CHANNEL_SYSTEM,
             "System Alerts",

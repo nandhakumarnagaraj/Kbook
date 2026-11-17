@@ -78,15 +78,20 @@ class ReportsViewModel @Inject constructor(
     private val _orderDetailsTable = MutableStateFlow<List<OrderDetailRow>>(emptyList())
     val orderDetailsTable: StateFlow<List<OrderDetailRow>> = _orderDetailsTable
 
-    private val _reportType = MutableStateFlow("Order") 
-    val reportType: StateFlow<String> = _reportType
-
     private val _timeFilter = MutableStateFlow("Today") 
     val timeFilter: StateFlow<String> = _timeFilter
 
     /** Dates last chosen in the Custom picker, shown on the Custom chip. */
     private val _customRangeLabel = MutableStateFlow<String?>(null)
     val customRangeLabel: StateFlow<String?> = _customRangeLabel
+
+    /**
+     * `d MMM` label for the business date each preset chip resolves to, e.g.
+     * `Today -> 14 Nov`, `Yesterday -> 13 Nov`. The selected chip shows this instead of the
+     * word, so the row states the day the query actually covers.
+     */
+    private val _dateFilterLabels = MutableStateFlow<Map<String, String>>(emptyMap())
+    val dateFilterLabels: StateFlow<Map<String, String>> = _dateFilterLabels
 
     private val _selectedBillDetails = MutableStateFlow<com.khanabook.lite.pos.feature.billing.data.BillWithItems?>(null)
     val selectedBillDetails: StateFlow<com.khanabook.lite.pos.feature.billing.data.BillWithItems?> = _selectedBillDetails
@@ -137,10 +142,6 @@ class ReportsViewModel @Inject constructor(
         updateDateRangeAndLoad("Today")
     }
 
-    fun setReportType(type: String) {
-        _reportType.value = type
-    }
-
     fun setTimeFilter(filter: String) {
         _timeFilter.value = filter
         updateDateRangeAndLoad(filter)
@@ -171,11 +172,23 @@ class ReportsViewModel @Inject constructor(
         _selectedBillDetails.value = null
     }
 
+    /**
+     * Re-reads the open dialog's bill after a write. The details dialog holds a snapshot, not an
+     * observed query, so without this it kept showing the old payment mode (or the live actions
+     * on a bill that had just been cancelled) until it was closed and reopened.
+     */
+    private suspend fun refreshOpenBill(billId: Long) {
+        if (_selectedBillDetails.value?.bill?.id != billId) return
+        runCatching { reportGenerator.getOrderDetail(billId) }
+            .onSuccess { _selectedBillDetails.value = it }
+    }
+
     fun clearError() {
         _error.value = null
     }
 
     private fun updateDateRangeAndLoad(filter: String) {
+        refreshDateFilterLabels()
         // Custom keeps the dates the user picked, but the window is re-derived from the
         // CURRENT profile on every call. Caching the instants instead would leave the list
         // (and the caption) on the old boundary after a closing-time edit, because this
@@ -214,6 +227,22 @@ class ReportsViewModel @Inject constructor(
             }
         }
         loadReports(from, to)
+    }
+
+    /**
+     * Resolves the Today/Yesterday labels from the same business date the queries use, so the
+     * chip cannot disagree with the rows. Runs on every filter change, on resume, and when the
+     * profile re-emits, which is also what rolls the labels over at closing time.
+     */
+    private fun refreshDateFilterLabels() {
+        val today = LocalDate.parse(
+            BusinessDate.businessDate(System.currentTimeMillis(), currentProfile)
+        )
+        val formatter = DateTimeFormatter.ofPattern("d MMM", Locale.US)
+        _dateFilterLabels.value = mapOf(
+            "Today" to today.format(formatter),
+            "Yesterday" to today.minusDays(1).format(formatter)
+        )
     }
 
     /**
@@ -297,25 +326,11 @@ class ReportsViewModel @Inject constructor(
                 // No manual refresh: the observing flow re-reads Room, so every table
                 // (order details, order level, payment breakdown) reflects persisted truth.
                 billRepository.cancelOrder(billId, reason)
+                refreshOpenBill(billId)
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
                     e,
                     "Failed to cancel order."
-                )
-            }
-        }
-    }
-
-    fun updateOrderStatus(billId: Long, newStatus: String) {
-        viewModelScope.launch {
-            try {
-                // Persist only; the flow above re-projects Room, so the tables stay a
-                // projection of the database rather than an independently patched copy.
-                billRepository.updateOrderStatus(billId, newStatus)
-            } catch (e: Exception) {
-                _error.value = UserMessageSanitizer.sanitize(
-                    e,
-                    "Failed to update order status."
                 )
             }
         }
@@ -330,6 +345,7 @@ class ReportsViewModel @Inject constructor(
                 // Persist only; the observing flow re-reads Room. Patching rows here used
                 // to leave a payment mode on screen that had never been written.
                 billRepository.updatePaymentMode(billId, newMode, partAmount1, partAmount2)
+                refreshOpenBill(billId)
             } catch (e: Exception) {
                 _error.value = UserMessageSanitizer.sanitize(
                     e,
@@ -343,52 +359,4 @@ class ReportsViewModel @Inject constructor(
         return reportGenerator.getOrderDetail(billId)
     }
 
-    suspend fun exportReport(
-        context: android.content.Context,
-        format: String,
-        profile: com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity?
-    ): java.io.File = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        val exporter = com.khanabook.lite.pos.feature.reports.domain.ReportExporter(context)
-        val billDataById = _orderDetailsTable.value
-            .map { it.billId }
-            .mapNotNull { id ->
-                runCatching { billRepository.getBillWithItemsById(id) }
-                    .getOrNull()
-                    ?.let { id to it }
-            }
-            .toMap()
-        val topItems = runCatching { reportGenerator.getTopSellingItems(currentFrom, currentTo, 5) }.getOrNull() ?: emptyList()
-        val rows = _reportType.value
-        if (format == "PDF") {
-            if (rows == "Payment" && _paymentBreakdown.value.isEmpty()) {
-                throw IllegalStateException("No payment data available to export")
-            }
-            exporter.exportToPdf(rows, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile, topItems, billDataById, currentFrom, currentTo)
-        } else {
-            exporter.exportToCsv(rows, _timeFilter.value, _paymentBreakdown.value, _orderDetailsTable.value, profile?.shopName, billDataById, currentFrom, currentTo)
-        }
-    }
-
-    fun buildShareText(shopName: String?): String {
-        val header = shopName?.let { "$it\n" } ?: ""
-        val period = _timeFilter.value
-        val sb = StringBuilder()
-        sb.append("${header}Report — $period\n")
-        sb.append("─".repeat(28)).append("\n")
-        if (_reportType.value == "Payment") {
-            _paymentBreakdown.value.forEach { (mode, amount) ->
-                if (!mode.contains("_part")) {
-                    sb.append("%-18s ₹%s\n".format(mode, amount))
-                }
-            }
-        } else {
-            _orderLevelRows.value.forEach { row ->
-                val status = row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
-                sb.append("#${row.dailyId}  $status  ${row.date}\n")
-            }
-        }
-        sb.append("─".repeat(28)).append("\n")
-        sb.append("Powered by KhanaBook")
-        return sb.toString()
-    }
 }

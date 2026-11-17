@@ -142,6 +142,18 @@ fun OrderDetailsDialog(
                     val isCancelled = statusValue == OrderStatus.CANCELLED
                     val isSameDay = isSameBusinessDay(bill.createdAt)
 
+                    // Order identity lives in one soft card: four loose rows with spacers read
+                    // as a list of unrelated facts, not as one receipt header.
+                    Surface(
+                        color = OrdersBg.copy(alpha = 0.35f),
+                        shape = KhanaRadii.md,
+                        border = BorderStroke(1.dp, OrdersDivider.copy(alpha = 0.6f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(spacing.medium),
+                            verticalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
                     DetailRow(
                         "Order No:",
                         "#${bill.dailyOrderDisplay}",
@@ -149,10 +161,8 @@ fun OrderDetailsDialog(
                         fontWeight = FontWeight.Bold,
                         leadingIcon = Icons.Filled.Tag
                     )
-                    Spacer(modifier = Modifier.height(spacing.small))
                     val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No:" else "Invoice No:"
                     DetailRow(invoiceLabel, bill.getInvoiceNumberDisplay(), leadingIcon = Icons.Filled.Receipt)
-                    Spacer(modifier = Modifier.height(spacing.small))
 
                     val orderTypeDisplay = when (bill.orderType.trim().lowercase()) {
                         in OrderType.DINE_IN_ALIASES -> "Dine-in"
@@ -165,8 +175,9 @@ fun OrderDetailsDialog(
                         Icons.Filled.Restaurant
                     }
                     DetailRow("Order Type:", orderTypeDisplay, leadingIcon = orderTypeIcon)
-                    Spacer(modifier = Modifier.height(spacing.small))
                     DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt), leadingIcon = Icons.Filled.Schedule)
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(spacing.small))
                     Text("Items:", color = OrdersGold, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
@@ -272,47 +283,50 @@ fun OrderDetailsDialog(
                     // bill has no valid receipt to hand the customer.
                     if (!isCancelled) {
                         Spacer(modifier = Modifier.height(spacing.medium))
-                        if (onPrintReceipt != null) {
-                            Button(
-                                onClick = { onPrintReceipt.invoke(billWithItems) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(spacing.buttonHeightLarge),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = OrdersGold,
-                                    contentColor = OrdersBg
-                                ),
-                                shape = KhanaRadii.lg
-                            ) {
-                                Icon(Icons.Filled.Receipt, null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(spacing.small))
-                                Text(
-                                    "Print Receipt",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                        ) {
+                            if (onPrintReceipt != null) {
+                                Button(
+                                    onClick = { onPrintReceipt.invoke(billWithItems) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(spacing.buttonHeightLarge),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = OrdersGold,
+                                        contentColor = OrdersBg
+                                    ),
+                                    shape = KhanaRadii.lg
+                                ) {
+                                    Icon(Icons.Filled.Receipt, null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(spacing.small))
+                                    Text(
+                                        "Print",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
                             }
-                            Spacer(modifier = Modifier.height(spacing.small))
-                        }
-                        if (onShareInvoice != null) {
-                            Button(
-                                onClick = { onShareInvoice.invoke(billWithItems) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(spacing.buttonHeightLarge),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = OrdersShareGreen,
-                                    contentColor = Color.White
-                                ),
-                                shape = KhanaRadii.lg
-                            ) {
-                                Icon(Icons.Filled.Share, null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(spacing.small))
-                                Text(
-                                    "Share Invoice",
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                )
+                            if (onShareInvoice != null) {
+                                Button(
+                                    onClick = { onShareInvoice.invoke(billWithItems) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(spacing.buttonHeightLarge),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = OrdersShareGreen,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = KhanaRadii.lg
+                                ) {
+                                    Icon(Icons.Filled.Share, null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(spacing.small))
+                                    Text(
+                                        "Share",
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
                             }
-                            Spacer(modifier = Modifier.height(spacing.small))
                         }
                     }
 
@@ -382,7 +396,8 @@ fun OrderDetailsDialog(
             options = enabledPaymentModes.map { mode ->
                 SelectionDialogOption(
                     value = mode,
-                    title = mode.displayLabel
+                    title = mode.displayLabel,
+                    leadingIcon = getPayModeIcon(mode)
                 )
             },
             selectedValue = currentMode,
@@ -402,24 +417,6 @@ private fun isSameBusinessDay(timestamp: Long): Boolean {
     val then = Calendar.getInstance(zone).apply { timeInMillis = timestamp }
     return now.get(Calendar.YEAR) == then.get(Calendar.YEAR) &&
         now.get(Calendar.DAY_OF_YEAR) == then.get(Calendar.DAY_OF_YEAR)
-}
-
-@Composable
-fun DetailStatusRow(label: String, statusText: String, kind: KhanaStatusKind) {
-    val spacing = KhanaBookTheme.spacing
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = label,
-            color = TextGold,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-            modifier = Modifier.padding(end = spacing.small)
-        )
-        KhanaStatusBadge(text = statusText, kind = kind)
-    }
 }
 
 @Composable
@@ -462,17 +459,5 @@ fun DetailRow(
             textAlign = TextAlign.End,
             modifier = Modifier.weight(1f)
         )
-    }
-}
-
-fun formatDate(date: String): String {
-    if (date.contains(",")) return date.substringBefore(",").trim()
-    return try {
-        val datePart = date.split(" ").getOrNull(0) ?: return date
-        val parts = datePart.split("-")
-        if (parts.size != 3) return date
-        "${parts[2]}/${parts[1]}/${parts[0]}"
-    } catch (e: Exception) {
-        date
     }
 }

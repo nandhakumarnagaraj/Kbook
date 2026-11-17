@@ -1,5 +1,103 @@
 # Changelog
 
+## [2026-11-14] - Shop Logo header, Order Details redesign, dialog refresh fix
+### Added
+- Restaurant Configuration: `Shop Logo` / `Shown on bills and receipts` header above the logo and Change Logo row.
+- Payment mode picker entries now show the mode icon; the shared selection dialog (`KhanaBookSelectionDialog`) gained an optional `leadingIcon` and a selected check, so Cancel Order reasons get the same treatment.
+
+### Changed
+- Order Details dialog: order number, invoice, type and date are grouped in one soft card; Print and Share are side by side; split-amount dialog (`PartAmountDialog`) has an "Order total" strip, a sum hint and a filled gold Confirm button.
+
+### Fixed
+- **Order Details showed stale data after edits.** The dialog renders a snapshot, so changing payment mode left the old mode on screen and a cancelled order could still show live actions until the dialog was reopened. `ReportsViewModel.refreshOpenBill` now re-reads the bill after `updatePaymentMode` / `cancelOrder`.
+
+### Verified
+- `:app:compileDebugKotlin`, `:app:assembleDebug`, `:app:testDebugUnitTest` exit 0; APK SHA-256 `f6c0a4c6…79ed5e36b` installed on `ZA222J5KT7`.
+- Live: A01 Cash + UPI → Cash updated the dialog immediately; split dialog confirmed 183.75 / 183.75 and reverted the bill to Cash + UPI; Cancel Order opened with the selected-reason check and was dismissed via Keep Order, leaving data untouched. Screenshots under `artifacts/android-ui-tests/` (`shop-logo-header-*`, `order-details-redesign-*`, `payment-mode-picker-*`, `part-amount-dialog-new-*`, `payment-mode-refresh*`, `cancel-order-dialog-*`).
+
+## [2026-11-14] - Orders table no longer stretches; Restaurant Configuration header removed
+### Changed
+- **Orders table (`ReportViews.kt`)**: the panel used `fillMaxSize()`, so two orders left a full-height empty card. It now measures inside `BoxWithConstraints` with `heightIn(max = maxHeight)` and a `weight(1f, fill = false)` list — it hugs the rows when short and still fills and scrolls when long. Empty results keep a 180 dp empty state. Header label `OrderNo` → `Order No`. Chips, columns and row actions untouched.
+- **Restaurant Configuration (`ShopConfigSection.kt`)**: removed the in-card header (storefront icon, "Restaurant Details", "Configure your restaurant information"). The card starts with the logo / Change Logo row; fields and lower cards are unchanged.
+
+### Verified
+- `:app:compileDebugKotlin`, `:app:assembleDebug` and `:app:testDebugUnitTest` exit 0; APK SHA-256 `0ab8c374…039bc4b9`, installed on `ZA222J5KT7`.
+- Device check: Orders panel ends right under `A01` with `A02` still shown as cancelled; Restaurant Configuration shows the logo row at the top of the card. Screenshots `artifacts/android-ui-tests/orders-table-fixed-2026-11-14.png` and `restaurant-config-no-header-2026-11-14.png`.
+
+## [2026-11-14] - Launcher icon modernization
+### Changed
+- Adaptive launcher icon moved out of `res/mipmap-anydpi-v26/` into `res/mipmap/` (the `v26` folder is deleted; minSdk 26 makes the qualifier redundant).
+- Added the Android 13 `<monochrome>` layer to both `ic_launcher.xml` and `ic_launcher_round.xml`, backed by new `ic_launcher_monochrome.png` assets at mdpi–xxxhdpi. The mask is generated from the existing foreground: near-white pixels become transparent, everything else solid black, so the logo silhouette drives themed icons.
+- Removed the legacy square `ic_launcher.png` / `ic_launcher_round.png` from all density folders (adaptive icon always wins at minSdk 26).
+- Deduplicated the brand logo: `HelpSupportView` uses `R.drawable.khanabook_logo`, `about_app_logo.png` deleted, and `khanabook_logo.png` moved to `drawable-nodpi/` to satisfy the densityless-bitmap rule.
+
+### Verified
+- `:app:assembleDebug`, `:app:testDebugUnitTest` and `:app:lintDebug` all exit 0; lint icon warnings (`MonochromeLauncherIcon`, `IconLauncherShape`, `IconLocation`, `IconDuplicates`, folder `ObsoleteSdkInt`) are all 0 and total warnings fell 469 → 458.
+- APK SHA-256 `7c8ac92e…6238aac21c5` installed on `ZA222J5KT7`: launcher shows the adaptive icon in the drawer and the app opens to Home. Screenshots `artifacts/android-ui-tests/launcher-icon-final-2026-11-14.png` and `launcher-icon-home-final-2026-11-14.png`.
+- **Limitation:** themed-icon rendering itself was not screenshotted; this launcher has no themed-icon toggle. The monochrome layer is verified by APK contents, lint and the generated silhouette only.
+
+## [2026-11-14] - Lint to zero errors, dead resources removed
+### Fixed
+- **Wi-Fi printer subnet prefill on Android 8.0–9:** `RouteInfo.hasGateway()` (API 29) replaced with `it.gateway != null`, so gateway detection no longer throws and silently returns nothing on API 26–28.
+- **Locale-dependent formatting:** `String.format` now passes `Locale.US` for currency amounts and OTP countdowns (`CurrencyUtils`, `SignUpScreen`, `QuickStartScreen`, `ShopConfigSection`).
+- **Dead SDK branches:** removed API-26 guards and redundant `@RequiresApi(O)` annotations from `NotificationHelper` / `NotificationChannels`, and the always-true `SDK_INT >= O` branches in `PrintService`.
+- **Misindented block:** comment + `val isInitialLoading` in `MenuSelectionStep` re-indented into their enclosing scope (formatting only).
+
+### Removed
+- `res/values/styles.xml` (dead Views-era styles that carried the API 28 `lineHeight` and API 31 `clipToOutline` errors) and `res/values/fonts.xml` (invalid, inert `<font>` entries).
+- Unused resources: `raw/anim_payment_success.json`, `drawable/ic_google_logo.xml`, the unused drawable `ic_launcher_foreground.xml`, `splash_footer.png`, `splash_full_brand.png`, `splash_logo_with_card.xml`, `splash_logo_with_glow.xml`, plus 18 colors, 18 dimens and 45 strings with no references.
+
+### Verified
+- `:app:lintDebug` went from **12 errors / 605 warnings** to **0 errors / 469 warnings** and now passes; `:app:compileDebugKotlin`, `:app:assembleDebug` and `:app:testDebugUnitTest` all exit 0.
+- APK SHA-256 `9ea11e38…77a3f48ad` installed on `ZA222J5KT7`: cold-start splash and Home verified. Screenshots `artifacts/android-ui-tests/lint-cleanup-*-2026-11-14.png`.
+
+## [2026-11-14] - Dead-code removal across Android screens
+### Removed
+- Report export in its entirety: `ReportsViewModel.exportReport` / `buildShareText`, `ReportDownloadBottomBar`, and `feature/reports/domain/ReportExporter.kt` (PDF/CSV generation). None of it had a UI caller, so the app no longer offers report download or export share text.
+- Orders row-action plumbing: `onStatusChange` / `onPayModeChange` / `onRequestCancel` and the now-unused `enabledModes` parameter on `OrderTableRow` and `OrderHistoryTableComponent`, the callbacks in `OrdersScreen`, and `ReportsViewModel.updateOrderStatus`. Order editing remains available in `OrderDetailsDialog`.
+- Four `ReportViews` compatibility aliases (`OrderDateFilterTabs`, `OrderRowItem`, `OrderHistoryTable`, `OrderLevelView`), `DetailStatusRow` + local `formatDate` in `OrderDetailsDialog`.
+- `feature/billing/ui/ActiveOrderComponents.kt` (`BillInfoHeader`, `ActiveOrderItemCard`, `CompactMenuSection`), `feature/billing/ui/PaymentSection.kt` (`BillSummaryDisplay`, `SummaryRow`, `PaymentModeSelector`, `loadShopLogoBlockingSection`), `OrderTableComponents.TableHeader`, `MenuSelectionStep.FoodTypeIcon`, `OnlinePaymentsSetupScreen.NotStartedContent`, `ForgotPasswordDialog.loginTextFieldColors`.
+- `AppInfoSection` and `CustomerNumberCollectorSelector` from settings, `KhanaInvoiceShareSheet.kt`, `SignaturePad.kt`, `Utils.directPrint`, `PaymentColors.payModeColor` / `getPayModeIconTint`.
+
+### Kept deliberately
+- The three `AppLockScreen` biometric callbacks: they are `BiometricPrompt.AuthenticationCallback` overrides called by the framework, not dead code (grep false positive).
+- `OrderDateFilterComponent` and its `Today` / `Yesterday` / `Custom` chips (frozen by product decision), `getPayModeColor` / `getPayModeIcon`, and the `reports.full` role gate.
+
+### Verified
+- `:app:compileDebugKotlin --offline`, `:app:testDebugUnitTest --offline` and `:app:assembleDebug --offline` all exit 0. APK SHA-256 `9423d557…47777c894e`, installed on `ZA222J5KT7` at 2026-11-14 17:18:40.
+- Live check: Home, Orders (chips `14 Nov`, table with cancelled `A02` struck through and `A01`), Order Details dialog (Print / Share / Change Payment Mode / Cancel) and Settings (config rows, App Settings, Sign Out) all render normally. Screenshots in `artifacts/android-ui-tests/deadcode-*-2026-11-14.png`.
+
+## [2026-11-14] - Orders Screen: One Table, Selected Chip Shows Its Date
+### Changed
+- `OrdersScreen.kt` no longer has a `reportType == "Payment"` branch: the screen renders the first-load skeleton and then `OrderHistoryTableComponent`, nothing else. The branch was unreachable (`reportType` is always `"Order"`) but it was the only path that could replace the table.
+- The selected date chip now shows the day it resolves to — `Today` → `14 Nov`, `Yesterday` → `13 Nov` — while unselected chips keep their names. `Custom` keeps its existing behaviour (`Custom` until a range is picked, then `12 Nov – 14 Nov`).
+- `ReportsViewModel.dateFilterLabels` derives those labels from `BusinessDate.businessDate(now, profile)`, the same business date that selects the query window, and refreshes on filter change, on resume and when the profile re-emits.
+
+### Removed (same day, 16:10)
+- `PaymentLevelView` and its orphaned `PaymentModeItem` / `PartPaymentCard` / `ReportTypeToggle` helpers in `ReportViews.kt`.
+- `ReportsViewModel._reportType` / `reportType` / `setReportType`, the `"Payment"` branches in `exportReport` and `buildShareText`, and the `reportType` parameter of `ReportExporter.exportToPdf` / `exportToCsv`. Both exports now always title as `Orders Report`; `paymentBreakdown` is kept because it feeds the payment summary inside them.
+
+### Verified
+- `:app:compileDebugKotlin --offline` and `:app:assembleDebug --offline` exit 0.
+- Installed on `ZA222J5KT7` (`lastUpdateTime` 2026-11-14 16:10:35, APK SHA-256 `3a7c98f5…d313abc6d`) and checked by uiautomator: `Today` chip `14 Nov`, `Yesterday` chip `13 Nov`, `Custom` chip unchanged and its picker opens, table-only content.
+
+### Fixed (16:2x)
+- **Orders table columns were misaligned.** The row's order-number cell had no weight while the header cell did, so after the details line was removed every cell after it shifted left and stopped sitting under its centred header. The cell now uses `weight(COL_ORDER)` and the same start inset as the header; verified on `ZA222J5KT7` with matching header/row bounds (`[49,336][225,362]` vs `[49,411][225,436]`, `[225,336][392,362]` vs `[225,411][392,436]`).
+- **Order number shows no `#`** — the table prints `A02` at the product owner's request (16:3x); the details dialog, search and share text still prefix it. A `#` was briefly added and removed the same session.
+- The `Today` / `Yesterday` / `Custom` chips are frozen at the product owner's request — not touched by this change.
+
+### Rebuilt (16:4x)
+- Orders table rebuilt in place: a single `OrderTableCell` primitive now builds every column for both the header and the rows, so alignment comes from the shared column weights instead of per-cell padding. Rows use the existing responsive `tableCellFontSize` token (previously unused); the header keeps `tableHeaderFontSize`.
+- Row density: 52 dp minimum on phones, 60 dp on the wide layout, with no vertical padding (the 48 dp action target sets the content height).
+- The row action is a 36 dp disc in a 48 dp hit area and its description now reads `View order A02` — it opens the details dialog, it is not a menu. No menu was added.
+- `LazyColumn` rows are keyed by `billId`, so refreshes update rows in place. Columns, data, empty state, hairlines and cancelled-row styling are otherwise unchanged; the frozen chips were not touched.
+- Verified on `ZA222J5KT7` (APK SHA-256 `f153eedb…3d8b1ac903`): header and row cell centres agree (`Amount` 310 vs 309.5, `Time` 473 vs 472.5), order cells share left edge 49, 53 dp row pitch, 48×48 dp action hit area.
+
+### Not Verified / Not Changed
+- A Custom range was not re-picked after `Apply` on device (path unchanged since 12:20).
+- Tablet/wide layout (60 dp rows) and a cancelled row were not exercised on device.
+- The `canViewFullReports` gate and the row-level callbacks are unchanged (item K).
+
 ## [2026-11-13] - Web Admin Spec Suite Repaired (39 Failures → 0)
 ### Fixed
 - `apps/web-admin` Karma suite reported **309 SUCCESS / 39 FAILED**; it now reports **350 SUCCESS / 0 FAILED** (`npx ng test --watch=false`, exit 0).

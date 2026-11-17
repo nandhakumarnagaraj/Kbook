@@ -10,24 +10,22 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.PointOfSale
-import androidx.compose.material.icons.filled.QrCode2
-import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,7 +47,6 @@ import com.khanabook.lite.pos.feature.billing.ui.HeaderCell
 import com.khanabook.lite.pos.feature.billing.ui.TableCell
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
-import com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -98,6 +95,10 @@ fun FilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, modifier
  * [customRangeLabel] replaces the "Custom" chip text once a range is chosen, so the
  * selected dates stay visible without reopening the picker. It is ignored while another
  * filter is active, and never applied when the user has not picked a range yet.
+ *
+ * [dateLabels] works the same way for the preset chips: the selected `Today` / `Yesterday`
+ * chip shows the business date it resolved to (`14 Nov`), so the row states the day the
+ * table covers instead of a word that can be a calendar day earlier for overnight shops.
  */
 @Composable
 fun OrderDateFilterComponent(
@@ -105,6 +106,7 @@ fun OrderDateFilterComponent(
     onFilterSelected: (String) -> Unit,
     canViewFullReports: Boolean = true,
     customRangeLabel: String? = null,
+    dateLabels: Map<String, String> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -120,12 +122,11 @@ fun OrderDateFilterComponent(
         horizontalArrangement = Arrangement.spacedBy(spacing.small)
     ) {
         availableFilters.forEach { filter ->
-            val label = if (
-                filter == "Custom" &&
-                selectedFilter == filter &&
-                !customRangeLabel.isNullOrBlank()
-            ) {
-                customRangeLabel
+            // Only the selected chip swaps its name for a resolved day/range, so the row
+            // stays readable: the selected chip says which days the table is showing.
+            val resolved = if (filter == "Custom") customRangeLabel else dateLabels[filter]
+            val label = if (selectedFilter == filter && !resolved.isNullOrBlank()) {
+                resolved
             } else {
                 filter
             }
@@ -139,238 +140,14 @@ fun OrderDateFilterComponent(
     }
 }
 
-/** Idiomatic Compose alias for OrderDateFilterComponent */
-@Composable
-fun OrderDateFilterTabs(
-    selectedFilter: String,
-    onFilterSelected: (String) -> Unit,
-    canViewFullReports: Boolean = true,
-    customRangeLabel: String? = null,
-    modifier: Modifier = Modifier
-) = OrderDateFilterComponent(
-    selectedFilter = selectedFilter,
-    onFilterSelected = onFilterSelected,
-    canViewFullReports = canViewFullReports,
-    customRangeLabel = customRangeLabel,
-    modifier = modifier
-)
-
-@Composable
-fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val spacing = KhanaBookTheme.spacing
-    val typeScale = KhanaBookTheme.typeScale
-    val toggleMinHeight = when (typeScale) {
-        TypeScaleTier.Tablet -> 52.dp
-        TypeScaleTier.LargePhone -> 48.dp
-        else -> 44.dp
-    }
-    Surface(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = toggleMinHeight),
-        shape = KhanaRadii.md,
-        color = if (isSelected) BrownSelected.copy(alpha = 0.8f) else Color.Transparent,
-        border = if (isSelected) BorderStroke(1.dp, PrimaryGold) else BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f)),
-        contentColor = if (isSelected) PrimaryGold else TextGold.copy(alpha = 0.7f)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.padding(horizontal = spacing.smallMedium, vertical = spacing.small)
-        ) {
-            Text(
-                text = label,
-                style = if (isSelected) MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.labelLarge,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-fun PaymentLevelView(
-    breakdown: Map<String, String>,
-    settingsViewModel: SettingsViewModel,
-    modifier: Modifier = Modifier
-) {
-    val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
-    val spacing = KhanaBookTheme.spacing
-    val enabledModes = profile?.let { com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
-    
-    val mainModes = enabledModes.filter { !com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.isPartPayment(it) }
-    val partModes = enabledModes.filter { com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager.isPartPayment(it) }
-
-    val listState = rememberLazyListState()
-    LazyColumn(
-        state = listState,
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScrollbar(listState)
-            .padding(horizontal = spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.small),
-        contentPadding = PaddingValues(bottom = spacing.medium)
-    ) {
-        items(mainModes) { mode ->
-            PaymentModeItem(
-                mode = mode,
-                amount = breakdown[mode.displayLabel]?.toDoubleOrNull() ?: 0.0
-            )
-        }
-
-        if (partModes.isNotEmpty()) {
-            item {
-                Text(
-                    "Part-Payment (already counted in the modes above)",
-                    color = TextGold,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = spacing.small, bottom = spacing.extraSmall)
-                )
-            }
-
-            // One part-payment card per full row — same rhythm as the
-            // Cash/UPI/POS cards above. The card shows the split per side rather than a
-            // combined total: each half is already included in its mode's row above, so a
-            // combined figure here read as extra revenue and double-counted the bill.
-            items(partModes) { mode ->
-                val labels = com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager
-                    .getPartLabels(mode)
-                PartPaymentCard(
-                    label = mode.displayLabel,
-                    mode = mode,
-                    firstLabel = labels.first,
-                    firstAmount = breakdown["${mode.displayLabel}_part1"]?.toDoubleOrNull() ?: 0.0,
-                    secondLabel = labels.second,
-                    secondAmount = breakdown["${mode.displayLabel}_part2"]?.toDoubleOrNull() ?: 0.0,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-        
-        item { Spacer(modifier = Modifier.height(spacing.small)) }
-    }
-}
-
-@Composable
-fun ReportDownloadBottomBar(
-    onDownloadClick: () -> Unit,
-    isExporting: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    val spacing = KhanaBookTheme.spacing
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = spacing.small, bottom = spacing.medium)
-    ) {
-        KhanaPrimaryButton(
-            text = if (isExporting) "Exporting..." else "Download Reports",
-            onClick = onDownloadClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.medium),
-            enabled = !isExporting,
-            isLoading = isExporting,
-            leadingIcon = Icons.Default.Download,
-            height = spacing.buttonHeightLarge
-        )
-    }
-}
-
-@Composable
-fun PaymentModeItem(mode: PaymentMode, amount: Double) {
-    val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
-    val modeColor = getPayModeIconTint(mode)
-    val modeIcon = getPayModeIcon(mode)
-    // Single flat box styled like Settings cards: warm CardBG container,
-    // gold-tinted icon circle, gold chevron. No elevation/border stack.
-    KhanaBookCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = KhanaRadii.lg,
-        colors = CardDefaults.cardColors(containerColor = CardBG),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(spacing.medium)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(modeColor.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    modeIcon,
-                    contentDescription = null,
-                    tint = modeColor,
-                    modifier = Modifier.size(iconSize.medium)
-                )
-            }
-            Spacer(modifier = Modifier.width(spacing.medium))
-            Text(mode.displayLabel, color = TextLight, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            Text(CurrencyUtils.formatPrice(amount), color = PrimaryGold, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
-        }
-    }
-}
-
-@Composable
-fun PartPaymentCard(
-    label: String,
-    mode: PaymentMode,
-    firstLabel: String,
-    firstAmount: Double,
-    secondLabel: String,
-    secondAmount: Double,
-    modifier: Modifier = Modifier
-) {
-    val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
-    val modeColor = getPayModeIconTint(mode)
-    // Single flat box styled like Settings cards: warm CardBG container,
-    // mode-tinted icon, no elevation/border stack.
-    KhanaBookCard(
-        modifier = modifier,
-        shape = KhanaRadii.lg,
-        colors = CardDefaults.cardColors(containerColor = CardBG),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        // Same rhythm as PaymentModeItem: icon circle, label, gold total, chevron.
-        Column(modifier = Modifier.padding(spacing.medium)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(modeColor.copy(alpha = 0.15f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        getPayModeIcon(mode),
-                        contentDescription = null,
-                        tint = modeColor,
-                        modifier = Modifier.size(iconSize.medium)
-                    )
-                }
-                Spacer(modifier = Modifier.width(spacing.medium))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(label, color = TextLight, style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "$firstLabel ${CurrencyUtils.formatPrice(firstAmount)}  ·  " +
-                            "$secondLabel ${CurrencyUtils.formatPrice(secondAmount)}",
-                        color = TextGold,
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-            }
-        }
-    }
-}
-
-private val COL_ORDER   = 1.15f
-private val COL_AMOUNT  = 1.05f
-private val COL_TIME    = 1.05f
-private val COL_ACTION  = 0.75f
+// ── Column geometry ───────────────────────────────────────────────────────────
+// ONE definition shared by the header and every row. The two used to carry their own
+// padding and only the header carried the weights, which is how the columns drifted out
+// of alignment; alignment is now a property of these weights, not of each cell.
+private const val COL_ORDER  = 1.15f
+private const val COL_AMOUNT = 1.05f
+private const val COL_TIME   = 1.05f
+private const val COL_ACTION = 0.75f
 
 // Hoisted out of the row composable: these were built per row per recomposition, i.e. once per
 // visible row on every scroll frame. DateTimeFormatter is immutable and thread-safe.
@@ -386,9 +163,9 @@ private val ORDER_ROW_DATE_TIME_FORMAT =
  * the restaurant's timezone, so rendering row times with the device zone showed a time that
  * disagreed with the window when the terminal clock is set elsewhere.
  *
- * WHY [includeDate]: a single business day only needs hh:mm, but Yesterday and multi-day
- * Custom ranges put several orders with the same number and similar times next to each other.
- * The two-line `dd MMM` / `hh:mm a` form keeps the existing four-column layout.
+ * WHY [includeDate]: a single business day only needs hh:mm, but a multi-day range puts several
+ * orders with the same number and similar times next to each other. The two-line `dd MMM` /
+ * `hh:mm a` form keeps the existing four-column layout.
  */
 private fun formatOrderRowTime(
     row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow,
@@ -418,35 +195,34 @@ private fun formatOrderRowAmount(amount: String?): String =
     com.khanabook.lite.pos.core.util.CurrencyUtils.formatPrice(amount)
         .replace("\u20B9 ", "\u20B9")
 
+/**
+ * One column of the table. Both the header and the rows route every cell through this, so a
+ * column's width and horizontal alignment are decided in one place.
+ */
 @Composable
-fun RowScope.OrderTableHeaderCell(
-    text: String,
+private fun RowScope.OrderTableCell(
     weight: Float,
-    align: TextAlign = TextAlign.Center,
-    paddingStart: androidx.compose.ui.unit.Dp = 0.dp,
-    paddingEnd: androidx.compose.ui.unit.Dp = 0.dp
+    align: TextAlign,
+    content: @Composable () -> Unit
 ) {
-    val layout = KhanaBookTheme.layout
-    Text(
-        text = text,
-        modifier = Modifier
-            .weight(weight)
-            .padding(start = paddingStart, end = paddingEnd),
-        color = TextGold,
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontSize = layout.tableHeaderFontSize,
-            fontWeight = FontWeight.Bold
-        ),
-        textAlign = align,
-        maxLines = 1
-    )
+    Box(
+        modifier = Modifier.weight(weight),
+        contentAlignment = when (align) {
+            TextAlign.Start -> Alignment.CenterStart
+            TextAlign.End -> Alignment.CenterEnd
+            else -> Alignment.Center
+        }
+    ) {
+        content()
+    }
 }
 
 /**
- * Table Header for Orders Data Table: OrderNo, Amount, Time, Action.
+ * Table header for the Orders table: OrderNo, Amount, Time, Action.
  *
- * [includeDate] widens the Time column's meaning once the list spans a business day that
- * is not the current one; the column itself is unchanged so the layout weights stay put.
+ * No fill, border or radius of its own: the header is the first band of the table panel
+ * ([OrderHistoryTableComponent]), which owns the outline. The band tint separates the head from
+ * the first row. It lives outside the [LazyColumn] so it pins while the list scrolls.
  */
 @Composable
 fun OrderTableHeader(
@@ -454,34 +230,44 @@ fun OrderTableHeader(
     includeDate: Boolean = false
 ) {
     val spacing = KhanaBookTheme.spacing
-    Surface(
+    val layout = KhanaBookTheme.layout
+    val headerStyle = MaterialTheme.typography.labelSmall.copy(
+        fontSize = layout.tableHeaderFontSize,
+        fontWeight = FontWeight.Bold
+    )
+
+    @Composable
+    fun RowScope.headerCell(text: String, weight: Float, align: TextAlign) {
+        OrderTableCell(weight, align) {
+            Text(text = text, color = TextGold, style = headerStyle, maxLines = 1)
+        }
+    }
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = spacing.medium),
-        shape = KhanaRadii.md,
-        color = OrdersCard.copy(alpha = 0.55f),
-        border = BorderStroke(1.dp, OrdersDivider.copy(alpha = 0.45f))
+            .background(OrdersDivider.copy(alpha = 0.22f))
+            .padding(
+                horizontal = spacing.smallMedium,
+                vertical = spacing.smallMedium
+            ),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.small, vertical = spacing.small),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OrderTableHeaderCell("OrderNo", COL_ORDER, align = TextAlign.Start, paddingStart = spacing.extraSmall)
-            OrderTableHeaderCell("Amount", COL_AMOUNT, align = TextAlign.Center)
-            OrderTableHeaderCell(
-                if (includeDate) "Date/Time" else "Time",
-                COL_TIME,
-                align = TextAlign.Center
-            )
-            OrderTableHeaderCell("Action", COL_ACTION, align = TextAlign.Center)
-        }
+        headerCell("Order No", COL_ORDER, TextAlign.Start)
+        headerCell("Amount", COL_AMOUNT, TextAlign.Center)
+        headerCell(if (includeDate) "Date/Time" else "Time", COL_TIME, TextAlign.Center)
+        headerCell("Action", COL_ACTION, TextAlign.Center)
     }
 }
 
 /**
- * 36dp circular gold Eye icon action button.
+ * The row's action control: a 36dp gold disc inside a 48dp hit area.
+ *
+ * The visible disc stays small so it does not dominate the row, but the touch target is the
+ * Material minimum — the disc alone was the whole target before.
+ *
+ * It opens the same [com.khanabook.lite.pos.feature.reports.ui.OrderDetailsDialog] as the row
+ * tap; its description says so, because "More options" promised a menu that does not exist.
  */
 @Composable
 fun ViewOrderAction(
@@ -489,285 +275,200 @@ fun ViewOrderAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        onClick = onClick,
-        color = OrdersGold.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.55f)),
-        shape = CircleShape,
-        modifier = modifier.size(36.dp)
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = Icons.Filled.Visibility,
-                contentDescription = "View order $dailyId",
-                tint = OrdersGold,
-                modifier = Modifier.size(18.dp)
-            )
+    Box(modifier = modifier.size(48.dp), contentAlignment = Alignment.Center) {
+        Surface(
+            onClick = onClick,
+            color = OrdersGold.copy(alpha = 0.10f),
+            border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.55f)),
+            shape = CircleShape,
+            modifier = Modifier.size(36.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Filled.MoreVert,
+                    contentDescription = "View order $dailyId",
+                    tint = OrdersGold,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }
 
 /**
- * Individual row in the Orders Data Table.
+ * Individual row in the Orders table.
+ *
+ * A row is a plain [Row] inside the table panel, not a card: the panel owns the fill, radius and
+ * outer border, and a 1 dp hairline between rows does the separating. The whole row opens the
+ * order. Text sizes come from the responsive table tokens, and every cell is the same
+ * [OrderTableCell] the header uses, so the columns cannot drift.
+ *
+ * Cancelled rows are marked with a 3 dp red edge and a 5% red wash instead of a red card border,
+ * which no longer exists now that rows share the panel outline.
  */
 @Composable
 fun OrderTableRow(
     row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow,
     profile: RestaurantProfileEntity?,
-    enabledModes: List<PaymentMode> = emptyList(),
     compactLayout: Boolean = false,
-    onStatusChange: (String) -> Unit = {},
-    onPayModeChange: (PaymentMode) -> Unit = {},
-    onRequestCancel: () -> Unit = {},
     includeDate: Boolean = false,
     onViewDetails: (Long) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
+    val layout = KhanaBookTheme.layout
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
+    val muted = OrdersTextSecondary.copy(alpha = 0.5f)
+    val cellStyle = MaterialTheme.typography.bodySmall.copy(
+        fontSize = layout.tableCellFontSize,
+        fontFeatureSettings = "tnum"
+    )
 
-    KhanaBookCard(
+    // No vertical padding: the 48dp action target already sets the row's content height, so
+    // padding on top of it would push every row to ~65dp. The min height keeps the row
+    // comfortable and the text is centred by the Row.
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(
-                1.dp,
-                if (isCancelled) DangerRed.copy(alpha = 0.35f) else OrdersDivider.copy(alpha = 0.7f),
-                KhanaRadii.md
+            .heightIn(min = if (compactLayout) 52.dp else 60.dp)
+            .then(
+                if (isCancelled) Modifier.background(DangerRed.copy(alpha = 0.05f)) else Modifier
             )
-            .clickable { onViewDetails(row.billId) },
-        colors = CardDefaults.cardColors(containerColor = OrdersCard),
-        shape = KhanaRadii.md
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.small, vertical = spacing.small),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // 1. OrderNo (Left-aligned) + Secondary details
-            Column(
-                modifier = Modifier
-                    .weight(COL_ORDER)
-                    .padding(start = spacing.extraSmall)
-            ) {
-                Text(
-                    text = if (row.dailyId.startsWith("#")) row.dailyId else "#${row.dailyId}",
-                    color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextPrimary,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontFeatureSettings = "tnum"
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                val detailsLabel = buildString {
-                    if (row.customerName.isNotBlank()) {
-                        append(row.customerName)
-                        append(" • ")
-                    }
-                    if (row.orderType.isNotBlank()) {
-                        val type = when (row.orderType.lowercase()) {
-                            com.khanabook.lite.pos.domain.model.OrderType.DINE_IN -> "Dine-in"
-                            com.khanabook.lite.pos.domain.model.OrderType.TAKEAWAY -> "Takeaway"
-                            else -> row.orderType.replaceFirstChar { it.uppercase() }
-                        }
-                        append(type)
-                    }
-                    if (row.paymentMode.displayLabel.isNotBlank()) {
-                        if (isNotEmpty()) append(" · ")
-                        append(row.paymentMode.displayLabel)
-                    }
-                }
-                if (detailsLabel.isNotBlank()) {
-                    Text(
-                        text = detailsLabel,
-                        color = OrdersTextSecondary.copy(alpha = 0.75f),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp
-                        ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+            .drawBehind {
+                if (isCancelled) {
+                    drawRect(
+                        color = DangerRed.copy(alpha = 0.85f),
+                        size = Size(3.dp.toPx(), size.height)
                     )
                 }
             }
+            .clickable { onViewDetails(row.billId) }
+            .padding(horizontal = spacing.smallMedium),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 1. OrderNo — left aligned. Printed without `#` at product request (2026-11-14); the
+        // details dialog, search and share text still prefix it.
+        OrderTableCell(COL_ORDER, TextAlign.Start) {
+            Text(
+                text = row.dailyId,
+                color = if (isCancelled) muted else OrdersTextPrimary,
+                style = cellStyle.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
 
-            // 2. Amount (Center-aligned, tabular nums, strikethrough if cancelled)
+        // 2. Amount — centred, tabular figures, struck through when cancelled.
+        OrderTableCell(COL_AMOUNT, TextAlign.Center) {
             Text(
                 text = formatOrderRowAmount(row.totalAmount),
-                modifier = Modifier.weight(COL_AMOUNT),
-                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersBrightGold,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontFeatureSettings = "tnum"
-                ),
+                color = if (isCancelled) muted else OrdersBrightGold,
+                style = cellStyle.copy(fontWeight = FontWeight.Bold),
                 textDecoration = if (isCancelled) TextDecoration.LineThrough else TextDecoration.None,
-                textAlign = TextAlign.Center,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+        }
 
-            // 3. Time (Center-aligned). Two lines when the list spans more than the current
-            // business day, so a Custom range cannot show two different days' #A01 alike.
+        // 3. Time — centred. Two lines only when the list spans more than the current business
+        // day, so a multi-day range cannot show two different days' #A01 alike.
+        OrderTableCell(COL_TIME, TextAlign.Center) {
             Text(
                 text = formatOrderRowTime(row, profile, includeDate),
-                modifier = Modifier.weight(COL_TIME),
-                color = if (isCancelled) OrdersTextSecondary.copy(alpha = 0.5f) else OrdersTextSecondary,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontFeatureSettings = "tnum"
-                ),
+                color = if (isCancelled) muted else OrdersTextSecondary,
+                style = cellStyle,
                 textAlign = TextAlign.Center,
-                maxLines = if (includeDate) 2 else 1
+                maxLines = if (includeDate) 2 else 1,
+                overflow = TextOverflow.Ellipsis
             )
+        }
 
-            // 4. Action (View Eye icon button - Circular 36dp)
-            Box(modifier = Modifier.weight(COL_ACTION), contentAlignment = Alignment.Center) {
-                ViewOrderAction(
-                    dailyId = row.dailyId,
-                    onClick = { onViewDetails(row.billId) }
-                )
-            }
+        // 4. Action — opens the order details, same as tapping the row.
+        OrderTableCell(COL_ACTION, TextAlign.Center) {
+            ViewOrderAction(
+                dailyId = row.dailyId,
+                onClick = { onViewDetails(row.billId) }
+            )
         }
     }
 }
 
-/** Backward-compatibility alias for OrderTableRow */
-@Composable
-fun OrderRowItem(
-    row: com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow,
-    profile: RestaurantProfileEntity?,
-    enabledModes: List<PaymentMode> = emptyList(),
-    compactLayout: Boolean = false,
-    onStatusChange: (String) -> Unit = {},
-    onPayModeChange: (PaymentMode) -> Unit = {},
-    onRequestCancel: () -> Unit = {},
-    includeDate: Boolean = false,
-    onViewDetails: (Long) -> Unit
-) = OrderTableRow(
-    row = row,
-    profile = profile,
-    enabledModes = enabledModes,
-    compactLayout = compactLayout,
-    onStatusChange = onStatusChange,
-    onPayModeChange = onPayModeChange,
-    onRequestCancel = onRequestCancel,
-    includeDate = includeDate,
-    onViewDetails = onViewDetails
-)
-
 /**
- * Orders Data Table Component displaying the list of orders with headers and empty state.
+ * Orders table: one panel holding a pinned header band, a hairline, and the scrolling rows.
+ *
+ * The panel clips, fills and outlines; the header is its first band and a 1 dp hairline
+ * separates each row, with no trailing line under the last one. The header stays outside the
+ * [LazyColumn] so it pins while the list scrolls, and rows carry their bill id as a key so a
+ * refresh (cancel, payment-mode change, filter change) updates rows in place instead of
+ * rebuilding the list.
  */
 @Composable
 fun OrderHistoryTableComponent(
     rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
     profile: RestaurantProfileEntity?,
-    enabledModes: List<PaymentMode> = emptyList(),
     compactLayout: Boolean = false,
     includeDate: Boolean = false,
-    onStatusChange: (Long, String) -> Unit = { _, _ -> },
-    onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
-    onRequestCancel: (Long) -> Unit = {},
     onViewDetails: (Long) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
-    Column(modifier = modifier.fillMaxSize()) {
-        OrderTableHeader(includeDate = includeDate)
+    val hairline = OrdersDivider.copy(alpha = 0.7f)
 
-        if (rows.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = spacing.extraLarge),
-                contentAlignment = Alignment.Center
-            ) {
-                KhanaEmptyState(
-                    title = "No orders in this period",
-                    message = "Try another date or report filter.",
-                    icon = Icons.Default.Description
-                )
-            }
-        } else {
-            val listState = rememberLazyListState()
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScrollbar(listState)
-                    .padding(horizontal = spacing.medium),
-                verticalArrangement = Arrangement.spacedBy(spacing.small),
-                contentPadding = PaddingValues(top = spacing.extraSmall, bottom = spacing.medium)
-            ) {
-                items(rows) { row ->
-                    OrderTableRow(
-                        row = row,
-                        profile = profile,
-                        enabledModes = enabledModes,
-                        compactLayout = compactLayout,
-                        onStatusChange = { newStatus -> onStatusChange(row.billId, newStatus) },
-                        onPayModeChange = { newMode -> onPayModeChange(row.billId, newMode) },
-                        onRequestCancel = { onRequestCancel(row.billId) },
-                        includeDate = includeDate,
-                        onViewDetails = onViewDetails
+    // The panel hugs its rows instead of stretching to the bottom of the screen. With two
+    // orders the old `fillMaxSize` produced a huge empty card; a weighted list with
+    // `fill = false` still takes the remaining space when the list is long enough to scroll.
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = maxHeight)
+                .padding(horizontal = spacing.medium)
+                .clip(KhanaRadii.md)
+                .background(OrdersCard)
+                .border(1.dp, hairline, KhanaRadii.md)
+        ) {
+            OrderTableHeader(includeDate = includeDate)
+            HorizontalDivider(thickness = 1.dp, color = hairline)
+
+            if (rows.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    KhanaEmptyState(
+                        title = "No orders in this period",
+                        message = "Try another date or report filter.",
+                        icon = Icons.Default.Description
                     )
+                }
+            } else {
+                val listState = rememberLazyListState()
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .fillMaxWidth()
+                        .verticalScrollbar(listState)
+                ) {
+                    itemsIndexed(rows, key = { _, row -> row.billId }) { index, row ->
+                        OrderTableRow(
+                            row = row,
+                            profile = profile,
+                            compactLayout = compactLayout,
+                            includeDate = includeDate,
+                            onViewDetails = onViewDetails
+                        )
+                        if (index != rows.lastIndex) {
+                            HorizontalDivider(thickness = 1.dp, color = hairline)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-/** Compose idiomatic alias for OrderHistoryTableComponent */
-@Composable
-fun OrderHistoryTable(
-    rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
-    profile: RestaurantProfileEntity?,
-    enabledModes: List<PaymentMode> = emptyList(),
-    compactLayout: Boolean = false,
-    includeDate: Boolean = false,
-    onStatusChange: (Long, String) -> Unit = { _, _ -> },
-    onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
-    onRequestCancel: (Long) -> Unit = {},
-    onViewDetails: (Long) -> Unit,
-    modifier: Modifier = Modifier
-) = OrderHistoryTableComponent(
-    rows = rows,
-    profile = profile,
-    enabledModes = enabledModes,
-    compactLayout = compactLayout,
-    includeDate = includeDate,
-    onStatusChange = onStatusChange,
-    onPayModeChange = onPayModeChange,
-    onRequestCancel = onRequestCancel,
-    onViewDetails = onViewDetails,
-    modifier = modifier
-)
-
-/** Backward-compatibility alias for OrderLevelView */
-@Composable
-fun OrderLevelView(
-    rows: List<com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow>,
-    profile: RestaurantProfileEntity?,
-    enabledModes: List<PaymentMode> = emptyList(),
-    compactLayout: Boolean = false,
-    includeDate: Boolean = false,
-    onStatusChange: (Long, String) -> Unit = { _, _ -> },
-    onPayModeChange: (Long, PaymentMode) -> Unit = { _, _ -> },
-    onRequestCancel: (Long) -> Unit = {},
-    onViewDetails: (Long) -> Unit
-) = OrderHistoryTableComponent(
-    rows = rows,
-    profile = profile,
-    enabledModes = enabledModes,
-    compactLayout = compactLayout,
-    includeDate = includeDate,
-    onStatusChange = onStatusChange,
-    onPayModeChange = onPayModeChange,
-    onRequestCancel = onRequestCancel,
-    onViewDetails = onViewDetails
-)
-
-/**
- * Order Search input bar with clear action button.
- */
 @Composable
 fun OrderSearchBar(
     query: String,

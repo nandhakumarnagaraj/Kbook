@@ -54,11 +54,7 @@ class PrintService : Service() {
                 putExtra(EXTRA_DISPATCH_MODE, mode.name)
             }
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(intent)
-                } else {
-                    context.startService(intent)
-                }
+                context.startForegroundService(intent)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed starting PrintService", e)
             }
@@ -137,17 +133,15 @@ class PrintService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "POS Printing Service",
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "Handles thermal printer connections and data dispatch"
-            }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+        val channel = NotificationChannel(
+            CHANNEL_ID,
+            "POS Printing Service",
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Handles thermal printer connections and data dispatch"
         }
+        val manager = getSystemService(NotificationManager::class.java)
+        manager?.createNotificationChannel(channel)
     }
 
     private fun getNotification(): Notification {

@@ -9,7 +9,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -18,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,6 +40,7 @@ data class SelectionDialogOption<T>(
     val title: String,
     val subtitle: String? = null,
     val selectedAccent: Color = PrimaryGold,
+    val leadingIcon: ImageVector? = null,
     val onSelect: (() -> Unit)? = null
 )
 
@@ -83,6 +91,15 @@ fun <T> KhanaBookSelectionDialog(
                                 .padding(horizontal = spacing.medium, vertical = spacing.small),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            option.leadingIcon?.let { icon ->
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected) option.selectedAccent else TextGold.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(spacing.small))
+                            }
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = option.title,
@@ -97,6 +114,14 @@ fun <T> KhanaBookSelectionDialog(
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                 }
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Filled.CheckCircle,
+                                    contentDescription = "Selected",
+                                    tint = option.selectedAccent,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             }
                         }
                     }

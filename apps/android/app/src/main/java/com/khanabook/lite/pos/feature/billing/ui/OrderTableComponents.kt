@@ -39,25 +39,6 @@ private val COL_STATUS  = 2.0f
 private val COL_DATE    = 1.7f
 
 @Composable
-fun TableHeader(isGstEnabled: Boolean) {
-    val spacing = KhanaBookTheme.spacing
-    val invoiceHeader = if (isGstEnabled) "Tax Invoice No" else "Invoice No"
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(DarkBrown1.copy(alpha = 0.7f), RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-            .padding(vertical = spacing.small, horizontal = spacing.extraSmall),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        HeaderCell("Order No", COL_ORDER)
-        HeaderCell(invoiceHeader, COL_INVOICE)
-        HeaderCell("Mode", COL_MODE)
-        HeaderCell("Status", COL_STATUS)
-        HeaderCell("Date", COL_DATE)
-    }
-}
-
-@Composable
 fun RowScope.HeaderCell(
     text: String,
     weight: Float,
@@ -359,10 +340,35 @@ fun PartAmountDialog(
         title = mode.displayLabel,
         content = {
             Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                Surface(
+                    color = PrimaryGold.copy(alpha = 0.12f),
+                    shape = KhanaRadii.md,
+                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = spacing.medium, vertical = spacing.small),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Order total",
+                            color = TextGold.copy(alpha = 0.8f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            CurrencyUtils.formatPrice(totalAmount),
+                            color = PrimaryGold,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
                 Text(
-                    "Total: ${CurrencyUtils.formatPrice(totalAmount)}",
-                    color = TextLight,
-                    style = MaterialTheme.typography.bodyMedium
+                    "Both parts must add up to the total.",
+                    color = TextGold.copy(alpha = 0.65f),
+                    style = MaterialTheme.typography.labelSmall
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -416,11 +422,19 @@ fun PartAmountDialog(
         TextButton(onClick = onDismiss) {
             Text("Cancel", color = TextGold, style = MaterialTheme.typography.labelLarge)
         }
-        TextButton(
+        Button(
             onClick = { onConfirm(p1Text, p2Text) },
-            enabled = isValid
+            enabled = isValid,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PrimaryGold,
+                contentColor = DarkBrown1
+            ),
+            shape = KhanaRadii.md
         ) {
-            Text("Confirm", color = PrimaryGold, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+            Text(
+                "Confirm",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+            )
         }
     }
 }

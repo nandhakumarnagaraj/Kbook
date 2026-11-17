@@ -97,3 +97,71 @@ Caveat worth knowing: changing the closing time is **retroactive** for `Today`/`
 closing-time edit, a late-night order can move from `Today` to `Yesterday` (or out of a
 `Custom` range) because the boundary that classifies it changed. Tracked as `NEXT_ACTIONS.md`
 item N.
+
+#### Selected chip shows its date; one table — 2026-11-14 (Session 011, VERIFIED on `ZA222J5KT7`)
+
+The Orders screen is now exactly three chips and one table. The selected chip states the day it
+resolves to instead of its name, matching what `Custom` already did.
+
+| Step | User Action | Expected UI Result | Status |
+| :--- | :--- | :--- | :--- |
+| 1 | Open **`Orders`** | Chips `14 Nov` (selected) / `Yesterday` / `Custom`; table below | Observed `14 Nov` / `Yesterday` / `Custom`, header `OrderNo · Amount · Time · Action`, rows `#A02 03:32 PM`, `#A01 12:33 PM` |
+| 2 | Tap **`Yesterday`** | Selected chip reads `13 Nov`; `Today` chip returns to the word `Today` | Observed `Today` / `13 Nov` / `Custom`, empty state `No orders in this period` |
+| 3 | Tap **`Custom`** | Picker opens; the chip still reads `Custom` until dates are applied | Observed picker `November 2026`, `14 Nov – 14 Nov`, `1 day` |
+| 4 | Apply `12 Nov` → `14 Nov` in the picker | Chip reads `12 Nov – 14 Nov`; `Yesterday` chip returns to its word | Not re-run this session; unchanged code path from the 12:20 verification |
+
+Notes:
+- The label is the **business** date from `BusinessDate.businessDate(now, profile)`, the same
+  value that selects the query window. With a `12:30 AM` boundary the chip can read `13 Nov`
+  while the clock says `14 Nov 00:40` — intended, because that is the day being listed.
+- Unselected chips never carry a date, so the row cannot show three dates at once.
+- **Table rebuilt 2026-11-14 16:4x:** one `OrderTableCell` primitive builds every column for the
+  header and the rows, so the columns cannot drift; rows are 52 dp tall on phones (60 dp on the
+  wide layout) and the action is a 36 dp disc inside a 48 dp hit area that opens the details
+  dialog (`View order A02`). Rows are keyed by `billId` in the `LazyColumn`. Four columns, no
+  new data.
+- **Frozen:** the `Today` / `Yesterday` / `Custom` chip row was approved as shipped on
+  2026-11-14 and must not be edited again.
+- Table columns line up: the row's order-number cell carries the same `COL_ORDER` weight and
+  start inset as its header. Verified on `ZA222J5KT7` by matching uiautomator bounds
+  (`OrderNo [49,336][225,362]` over the order cell `[49,411][225,436]`).
+- The table prints the order id **without** `#` (`A02`) at the product owner's request; the
+  details dialog, search and share text still prefix it (`#A02`).
+- The `Payment`-level view was removed completely: the branch in `OrdersScreen.kt`, and
+  `PaymentLevelView` + its `PaymentModeItem` / `PartPaymentCard` / `ReportTypeToggle` helpers in
+  `ReportViews.kt`. The table is the only content branch besides the first-load skeleton.
+  `reportType` / `setReportType` and the exporter's `reportType` parameter went with it.
+  **Superseded 2026-11-14 17:2x:** report export was deleted entirely (see addendum 17:2x), so
+  there is no PDF/CSV path left to title.
+- Roles without `reports.full` still see only the `Today` chip (unchanged).
+
+#### Order dialogs — 2026-11-14 19:3x (VERIFIED on `ZA222J5KT7`)
+
+Tapping a row or the row's action opens **Order Details**, which now presents order identity in one
+soft card (order no, invoice, type, date), items, payment mode, the gold total strip, then
+`Print | Share` side by side, `Change Payment Mode`, and `Cancel Order`.
+
+- **Change Payment Mode** opens a reason-free list of the shop's enabled modes with icons and a check
+  on the current one. Choosing a simple mode saves immediately; choosing a split mode opens
+  **PartAmountDialog**, which shows `Order total`, pre-fills the split, and requires both parts to add
+  up before Confirm enables.
+- **Cancel Order** opens a reason list (Wrong order / Customer left / Test bill / Other) with
+  `Keep Order` and `Cancel Order`; Other reveals a free-text field.
+- **Refresh behaviour (fixed 2026-11-14):** the details dialog is a snapshot. It now re-reads the bill
+  after a payment-mode change or a cancel, so the mode and the available actions update without
+  closing the dialog. Before this, the dialog showed the old mode until reopened.
+
+#### Table hugs its rows — 2026-11-14 18:3x (VERIFIED on `ZA222J5KT7`)
+
+The panel used to be `fillMaxSize()`, so two orders left a large empty card filling the rest of
+the screen. The table now sits in a `BoxWithConstraints` and measures `heightIn(max = maxHeight)`
+with the list weighted `weight(1f, fill = false)`:
+
+- Few rows: the panel ends just below the last row, and the empty space below is page background.
+- Many rows: the panel grows to the available height and the list scrolls as before.
+- Empty result: the panel keeps a 180 dp empty-state area instead of collapsing.
+- Header label changed `OrderNo` → `Order No` (the old label read as one word). Columns, weights
+  and row contents are unchanged; the frozen chips are untouched.
+
+Observed: header `Order No · Amount · Time · Action`, then `A02` (cancelled, red edge and struck
+amount) and `A01`, with the panel ending right after `A01`.

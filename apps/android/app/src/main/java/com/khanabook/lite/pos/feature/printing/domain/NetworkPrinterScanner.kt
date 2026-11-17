@@ -234,7 +234,9 @@ class NetworkPrinterScanner @Inject constructor(
                 // IPv4 gateway only — the scan/prefill logic is IPv4-only.
                 val hasIpv4 = lp.linkAddresses.any { it.address is Inet4Address }
                 if (!hasIpv4) return@runCatching null
-                lp.routes.firstOrNull { it.hasGateway() }?.gateway?.hostAddress
+                // `RouteInfo.hasGateway()` is API 29; reading the gateway directly keeps this
+                // working on API 26-28, where the old call threw and the subnet prefill was skipped.
+                lp.routes.firstOrNull { it.gateway != null }?.gateway?.hostAddress
                     ?.takeIf { it.contains(".") }
             }.getOrNull()
             if (gateway != null) return gateway

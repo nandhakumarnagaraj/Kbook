@@ -225,35 +225,3 @@ internal fun formatClockTime(raw: String?): String {
     return "$hour12:${minute.toString().padStart(2, '0')} $suffix"
 }
 
-@Composable
-internal fun CustomerNumberCollectorSelector(
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    enabled: Boolean = true
-) {
-    val spacing = KhanaBookTheme.spacing
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.25f)), KhanaRadii.lg)
-            .background(DarkBrown2.copy(alpha = 0.45f), KhanaRadii.lg)
-            .padding(spacing.medium),
-        verticalArrangement = Arrangement.spacedBy(spacing.small)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-        ) {
-            Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(KhanaBookTheme.iconSize.small))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Collect Customer Number?", color = PrimaryGold, style = MaterialTheme.typography.titleSmall)
-            }
-            KhanaBookSwitch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                enabled = enabled
-            )
-        }
-    }
-}

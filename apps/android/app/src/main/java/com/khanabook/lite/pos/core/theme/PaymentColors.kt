@@ -34,23 +34,6 @@ fun getPayModeColor(mode: PaymentMode): Color {
 }
 
 /**
- * Icon-tint variant of the payment mode color, for small mode icons drawn on
- * warm card backgrounds (CardBG). Badge colors like UPI's Brown500 vanish on
- * brown surfaces — this lifts dark hues just enough to stay readable while
- * keeping the same hue identity (badge fills elsewhere are unaffected).
- */
-fun getPayModeIconTint(mode: PaymentMode): Color {
-    return when (mode) {
-        // Brown500 on CardBG is brown-on-brown; light gold-brown keeps UPI's QR visible
-        PaymentMode.UPI -> Color(0xFFD7A86E)
-        // PartCashPosOrange is a warm hue on a warm surface — same lift, keeps
-        // Cash+POS readable while staying clearly orange next to POS's gold.
-        PaymentMode.PART_CASH_POS -> Color(0xFFFF9433)
-        else -> getPayModeColor(mode)
-    }
-}
-
-/**
  * Single source of truth for payment mode → icon mapping.
  * Used by the Payments Report cards, order mode badges and the payment step.
  *
@@ -74,20 +57,3 @@ fun getPayModeIcon(mode: PaymentMode): ImageVector {
     }
 }
 
-/**
- * Overload accepting raw String payment mode value for screens that
- * work with database string values directly.
- */
-fun payModeColor(mode: String?): Color {
-    if (mode == null) return Brown500
-    return when (mode.lowercase()) {
-        "cash" -> SuccessGreen
-        "upi" -> Brown500
-        "pos", "card" -> PrimaryGold
-        "easebuzz", "payment_link", "online" -> SmsBlue
-        "part_cash_upi", "part_payment_upi_cash" -> PartCashUpiTeal
-        "part_cash_pos", "part_payment_cash_pos" -> PartCashPosOrange
-        "part_upi_pos", "part_payment_upi_pos" -> PartUpiPosSky
-        else -> Brown500
-    }
-}

@@ -31,8 +31,7 @@ data class NotificationChannelSpec(
 object NotificationChannelCatalog {
 
     fun channels(context: Context): List<NotificationChannelSpec> {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return emptyList()
-        return NotificationHelper.registeredChannels(context).map { channel ->
+                return NotificationHelper.registeredChannels(context).map { channel ->
             NotificationChannelSpec(
                 id = channel.id,
                 title = channel.name?.toString().orEmpty(),

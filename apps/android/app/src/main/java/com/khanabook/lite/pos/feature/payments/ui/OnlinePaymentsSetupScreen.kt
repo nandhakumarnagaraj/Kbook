@@ -223,55 +223,6 @@ fun OnlinePaymentsSetupScreen(
 }
 
 @Composable
-private fun NotStartedContent(onStart: () -> Unit, spacing: Spacing) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(spacing.large),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Info,
-            contentDescription = null,
-            tint = PrimaryGold,
-            modifier = Modifier.size(KhanaBookTheme.iconSize.xxlarge)
-        )
-        Spacer(Modifier.height(spacing.large))
-        Text(
-            "Accept Online Payments",
-            style = MaterialTheme.typography.headlineSmall,
-            color = TextLight,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(spacing.medium))
-        Text(
-            "Register your business with Easebuzz to accept UPI, cards, and netbanking payments directly from customers.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextGold,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(spacing.medium))
-        Text(
-            "You'll need:\n• PAN - proprietor's PAN for a sole proprietorship, firm/company PAN otherwise\n• Aadhaar of the proprietor / authorised signatory (masked or Aadhaar XML is fine; passport, voter ID or driving licence accepted instead)\n• Bank account number and IFSC\n• FSSAI number and one business proof (Shop & Establishment, Udyam/MSME, trade licence, utility bill or Import/Export certificate)\n• Phone number (used to sign in to the KYC portal; an OTP only if Easebuzz asks for one)\n\nGST is optional. You upload the documents yourself, signed in to Easebuzz's KYC portal at the end.",
-            style = MaterialTheme.typography.bodySmall,
-            color = TextGold.copy(alpha = 0.7f),
-            textAlign = TextAlign.Start,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(spacing.extraLarge))
-        Button(
-            onClick = onStart,
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-            shape = KhanaRadii.button,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Start Registration", color = DarkBrown1)
-        }
-    }
-}
-
-@Composable
 private fun BusinessDetailsStep(
     viewModel: EasebuzzOnboardingViewModel,
     isSubmitting: Boolean,

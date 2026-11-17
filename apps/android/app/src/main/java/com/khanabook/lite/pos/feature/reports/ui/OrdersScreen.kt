@@ -36,8 +36,6 @@ import com.khanabook.lite.pos.feature.reports.ui.FilterChip
 import com.khanabook.lite.pos.feature.reports.ui.OrderDateFilterComponent
 import com.khanabook.lite.pos.feature.reports.ui.OrderHistoryTableComponent
 import com.khanabook.lite.pos.feature.reports.ui.OrderSearchBar
-import com.khanabook.lite.pos.feature.reports.ui.PaymentLevelView
-import com.khanabook.lite.pos.feature.reports.ui.OrderLevelView
 import com.khanabook.lite.pos.feature.reports.ui.OrderDetailsDialog
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.feature.payments.domain.PaymentModeManager
@@ -52,10 +50,9 @@ fun OrdersScreen(
     viewModel: ReportsViewModel = hiltViewModel(),
     settingsViewModel: com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel = hiltViewModel()
 ) {
-    val reportType by viewModel.reportType.collectAsStateWithLifecycle()
     val timeFilter by viewModel.timeFilter.collectAsStateWithLifecycle()
     val customRangeLabel by viewModel.customRangeLabel.collectAsStateWithLifecycle()
-    val paymentBreakdown by viewModel.paymentBreakdown.collectAsStateWithLifecycle()
+    val dateFilterLabels by viewModel.dateFilterLabels.collectAsStateWithLifecycle()
     val orderLevelRows by viewModel.orderLevelRows.collectAsStateWithLifecycle()
     val profile by settingsViewModel.profile.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
@@ -201,7 +198,8 @@ fun OrdersScreen(
                         }
                     },
                     canViewFullReports = canViewFullReports,
-                    customRangeLabel = customRangeLabel
+                    customRangeLabel = customRangeLabel,
+                    dateLabels = dateFilterLabels
                 )
             }
 
@@ -244,39 +242,15 @@ fun OrdersScreen(
                     SkeletonReportScreen(
                         modifier = Modifier.fillMaxSize()
                     )
-                } else if (reportType == "Payment") {
-                    PaymentLevelView(
-                        breakdown = paymentBreakdown,
-                        settingsViewModel = settingsViewModel,
-                        modifier = Modifier.fillMaxSize()
-                    )
                 } else {
                     OrderHistoryTableComponent(
                         rows = filteredRows,
                         profile = profile,
-                        enabledModes = enabledModes,
                         compactLayout = !layout.isWideListDetail,
-                        // Today is a single business day, so hh:mm is unambiguous. Yesterday
-                        // and multi-day Custom ranges can repeat the same daily number, so the
-                        // row carries its date too (two lines in the same Time column).
-                        includeDate = timeFilter != "Today",
-                        // NOTE (real behaviour): these three are threaded down to the row but no
-                        // row action invokes them — order edits happen only in OrderDetailsDialog.
-                        // Deciding whether to wire them is NEXT_ACTIONS item K.
-                        onStatusChange = { billId, newStatus ->
-                            viewModel.updateOrderStatus(billId, newStatus)
-                        },
-                        onPayModeChange = { billId, newMode ->
-                            if (PaymentModeManager.isPartPayment(newMode)) {
-                                pendingPartBill = orderLevelRows.find { it.billId == billId }
-                                pendingPartMode = newMode
-                            } else {
-                                viewModel.updatePaymentMode(billId, newMode.dbValue)
-                            }
-                        },
-                        onRequestCancel = { billId ->
-                            cancelBillId = billId
-                        },
+                        // Per product request (2026-11-14) every filter renders time only:
+                        // rows show `hh:mm a` and the header reads `Time`, never `Date/Time`.
+                        // The day itself is stated by the selected chip above the table.
+                        includeDate = false,
                         onViewDetails = { billId ->
                             selectedBillId = billId
                             viewModel.loadBillDetails(billId)

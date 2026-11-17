@@ -330,10 +330,10 @@ fun MenuSelectionStep(
             }
 
             // The per-category loading flag must not cover the favourites view: it is only ever true
-    // for the category query, so leaving it in would show a skeleton over a list that has
-    // already loaded (and could be legitimately empty).
-    val isInitialLoading =
-        (!catalog.loaded || (isMenuItemsLoading && displayItems.isEmpty() && !favouritesOnly)) && searchQuery.isBlank()
+            // for the category query, so leaving it in would show a skeleton over a list that has
+            // already loaded (and could be legitimately empty).
+            val isInitialLoading =
+                (!catalog.loaded || (isMenuItemsLoading && displayItems.isEmpty() && !favouritesOnly)) && searchQuery.isBlank()
 
             if (isInitialLoading) {
                 SkeletonMenuScreen(modifier = Modifier.weight(1f))
@@ -1219,15 +1219,6 @@ private fun SquareMenuItemCard(
             }
         }
     }
-}
-
-@Composable
-fun FoodTypeIcon(type: String) {
-    val color = if (type == "veg") VegGreen else NonVegRed
-    Box(
-            modifier = Modifier.size(KhanaBookTheme.iconSize.xsmall).border(1.dp, color).padding(KhanaBookTheme.spacing.hairline),
-            contentAlignment = Alignment.Center
-    ) { Box(modifier = Modifier.fillMaxSize().background(color, RoundedCornerShape(100.dp))) }
 }
 
 @Composable

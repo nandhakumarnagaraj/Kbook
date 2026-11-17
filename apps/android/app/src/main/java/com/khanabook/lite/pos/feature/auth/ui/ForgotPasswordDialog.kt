@@ -358,15 +358,3 @@ private fun ForgotPasswordStepRow(currentStep: Int) {
     }
 }
 
-@Composable
-internal fun loginTextFieldColors() =
-        OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
-                focusedBorderColor = PrimaryGold,
-                focusedTextColor = TextLight,
-                unfocusedTextColor = TextLight,
-                focusedLabelColor = PrimaryGold,
-                unfocusedLabelColor = TextMuted,
-                errorBorderColor = ErrorPink,
-                errorLabelColor = ErrorPink
-        )
