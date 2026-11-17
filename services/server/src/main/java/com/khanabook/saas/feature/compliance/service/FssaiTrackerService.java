@@ -130,15 +130,8 @@ public class FssaiTrackerService {
         String title = (daysToExpiry == 0)
             ? "🚨 FSSAI License Expires Today!"
             : (daysToExpiry <= 7) ? "🚨 FSSAI License Expiring Critical!" : "⚠️ FSSAI License Expiring Soon!";
-        String customFssai = profile.getCustomFssaiMessage();
         String message;
-        if (customFssai != null && !customFssai.isBlank()) {
-            message = customFssai
-                .replace("{fssaiNo}", profile.getFssaiNumber() != null ? profile.getFssaiNumber() : "")
-                .replace("{shopName}", shopName)
-                .replace("{days}", String.valueOf(daysToExpiry))
-                .replace("{expiryDate}", tracker.getExpiryDate().format(DATE_FORMATTER));
-        } else if (daysToExpiry == 0) {
+        if (daysToExpiry == 0) {
             message = String.format(
                 "Your FSSAI license (%s) for %s expires today (%s). Renew it immediately to avoid penalties.",
                 profile.getFssaiNumber(),

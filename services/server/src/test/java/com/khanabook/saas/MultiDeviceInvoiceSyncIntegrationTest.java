@@ -368,7 +368,6 @@ class MultiDeviceInvoiceSyncIntegrationTest {
         profile.setServerUpdatedAt(System.currentTimeMillis());
         profile.setLastResetDateProper(java.time.LocalDate.now());
         profile.setLogoVersion(0);
-        profile.setUpiQrVersion(0);
         restaurantProfileRepository.save(profile);
     }
 }

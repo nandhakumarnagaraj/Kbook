@@ -100,8 +100,6 @@ public interface RestaurantProfileRepository extends SyncRepository<RestaurantPr
 
 	long countByIsDeletedFalse();
 
-	long countByIsDeletedFalseAndOwnWebsiteEnabledTrue();
-
 	List<RestaurantProfile> findAllByIsDeletedFalseOrderByUpdatedAtDesc();
 
 	/**

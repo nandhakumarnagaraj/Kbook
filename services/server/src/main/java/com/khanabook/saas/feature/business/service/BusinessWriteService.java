@@ -756,11 +756,8 @@ public class BusinessWriteService {
         if (updateDto.getGstEnabled() != null) profile.setGstEnabled(updateDto.getGstEnabled());
         if (updateDto.getGstin() != null) profile.setGstin(updateDto.getGstin());
         if (updateDto.getGstPercentage() != null) profile.setGstPercentage(updateDto.getGstPercentage());
-        if (updateDto.getCustomTaxName() != null) profile.setCustomTaxName(updateDto.getCustomTaxName());
-        if (updateDto.getCustomTaxPercentage() != null) profile.setCustomTaxPercentage(updateDto.getCustomTaxPercentage());
         if (updateDto.getUpiEnabled() != null) profile.setUpiEnabled(updateDto.getUpiEnabled());
         if (updateDto.getUpiHandle() != null) profile.setUpiHandle(updateDto.getUpiHandle());
-        if (updateDto.getUpiMobile() != null) profile.setUpiMobile(updateDto.getUpiMobile());
         if (updateDto.getCashEnabled() != null) profile.setCashEnabled(updateDto.getCashEnabled());
         if (updateDto.getPosEnabled() != null) profile.setPosEnabled(updateDto.getPosEnabled());
         if (updateDto.getOrderPaymentFlowMode() != null) profile.setOrderPaymentFlowMode(updateDto.getOrderPaymentFlowMode());
@@ -781,13 +778,6 @@ public class BusinessWriteService {
                 log.warn("Invalid fssaiExpiryDate format '{}' for restaurant {}: {}", updateDto.getFssaiExpiryDate(), restaurantId, e.getMessage());
             }
         }
-        if (updateDto.getGstExpiryDate() != null) {
-            try {
-                profile.setGstExpiryDate(updateDto.getGstExpiryDate().isBlank() ? null : java.time.LocalDate.parse(updateDto.getGstExpiryDate().trim()));
-            } catch (Exception e) {
-                log.warn("Invalid gstExpiryDate format '{}' for restaurant {}: {}", updateDto.getGstExpiryDate(), restaurantId, e.getMessage());
-            }
-        }
 
         long now = System.currentTimeMillis();
         // Per-field revisions: stamp only the fields this update actually wrote, so a till
@@ -800,11 +790,8 @@ public class BusinessWriteService {
         if (updateDto.getGstEnabled() != null) written.add("gstenabled");
         if (updateDto.getGstin() != null) written.add("gstin");
         if (updateDto.getGstPercentage() != null) written.add("gstpercentage");
-        if (updateDto.getCustomTaxName() != null) written.add("customtaxname");
-        if (updateDto.getCustomTaxPercentage() != null) written.add("customtaxpercentage");
         if (updateDto.getUpiEnabled() != null) written.add("upienabled");
         if (updateDto.getUpiHandle() != null) written.add("upihandle");
-        if (updateDto.getUpiMobile() != null) written.add("upimobile");
         if (updateDto.getCashEnabled() != null) written.add("cashenabled");
         if (updateDto.getPosEnabled() != null) written.add("posenabled");
         if (updateDto.getOrderPaymentFlowMode() != null) written.add("orderpaymentflowmode");
@@ -812,7 +799,6 @@ public class BusinessWriteService {
         if (updateDto.getReviewUrl() != null) written.add("reviewurl");
         if (updateDto.getFssaiNumber() != null) written.add("fssainumber");
         if (updateDto.getFssaiExpiryDate() != null) written.add("fssaiexpirydate");
-        if (updateDto.getGstExpiryDate() != null) written.add("gstexpirydate");
         if (!written.isEmpty()) {
             profile.markFieldsChanged(now, written.toArray(new String[0]));
         }

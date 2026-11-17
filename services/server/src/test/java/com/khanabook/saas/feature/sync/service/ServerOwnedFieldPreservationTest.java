@@ -93,38 +93,4 @@ class ServerOwnedFieldPreservationTest {
 		assertEquals(Boolean.FALSE, incoming.getInventoryDeducted(),
 				"inventoryDeducted is NOT NULL in the schema, so coalesce instead of writing null");
 	}
-
-	@Test
-	@DisplayName("marketplace integration settings survive a whole-record profile push")
-	void marketplaceSettingsSurvivePush() {
-		RestaurantProfile existing = new RestaurantProfile();
-		existing.setZomatoEnabled(true);
-		existing.setSwiggyEnabled(true);
-		existing.setZomatoOutletId("OUT-77");
-		existing.setSwiggyStoreId("ST-88");
-		existing.setZomatoApiKey("zk_live");
-		existing.setSwiggyWebhookSecret("whsec_live");
-		existing.setMarketplaceNotes("owner configured");
-		existing.setOwnWebsiteEnabled(true);
-
-		RestaurantProfile incoming = new RestaurantProfile();
-		RestaurantProfileDTO dto = new RestaurantProfileDTO();
-		dto.setShopName("Mughal Kitchen");
-		BeanUtils.copyProperties(dto, incoming);
-
-		assertNull(incoming.getZomatoApiKey(), "Precondition: the DTO carries no marketplace fields");
-
-		GenericSyncService.preserveServerOwnedState(incoming, existing);
-
-		assertTrue(incoming.getZomatoEnabled());
-		assertTrue(incoming.getSwiggyEnabled());
-		assertEquals("OUT-77", incoming.getZomatoOutletId());
-		assertEquals("ST-88", incoming.getSwiggyStoreId());
-		assertEquals("zk_live", incoming.getZomatoApiKey());
-		assertEquals("whsec_live", incoming.getSwiggyWebhookSecret());
-		assertEquals("owner configured", incoming.getMarketplaceNotes());
-		assertTrue(incoming.getOwnWebsiteEnabled());
-		assertEquals("Mughal Kitchen", incoming.getShopName(),
-				"client-owned fields must still be taken from the push");
-	}
 }

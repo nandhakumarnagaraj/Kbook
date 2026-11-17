@@ -64,14 +64,6 @@ public class ComplianceAlertService {
                 sendWhatsappAlert(profile.getShopName(), whatsappNumber, "FSSAI License", profile.getFssaiNumber(), profile.getFssaiExpiryDate(), daysToExpiry);
             }
         }
-
-        // Check GST
-        if (profile.getGstExpiryDate() != null) {
-            long daysToExpiry = ChronoUnit.DAYS.between(today, profile.getGstExpiryDate());
-            if (daysToExpiry == 30 || daysToExpiry == 15 || daysToExpiry == 7) {
-                sendWhatsappAlert(profile.getShopName(), whatsappNumber, "GSTIN Registration", profile.getGstin(), profile.getGstExpiryDate(), daysToExpiry);
-            }
-        }
     }
 
     private void sendWhatsappAlert(String shopName, String phoneNumber, String documentType, String documentNumber, LocalDate expiryDate, long daysToExpiry) {

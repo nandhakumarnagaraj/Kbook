@@ -72,10 +72,6 @@ class SyncDtoEntityFieldParityTest {
 			"inventoryDeducted",
 			// Set by ItemVariantRepository.recalculateStock from the stock-log ledger.
 			"currentStock", "lowStockThreshold",
-			// Marketplace integration credentials, configured by an owner in web admin.
-			"zomatoEnabled", "swiggyEnabled", "zomatoOutletId", "swiggyStoreId",
-			"zomatoApiKey", "zomatoWebhookSecret", "swiggyApiKey", "swiggyWebhookSecret",
-			"marketplaceNotes", "ownWebsiteEnabled",
 			// Auth state owned by the identity service, not the device.
 			"loginId", "authProvider", "passwordHash", "googleEmail",
 			"phoneNumber", "pinHash", "pinSetAt",
@@ -96,7 +92,7 @@ class SyncDtoEntityFieldParityTest {
 			// SyncDtoContractTest lists the same names as server-owned.
 			// String on the DTO, LocalDate on the entity, so BeanUtils skips them. SyncMapper
 			// converts and mergeCounterState restores these explicitly instead.
-			"lastResetDateProper", "fssaiExpiryDate", "gstExpiryDate",
+			"lastResetDateProper", "fssaiExpiryDate",
 			// See the business-day block above.
 			"businessDayCutoffTime", "cutoffEffectiveFrom",
 			"emailDailyClosingReport", "dailyClosingEmailRecipients"
@@ -115,6 +111,10 @@ class SyncDtoEntityFieldParityTest {
 			// lastResetDate is a String here and a LocalDate on the entity; the mapper and
 			// mergeCounterState handle it explicitly because BeanUtils cannot.
 			"lastResetDate", "fssaiExpiryDate", "gstExpiryDate",
+			// Deprecated profile fields preserved on DTO for wire backward compatibility
+			"customWelcomeMessage", "customFssaiMessage", "emailInvoiceConsent",
+			"customTaxName", "customTaxNumber", "customTaxPercentage",
+			"upiQrPath", "upiQrUrl", "upiQrVersion", "upiMobile", "printCustomerWhatsapp",
 			// Client conveniences the server derives or ignores: the wire calls on-hand
 			// quantity "stock" while the column is current_stock, which the ledger owns.
 			"stock", "trackStock",

@@ -334,7 +334,6 @@ class BillLifecycleSyncPostgresIntegrationTest {
         profile.setServerUpdatedAt(FIXED_TIMESTAMP);
         profile.setLastResetDateProper(java.time.LocalDate.of(2026, 7, 28));
         profile.setLogoVersion(0);
-        profile.setUpiQrVersion(0);
         restaurantProfileRepository.save(profile);
     }
 

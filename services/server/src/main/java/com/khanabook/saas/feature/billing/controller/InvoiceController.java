@@ -147,7 +147,7 @@ public class InvoiceController {
             }
         }
         String footer = blank(profile != null ? profile.getInvoiceFooter() : null);
-        String customTaxName = blank(profile != null ? profile.getCustomTaxName() : null);
+        String customTaxName = "";
         String invoiceLabel = profile != null && Boolean.TRUE.equals(profile.getGstEnabled()) ? "Tax Invoice No" : "Invoice No";
 
         String dailyOrderDisplay = (bill.getDailyOrderDisplay() != null && !bill.getDailyOrderDisplay().isBlank())

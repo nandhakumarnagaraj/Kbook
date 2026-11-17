@@ -124,7 +124,7 @@ public class BusinessReadService {
         return BusinessDashboardResponse.builder()
                 .restaurantId(restaurantId)
                 .shopName(profile.getShopName())
-                .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
+                .websiteEnabled(false)
                 .totalStaff(staff.size())
                 .totalMenuItems(menuItems.size())
                 .posOrderCount(bills.size())

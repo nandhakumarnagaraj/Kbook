@@ -136,7 +136,6 @@ public class AuthServiceImpl implements AuthService {
         profile.setLastResetDate(today);
         profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
         profile.setLogoVersion(0);
-        profile.setUpiQrVersion(0);
         profile.setUpdatedAt(System.currentTimeMillis());
         profile.setServerUpdatedAt(System.currentTimeMillis());
         profile.setCreatedAt(System.currentTimeMillis());
@@ -185,7 +184,6 @@ public class AuthServiceImpl implements AuthService {
         profile.setLastResetDate(today);
         profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
         profile.setLogoVersion(0);
-        profile.setUpiQrVersion(0);
         profile.setUpdatedAt(System.currentTimeMillis());
         profile.setServerUpdatedAt(System.currentTimeMillis());
         profile.setCreatedAt(System.currentTimeMillis());
@@ -322,7 +320,6 @@ public class AuthServiceImpl implements AuthService {
                             profile.setLastResetDate(today);
                             profile.setLastResetDateProper(java.time.LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")));
                             profile.setLogoVersion(0);
-                            profile.setUpiQrVersion(0);
                             profile.setVersion(0L);
                             profile.setIsDeleted(false);
                             profile.setUpdatedAt(System.currentTimeMillis());

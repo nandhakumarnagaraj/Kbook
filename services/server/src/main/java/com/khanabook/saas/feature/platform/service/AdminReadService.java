@@ -51,7 +51,7 @@ public class AdminReadService {
     @Cacheable("adminDashboardSummary")
     public AdminDashboardSummaryResponse getDashboardSummary() {
         long totalBusinesses   = restaurantProfileRepository.countByIsDeletedFalse();
-        long liveBusinesses    = restaurantProfileRepository.countByIsDeletedFalseAndOwnWebsiteEnabledTrue();
+        long liveBusinesses    = totalBusinesses;
         long totalStaff        = userRepository.countByIsDeletedFalse();
         long totalBillOrders   = billRepository.countByIsDeletedFalse();
         BigDecimal billRev     = nullSafe(billRepository.sumCompletedRevenue());
@@ -113,7 +113,7 @@ public class AdminReadService {
                             .ownerLoginId(owner != null ? owner.getLoginId() : null)
                             .whatsappNumber(profile.getWhatsappNumber())
                             .email(profile.getEmail())
-                            .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
+                            .websiteEnabled(false)
                             .isSuspended(Boolean.TRUE.equals(profile.getIsSuspended()))
                             .staffCount(staffCount.getOrDefault(profile.getRestaurantId(), 0L))
                             .menuCount(menuCount.getOrDefault(profile.getRestaurantId(), 0L))
@@ -165,7 +165,7 @@ public class AdminReadService {
                 .whatsappNumber(profile.getWhatsappNumber())
                 .currency(profile.getCurrency())
                 .timezone(profile.getTimezone())
-                .websiteEnabled(Boolean.TRUE.equals(profile.getOwnWebsiteEnabled()))
+                .websiteEnabled(false)
                 .gstEnabled(Boolean.TRUE.equals(profile.getGstEnabled()))
                 .staffCount(users.size())
                 .menuCount(menuCount)

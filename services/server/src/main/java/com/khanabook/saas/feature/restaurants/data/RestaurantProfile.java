@@ -60,15 +60,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "fssai_expiry_date")
 	private java.time.LocalDate fssaiExpiryDate;
 
-	@Column(name = "custom_welcome_message")
-	private String customWelcomeMessage;
-
-	@Column(name = "custom_fssai_message")
-	private String customFssaiMessage;
-
-	@Column(name = "email_invoice_consent")
-	private Boolean emailInvoiceConsent;
-
 	@Column(name = "country")
 	private String country;
 
@@ -84,71 +75,20 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "gst_percentage", columnDefinition = "NUMERIC(12,2)")
 	private java.math.BigDecimal gstPercentage;
 
-	@Column(name = "custom_tax_name")
-	private String customTaxName;
-
-	@Column(name = "custom_tax_number")
-	private String customTaxNumber;
-
-	@Column(name = "custom_tax_percentage", columnDefinition = "NUMERIC(12,2)")
-	private java.math.BigDecimal customTaxPercentage;
-
 	@Column(name = "currency")
 	private String currency;
 
 	@Column(name = "upi_enabled")
 	private Boolean upiEnabled;
 
-	@Column(name = "upi_qr_path")
-	private String upiQrPath;
-
-	@Column(name = "upi_qr_url")
-	private String upiQrUrl;
-
-	@Column(name = "upi_qr_version")
-	private Integer upiQrVersion;
-
 	@Column(name = "upi_handle")
 	private String upiHandle;
-
-	@Column(name = "upi_mobile")
-	private String upiMobile;
 
 	@Column(name = "cash_enabled")
 	private Boolean cashEnabled;
 
 	@Column(name = "pos_enabled")
 	private Boolean posEnabled;
-
-	@Column(name = "zomato_enabled")
-	private Boolean zomatoEnabled;
-
-	@Column(name = "swiggy_enabled")
-	private Boolean swiggyEnabled;
-
-	@Column(name = "zomato_outlet_id")
-	private String zomatoOutletId;
-
-	@Column(name = "swiggy_store_id")
-	private String swiggyStoreId;
-
-	@Column(name = "zomato_api_key")
-	private String zomatoApiKey;
-
-	@Column(name = "zomato_webhook_secret")
-	private String zomatoWebhookSecret;
-
-	@Column(name = "swiggy_api_key")
-	private String swiggyApiKey;
-
-	@Column(name = "swiggy_webhook_secret")
-	private String swiggyWebhookSecret;
-
-	@Column(name = "marketplace_notes", columnDefinition = "TEXT")
-	private String marketplaceNotes;
-
-	@Column(name = "own_website_enabled")
-	private Boolean ownWebsiteEnabled;
 
 	// Printer configuration is deliberately NOT stored server-side. Printer bindings
 	// (enabled, name, MAC, paper size, per-role) are physical properties of one device,
@@ -161,9 +101,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 
 	@Column(name = "include_logo_in_print")
 	private Boolean includeLogoInPrint;
-
-	@Column(name = "print_customer_whatsapp")
-	private Boolean printCustomerWhatsapp;
 
 	@Column(name = "daily_order_counter")
 	private Long dailyOrderCounter;
@@ -307,9 +244,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 	// --- Easebuzz + compliance fields (v2 port) ---
 	@Column(name = "easebuzz_enabled")
 	private Boolean easebuzzEnabled;
-
-	@Column(name = "gst_expiry_date")
-	private java.time.LocalDate gstExpiryDate;
 	@jakarta.persistence.PrePersist
 	@jakarta.persistence.PreUpdate
 	public void syncDates() {

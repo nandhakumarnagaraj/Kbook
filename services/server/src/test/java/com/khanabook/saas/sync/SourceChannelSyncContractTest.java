@@ -257,7 +257,6 @@ class SourceChannelSyncContractTest {
         profile.setServerUpdatedAt(FIXED_TIMESTAMP);
         profile.setLastResetDateProper(java.time.LocalDate.of(2026, 9, 26));
         profile.setLogoVersion(0);
-        profile.setUpiQrVersion(0);
         restaurantProfileRepository.save(profile);
     }
 

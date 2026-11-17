@@ -1435,20 +1435,6 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (incoming instanceof RestaurantProfile incomingProfile
 				&& existing instanceof RestaurantProfile existingProfile) {
 			incomingProfile.setIsSuspended(existingProfile.getIsSuspended());
-			// Marketplace integrations are configured by an owner in web admin, never by a
-			// till. These are absent from RestaurantProfileDTO, so without restoring them a
-			// legacy whole-record push silently blanks the credentials and disconnects the
-			// integration.
-			incomingProfile.setZomatoEnabled(existingProfile.getZomatoEnabled());
-			incomingProfile.setSwiggyEnabled(existingProfile.getSwiggyEnabled());
-			incomingProfile.setZomatoOutletId(existingProfile.getZomatoOutletId());
-			incomingProfile.setSwiggyStoreId(existingProfile.getSwiggyStoreId());
-			incomingProfile.setZomatoApiKey(existingProfile.getZomatoApiKey());
-			incomingProfile.setZomatoWebhookSecret(existingProfile.getZomatoWebhookSecret());
-			incomingProfile.setSwiggyApiKey(existingProfile.getSwiggyApiKey());
-			incomingProfile.setSwiggyWebhookSecret(existingProfile.getSwiggyWebhookSecret());
-			incomingProfile.setMarketplaceNotes(existingProfile.getMarketplaceNotes());
-			incomingProfile.setOwnWebsiteEnabled(existingProfile.getOwnWebsiteEnabled());
 			// Easebuzz enablement is owner-gated (see RestaurantPaymentConfigController#updateConfig).
 			// It is carried on the DTO, so without restoring it any device push could flip
 			// online payments on and bypass that check.
@@ -1696,8 +1682,6 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (!changed.contains("logopath")) incomingP.setLogoPath(existingP.getLogoPath());
 		if (!changed.contains("logourl")) incomingP.setLogoUrl(existingP.getLogoUrl());
 		if (!changed.contains("logoversion")) incomingP.setLogoVersion(existingP.getLogoVersion());
-		if (!changed.contains("customwelcomemessage")) incomingP.setCustomWelcomeMessage(existingP.getCustomWelcomeMessage());
-		if (!changed.contains("customfssaicomessage")) incomingP.setCustomFssaiMessage(existingP.getCustomFssaiMessage());
 		if (!changed.contains("reviewurl")) {
 			incomingP.setReviewUrl(existingP.getReviewUrl());
 		} else if (incomingP.getReviewUrl() != null && !incomingP.getReviewUrl().isBlank()) {
@@ -1709,8 +1693,6 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (!changed.contains("invoicefooter")) incomingP.setInvoiceFooter(existingP.getInvoiceFooter());
 		if (!changed.contains("showbranding")) incomingP.setShowBranding(existingP.getShowBranding());
 		if (!changed.contains("maskcustomerphone")) incomingP.setMaskCustomerPhone(existingP.getMaskCustomerPhone());
-		if (!changed.contains("printcustomerwhatsapp")) incomingP.setPrintCustomerWhatsapp(existingP.getPrintCustomerWhatsapp());
-		if (!changed.contains("emailinvoiceconsent")) incomingP.setEmailInvoiceConsent(existingP.getEmailInvoiceConsent());
 		if (!changed.contains("sessiontimeoutminutes")) incomingP.setSessionTimeoutMinutes(existingP.getSessionTimeoutMinutes());
 		if (!changed.contains("orderpaymentflowmode")) incomingP.setOrderPaymentFlowMode(existingP.getOrderPaymentFlowMode());
 		// GST group
@@ -1718,17 +1700,9 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (!changed.contains("gstin")) incomingP.setGstin(existingP.getGstin());
 		if (!changed.contains("istaxinclusive")) incomingP.setIsTaxInclusive(existingP.getIsTaxInclusive());
 		if (!changed.contains("gstpercentage")) incomingP.setGstPercentage(existingP.getGstPercentage());
-		if (!changed.contains("customtaxname")) incomingP.setCustomTaxName(existingP.getCustomTaxName());
-		if (!changed.contains("customtaxnumber")) incomingP.setCustomTaxNumber(existingP.getCustomTaxNumber());
-		if (!changed.contains("customtaxpercentage")) incomingP.setCustomTaxPercentage(existingP.getCustomTaxPercentage());
-		if (!changed.contains("gstexpirydate")) incomingP.setGstExpiryDate(existingP.getGstExpiryDate());
 		// UPI/payment group
 		if (!changed.contains("upienabled")) incomingP.setUpiEnabled(existingP.getUpiEnabled());
 		if (!changed.contains("upihandle")) incomingP.setUpiHandle(existingP.getUpiHandle());
-		if (!changed.contains("upimobile")) incomingP.setUpiMobile(existingP.getUpiMobile());
-		if (!changed.contains("upiqrpath")) incomingP.setUpiQrPath(existingP.getUpiQrPath());
-		if (!changed.contains("upiqrurl")) incomingP.setUpiQrUrl(existingP.getUpiQrUrl());
-		if (!changed.contains("upiqrversion")) incomingP.setUpiQrVersion(existingP.getUpiQrVersion());
 		if (!changed.contains("cashenabled")) incomingP.setCashEnabled(existingP.getCashEnabled());
 		if (!changed.contains("posenabled")) incomingP.setPosEnabled(existingP.getPosEnabled());
 		// Print preferences (printer bindings themselves are device-local, never synced)

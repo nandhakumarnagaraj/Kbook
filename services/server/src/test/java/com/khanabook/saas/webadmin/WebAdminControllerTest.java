@@ -445,7 +445,6 @@ class WebAdminControllerTest extends BaseIntegrationTest {
         profile.setDeviceId("ADMIN_TEST");
         profile.setShopName(shopName);
         profile.setCurrency("INR");
-        profile.setOwnWebsiteEnabled(true);
         profile.setCreatedAt(now);
         profile.setUpdatedAt(now);
         profile.setServerUpdatedAt(now);
