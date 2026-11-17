@@ -70,10 +70,7 @@ import com.khanabook.saas.feature.notifications.data.NotificationEventRepository
 import com.khanabook.saas.feature.notifications.data.DeviceTokenRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiTrackerRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
-import com.khanabook.saas.feature.staff.data.StaffPermissionRepository;
-import com.khanabook.saas.feature.staff.data.StaffPermissionRevisionRepository;
-import com.khanabook.saas.feature.staff.data.PermissionRequestRepository;
-import com.khanabook.saas.feature.staff.data.RoleTemplateRepository;
+
 import com.khanabook.saas.feature.platform.data.FeatureFlagRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;

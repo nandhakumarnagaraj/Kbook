@@ -15,7 +15,7 @@
 | Orchestration | Docker Compose (`ops/docker-compose.production.yml`), project name **`kbookiadvcloud`** (pinned — the name matters for scripts) |
 | Services | `postgres` (16-alpine, `mem_limit: 4g`), `server` (Spring Boot, `mem_limit: 6g`) |
 | Backend port | `127.0.0.1:8081` — **not publicly exposed** |
-| Public entry | Apache → `DocumentRoot /var/www/kbook.iadv.cloud/web-admin/dist/khanabook-web-admin/browser`, proxying `/api/v1/` to `127.0.0.1:8081` |
+| Public entry | **nginx** (`/etc/nginx/sites-enabled/kbook.iadv.cloud`) → serves `web-admin/dist/khanabook-web-admin/browser`, proxying `/api/v1/` to `127.0.0.1:8081`. Verified 2026-11-17: nginx owns 80/443; `apache2` is `enabled` but **failed** and serves nothing — do not edit Apache vhosts, and do not start apache2 (it would contend for those ports). |
 | Health | `https://kbook.iadv.cloud/api/v1/actuator/health` (open; `{"status":"UP"}`) |
 | Secrets | `.env` at the repo root (never committed) |
 | Server profile | `SPRING_PROFILES_ACTIVE=prod` |

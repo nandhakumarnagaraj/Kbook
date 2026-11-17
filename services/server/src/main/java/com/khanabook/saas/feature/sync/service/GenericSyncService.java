@@ -72,10 +72,7 @@ import com.khanabook.saas.feature.notifications.data.NotificationEventRepository
 import com.khanabook.saas.feature.notifications.data.DeviceTokenRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiTrackerRepository;
 import com.khanabook.saas.feature.compliance.data.FssaiRenewalRepository;
-import com.khanabook.saas.feature.staff.data.StaffPermissionRepository;
-import com.khanabook.saas.feature.staff.data.StaffPermissionRevisionRepository;
-import com.khanabook.saas.feature.staff.data.PermissionRequestRepository;
-import com.khanabook.saas.feature.staff.data.RoleTemplateRepository;
+
 import com.khanabook.saas.feature.platform.data.FeatureFlagRepository;
 import com.khanabook.saas.feature.auth.repository.UserRepository;
 import com.khanabook.saas.feature.auth.repository.RefreshTokenRepository;
@@ -93,8 +90,6 @@ import com.khanabook.saas.feature.sync.data.BaseSyncEntity;
 import com.khanabook.saas.feature.sync.data.SyncRepository;
 import com.khanabook.saas.core.security.authz.OfflineAuthDecider;
 import com.khanabook.saas.feature.staff.service.PermissionService;
-import com.khanabook.saas.feature.staff.data.StaffPermissionRevision;
-import com.khanabook.saas.feature.staff.data.StaffPermissionRevisionRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +110,6 @@ import com.khanabook.saas.feature.billing.service.BillPaymentSyncService;
 import com.khanabook.saas.feature.billing.service.BillSyncService;
 
 @Service
-@RequiredArgsConstructor
 public class GenericSyncService {
 	private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
 
@@ -128,13 +122,70 @@ public class GenericSyncService {
 	private final SecurityAuditService securityAuditService;
 	private final SyncFallbackSaver syncFallbackSaver;
 	private final PermissionService permissionService;
-	private final StaffPermissionRevisionRepository revisionRepo;
 	private final RelationalIdResolver relationalIdResolver;
 	private final TerminalOwnershipService terminalOwnershipService;
 	private final BillSyncService billSyncService;
 	private final SyncNotificationService syncNotificationService;
 	private final UserProfileSyncService userProfileSyncService;
 	private final BillPaymentSyncService billPaymentSyncService;
+
+	@org.springframework.beans.factory.annotation.Autowired
+	public GenericSyncService(
+			BillRepository billRepository,
+			BillPaymentRepository billPaymentRepository,
+			MenuItemRepository menuItemRepository,
+			ItemVariantRepository itemVariantRepository,
+			CategoryRepository categoryRepository,
+			RestaurantTerminalRepository terminalRepository,
+			SecurityAuditService securityAuditService,
+			SyncFallbackSaver syncFallbackSaver,
+			PermissionService permissionService,
+			RelationalIdResolver relationalIdResolver,
+			TerminalOwnershipService terminalOwnershipService,
+			BillSyncService billSyncService,
+			SyncNotificationService syncNotificationService,
+			UserProfileSyncService userProfileSyncService,
+			BillPaymentSyncService billPaymentSyncService) {
+		this.billRepository = billRepository;
+		this.billPaymentRepository = billPaymentRepository;
+		this.menuItemRepository = menuItemRepository;
+		this.itemVariantRepository = itemVariantRepository;
+		this.categoryRepository = categoryRepository;
+		this.terminalRepository = terminalRepository;
+		this.securityAuditService = securityAuditService;
+		this.syncFallbackSaver = syncFallbackSaver;
+		this.permissionService = permissionService;
+		this.relationalIdResolver = relationalIdResolver;
+		this.terminalOwnershipService = terminalOwnershipService;
+		this.billSyncService = billSyncService;
+		this.syncNotificationService = syncNotificationService;
+		this.userProfileSyncService = userProfileSyncService;
+		this.billPaymentSyncService = billPaymentSyncService;
+	}
+
+	@Deprecated
+	public GenericSyncService(
+			BillRepository billRepository,
+			BillPaymentRepository billPaymentRepository,
+			MenuItemRepository menuItemRepository,
+			ItemVariantRepository itemVariantRepository,
+			CategoryRepository categoryRepository,
+			RestaurantTerminalRepository terminalRepository,
+			SecurityAuditService securityAuditService,
+			SyncFallbackSaver syncFallbackSaver,
+			PermissionService permissionService,
+			com.khanabook.saas.feature.staff.data.StaffPermissionRevisionRepository revisionRepo,
+			RelationalIdResolver relationalIdResolver,
+			TerminalOwnershipService terminalOwnershipService,
+			BillSyncService billSyncService,
+			SyncNotificationService syncNotificationService,
+			UserProfileSyncService userProfileSyncService,
+			BillPaymentSyncService billPaymentSyncService) {
+		this(billRepository, billPaymentRepository, menuItemRepository, itemVariantRepository,
+				categoryRepository, terminalRepository, securityAuditService, syncFallbackSaver,
+				permissionService, relationalIdResolver, terminalOwnershipService,
+				billSyncService, syncNotificationService, userProfileSyncService, billPaymentSyncService);
+	}
 
 	// Optional: recipe-based raw-material inventory (V81). Absent only if the
 	// migration hasn't run.

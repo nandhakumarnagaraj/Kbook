@@ -1,13 +1,20 @@
 package com.khanabook.saas.feature.subscription.data;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 
-@Repository
-public interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPlan, String> {
-    List<SubscriptionPlan> findAllByIsActiveTrueOrderBySortOrderAsc();
-    Optional<SubscriptionPlan> findByCode(String code);
+/**
+ * @deprecated Retired in V124. Universal Free Lifetime access is now standard.
+ */
+@Deprecated
+public interface SubscriptionPlanRepository {
+    default Optional<SubscriptionPlan> findByCode(String code) {
+        return Optional.empty();
+    }
+    default List<SubscriptionPlan> findAll() {
+        return List.of();
+    }
+    default <S extends SubscriptionPlan> S save(S entity) {
+        return entity;
+    }
 }

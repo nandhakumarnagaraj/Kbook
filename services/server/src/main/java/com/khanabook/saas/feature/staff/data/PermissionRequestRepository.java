@@ -1,18 +1,14 @@
 package com.khanabook.saas.feature.staff.data;
 
-import com.khanabook.saas.feature.staff.data.PermissionRequest;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface PermissionRequestRepository extends JpaRepository<PermissionRequest, Long> {
-
-    List<PermissionRequest> findByRestaurantIdAndStatus(Long restaurantId, String status);
-
-    List<PermissionRequest> findByRestaurantIdAndUserId(Long restaurantId, Long userId);
-
-    List<PermissionRequest> findByRestaurantIdAndUserIdAndPermissionKeyAndStatus(
-            Long restaurantId, Long userId, String permissionKey, String status);
+/**
+ * @deprecated Retired in V124. Custom permission requests are no longer stored in DB.
+ */
+@Deprecated
+public interface PermissionRequestRepository {
+    default List<PermissionRequest> findByRestaurantIdAndStatus(Long restaurantId, String status) {
+        return List.of();
+    }
 }

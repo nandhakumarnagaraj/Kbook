@@ -1,18 +1,13 @@
 package com.khanabook.saas.feature.staff.data;
 
-import com.khanabook.saas.feature.staff.data.RoleTemplate;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
-import java.util.Optional;
 
-@Repository
-public interface RoleTemplateRepository extends JpaRepository<RoleTemplate, Long> {
-
-    List<RoleTemplate> findByRestaurantId(Long restaurantId);
-
-    Optional<RoleTemplate> findByRestaurantIdAndName(Long restaurantId, String name);
-
-    List<RoleTemplate> findByRestaurantIdAndIsDefaultTrue(Long restaurantId);
+/**
+ * @deprecated Retired in V124. Role templates are retired in favor of OWNER / SHOP_STAFF / KBOOK_ADMIN.
+ */
+@Deprecated
+public interface RoleTemplateRepository {
+    default List<RoleTemplate> findByRestaurantId(Long restaurantId) {
+        return List.of();
+    }
 }

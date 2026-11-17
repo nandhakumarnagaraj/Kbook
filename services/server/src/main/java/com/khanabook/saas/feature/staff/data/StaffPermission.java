@@ -1,46 +1,15 @@
 package com.khanabook.saas.feature.staff.data;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "staff_permissions",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"restaurant_id", "user_id", "permission_key"}))
 public class StaffPermission {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "restaurant_id", nullable = false)
     private Long restaurantId;
-
-    @Column(name = "user_id", nullable = false)
     private Long userId;
-
-    @Column(name = "permission_key", nullable = false, length = 100)
     private String permissionKey;
-
-    @Column(nullable = false)
     private Boolean granted = true;
-
-    @Column(name = "granted_by")
     private Long grantedBy;
-
-    @Column(name = "granted_at", nullable = false)
     private Long grantedAt;
-
-    @Column(name = "revoked_at")
     private Long revokedAt;
-
-    @Column(name = "updated_at", nullable = false)
     private Long updatedAt;
-
-    /**
-     * Revision at which this permission key was most recently revoked for this
-     * user (null = never revoked). Used by sync revalidation: an operation
-     * created at revision R is unauthorized if lastRevokedRevision >= R.
-     */
-    @Column(name = "last_revoked_revision")
     private Long lastRevokedRevision;
 
     public StaffPermission() {}

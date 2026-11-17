@@ -255,3 +255,12 @@ apps/android/app/khanabook-release-key.jks
 
 # Local AI model API config at repo root (contains a live API key — never commit)
 /configuration.js
+
+# Local database dumps (e.g. ./backup-srcafe-YYYYMMDD-HHMMSS). Production PII must
+# never sit in the working tree, where it is one `git add -A` away from a commit.
+/.backup-srcafe-*/
+.backup-*/
+*.csv
+
+# Scratch environment used by the account-lifecycle audit / reproduction runs
+/.audit-env/

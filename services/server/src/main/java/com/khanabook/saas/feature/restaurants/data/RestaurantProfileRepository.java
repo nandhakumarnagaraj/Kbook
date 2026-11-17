@@ -123,7 +123,7 @@ public interface RestaurantProfileRepository extends SyncRepository<RestaurantPr
 	 */
 	@Query("""
 			SELECT p FROM RestaurantProfile p
-			WHERE p.deviceId = :deviceId
+			WHERE LOWER(p.deviceId) = LOWER(:deviceId)
 			  AND p.isDeleted = false
 			  AND (p.isSuspended = false OR p.isSuspended IS NULL)
 			ORDER BY p.createdAt ASC

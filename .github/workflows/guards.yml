@@ -4,6 +4,9 @@ name: Guards
 #   guard-v2-artifacts    — fails on v2-era debris (DbCheck, QuickDbCheck,
 #                           dev-debug, dev-refresh, Storefront-named sources)
 #   guard-credential-files — fails on newly tracked credential filenames
+#   guard-web-admin-states — fails on a UI anti-pattern
+#   guard-migrations      — fails on duplicate/malformed Flyway migration versions
+#                           (a duplicate version makes the app refuse to start)
 
 on:
   push:
@@ -98,3 +101,16 @@ jobs:
             echo "::error::Found class='panel loading' combined with role='alert'"
             exit 1
           fi
+
+  guard-migrations:
+    name: Guard Flyway migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Flyway aborts startup on a duplicate version, so a collision in this
+      # directory is an outage that only shows up at boot. Two migrations shared
+      # version 110 on 2026-11-17 and reached a build artifact; this job fails the
+      # change instead. See ops/check-migrations.sh.
+      - name: Validate migration filenames and versions
+        run: ./ops/check-migrations.sh

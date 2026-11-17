@@ -85,6 +85,15 @@ for i in $(seq 1 24); do
       echo "ERROR: container memory limits are not in force as configured. See above." >&2
       exit 1
     fi
+    # Schema invariants. V122 (one live shop per device) is guarded: it skips the
+    # index while duplicate device groups exist, and Flyway never retries it, so a
+    # skip is permanent and silent. Report it on every deploy instead.
+    # Advisory by design — a missing index is a known state here, not a reason to
+    # fail a healthy deploy.
+    if ! bash "$ROOT_DIR/ops/verify-schema-invariants.sh"; then
+      echo "⚠️  A schema invariant check reported a problem (see above). The deploy continues." >&2
+    fi
+
     # Contract-drift guard: the dashboard deploys separately (deploy-web.sh).
     # A backend-only deploy leaves it stale — that caused the MANAGER-role
     # incident on 2026-09-16. Warn loudly unless this deploy also shipped it.

@@ -1,37 +1,14 @@
 package com.khanabook.saas.feature.staff.data;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "role_templates",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"restaurant_id", "name"}))
 public class RoleTemplate {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "restaurant_id", nullable = false)
     private Long restaurantId;
-
-    @Column(nullable = false, length = 100)
     private String name;
-
     private String description;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
     private String permissions;
-
-    @Column(name = "is_default", nullable = false)
     private Boolean isDefault = false;
-
-    @Column(name = "created_by")
     private Long createdBy;
-
-    @Column(name = "created_at", nullable = false)
     private Long createdAt;
-
-    @Column(name = "updated_at", nullable = false)
     private Long updatedAt;
 
     public RoleTemplate() {}

@@ -398,9 +398,9 @@ public class AuthController {
 			@Pattern(regexp = "^\\d{6}$", message = "OTP must be 6 digits")
 			private String otp;
 
-			@NotBlank(message = "Device ID is required")
-			@Size(max = 128)
-			private String deviceId;
+@NotBlank(message = "Device ID is required")
+		@Size(min = 1, max = 128, message = "Device ID must be between 1 and 128 characters")
+		private String deviceId;
 		}
 
 	@Data

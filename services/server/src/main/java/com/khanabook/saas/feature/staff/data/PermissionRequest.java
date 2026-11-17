@@ -1,39 +1,15 @@
 package com.khanabook.saas.feature.staff.data;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "permission_requests")
 public class PermissionRequest {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "restaurant_id", nullable = false)
     private Long restaurantId;
-
-    @Column(name = "user_id", nullable = false)
     private Long userId;
-
-    @Column(name = "permission_key", nullable = false, length = 100)
     private String permissionKey;
-
-    @Column(nullable = false, length = 20)
     private String status = "PENDING";
-
     private String reason;
-
-    @Column(name = "requested_at", nullable = false)
     private Long requestedAt;
-
-    @Column(name = "resolved_by")
     private Long resolvedBy;
-
-    @Column(name = "resolved_at")
     private Long resolvedAt;
-
-    @Column(name = "rejection_reason")
     private String rejectionReason;
 
     public PermissionRequest() {}

@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import java.util.HexFormat;
 import java.util.UUID;
 
@@ -558,8 +559,8 @@ public class AuthServiceImpl implements AuthService {
         if (deviceId == null || deviceId.isBlank()) {
             return;
         }
-        String install = deviceId.trim();
-        if ("server".equalsIgnoreCase(install) || "web-admin".equalsIgnoreCase(install)) {
+        String install = deviceId.trim().toLowerCase(Locale.ROOT);
+        if ("server".equals(install) || "web-admin".equals(install)) {
             return;
         }
         java.util.List<RestaurantProfile> existing =
