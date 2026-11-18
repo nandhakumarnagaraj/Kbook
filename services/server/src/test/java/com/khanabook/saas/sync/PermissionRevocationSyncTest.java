@@ -86,6 +86,7 @@ import com.khanabook.saas.feature.staff.service.PermissionService;
 import com.khanabook.saas.core.utility.JwtUtility;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -116,7 +117,7 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
     @Autowired private BillRepository billRepository;
     @Autowired private RestaurantTerminalRepository terminalRepository;
     @Autowired private PermissionService permissionService;
-    @Autowired private StaffPermissionRevisionRepository revisionRepository;
+    @Autowired(required = false) private StaffPermissionRevisionRepository revisionRepository;
     @Autowired private JwtUtility jwtUtility;
     @Autowired private ObjectMapper objectMapper;
 
@@ -172,6 +173,7 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
     }
 
     @Test
+    @Disabled("Retired in V124: dynamic revisions replaced with constant role-bound permissions")
     void permissionGrantCreatesRevision() {
         permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
 
@@ -181,6 +183,7 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
     }
 
     @Test
+    @Disabled("Retired in V124: dynamic revisions replaced with constant role-bound permissions")
     void permissionRevokeBumpsRevision() {
         permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
         long rev1 = revisionRepository.findByRestaurantIdAndUserId(RESTAURANT, staff.getId())
@@ -194,6 +197,7 @@ class PermissionRevocationSyncTest extends BaseIntegrationTest {
     }
 
     @Test
+    @Disabled("Retired in V124: dynamic revisions replaced with constant role-bound permissions")
     void grantRevokeGrantRevoke_isMonotonic() {
         permissionService.grantPermission(RESTAURANT, staff.getId(), "settings.gst", owner.getId());
         permissionService.revokePermission(RESTAURANT, staff.getId(), "settings.gst");
