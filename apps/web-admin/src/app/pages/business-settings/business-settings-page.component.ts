@@ -22,14 +22,9 @@ interface RestaurantProfile {
   gstEnabled: boolean;
   gstin: string;
   gstPercentage: number;
-  customTaxName: string;
-  customTaxPercentage: number;
   fssaiNumber: string;
-  fssaiExpiryDate: string;
-  gstExpiryDate: string;
   upiEnabled: boolean;
   upiHandle: string;
-  upiMobile: string;
   cashEnabled: boolean;
   posEnabled: boolean;
   orderPaymentFlowMode: string;
@@ -571,11 +566,7 @@ interface SettingsCategory {
                   gstEnabled: p.gstEnabled,
                   gstin: p.gstin,
                   gstPercentage: p.gstPercentage,
-                  customTaxName: p.customTaxName,
-                  customTaxPercentage: p.customTaxPercentage,
-                  fssaiNumber: p.fssaiNumber,
-                  fssaiExpiryDate: p.fssaiExpiryDate,
-                  gstExpiryDate: p.gstExpiryDate
+                  fssaiNumber: p.fssaiNumber
                 }"
                 (taxChange)="applyTaxSettings($event)"
               />
@@ -584,7 +575,7 @@ interface SettingsCategory {
             <!-- 3. Payments & Collection -->
             <section id="payments" class="settings-block" data-settings-section aria-label="Payments and collection">
               <app-payment-methods-section
-                [settings]="{ cashEnabled: p.cashEnabled, upiEnabled: p.upiEnabled, upiHandle: p.upiHandle, upiMobile: p.upiMobile, posEnabled: p.posEnabled, orderPaymentFlowMode: p.orderPaymentFlowMode, shopName: p.shopName }"
+                [settings]="{ cashEnabled: p.cashEnabled, upiEnabled: p.upiEnabled, upiHandle: p.upiHandle, posEnabled: p.posEnabled, orderPaymentFlowMode: p.orderPaymentFlowMode, shopName: p.shopName }"
                 (settingsChange)="applyPaymentSettings($event)"
               />
             </section>
@@ -1455,14 +1446,9 @@ export class BusinessSettingsPageComponent implements OnDestroy {
           gstEnabled: p.gstEnabled ?? false,
           gstin: p.gstin ?? '',
           gstPercentage: p.gstPercentage ?? 5,
-          customTaxName: p.customTaxName ?? '',
-          customTaxPercentage: p.customTaxPercentage ?? 0,
           fssaiNumber: p.fssaiNumber ?? '',
-          fssaiExpiryDate: p.fssaiExpiryDate ?? '',
-          gstExpiryDate: p.gstExpiryDate ?? '',
           upiEnabled: p.upiEnabled ?? false,
           upiHandle: p.upiHandle ?? '',
-          upiMobile: p.upiMobile ?? '',
           cashEnabled: p.cashEnabled ?? true,
           posEnabled: p.posEnabled ?? false,
           orderPaymentFlowMode: p.orderPaymentFlowMode ?? 'pay_before_food',
@@ -1685,9 +1671,8 @@ export class BusinessSettingsPageComponent implements OnDestroy {
   private emptyProfile(): RestaurantProfile {
     return {
       shopName: '', shopAddress: '', whatsappNumber: '', email: '',
-      logoUrl: '', gstEnabled: false, gstin: '', gstPercentage: 5, customTaxName: '',
-      customTaxPercentage: 0, fssaiNumber: '', fssaiExpiryDate: '', gstExpiryDate: '',
-      upiEnabled: false, upiHandle: '', upiMobile: '', cashEnabled: true,
+      logoUrl: '', gstEnabled: false, gstin: '', gstPercentage: 5,
+      fssaiNumber: '', upiEnabled: false, upiHandle: '', cashEnabled: true,
       posEnabled: false, orderPaymentFlowMode: 'pay_before_food',
       invoiceFooter: '', reviewUrl: '', openingTime: '08:00', closingTime: '23:00'
     };

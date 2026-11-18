@@ -24,22 +24,13 @@ public class RestaurantProfileDTO {
     private String whatsappNumber;
     private String email;
     private String fssaiNumber;
-    private String fssaiExpiryDate;
-    private String gstExpiryDate;
-    private String logoPath;
     private String logoUrl;
     private Integer logoVersion;
-    private String customWelcomeMessage;
-    private String customFssaiMessage;
-    private Boolean emailInvoiceConsent;
-    private String country;
     private String currency;
     private String timezone;
 
     /**
-     * Trading hours, local shop time. They were on the entity and in the schema but absent
-     * here, and this DTO is what the pull serialises — so the till always received its own
-     * defaults and an owner had no way to see or change them.
+     * Trading hours, local shop time.
      */
     private java.time.LocalTime openingTime;
     private java.time.LocalTime closingTime;
@@ -47,21 +38,10 @@ public class RestaurantProfileDTO {
     private String gstin;
     private Boolean isTaxInclusive;
     private BigDecimal gstPercentage;
-    private String customTaxName;
-    private String customTaxNumber;
-    private BigDecimal customTaxPercentage;
     private Boolean upiEnabled;
-    private String upiQrPath;
-    private String upiQrUrl;
-    private Integer upiQrVersion;
     private String upiHandle;
-    private String upiMobile;
     private Boolean cashEnabled;
     private Boolean posEnabled;
-    // Printer bindings (enabled/name/MAC/paper size, both roles) are intentionally absent:
-    // printer config is device-local only. See RestaurantProfile.
-    private Boolean autoPrintOnSuccess;
-    private Boolean includeLogoInPrint;
     private Long dailyOrderCounter;
     private Long lifetimeOrderCounter;
     private String lastResetDate;
@@ -69,10 +49,6 @@ public class RestaurantProfileDTO {
     private String orderPaymentFlowMode = "pay_before_food";
     private String reviewUrl;
     private String invoiceFooter;
-    private Boolean easebuzzEnabled;
-    private Boolean showBranding;
-    private Boolean maskCustomerPhone;
-    private Boolean printCustomerWhatsapp;
     private String lastResetDateProper;
 
     /** Comma-separated list of profile fields the device actually changed (field-level merge). */

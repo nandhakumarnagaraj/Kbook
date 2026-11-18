@@ -123,7 +123,6 @@ class MenuPushAuthorizationIntegrationTest extends BaseIntegrationTest {
   @Autowired private ItemVariantRepository itemVariantRepository;
     @Autowired private CategoryRepository categoryRepository;
     @Autowired private PermissionService permissionService;
-    @Autowired private StaffPermissionRevisionRepository revisionRepository;
     @Autowired private JwtUtility jwtUtility;
     @Autowired private ObjectMapper objectMapper;
 

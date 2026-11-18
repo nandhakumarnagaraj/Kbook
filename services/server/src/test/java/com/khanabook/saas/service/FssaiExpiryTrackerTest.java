@@ -42,7 +42,6 @@ public class FssaiExpiryTrackerTest extends BaseIntegrationTest {
         profile.setDeviceId("TEST_DEVICE");
         profile.setShopName("Demo Restaurant");
         profile.setFssaiNumber(fssaiNo);
-        profile.setFssaiExpiryDate(expiryDate);
         profile.setCreatedAt(System.currentTimeMillis());
         profile.setUpdatedAt(System.currentTimeMillis());
         profile.setServerUpdatedAt(System.currentTimeMillis());

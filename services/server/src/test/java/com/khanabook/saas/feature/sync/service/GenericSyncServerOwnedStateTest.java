@@ -44,39 +44,6 @@ class GenericSyncServerOwnedStateTest {
     }
 
     /**
-     * Online Payments Setup is owner-gated in RestaurantPaymentConfigController only.
-     * The flag rides on RestaurantProfileDTO, so a device push must not be able to flip
-     * it on and bypass that check.
-     */
-    @Test
-    void deviceProfilePushCannotEnableEasebuzzPayments() {
-        RestaurantProfile existing = new RestaurantProfile();
-        existing.setEasebuzzEnabled(false);
-        RestaurantProfile incoming = new RestaurantProfile();
-        incoming.setEasebuzzEnabled(true);
-
-        GenericSyncService.preserveServerOwnedState(incoming, existing);
-
-        assertThat(incoming.getEasebuzzEnabled()).isFalse();
-    }
-
-    /**
-     * Owner-side counterpart: an owner who legitimately enabled payments online must
-     * survive a stale device push carrying the older disabled value.
-     */
-    @Test
-    void deviceProfilePushCannotDisableOwnerEnabledEasebuzz() {
-        RestaurantProfile existing = new RestaurantProfile();
-        existing.setEasebuzzEnabled(true);
-        RestaurantProfile incoming = new RestaurantProfile();
-        incoming.setEasebuzzEnabled(false);
-
-        GenericSyncService.preserveServerOwnedState(incoming, existing);
-
-        assertThat(incoming.getEasebuzzEnabled()).isTrue();
-    }
-
-    /**
      * paymentStatus "paid" is unreachable from the device vocabulary, so a payload carrying it
      * is not a device setting a payment — it is a client claiming a finalized state, and the
      * paid time on the row is the gateway's. The restore above only fires when the incoming
@@ -127,17 +94,5 @@ class GenericSyncServerOwnedStateTest {
         bill.setPaymentStatus(paymentStatus);
         bill.setPaidAt(paidAt);
         return bill;
-    }
-
-    @Test
-    void deviceProfilePushPreservesEasebuzzWhenUnset() {
-        RestaurantProfile existing = new RestaurantProfile();
-        existing.setEasebuzzEnabled(true);
-        RestaurantProfile incoming = new RestaurantProfile();
-        incoming.setEasebuzzEnabled(null);
-
-        GenericSyncService.preserveServerOwnedState(incoming, existing);
-
-        assertThat(incoming.getEasebuzzEnabled()).isTrue();
     }
 }

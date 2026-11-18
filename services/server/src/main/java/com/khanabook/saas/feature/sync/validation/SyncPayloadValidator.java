@@ -154,8 +154,7 @@ public class SyncPayloadValidator {
 		if (bill.getSubtotal() != null && bill.getTotalAmount() != null) {
 			BigDecimal computed = bill.getSubtotal()
 				.add(bill.getCgstAmount() != null ? bill.getCgstAmount() : BigDecimal.ZERO)
-				.add(bill.getSgstAmount() != null ? bill.getSgstAmount() : BigDecimal.ZERO)
-				.add(bill.getCustomTaxAmount() != null ? bill.getCustomTaxAmount() : BigDecimal.ZERO);
+				.add(bill.getSgstAmount() != null ? bill.getSgstAmount() : BigDecimal.ZERO);
 			if (bill.getTotalAmount().subtract(computed).abs().compareTo(new BigDecimal("1.00")) > 0) {
 				log.warn("Bill total mismatch: stated={} computed={} billId={}", bill.getTotalAmount(), computed, bill.getId());
 			}

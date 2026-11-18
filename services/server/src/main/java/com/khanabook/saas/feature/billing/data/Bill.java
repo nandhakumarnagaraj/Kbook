@@ -80,9 +80,6 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "sgst_amount", columnDefinition = "NUMERIC(12,2)")
 	private java.math.BigDecimal sgstAmount;
 
-	@Column(name = "custom_tax_amount", columnDefinition = "NUMERIC(12,2)")
-	private java.math.BigDecimal customTaxAmount;
-
 	@Column(name = "total_amount", columnDefinition = "NUMERIC(12,2)", nullable = false)
 	private java.math.BigDecimal totalAmount;
 
@@ -127,9 +124,6 @@ public class Bill extends BaseSyncEntity {
 
 	@Column(name = "created_by")
 	private Long createdBy;
-
-	@Column(name = "created_by_user_id")
-	private Long createdByUserId;
 
 	@Column(name = "paid_at")
 	private Long paidAt;

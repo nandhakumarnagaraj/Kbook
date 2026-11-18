@@ -222,7 +222,6 @@ class SourceChannelSyncContractTest {
         bill.setGstPercentage(new BigDecimal("5.00"));
         bill.setCgstAmount(new BigDecimal("2.50"));
         bill.setSgstAmount(new BigDecimal("2.50"));
-        bill.setCustomTaxAmount(BigDecimal.ZERO);
         bill.setTotalAmount(new BigDecimal("105.00"));
         bill.setPaymentMode("cash");
         bill.setPartAmount1(new BigDecimal("105.00"));

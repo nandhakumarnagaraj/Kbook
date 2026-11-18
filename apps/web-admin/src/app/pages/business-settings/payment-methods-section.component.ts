@@ -8,7 +8,6 @@ export interface PaymentMethodsSettings {
   cashEnabled: boolean;
   upiEnabled: boolean;
   upiHandle: string;
-  upiMobile: string;
   posEnabled: boolean;
   orderPaymentFlowMode: string;
   shopName: string;
@@ -71,10 +70,6 @@ export interface PaymentMethodsSettings {
               <span aria-hidden="true">&#10007;</span> {{ upiValidation.message }}
             </div>
           </div>
-        </div>
-        <div class="field" *ngIf="settings().upiEnabled">
-          <label>UPI Mobile</label>
-          <input class="field-control" [ngModel]="settings().upiMobile" (ngModelChange)="updateField('upiMobile', $event)" placeholder="Linked mobile number" maxlength="10" aria-label="UPI linked mobile number" />
         </div>
       </div>
 

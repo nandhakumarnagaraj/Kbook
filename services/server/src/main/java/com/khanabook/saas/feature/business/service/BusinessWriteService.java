@@ -771,13 +771,6 @@ public class BusinessWriteService {
             }
         }
         if (updateDto.getFssaiNumber() != null) profile.setFssaiNumber(updateDto.getFssaiNumber());
-        if (updateDto.getFssaiExpiryDate() != null) {
-            try {
-                profile.setFssaiExpiryDate(updateDto.getFssaiExpiryDate().isBlank() ? null : java.time.LocalDate.parse(updateDto.getFssaiExpiryDate().trim()));
-            } catch (Exception e) {
-                log.warn("Invalid fssaiExpiryDate format '{}' for restaurant {}: {}", updateDto.getFssaiExpiryDate(), restaurantId, e.getMessage());
-            }
-        }
 
         long now = System.currentTimeMillis();
         // Per-field revisions: stamp only the fields this update actually wrote, so a till
@@ -798,7 +791,6 @@ public class BusinessWriteService {
         if (updateDto.getInvoiceFooter() != null) written.add("invoicefooter");
         if (updateDto.getReviewUrl() != null) written.add("reviewurl");
         if (updateDto.getFssaiNumber() != null) written.add("fssainumber");
-        if (updateDto.getFssaiExpiryDate() != null) written.add("fssaiexpirydate");
         if (!written.isEmpty()) {
             profile.markFieldsChanged(now, written.toArray(new String[0]));
         }

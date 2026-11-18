@@ -75,35 +75,20 @@ public class FssaiTrackerService {
                             tracker.setExpiryDate(expiryDate);
                             log.info("Tracked FSSAI expiry {} for restaurantId={} ({}): {}",
                                 fssaiNo, profile.getRestaurantId(), expiryDate, licInfo.get("fssaiStatus"));
-
-                            // Sync the authoritative expiry date back to the RestaurantProfile
-                            if (profile.getFssaiExpiryDate() == null || expiryDate.isAfter(profile.getFssaiExpiryDate())) {
-                                profile.setFssaiExpiryDate(expiryDate);
-                                profile.setUpdatedAt(System.currentTimeMillis());
-                                long fssaiRevision = System.currentTimeMillis();
-                                profile.setServerUpdatedAt(fssaiRevision);
-                                profile.markFieldsChanged(fssaiRevision, "fssaiexpirydate");
-                                restaurantProfileRepo.save(profile);
-                                log.info("Auto-updated profile FSSAI expiry date to {} for restaurantId={}", expiryDate, profile.getRestaurantId());
-                            }
                         } catch (Exception e) {
                             log.warn("Failed to parse expiryDate {} for restaurantId={}: {}", expiryStr, profile.getRestaurantId(), e.getMessage());
                         }
                     }
                 } else {
-                    // Fall back to profile's expiry date if license lookup failed
                     log.warn("FSSAI license lookup failed for restaurantId={} ({}): {}",
                         profile.getRestaurantId(), fssaiNo, licInfo.get("error"));
-                    if (profile.getFssaiExpiryDate() != null && tracker.getExpiryDate() == null) {
-                        tracker.setExpiryDate(profile.getFssaiExpiryDate());
-                    }
                 }
 
                 tracker.setLastCheckedAt(System.currentTimeMillis());
                 fssaiTrackerRepo.save(tracker);
 
                 // 2. Check if the FSSAI license is expiring and needs warning alerts
-                LocalDate expiry = tracker.getExpiryDate() != null ? tracker.getExpiryDate() : profile.getFssaiExpiryDate();
+                LocalDate expiry = tracker.getExpiryDate();
                 if (expiry != null && Boolean.TRUE.equals(tracker.getIsAlertActive())) {
                     long daysToExpiry = ChronoUnit.DAYS.between(LocalDate.now(), expiry);
                     log.info("RestaurantId={} FSSAI Expiry ({}) is in {} days (date: {})",

@@ -37,7 +37,6 @@ public class BillDTO {
     private java.math.BigDecimal gstPercentage;
     private java.math.BigDecimal cgstAmount;
     private java.math.BigDecimal sgstAmount;
-    private java.math.BigDecimal customTaxAmount;
     private java.math.BigDecimal totalAmount;
     private String paymentMode;
     private java.math.BigDecimal partAmount1;
@@ -46,7 +45,6 @@ public class BillDTO {
     private String orderStatus;
     private Integer statusVersion;
     private Long createdBy;
-    private Long createdByUserId;
     private Long paidAt;
     private String lastResetDate;
     private String cancelReason;

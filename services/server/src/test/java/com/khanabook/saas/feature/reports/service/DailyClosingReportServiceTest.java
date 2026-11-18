@@ -73,7 +73,7 @@ class DailyClosingReportServiceTest {
     }
 
     private Bill createBill(Long id, BigDecimal total, String paymentMode, String status,
-                           BigDecimal cgst, BigDecimal sgst, BigDecimal customTax) {
+                           BigDecimal cgst, BigDecimal sgst) {
         Bill bill = new Bill();
         bill.setId(id);
         bill.setRestaurantId(tenantId);
@@ -82,7 +82,6 @@ class DailyClosingReportServiceTest {
         bill.setOrderStatus(status);
         bill.setCgstAmount(cgst);
         bill.setSgstAmount(sgst);
-        bill.setCustomTaxAmount(customTax);
         bill.setLastResetDate(businessDate);
         bill.setIsDeleted(false);
         return bill;
@@ -93,9 +92,9 @@ class DailyClosingReportServiceTest {
         RestaurantProfile profile = createMockProfile();
         when(restaurantProfileRepository.findByRestaurantId(tenantId)).thenReturn(Optional.of(profile));
 
-        Bill bill1 = createBill(1L, new BigDecimal("500.00"), "CASH", "COMPLETED", new BigDecimal("12.50"), new BigDecimal("12.50"), BigDecimal.ZERO);
-        Bill bill2 = createBill(2L, new BigDecimal("1000.00"), "UPI", "PAID", new BigDecimal("25.00"), new BigDecimal("25.00"), new BigDecimal("10.00"));
-        Bill bill3 = createBill(3L, new BigDecimal("200.00"), "CASH", "CANCELLED", BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        Bill bill1 = createBill(1L, new BigDecimal("500.00"), "CASH", "COMPLETED", new BigDecimal("12.50"), new BigDecimal("12.50"));
+        Bill bill2 = createBill(2L, new BigDecimal("1000.00"), "UPI", "PAID", new BigDecimal("25.00"), new BigDecimal("25.00"));
+        Bill bill3 = createBill(3L, new BigDecimal("200.00"), "CASH", "CANCELLED", BigDecimal.ZERO, BigDecimal.ZERO);
 
         when(billRepository.findByRestaurantIdAndLastResetDateAndIsDeletedFalse(tenantId, businessDate))
                 .thenReturn(List.of(bill1, bill2, bill3));
@@ -123,9 +122,9 @@ class DailyClosingReportServiceTest {
         assertThat(data.getGrossSales()).isEqualByComparingTo(new BigDecimal("1500.00"));
         assertThat(data.getCgst()).isEqualByComparingTo(new BigDecimal("37.50"));
         assertThat(data.getSgst()).isEqualByComparingTo(new BigDecimal("37.50"));
-        assertThat(data.getCustomTax()).isEqualByComparingTo(new BigDecimal("10.00"));
-        assertThat(data.getTotalTax()).isEqualByComparingTo(new BigDecimal("85.00"));
-        assertThat(data.getNetSales()).isEqualByComparingTo(new BigDecimal("1415.00"));
+        assertThat(data.getCustomTax()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(data.getTotalTax()).isEqualByComparingTo(new BigDecimal("75.00"));
+        assertThat(data.getNetSales()).isEqualByComparingTo(new BigDecimal("1425.00"));
 
         assertThat(data.getCashTotal()).isEqualByComparingTo(new BigDecimal("500.00"));
         assertThat(data.getCashCount()).isEqualTo(1);

@@ -87,7 +87,6 @@ class BillVoidIntegrationTest extends BaseIntegrationTest {
         bill.setGstPercentage(new BigDecimal("0.0"));
         bill.setCgstAmount(new BigDecimal("0.0"));
         bill.setSgstAmount(new BigDecimal("0.0"));
-        bill.setCustomTaxAmount(new BigDecimal("0.0"));
         bill.setPartAmount1(new BigDecimal("0.0"));
         bill.setPartAmount2(new BigDecimal("0.0"));
         bill.setPaymentMode("cash");

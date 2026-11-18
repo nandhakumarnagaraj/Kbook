@@ -99,10 +99,6 @@ public class OnboardingService {
         if (isNotBlank(profile.getFssaiNumber()) && isBlank(sm.getFssaiNumber())) {
             sm.setFssaiNumber(profile.getFssaiNumber());
         }
-        if (profile.getFssaiExpiryDate() != null && sm.getFssaiExpiryDate() == null) {
-            sm.setFssaiExpiryDate(profile.getFssaiExpiryDate()
-                .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli());
-        }
         if (isNotBlank(profile.getWhatsappNumber()) && isBlank(sm.getContactPhone())) {
             sm.setContactPhone(profile.getWhatsappNumber());
         }

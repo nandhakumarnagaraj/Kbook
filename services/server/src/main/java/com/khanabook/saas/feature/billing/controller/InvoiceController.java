@@ -173,12 +173,11 @@ public class InvoiceController {
         BigDecimal sub = bill.getSubtotal() != null ? bill.getSubtotal() : BigDecimal.ZERO;
         BigDecimal cgst = bill.getCgstAmount() != null ? bill.getCgstAmount() : BigDecimal.ZERO;
         BigDecimal sgst = bill.getSgstAmount() != null ? bill.getSgstAmount() : BigDecimal.ZERO;
-        BigDecimal customTax = bill.getCustomTaxAmount() != null ? bill.getCustomTaxAmount() : BigDecimal.ZERO;
         BigDecimal total = bill.getTotalAmount() != null ? bill.getTotalAmount() : BigDecimal.ZERO;
         BigDecimal gstPct = bill.getGstPercentage() != null ? bill.getGstPercentage() : BigDecimal.ZERO;
-        BigDecimal totalTax = cgst.add(sgst).add(customTax);
+        BigDecimal totalTax = cgst.add(sgst);
         boolean hasGst = gstPct.compareTo(BigDecimal.ZERO) > 0;
-        boolean hasCustomTax = customTax.compareTo(BigDecimal.ZERO) > 0;
+        boolean hasCustomTax = false;
         boolean hasAnyTax = totalTax.compareTo(BigDecimal.ZERO) > 0;
 
         BigDecimal paidAmount = BigDecimal.ZERO;
@@ -247,7 +246,7 @@ public class InvoiceController {
         ctx.setVariable("subtotalFormatted", DF.format(sub));
         ctx.setVariable("cgstFormatted", DF.format(cgst));
         ctx.setVariable("sgstFormatted", DF.format(sgst));
-        ctx.setVariable("customTaxFormatted", DF.format(customTax));
+        ctx.setVariable("customTaxFormatted", "0.00");
         ctx.setVariable("totalTaxFormatted", DF.format(totalTax));
         ctx.setVariable("totalFormatted", DF.format(total));
         ctx.setVariable("hasGst", hasGst);

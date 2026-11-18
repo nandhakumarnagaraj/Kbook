@@ -92,10 +92,9 @@ class SyncDtoEntityFieldParityTest {
 			// SyncDtoContractTest lists the same names as server-owned.
 			// String on the DTO, LocalDate on the entity, so BeanUtils skips them. SyncMapper
 			// converts and mergeCounterState restores these explicitly instead.
-			"lastResetDateProper", "fssaiExpiryDate",
+			"lastResetDateProper",
 			// See the business-day block above.
-			"businessDayCutoffTime", "cutoffEffectiveFrom",
-			"emailDailyClosingReport", "dailyClosingEmailRecipients"
+			"businessDayCutoffTime", "cutoffEffectiveFrom", "emailDailyClosingReport", "dailyClosingEmailRecipients"
 	);
 
 	/**

@@ -109,9 +109,6 @@ public class SyncMapper {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
-                if (entity.getFssaiExpiryDate() != null) {
-                    dto.setFssaiExpiryDate(entity.getFssaiExpiryDate().toString());
-                }
                 if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
                     dto.setOrderPaymentFlowMode("pay_before_food");
                 }
@@ -247,15 +244,8 @@ public class SyncMapper {
                 entity.setEmail(dto.getEmail());
                 entity.setFssaiNumber(dto.getFssaiNumber());
                 entity.setChangedFields(dto.getChangedFields());
-                if (dto.getFssaiExpiryDate() != null && !dto.getFssaiExpiryDate().isEmpty()) {
-                    entity.setFssaiExpiryDate(java.time.LocalDate.parse(dto.getFssaiExpiryDate()));
-                } else {
-                    entity.setFssaiExpiryDate(null);
-                }
-                entity.setLogoPath(dto.getLogoPath());
                 entity.setLogoUrl(dto.getLogoUrl());
                 entity.setLogoVersion(dto.getLogoVersion());
-                entity.setCountry(dto.getCountry());
                 entity.setCurrency(dto.getCurrency());
                 entity.setTimezone(dto.getTimezone());
                 entity.setGstEnabled(dto.getGstEnabled());
@@ -266,20 +256,11 @@ public class SyncMapper {
                 entity.setUpiHandle(dto.getUpiHandle());
                 entity.setCashEnabled(dto.getCashEnabled());
                 entity.setPosEnabled(dto.getPosEnabled());
-                entity.setAutoPrintOnSuccess(dto.getAutoPrintOnSuccess());
-                entity.setIncludeLogoInPrint(dto.getIncludeLogoInPrint());
                 entity.setDailyOrderCounter(dto.getDailyOrderCounter());
                 entity.setLifetimeOrderCounter(dto.getLifetimeOrderCounter());
                 entity.setLastResetDate(dto.getLastResetDate());
                 if (dto.getOrderPaymentFlowMode() == null || dto.getOrderPaymentFlowMode().isBlank()) {
                     entity.setOrderPaymentFlowMode("pay_before_food");
-                }
-                if (dto.getFssaiExpiryDate() != null && !dto.getFssaiExpiryDate().isBlank()) {
-                    try {
-                        entity.setFssaiExpiryDate(java.time.LocalDate.parse(dto.getFssaiExpiryDate()));
-                    } catch (Exception e) {
-                        log.warn("Failed to parse fssaiExpiryDate from sync payload: {}", dto.getFssaiExpiryDate());
-                    }
                 }
                 // Copy all other fields via BeanUtils is already handled above
             } else if (source instanceof StockLogDTO dto) {

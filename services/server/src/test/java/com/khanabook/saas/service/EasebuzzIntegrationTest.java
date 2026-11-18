@@ -1208,9 +1208,6 @@ class EasebuzzIntegrationTest extends BaseIntegrationTest {
         sm.setContactPhone("9999999999");
         sm.setCreatedAt(System.currentTimeMillis());
         sm.setUpdatedAt(System.currentTimeMillis());
-        var profile = restaurantProfileRepository.findByRestaurantId(testRestaurantId).orElseThrow();
-        profile.setEasebuzzEnabled(true);
-        restaurantProfileRepository.save(profile);
         return subMerchantRepo.save(sm);
     }
 

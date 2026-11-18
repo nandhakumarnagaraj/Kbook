@@ -98,12 +98,9 @@ public class DailyClosingReportService {
 
             BigDecimal cgst = bill.getCgstAmount() != null ? bill.getCgstAmount() : BigDecimal.ZERO;
             BigDecimal sgst = bill.getSgstAmount() != null ? bill.getSgstAmount() : BigDecimal.ZERO;
-            BigDecimal customTax = bill.getCustomTaxAmount() != null ? bill.getCustomTaxAmount() : BigDecimal.ZERO;
-
             cgstTotal = cgstTotal.add(cgst);
             sgstTotal = sgstTotal.add(sgst);
-            customTaxTotal = customTaxTotal.add(customTax);
-            totalTax = totalTax.add(cgst).add(sgst).add(customTax);
+            totalTax = totalTax.add(cgst).add(sgst);
 
             String mode = bill.getPaymentMode() != null ? bill.getPaymentMode().toUpperCase() : "CASH";
             if (mode.contains("CASH")) {

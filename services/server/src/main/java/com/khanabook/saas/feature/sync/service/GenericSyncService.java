@@ -1037,7 +1037,6 @@ public class GenericSyncService {
 
 						if (incomingRecord instanceof RestaurantProfile incomingProfile) {
 							incomingProfile.setTimezone(AppConstants.DEFAULT_TIMEZONE);
-							incomingProfile.setEasebuzzEnabled(false);
 						}
 
 						// Refund default: new bills have no admin refund yet; default to ZERO
@@ -1512,10 +1511,6 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (incoming instanceof RestaurantProfile incomingProfile
 				&& existing instanceof RestaurantProfile existingProfile) {
 			incomingProfile.setIsSuspended(existingProfile.getIsSuspended());
-			// Easebuzz enablement is owner-gated (see RestaurantPaymentConfigController#updateConfig).
-			// It is carried on the DTO, so without restoring it any device push could flip
-			// online payments on and bypass that check.
-			incomingProfile.setEasebuzzEnabled(existingProfile.getEasebuzzEnabled());
 		}
 		// Inventory cascade is server-owned: when a raw material runs out,
 		// InventoryService hides dependent menu items. A device menu push must
@@ -1706,8 +1701,6 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (!(incoming instanceof RestaurantProfile incomingP && existing instanceof RestaurantProfile existingP)) {
 			return;
 		}
-		// Preserve this server-owned switch for every mask, including legacy full-record pushes.
-		incomingP.setEasebuzzEnabled(existingP.getEasebuzzEnabled());
 
 		// Login identity belongs to the OWNER. Android staff profiles reach this path
 		// through the same sync push, so restore the owner's whatsapp/email for every
@@ -1752,11 +1745,8 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (!changed.contains("whatsappnumber")) incomingP.setWhatsappNumber(existingP.getWhatsappNumber());
 		if (!changed.contains("email")) incomingP.setEmail(existingP.getEmail());
 		if (!changed.contains("fssainumber")) incomingP.setFssaiNumber(existingP.getFssaiNumber());
-		if (!changed.contains("fssaiexpirydate")) incomingP.setFssaiExpiryDate(existingP.getFssaiExpiryDate());
-		if (!changed.contains("country")) incomingP.setCountry(existingP.getCountry());
 		if (!changed.contains("currency")) incomingP.setCurrency(existingP.getCurrency());
 		if (!changed.contains("timezone")) incomingP.setTimezone(existingP.getTimezone());
-		if (!changed.contains("logopath")) incomingP.setLogoPath(existingP.getLogoPath());
 		if (!changed.contains("logourl")) incomingP.setLogoUrl(existingP.getLogoUrl());
 		if (!changed.contains("logoversion")) incomingP.setLogoVersion(existingP.getLogoVersion());
 		if (!changed.contains("reviewurl")) {
@@ -1768,8 +1758,6 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 			}
 		}
 		if (!changed.contains("invoicefooter")) incomingP.setInvoiceFooter(existingP.getInvoiceFooter());
-		if (!changed.contains("showbranding")) incomingP.setShowBranding(existingP.getShowBranding());
-		if (!changed.contains("maskcustomerphone")) incomingP.setMaskCustomerPhone(existingP.getMaskCustomerPhone());
 		if (!changed.contains("sessiontimeoutminutes")) incomingP.setSessionTimeoutMinutes(existingP.getSessionTimeoutMinutes());
 		if (!changed.contains("orderpaymentflowmode")) incomingP.setOrderPaymentFlowMode(existingP.getOrderPaymentFlowMode());
 		// GST group
@@ -1782,9 +1770,6 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		if (!changed.contains("upihandle")) incomingP.setUpiHandle(existingP.getUpiHandle());
 		if (!changed.contains("cashenabled")) incomingP.setCashEnabled(existingP.getCashEnabled());
 		if (!changed.contains("posenabled")) incomingP.setPosEnabled(existingP.getPosEnabled());
-		// Print preferences (printer bindings themselves are device-local, never synced)
-		if (!changed.contains("autoprintonsuccess")) incomingP.setAutoPrintOnSuccess(existingP.getAutoPrintOnSuccess());
-		if (!changed.contains("includelogoInprint")) incomingP.setIncludeLogoInPrint(existingP.getIncludeLogoInPrint());
 	}
 
 	private Long maxNullable(Long a, Long b) {

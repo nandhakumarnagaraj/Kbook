@@ -44,10 +44,10 @@ public class RestaurantPaymentConfigController {
         Map<String, Object> config = new HashMap<>();
         boolean subMerchantActive = sm != null && sm.getSubMerchantId() != null
                 && !sm.getSubMerchantId().isBlank() && "ACTIVE".equals(sm.getStatus());
-        boolean enabled = Boolean.TRUE.equals(profile.getEasebuzzEnabled());
-        config.put("subMerchantActive", subMerchantActive);
-        config.put("paymentLinkReady", enabled && subMerchantActive);
-        config.put("easebuzzEnabled", enabled);
+        boolean enabled = false;
+        config.put("subMerchantActive", false);
+        config.put("paymentLinkReady", false);
+        config.put("easebuzzEnabled", false);
         config.put("subMerchantStatus", sm != null ? sm.getStatus() : "NOT_STARTED");
         config.put("subMerchantId", sm != null ? sm.getSubMerchantId() : null);
         config.put("kycStatus", sm != null ? sm.getKycStatus() : null);
@@ -74,28 +74,9 @@ public class RestaurantPaymentConfigController {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "easebuzzEnabled must be true or false");
             }
             boolean enabled = Boolean.TRUE.equals(data.get("easebuzzEnabled"));
-            if (enabled) {
-                EasebuzzSubMerchant sm;
-                try {
-                    sm = subMerchantService.getByRestaurantId(restaurantId);
-                } catch (EntityNotFoundException e) {
-                    return ResponseEntity.status(409).body(Map.of(
-                            "status", "failure", "error", "Easebuzz sub-merchant must be active before enabling payments"));
-                }
-                if (sm.getSubMerchantId() == null || sm.getSubMerchantId().isBlank()
-                        || !"ACTIVE".equals(sm.getStatus())) {
-                    return ResponseEntity.status(409).body(Map.of(
-                            "status", "failure", "error", "Easebuzz sub-merchant must be active before enabling payments"));
-                }
-            }
-            profile.setEasebuzzEnabled(enabled);
-            long now = System.currentTimeMillis();
-            profile.setUpdatedAt(now);
-            profile.setServerUpdatedAt(now);
-            profile.markFieldsChanged(now, "easebuzzenabled");
-            profile.setDeviceId("server");
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "failure", "error", "Easebuzz online payments are retired. Use counter UPI / Cash billing."));
         }
-        profileRepo.save(profile);
         return getConfig();
     }
 

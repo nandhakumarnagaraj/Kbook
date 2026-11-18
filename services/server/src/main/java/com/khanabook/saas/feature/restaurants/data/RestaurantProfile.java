@@ -45,9 +45,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 	@Column(name = "email")
 	private String email;
 
-	@Column(name = "logo_path")
-	private String logoPath;
-
 	@Column(name = "logo_url")
 	private String logoUrl;
 
@@ -56,12 +53,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 
 	@Column(name = "fssai_number")
 	private String fssaiNumber;
-
-	@Column(name = "fssai_expiry_date")
-	private java.time.LocalDate fssaiExpiryDate;
-
-	@Column(name = "country")
-	private String country;
 
 	@Column(name = "gst_enabled")
 	private Boolean gstEnabled;
@@ -89,18 +80,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 
 	@Column(name = "pos_enabled")
 	private Boolean posEnabled;
-
-	// Printer configuration is deliberately NOT stored server-side. Printer bindings
-	// (enabled, name, MAC, paper size, per-role) are physical properties of one device,
-	// so they live only in the Android app's local `printer_profiles` table. Syncing them
-	// would push one terminal's hardware onto every other terminal in the restaurant.
-	// KOT events are device-local for the same reason.
-
-	@Column(name = "auto_print_on_success")
-	private Boolean autoPrintOnSuccess;
-
-	@Column(name = "include_logo_in_print")
-	private Boolean includeLogoInPrint;
 
 	@Column(name = "daily_order_counter")
 	private Long dailyOrderCounter;
@@ -158,12 +137,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 
 	@Column(name = "invoice_footer", columnDefinition = "TEXT")
 	private String invoiceFooter;
-
-	@Column(name = "show_branding")
-	private Boolean showBranding = true;
-
-	@Column(name = "mask_customer_phone")
-	private Boolean maskCustomerPhone = true;
 
 	@Column(name = "is_suspended")
 	private Boolean isSuspended = false;
@@ -241,9 +214,6 @@ public class RestaurantProfile extends BaseSyncEntity {
 		return sb.toString();
 	}
 
-	// --- Easebuzz + compliance fields (v2 port) ---
-	@Column(name = "easebuzz_enabled")
-	private Boolean easebuzzEnabled;
 	@jakarta.persistence.PrePersist
 	@jakarta.persistence.PreUpdate
 	public void syncDates() {

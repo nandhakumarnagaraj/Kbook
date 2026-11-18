@@ -34,7 +34,6 @@ class RestaurantPaymentReadinessTest {
                 new RestaurantPaymentConfigController(profiles, subMerchants);
 
         RestaurantProfile profile = new RestaurantProfile();
-        profile.setEasebuzzEnabled(false);
         EasebuzzSubMerchant subMerchant = new EasebuzzSubMerchant();
         subMerchant.setStatus("ACTIVE");
         subMerchant.setSubMerchantId("SM42");

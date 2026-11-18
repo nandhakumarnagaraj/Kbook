@@ -441,10 +441,10 @@ public class EasebuzzPaymentService {
                     "error", "Unable to verify Easebuzz sub-merchant status");
         }
 
-        if (!restaurantProfileRepository.findByRestaurantId(restaurantId)
-                .map(profile -> Boolean.TRUE.equals(profile.getEasebuzzEnabled())).orElse(false)) {
+        boolean easebuzzEnabled = false;
+        if (!easebuzzEnabled) {
             return Map.of("status", "failure", "code", "PAYMENT_METHOD_DISABLED",
-                    "error", "Easebuzz Online is off for this restaurant. The owner can enable it in payment settings.");
+                    "error", "Easebuzz online payments are disabled. Use UPI / Cash billing.");
         }
 
         String email = customerEmail != null && !customerEmail.isBlank() ? customerEmail : subMerchantEmail;

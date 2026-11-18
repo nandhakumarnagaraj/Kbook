@@ -57,13 +57,7 @@ public class ComplianceAlertService {
             return;
         }
 
-        // Check FSSAI — milestones: 1 month (30d), 2 weeks (14d), 1 week (7d), 2 days, last date (0d)
-        if (profile.getFssaiExpiryDate() != null) {
-            long daysToExpiry = ChronoUnit.DAYS.between(today, profile.getFssaiExpiryDate());
-            if (daysToExpiry == 30 || daysToExpiry == 14 || daysToExpiry == 7 || daysToExpiry == 2 || daysToExpiry == 0) {
-                sendWhatsappAlert(profile.getShopName(), whatsappNumber, "FSSAI License", profile.getFssaiNumber(), profile.getFssaiExpiryDate(), daysToExpiry);
-            }
-        }
+        // Compliance alerts for FSSAI renewals are retired.
     }
 
     private void sendWhatsappAlert(String shopName, String phoneNumber, String documentType, String documentNumber, LocalDate expiryDate, long daysToExpiry) {

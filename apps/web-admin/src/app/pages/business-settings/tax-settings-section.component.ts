@@ -7,11 +7,7 @@ export interface TaxSettings {
   gstEnabled: boolean;
   gstin: string;
   gstPercentage: number;
-  customTaxName: string;
-  customTaxPercentage: number;
   fssaiNumber?: string;
-  fssaiExpiryDate?: string;
-  gstExpiryDate?: string;
 }
 
 interface VerificationState {
@@ -75,10 +71,10 @@ interface VerificationState {
               </button>
             </div>
             <!-- GST Verification Result -->
-            <div *ngIf="gstState().valid === true || (gstState().valid === null && tax().gstExpiryDate && tax().gstin?.length === 15)" class="verify-badge verify-badge--success" role="status">
+            <div *ngIf="gstState().valid === true" class="verify-badge verify-badge--success" role="status">
               <span class="badge-icon" aria-hidden="true">✓</span>
               <span><strong>Verified:</strong> {{ gstState().businessName || 'Active GSTIN' }}</span>
-              <span class="badge-sub">(Valid to: {{ gstState().expiryDate || tax().gstExpiryDate }})</span>
+              <span *ngIf="gstState().expiryDate" class="badge-sub">(Valid to: {{ gstState().expiryDate }})</span>
             </div>
             <div id="gstin-verify-error" *ngIf="gstState().valid === false" class="verify-badge verify-badge--danger" role="alert">
               <span class="badge-icon" aria-hidden="true">✕</span>
@@ -100,34 +96,6 @@ interface VerificationState {
               step="0.5"
             />
             <span class="field-hint">Standard restaurant GST is 5% (composite/non-ITC).</span>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="!tax().gstEnabled">
-          <div class="field">
-            <label for="custom-tax-name-input">Custom Tax Name</label>
-            <input
-              id="custom-tax-name-input"
-              aria-label="Custom Tax Name"
-              class="field-control"
-              [ngModel]="tax().customTaxName"
-              (ngModelChange)="updateField('customTaxName', $event)"
-              placeholder="e.g. Service Charge / Local VAT"
-            />
-          </div>
-          <div class="field">
-            <label for="custom-tax-percentage-input">Custom Tax Percentage (%)</label>
-            <input
-              id="custom-tax-percentage-input"
-              aria-label="Custom Tax Percentage"
-              class="field-control tabular-num"
-              type="number"
-              [ngModel]="tax().customTaxPercentage"
-              (ngModelChange)="updateField('customTaxPercentage', $event)"
-              min="0"
-              max="50"
-              step="0.5"
-            />
           </div>
         </ng-container>
 
@@ -157,10 +125,10 @@ interface VerificationState {
             </button>
           </div>
           <!-- FSSAI Verification Result -->
-          <div *ngIf="fssaiState().valid === true || (fssaiState().valid === null && tax().fssaiExpiryDate && tax().fssaiNumber?.length === 14)" class="verify-badge verify-badge--success" role="status">
+          <div *ngIf="fssaiState().valid === true" class="verify-badge verify-badge--success" role="status">
             <span class="badge-icon" aria-hidden="true">✓</span>
             <span><strong>Verified:</strong> {{ fssaiState().businessName || 'Active FSSAI License' }}</span>
-            <span class="badge-sub">(Expiry: {{ fssaiState().expiryDate || tax().fssaiExpiryDate }})</span>
+            <span *ngIf="fssaiState().expiryDate" class="badge-sub">(Expiry: {{ fssaiState().expiryDate }})</span>
           </div>
           <div id="fssai-verify-error" *ngIf="fssaiState().valid === false" class="verify-badge verify-badge--danger" role="alert">
             <span class="badge-icon" aria-hidden="true">✕</span>
@@ -267,9 +235,6 @@ export class TaxSettingsSectionComponent {
             businessName: res.businessName,
             expiryDate: res.expiryDate
           });
-          if (res.expiryDate) {
-            this.updateField('gstExpiryDate', res.expiryDate);
-          }
         } else {
           this.gstState.set({
             verifying: false,
@@ -301,9 +266,6 @@ export class TaxSettingsSectionComponent {
             businessName: res.businessName || res.legalEntityName,
             expiryDate: res.expiryDate
           });
-          if (res.expiryDate) {
-            this.updateField('fssaiExpiryDate', res.expiryDate);
-          }
         } else {
           this.fssaiState.set({
             verifying: false,

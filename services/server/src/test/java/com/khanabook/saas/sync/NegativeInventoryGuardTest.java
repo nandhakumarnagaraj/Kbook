@@ -143,7 +143,6 @@ class NegativeInventoryGuardTest extends BaseIntegrationTest {
         b.setGstPercentage(new BigDecimal("0.0"));
         b.setCgstAmount(new BigDecimal("0.0"));
         b.setSgstAmount(new BigDecimal("0.0"));
-        b.setCustomTaxAmount(new BigDecimal("0.0"));
         b.setPartAmount1(new BigDecimal("0.0"));
         b.setPartAmount2(new BigDecimal("0.0"));
         b.setPaymentMode("cash");
