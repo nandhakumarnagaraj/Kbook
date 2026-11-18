@@ -222,6 +222,19 @@ class BusinessDateTest {
     }
 
     @Test
+    fun `default full-day 12_00 AM to 11_59 PM schedule rolls over at midnight`() {
+        val p = profile(opening = "00:00", closing = "23:59")
+        // 23:58 on Nov 09 is on Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 9, 23, 58), p))
+        // 23:59 on Nov 09 is on Nov 09.
+        assertEquals("2026-11-09", BusinessDate.businessDate(at(2026, 11, 9, 23, 59), p))
+        // 00:00 midnight rolls over to Nov 10 immediately (not delayed to 00:29).
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 0), p))
+        assertEquals("2026-11-10", BusinessDate.businessDate(at(2026, 11, 10, 0, 15), p))
+        assertNull(BusinessDate.closingBoundary("00:00", "23:59"))
+    }
+
+    @Test
     fun `late evening wrap applies even when opening is near midnight`() {
         val p = profile(opening = "00:10", closing = "23:50")
         // 23:50 + 30m buffer = 00:20 AM boundary.

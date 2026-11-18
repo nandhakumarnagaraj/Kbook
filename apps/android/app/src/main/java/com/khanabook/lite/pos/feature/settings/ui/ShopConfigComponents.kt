@@ -25,11 +25,13 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
 import com.khanabook.lite.pos.core.designsystem.KhanaBookSwitch
@@ -202,7 +204,7 @@ internal fun businessDayRolloverLabel(
 private const val DEFAULT_CUTOFF = "00:00"
 
 /** Minutes past local midnight for an `HH:mm` or `HH:mm:ss` string, or null if unparseable. */
-private fun minutesOfDay(raw: String?): Int? {
+internal fun minutesOfDay(raw: String?): Int? {
     val parts = raw?.trim()?.split(":") ?: return null
     if (parts.size < 2) return null
     val hour = parts[0].toIntOrNull() ?: return null
@@ -223,5 +225,97 @@ internal fun formatClockTime(raw: String?): String {
     }
     val suffix = if (hour24 < 12) "AM" else "PM"
     return "$hour12:${minute.toString().padStart(2, '0')} $suffix"
+}
+
+/**
+ * Calculates human-readable business duration (e.g. "15 hrs") and checks that it does not exceed 24 hours.
+ */
+internal fun calculateBusinessHoursDuration(openingTime: String?, closingTime: String?): String {
+    val opening = minutesOfDay(openingTime) ?: return ""
+    val closing = minutesOfDay(closingTime) ?: return ""
+    val durationMinutes = if (closing > opening) {
+        closing - opening
+    } else if (closing < opening) {
+        (1440 - opening) + closing // overnight wrap
+    } else {
+        0
+    }
+    if (durationMinutes == 0) return ""
+    val hours = durationMinutes / 60
+    val mins = durationMinutes % 60
+    return if (mins > 0) "${hours}h ${mins}m" else "${hours} hrs"
+}
+
+/**
+ * Selectable card option for Business Hours type (Default Time vs Custom Time).
+ */
+@Composable
+internal fun BusinessHoursOptionCard(
+    title: String,
+    timeRange: String,
+    description: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val spacing = KhanaBookTheme.spacing
+    val borderColor = if (isSelected) PrimaryGold else BorderGold.copy(alpha = 0.25f)
+    val bgColor = if (isSelected) PrimaryGold.copy(alpha = 0.12f) else CardBG
+    val titleColor = if (isSelected) PrimaryGold else TextLight
+    val timeColor = if (isSelected) TextLight else TextGold.copy(alpha = 0.7f)
+    val descColor = if (isSelected) TextGold else TextGold.copy(alpha = 0.5f)
+
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .clip(KhanaRadii.md)
+            .border(BorderStroke(if (isSelected) 1.5.dp else 1.dp, borderColor), KhanaRadii.md),
+        shape = KhanaRadii.md,
+        color = bgColor
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.medium),
+            verticalArrangement = Arrangement.spacedBy(spacing.extraSmall)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = title,
+                    color = titleColor,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .border(
+                            BorderStroke(
+                                if (isSelected) 4.5.dp else 1.5.dp,
+                                if (isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f)
+                            ),
+                            CircleShape
+                        )
+                        .background(if (isSelected) DarkBrown1 else Color.Transparent)
+                )
+            }
+            Text(
+                text = timeRange,
+                color = timeColor,
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+            )
+            Text(
+                text = description,
+                color = descColor,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
 }
 

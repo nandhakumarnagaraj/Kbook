@@ -141,8 +141,14 @@ fun ShopConfigView(
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
     var invoiceFooter by remember { mutableStateOf(profile?.invoiceFooter ?: "") }
-    var openingTime by remember { mutableStateOf((profile?.openingTime ?: "08:00").take(5)) }
-    var closingTime by remember { mutableStateOf((profile?.closingTime ?: "23:00").take(5)) }
+    var openingTime by remember { mutableStateOf((profile?.openingTime ?: "00:00").take(5)) }
+    var closingTime by remember { mutableStateOf((profile?.closingTime ?: "23:59").take(5)) }
+    var customOpeningTime by remember {
+        mutableStateOf(if (openingTime != "00:00") openingTime else "09:00")
+    }
+    var customClosingTime by remember {
+        mutableStateOf(if (closingTime != "23:59" && closingTime != "00:00") closingTime else "23:00")
+    }
     var pendingLogoUri by remember { mutableStateOf<Uri?>(null) }
 
     val logoUrl = profile?.logoUrl
@@ -178,8 +184,8 @@ fun ShopConfigView(
             consent != (profile?.emailInvoiceConsent ?: false) ||
             reviewUrl != (profile?.reviewUrl ?: "") ||
             invoiceFooter != (profile?.invoiceFooter ?: "") ||
-            openingTime != (profile?.openingTime ?: "08:00").take(5) ||
-            closingTime != (profile?.closingTime ?: "23:00").take(5)
+            openingTime != (profile?.openingTime ?: "00:00").take(5) ||
+            closingTime != (profile?.closingTime ?: "23:59").take(5)
     }
 
     var showUnsavedDialog by remember { mutableStateOf(false) }
@@ -275,8 +281,10 @@ fun ShopConfigView(
             consent = it.emailInvoiceConsent
             reviewUrl = it.reviewUrl ?: ""
             invoiceFooter = it.invoiceFooter ?: ""
-            openingTime = (it.openingTime ?: "08:00").take(5)
-            closingTime = (it.closingTime ?: "23:00").take(5)
+            openingTime = (it.openingTime ?: "00:00").take(5)
+            closingTime = (it.closingTime ?: "23:59").take(5)
+            if (openingTime != "00:00") customOpeningTime = openingTime
+            if (closingTime != "23:59" && closingTime != "00:00") customClosingTime = closingTime
             selectedPaymentFlowMode = OrderPaymentFlowMode.fromDbValue(it.orderPaymentFlowMode)
             isOtpVerified = true
             isEmailOtpVerified = true
@@ -745,26 +753,21 @@ fun ShopConfigView(
 
             Spacer(modifier = Modifier.height(spacing.medium))
 
-            // Card 2: Business Hours
+            // Card 2: Business Hours (Default: 12 AM - 11:59 PM vs Custom)
+            val isCurrentDefault = openingTime == "00:00" && (closingTime == "23:59" || closingTime == "00:00")
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
                 shape = KhanaRadii.lg,
                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.25f))
             ) {
-                // Opening/Closing times stay hidden until the header is tapped, so the
-                // card reads as one line (hours + rollover) until the shopkeeper wants them.
-                var isBusinessHoursExpanded by remember { mutableStateOf(false) }
                 Column(
                     modifier = Modifier.padding(spacing.large),
                     verticalArrangement = Arrangement.spacedBy(spacing.medium)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(KhanaRadii.md)
-                            .clickable { isBusinessHoursExpanded = !isBusinessHoursExpanded }
-                            .padding(vertical = spacing.extraSmall),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(spacing.medium)
                     ) {
@@ -780,50 +783,125 @@ fun ShopConfigView(
                                 color = TextLight,
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
-                            Text(
-                                // Non-breaking space keeps "12:30 AM" on one line; it otherwise
-                                // wrapped between the minutes and the AM/PM suffix.
-                                text = "Daily Order Number will reset at " + businessDayRolloverLabel(
+                            val rolloverText = if (isCurrentDefault) {
+                                "12:00\u00A0AM"
+                            } else {
+                                businessDayRolloverLabel(
                                     cutoffTime = profile?.businessDayCutoffTime,
                                     cutoffEffectiveFrom = profile?.cutoffEffectiveFrom,
                                     openingTime = openingTime,
                                     closingTime = closingTime
-                                ).replace(' ', '\u00A0'),
+                                ).replace(' ', '\u00A0')
+                            }
+                            Text(
+                                text = "Daily Order Number will reset at $rolloverText",
                                 color = TextGold.copy(alpha = 0.7f),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        Icon(
-                            imageVector = if (isBusinessHoursExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = if (isBusinessHoursExpanded) "Hide opening and closing time" else "Show opening and closing time",
-                            tint = PrimaryGold,
-                            modifier = Modifier.size(24.dp)
+                    }
+
+                    // Mode options: Default Time vs Custom Time
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                    ) {
+                        BusinessHoursOptionCard(
+                            title = "Default Time",
+                            timeRange = "12:00 AM – 11:59 PM",
+                            description = "Full day (Midnight reset)",
+                            isSelected = isCurrentDefault,
+                            onClick = {
+                                if (!readOnly && !isCurrentDefault) {
+                                    openingTime = "00:00"
+                                    closingTime = "23:59"
+                                }
+                            },
+                            enabled = !readOnly,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        BusinessHoursOptionCard(
+                            title = "Custom Time",
+                            timeRange = if (!isCurrentDefault) "${formatClockTime(openingTime)} – ${formatClockTime(closingTime)}" else "User Defined",
+                            description = "Set opening & closing",
+                            isSelected = !isCurrentDefault,
+                            onClick = {
+                                if (!readOnly && isCurrentDefault) {
+                                    openingTime = customOpeningTime
+                                    closingTime = customClosingTime
+                                }
+                            },
+                            enabled = !readOnly,
+                            modifier = Modifier.weight(1f)
                         )
                     }
 
                     AnimatedVisibility(
-                        visible = isBusinessHoursExpanded,
+                        visible = !isCurrentDefault,
                         enter = expandVertically(animationSpec = tween(durationMillis = 220)) + fadeIn(animationSpec = tween(durationMillis = 220)),
                         exit = shrinkVertically(animationSpec = tween(durationMillis = 180)) + fadeOut(animationSpec = tween(durationMillis = 180))
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(spacing.medium)
-                        ) {
-                            KhanaTimePickerField(
-                                label = "Opening Time",
-                                time = openingTime,
-                                onTimeSelected = { openingTime = it },
-                                enabled = !readOnly,
-                                modifier = Modifier.weight(1f)
-                            )
-                            KhanaTimePickerField(
-                                label = "Closing Time",
-                                time = closingTime,
-                                onTimeSelected = { closingTime = it },
-                                enabled = !readOnly,
-                                modifier = Modifier.weight(1f)
-                            )
+                        Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(spacing.medium)
+                            ) {
+                                KhanaTimePickerField(
+                                    label = "Opening Time",
+                                    time = openingTime,
+                                    onTimeSelected = {
+                                        customOpeningTime = it
+                                        openingTime = it
+                                    },
+                                    enabled = !readOnly,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                KhanaTimePickerField(
+                                    label = "Closing Time",
+                                    time = closingTime,
+                                    onTimeSelected = {
+                                        customClosingTime = it
+                                        closingTime = it
+                                    },
+                                    enabled = !readOnly,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            if (openingTime == closingTime) {
+                                Text(
+                                    text = "⚠️ Opening and closing time cannot be the same (operating duration cannot exceed 24 hours).",
+                                    color = DangerRed,
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            } else {
+                                val durationStr = calculateBusinessHoursDuration(openingTime, closingTime)
+                                val openM = minutesOfDay(openingTime) ?: 0
+                                val closeM = minutesOfDay(closingTime) ?: 0
+                                val isOvernight = closeM < openM
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    if (durationStr.isNotBlank()) {
+                                        Text(
+                                            text = "Operating duration: $durationStr",
+                                            color = TextGold,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                    if (isOvernight) {
+                                        Text(
+                                            text = "🌙 Overnight service (< 24 hrs)",
+                                            color = TextGold.copy(alpha = 0.8f),
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -865,6 +943,10 @@ fun ShopConfigView(
                     } else if (emailChanged && !isEmailOtpVerified) {
                         toastScope.launch {
                             KhanaToast.show(context.getString(R.string.toast_verify_new_email), ToastKind.Warning)
+                        }
+                    } else if (!isCurrentDefault && openingTime == closingTime) {
+                        toastScope.launch {
+                            KhanaToast.show("Opening and closing time cannot be the same (must be less than 24 hours)", ToastKind.Warning)
                         }
                     } else {
                         val updatedProfile = profile?.copy(

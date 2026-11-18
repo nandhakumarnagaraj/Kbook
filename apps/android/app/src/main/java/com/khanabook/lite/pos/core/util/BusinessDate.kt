@@ -81,6 +81,11 @@ object BusinessDate {
         val opening = parseClock(openingTime) ?: return null
         val closing = parseClock(closingTime) ?: return null
 
+        // Default 24h service (12:00 AM to 11:59 PM) rolls over naturally at calendar midnight
+        if (opening == LocalTime.MIDNIGHT && (closing == LocalTime.of(23, 59) || closing == LocalTime.MIDNIGHT)) {
+            return null
+        }
+
         val buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES)
         if (buffered == LocalTime.MIDNIGHT) {
             return null

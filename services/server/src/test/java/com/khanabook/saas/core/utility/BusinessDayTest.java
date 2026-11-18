@@ -252,6 +252,22 @@ class BusinessDayTest {
     }
 
     @Test
+    void defaultFullDayScheduleRollsOverAtMidnight() {
+        LocalTime open = LocalTime.MIDNIGHT;
+        LocalTime close = LocalTime.of(23, 59);
+
+        assertThat(BusinessDay.closingBoundary(open, close)).isNull();
+        assertThat(BusinessDay.businessDate(at(2026, 11, 9, 23, 58), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 9, 23, 59), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-09");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 0), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+        assertThat(BusinessDay.businessDate(at(2026, 11, 10, 0, 15), IST, LocalTime.MIDNIGHT, null, open, close))
+                .isEqualTo("2026-11-10");
+    }
+
+    @Test
     void activatedCutoffStillWinsOverTheClosingTime() {
         LocalTime open = LocalTime.of(18, 0);
         LocalTime close = LocalTime.of(2, 10);

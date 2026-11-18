@@ -185,34 +185,62 @@ interface SettingsCategory {
                     </div>
 
                     <div class="field">
-                      <label for="field-openingTime">Opening time</label>
-                      <input
-                        id="field-openingTime"
-                        class="field-control"
-                        type="time"
-                        [(ngModel)]="p.openingTime"
-                        (ngModelChange)="onFieldChange('openingTime')"
-                        autocomplete="off"
-                        [attr.aria-invalid]="errors()['openingTime'] ? 'true' : null"
-                        [attr.aria-describedby]="errors()['openingTime'] ? 'err-openingTime' : null" />
-                      <p class="field-error" id="err-openingTime" role="alert" *ngIf="errors()['openingTime']">{{ errors()['openingTime'] }}</p>
-                      <p class="muted">Local shop time. The business-day cutoff, not this,
-                        decides when the day's numbering rolls over.</p>
+                      <label>Business hours schedule</label>
+                      <div class="schedule-type-grid">
+                        <label class="schedule-card" [class.schedule-card--selected]="isDefaultBusinessHours(p)">
+                          <input
+                            type="radio"
+                            name="businessHoursSchedule"
+                            [checked]="isDefaultBusinessHours(p)"
+                            (change)="setBusinessHoursSchedule(p, 'default')" />
+                          <div class="schedule-card__content">
+                            <strong>Default Time (12:00 AM – 11:59 PM)</strong>
+                            <p class="muted">Full calendar day. Daily order numbers roll over at midnight (12:00 AM).</p>
+                          </div>
+                        </label>
+                        <label class="schedule-card" [class.schedule-card--selected]="!isDefaultBusinessHours(p)">
+                          <input
+                            type="radio"
+                            name="businessHoursSchedule"
+                            [checked]="!isDefaultBusinessHours(p)"
+                            (change)="setBusinessHoursSchedule(p, 'custom')" />
+                          <div class="schedule-card__content">
+                            <strong>Custom Time</strong>
+                            <p class="muted">Set your restaurant's specific opening and closing hours.</p>
+                          </div>
+                        </label>
+                      </div>
                     </div>
 
-                    <div class="field">
-                      <label for="field-closingTime">Closing time</label>
-                      <input
-                        id="field-closingTime"
-                        class="field-control"
-                        type="time"
-                        [(ngModel)]="p.closingTime"
-                        (ngModelChange)="onFieldChange('closingTime')"
-                        autocomplete="off"
-                        [attr.aria-invalid]="errors()['closingTime'] ? 'true' : null"
-                        [attr.aria-describedby]="errors()['closingTime'] ? 'err-closingTime' : null" />
-                      <p class="field-error" id="err-closingTime" role="alert" *ngIf="errors()['closingTime']">{{ errors()['closingTime'] }}</p>
-                      <p class="muted">Kitchen closing time. For overnight shifts (e.g. 6:00 PM – 4:00 AM), set "Day rolls at" below 30–60 minutes later (e.g. 04:30 AM or 05:00 AM) so late-night orders settle cleanly into today's ledger.</p>
+                    <div *ngIf="!isDefaultBusinessHours(p)" class="custom-hours-row">
+                      <div class="field">
+                        <label for="field-openingTime">Opening time</label>
+                        <input
+                          id="field-openingTime"
+                          class="field-control"
+                          type="time"
+                          [(ngModel)]="p.openingTime"
+                          (ngModelChange)="onFieldChange('openingTime')"
+                          autocomplete="off"
+                          [attr.aria-invalid]="errors()['openingTime'] ? 'true' : null"
+                          [attr.aria-describedby]="errors()['openingTime'] ? 'err-openingTime' : null" />
+                        <p class="field-error" id="err-openingTime" role="alert" *ngIf="errors()['openingTime']">{{ errors()['openingTime'] }}</p>
+                      </div>
+
+                      <div class="field">
+                        <label for="field-closingTime">Closing time</label>
+                        <input
+                          id="field-closingTime"
+                          class="field-control"
+                          type="time"
+                          [(ngModel)]="p.closingTime"
+                          (ngModelChange)="onFieldChange('closingTime')"
+                          autocomplete="off"
+                          [attr.aria-invalid]="errors()['closingTime'] ? 'true' : null"
+                          [attr.aria-describedby]="errors()['closingTime'] ? 'err-closingTime' : null" />
+                        <p class="field-error" id="err-closingTime" role="alert" *ngIf="errors()['closingTime']">{{ errors()['closingTime'] }}</p>
+                        <p class="muted">Kitchen closing time. For overnight shifts (e.g. 6:00 PM – 4:00 AM), set "Day rolls at" below 30–60 minutes later so late-night orders settle cleanly into today's ledger.</p>
+                      </div>
                     </div>
 
                     <div class="field">
@@ -874,6 +902,46 @@ interface SettingsCategory {
       margin: 0;
       font-size: var(--kb-text-xs);
       color: var(--kb-color-error);
+    }
+
+    .schedule-type-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--kb-space-3);
+    }
+    .schedule-card {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--kb-space-3);
+      padding: var(--kb-space-3);
+      border: 1px solid var(--kb-color-border);
+      border-radius: var(--kb-radius-lg);
+      background: var(--kb-color-surface);
+      cursor: pointer;
+      transition: border-color var(--kb-duration-fast), background var(--kb-duration-fast);
+    }
+    .schedule-card--selected {
+      border-color: var(--kb-color-primary);
+      background: var(--kb-color-primary-soft);
+    }
+    .schedule-card input[type="radio"] {
+      margin-top: 3px;
+      accent-color: var(--kb-color-primary);
+    }
+    .schedule-card__content strong {
+      display: block;
+      font-size: var(--kb-text-sm);
+      color: var(--kb-color-foreground);
+    }
+    .schedule-card__content .muted {
+      margin: var(--kb-space-1) 0 0;
+      font-size: var(--kb-text-xs);
+      color: var(--kb-color-muted-foreground);
+    }
+    .custom-hours-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--kb-space-3);
     }
 
     /* ── Logo card ── */
@@ -1657,6 +1725,24 @@ export class BusinessSettingsPageComponent implements OnDestroy {
     }
 
     return errors;
+  }
+
+  isDefaultBusinessHours(p: RestaurantProfile): boolean {
+    return p.openingTime === '00:00' && (p.closingTime === '23:59' || p.closingTime === '00:00');
+  }
+
+  setBusinessHoursSchedule(p: RestaurantProfile, mode: 'default' | 'custom'): void {
+    if (mode === 'default') {
+      p.openingTime = '00:00';
+      p.closingTime = '23:59';
+    } else {
+      if (this.isDefaultBusinessHours(p)) {
+        p.openingTime = '08:00';
+        p.closingTime = '23:00';
+      }
+    }
+    this.onFieldChange('openingTime');
+    this.onFieldChange('closingTime');
   }
 
   private isWebUrl(value: string): boolean {

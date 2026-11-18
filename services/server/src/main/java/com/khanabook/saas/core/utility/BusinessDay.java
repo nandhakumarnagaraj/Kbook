@@ -83,6 +83,11 @@ public final class BusinessDay {
             return null;
         }
 
+        // Default 24h service (12:00 AM to 11:59 PM) rolls over naturally at calendar midnight
+        if (LocalTime.MIDNIGHT.equals(opening) && (LocalTime.of(23, 59).equals(closing) || LocalTime.MIDNIGHT.equals(closing))) {
+            return null;
+        }
+
         LocalTime buffered = closing.plusMinutes(SETTLEMENT_BUFFER_MINUTES);
         if (LocalTime.MIDNIGHT.equals(buffered)) {
             return null;
