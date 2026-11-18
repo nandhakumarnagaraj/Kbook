@@ -277,7 +277,8 @@ class InvoicePDFGenerator(private val context: Context) {
             val billLabelW  = paint.measureText(billLabel)
             canvas.drawText(billLabel, 5f, y, paint)
             paint.typeface  = normalTypeface
-            canvas.drawText("${bill.bill.dailyOrderId}", 5f + billLabelW, y, paint)
+            val displayOrder = bill.bill.dailyOrderDisplay.trim().ifEmpty { bill.bill.dailyOrderId.toString() }
+            canvas.drawText(displayOrder, 5f + billLabelW, y, paint)
 
             val dateStr = com.khanabook.lite.pos.core.util.DateUtils.formatDateOnly(bill.bill.createdAt)
             paint.typeface  = boldTypeface

@@ -141,7 +141,8 @@ object InvoiceFormatter {
         add("$line\n")
         // 3. Transaction Details (Left/Right split)
         add(ALIGN_LEFT)
-        val billNo = "Bill: ${bill.bill.dailyOrderId}"
+        val displayOrder = bill.bill.dailyOrderDisplay.trim().ifEmpty { bill.bill.dailyOrderId.toString() }
+        val billNo = "Bill: $displayOrder"
         val dateStr = DateUtils.formatDateOnly(bill.bill.createdAt)
         
         add(leftPad + formatRow(billNo, "Date: $dateStr", width))
