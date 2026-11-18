@@ -93,14 +93,14 @@ interface VendorRow {
 })
 export class IntegrationsPageComponent {
   readonly kpis: KpiItem[] = [
-    { label: 'Connected Gateways', value: 4, icon: 'extension', tone: 'success', caption: 'Active platform services' },
-    { label: 'Sub-Merchants', value: 2, icon: 'business', tone: 'brand', caption: 'Verified in easebuzz_sub_merchant' },
+    { label: 'Connected Services', value: 4, icon: 'extension', tone: 'success', caption: 'Active platform services' },
+    { label: 'Active Outlets', value: 167, icon: 'business', tone: 'brand', caption: 'Verified in restaurantprofiles' },
     { label: 'FCM Devices', value: 26, icon: 'monitoring', tone: 'success', caption: 'Active in device_tokens' },
     { label: 'Offline Fallbacks', value: '100%', icon: 'flag', tone: 'success', caption: 'UPI QR & local sync active' },
   ];
 
   readonly vendors: VendorRow[] = [
-    { id: 'easebuzz', name: 'Easebuzz Payment Gateway', blurb: 'Sub-merchants, checkout, split settlements and webhooks.', category: 'payments', state: 'connected', metric: 'Production gateway live' },
+    { id: 'cash-upi', name: 'Offline UPI & Cash Register', blurb: 'Direct merchant QR codes, instant zero-commission counter payments.', category: 'payments', state: 'connected', metric: '100% active registers' },
     { id: 'upi', name: 'Dynamic UPI / QR', blurb: 'Per-outlet static and dynamic QR generation for offline registers.', category: 'payments', state: 'connected', metric: '139 outlets configured' },
     { id: 'whatsapp', name: 'WhatsApp Business API', blurb: 'Automated invoice PDFs, digital receipts and staff OTP dispatch.', category: 'messaging', state: 'connected', metric: 'Meta Graph API v20.0' },
     { id: 'firebase', name: 'Firebase Cloud Messaging', blurb: 'Live POS order dispatch, push notifications and device sync alerts.', category: 'data', state: 'connected', metric: '26 registered devices' },

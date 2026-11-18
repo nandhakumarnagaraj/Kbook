@@ -5,9 +5,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
-  HostListener,
   Input,
-  OnDestroy,
   Output,
   ViewChild
 } from '@angular/core';
@@ -18,17 +16,16 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <div class="confirm-dialog__overlay" (click)="cancel()">
-      <section
-        #dialogCard
-        class="confirm-dialog__card"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-message"
-        tabindex="-1"
-        (click)="$event.stopPropagation()"
-      >
+    <dialog
+      #dialogEl
+      class="confirm-dialog"
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-message"
+      (cancel)="onCancel($event)"
+      (pointerdown)="onPointerDown($event)"
+      (pointerup)="onPointerUp($event)"
+    >
+      <div #dialogCard class="confirm-dialog__card">
         <div class="confirm-dialog__icon" [class.confirm-dialog__icon--danger]="confirmDanger" aria-hidden="true">
           {{ confirmDanger ? '!' : '?' }}
         </div>
@@ -36,8 +33,14 @@ import {
           <h3 id="confirm-dialog-title" class="confirm-dialog__title">{{ title }}</h3>
           <p id="confirm-dialog-message" class="confirm-dialog__message">{{ message }}</p>
         </div>
-        <div class="confirm-dialog__actions">
-          <button #cancelButton type="button" class="confirm-dialog__btn confirm-dialog__btn--cancel" (click)="cancel()">
+        <form method="dialog" class="confirm-dialog__actions">
+          <button
+            #cancelButton
+            type="button"
+            class="confirm-dialog__btn confirm-dialog__btn--cancel"
+            autofocus
+            (click)="cancel()"
+          >
             {{ cancelLabel }}
           </button>
           <button
@@ -48,18 +51,28 @@ import {
           >
             {{ confirmLabel }}
           </button>
-        </div>
-      </section>
-    </div>
+        </form>
+      </div>
+    </dialog>
   `,
   styles: [`
-    .confirm-dialog__overlay {
-      position: fixed;
-      inset: 0;
-      z-index: var(--kb-z-modal);
-      display: grid;
-      place-items: center;
-      padding: var(--kb-space-4);
+    /* Modern Web Guidance (dialog): native top-layer modal with overscroll containment */
+    dialog.confirm-dialog {
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: inherit;
+      max-width: min(460px, calc(100vw - var(--kb-space-4) * 2));
+      max-height: calc(100vh - var(--kb-space-4) * 2);
+      overflow: visible;
+      margin: auto;
+    }
+    dialog.confirm-dialog:modal {
+      overscroll-behavior: contain;
+    }
+    dialog.confirm-dialog::backdrop {
+      overflow: hidden;
+      overscroll-behavior: contain;
       background: rgba(36, 23, 15, 0.56);
       backdrop-filter: blur(3px);
     }
@@ -73,6 +86,7 @@ import {
       border: 1px solid var(--line);
       border-radius: var(--kb-radius-2xl);
       box-shadow: 0 24px 64px rgba(36, 23, 15, 0.24);
+      box-sizing: border-box;
     }
     .confirm-dialog__card:focus { outline: none; }
     .confirm-dialog__icon {
@@ -117,14 +131,18 @@ import {
     .confirm-dialog__btn--danger { background: var(--kb-color-danger-solid); }
     .confirm-dialog__btn--danger:hover { background: var(--kb-color-danger-solid-hover); }
     @media (max-width: 480px) {
-      .confirm-dialog__overlay { place-items: end stretch; padding: 0; }
+      dialog.confirm-dialog {
+        margin: auto auto 0 auto;
+        width: 100%;
+        max-width: 100%;
+      }
       .confirm-dialog__card { width: 100%; padding: var(--kb-space-5); border-radius: 18px 18px 0 0; }
       .confirm-dialog__actions { flex-direction: column-reverse; }
       .confirm-dialog__btn { width: 100%; }
     }
   `]
 })
-export class ConfirmDialogComponent implements AfterViewInit, OnDestroy {
+export class ConfirmDialogComponent implements AfterViewInit {
   @Input() title = 'Confirm';
   @Input() message = 'Are you sure?';
   @Input() confirmLabel = 'Confirm';
@@ -132,48 +150,66 @@ export class ConfirmDialogComponent implements AfterViewInit, OnDestroy {
   @Input() confirmDanger = false;
   @Output() confirmed = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
-  @ViewChild('dialogCard') private dialogCard?: ElementRef<HTMLElement>;
+  @ViewChild('dialogEl') private dialogEl?: ElementRef<HTMLDialogElement>;
   @ViewChild('cancelButton') private cancelButton?: ElementRef<HTMLButtonElement>;
 
-  private previouslyFocused: HTMLElement | null = null;
-  private previousBodyOverflow = '';
+  private pressedOutside = false;
 
   ngAfterViewInit(): void {
-    this.previouslyFocused = document.activeElement as HTMLElement | null;
-    this.previousBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const dialog = this.dialogEl?.nativeElement;
+    if (dialog) {
+      if (typeof dialog.showModal === 'function') {
+        if (!dialog.open) {
+          dialog.showModal();
+        }
+      } else {
+        dialog.setAttribute('open', '');
+      }
+    }
     this.cancelButton?.nativeElement.focus();
   }
 
-  ngOnDestroy(): void {
-    document.body.style.overflow = this.previousBodyOverflow;
-    this.previouslyFocused?.focus();
+  onCancel(event: Event): void {
+    event.preventDefault();
+    this.cancel();
   }
 
-  @HostListener('document:keydown', ['$event'])
-  handleKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      event.preventDefault();
+  /**
+   * Modern Web Guidance light-dismiss fallback:
+   * Require pointer press and release outside the dialog rectangle to prevent
+   * accidental dismiss from drag selections.
+   */
+  onPointerDown(e: PointerEvent): void {
+    const dialog = this.dialogEl?.nativeElement;
+    if (!dialog) return;
+    const r = dialog.getBoundingClientRect();
+    this.pressedOutside = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  }
+
+  onPointerUp(e: PointerEvent): void {
+    const dialog = this.dialogEl?.nativeElement;
+    if (!dialog) return;
+    const r = dialog.getBoundingClientRect();
+    const releasedOutside = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    if (this.pressedOutside && releasedOutside) {
       this.cancel();
-      return;
     }
-    if (event.key !== 'Tab') return;
-
-    const focusable = this.dialogCard?.nativeElement.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-    );
-    if (!focusable?.length) return;
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault();
-      last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault();
-      first.focus();
-    }
+    this.pressedOutside = false;
   }
 
-  cancel(): void { this.cancelled.emit(); }
-  confirm(): void { this.confirmed.emit(); }
+  cancel(): void {
+    const dialog = this.dialogEl?.nativeElement;
+    if (dialog && typeof dialog.close === 'function' && dialog.open) {
+      dialog.close();
+    }
+    this.cancelled.emit();
+  }
+
+  confirm(): void {
+    const dialog = this.dialogEl?.nativeElement;
+    if (dialog && typeof dialog.close === 'function' && dialog.open) {
+      dialog.close();
+    }
+    this.confirmed.emit();
+  }
 }

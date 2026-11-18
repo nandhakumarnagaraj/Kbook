@@ -252,6 +252,7 @@
   --kb-shadow-lg: 0 12px 32px rgba(15,23,42,0.16);
   --kb-shadow-warm: 0 6px 20px rgba(15,23,42,0.12);
   --kb-duration-instant: 80ms; --kb-duration-fast: 150ms; --kb-duration-base: 200ms; --kb-duration-slow: 300ms;
+  --kb-motion-fast: var(--kb-duration-fast); --kb-motion-base: var(--kb-duration-base); --kb-motion-slow: var(--kb-duration-slow);
   --kb-ease-standard: cubic-bezier(0.2,0,0.2,1);
   --ease-out:                   cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out:                cubic-bezier(0.77, 0, 0.175, 1);

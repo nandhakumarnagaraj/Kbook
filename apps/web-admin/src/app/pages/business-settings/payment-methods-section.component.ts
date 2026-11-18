@@ -1,8 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, effect, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { BusinessApiService } from '../../core/services/business-api.service';
-import { ToastService } from '../../core/services/toast.service';
 import { validateUpiHandle, UpiValidationResult } from '../../core/utils/upi-validator.util';
 import { generateUpiQrDataUrl } from '../../core/utils/qr-code.util';
 
@@ -115,62 +113,6 @@ export interface PaymentMethodsSettings {
               <span class="meta-tag">Test Amount: <strong>&#8377;1.00</strong></span>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel settings-section">
-      <div class="section-title-wrap">
-        <div class="section-icon">
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="5" width="20" height="14" rx="2"/>
-            <path d="M2 10h20"/>
-            <circle cx="7" cy="15" r="1"/>
-          </svg>
-        </div>
-        <div>
-          <h3>Online Payments Gateway (Easebuzz)</h3>
-          <p class="muted">Enable online payment collection via UPI, credit/debit cards, and net banking.</p>
-        </div>
-      </div>
-      <div *ngIf="easebuzzLoading" class="loading" role="status">Loading payment config...</div>
-      <div *ngIf="!easebuzzLoading && easebuzzError" class="config-error" role="alert">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div>
-          <strong>Couldn't load payment config</strong>
-          <p class="muted config-error-note">You can still retry or configure this later from the Android app.</p>
-        </div>
-        <button type="button" class="ghost-btn" (click)="loadEasebuzzConfig()">Retry</button>
-      </div>
-      <div *ngIf="!easebuzzLoading && easebuzzConfig">
-        <div class="form-grid">
-          <div class="field">
-            <label class="toggle-label">
-              <input type="checkbox" [ngModel]="easebuzzEnabled" (change)="toggleEasebuzz()">
-              <span>Enable Easebuzz Payments</span>
-            </label>
-          </div>
-        </div>
-        <div class="submerchant-card" *ngIf="easebuzzConfig.subMerchantId">
-          <div class="row row--between submerchant-row">
-            <span class="submerchant-label">Sub-Merchant ID</span>
-            <strong class="submerchant-value">{{ easebuzzConfig.subMerchantId }}</strong>
-          </div>
-          <div class="row row--between submerchant-row">
-            <span class="submerchant-label">Status</span>
-            <span class="chip" [class.chip-green]="easebuzzConfig.subMerchantStatus === 'ACTIVE'" [class.chip-amber]="easebuzzConfig.subMerchantStatus !== 'ACTIVE'">
-              {{ subMerchantStatusLabel(easebuzzConfig.subMerchantStatus) }}
-            </span>
-          </div>
-          <div class="row row--between">
-            <span class="submerchant-label">KYC Status</span>
-            <span class="chip" [class.chip-green]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone === 'ok'" [class.chip-amber]="kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).tone !== 'ok'">
-              {{ kycStatusLabel(easebuzzConfig.kycStatus, easebuzzConfig.subMerchantStatus).label }}
-            </span>
-          </div>
-        </div>
-        <div class="submerchant-onboarding" *ngIf="!easebuzzConfig.subMerchantId && easebuzzEnabled">
-          Sub-merchant onboarding required. Use the Android app to complete Easebuzz onboarding.
         </div>
       </div>
     </section>
@@ -317,9 +259,6 @@ export interface PaymentMethodsSettings {
   `]
 })
 export class PaymentMethodsSectionComponent {
-  private readonly toast = inject(ToastService);
-  private readonly businessApi = inject(BusinessApiService);
-
   settings = input.required<PaymentMethodsSettings>();
 
   settingsChange = output<Partial<PaymentMethodsSettings>>();
@@ -328,12 +267,6 @@ export class PaymentMethodsSectionComponent {
   testQrDataUrl: string | null = null;
   generatingQr = false;
 
-  easebuzzConfig: any = null;
-  easebuzzLoading = false;
-  private readonly cdr = inject(ChangeDetectorRef);
-  easebuzzError = '';
-  easebuzzEnabled = false;
-
   constructor() {
     effect(() => {
       const s = this.settings();
@@ -341,40 +274,6 @@ export class PaymentMethodsSectionComponent {
         this.onUpiHandleChange(s.upiHandle);
       }
     }, { allowSignalWrites: true });
-
-    this.loadEasebuzzConfig();
-  }
-
-  /**
-   * Human label for the gateway's KYC status. The API returns storage codes
-   * (PENDING_KYC, VERIFIED, …) and null when onboarding has not started —
-   * none of which should be shown raw in an owner-facing screen. When the
-   * dedicated KYC field is empty we fall back to the sub-merchant status,
-   * which carries the same onboarding state.
-   */
-  kycStatusLabel(status: string | null | undefined, fallbackStatus?: string | null): { label: string; tone: 'ok' | 'pending' | 'none' } {
-    const value = (status || fallbackStatus || '').toUpperCase();
-    if (!value) return { label: 'Not started', tone: 'none' };
-    if (value === 'VERIFIED' || value === 'APPROVED' || value === 'ACTIVE') {
-      return { label: 'Verified', tone: 'ok' };
-    }
-    if (value.includes('PENDING') || value.includes('IN_PROGRESS') || value.includes('SUBMITTED')) {
-      return { label: 'Pending KYC verification', tone: 'pending' };
-    }
-    if (value.includes('REJECT') || value.includes('FAILED')) {
-      return { label: 'Verification failed', tone: 'pending' };
-    }
-    return { label: value.charAt(0) + value.slice(1).toLowerCase().replace(/_/g, ' '), tone: 'none' };
-  }
-
-  /** Human label for the sub-merchant onboarding status. */
-  subMerchantStatusLabel(status: string | null | undefined): string {
-    const value = (status || '').toUpperCase();
-    if (!value) return 'Unknown';
-    if (value === 'ACTIVE') return 'Active';
-    if (value.includes('PENDING_KYC')) return 'Pending KYC';
-    if (value === 'PENDING') return 'Pending';
-    return value.charAt(0) + value.slice(1).toLowerCase().replace(/_/g, ' ');
   }
 
   updateField<K extends keyof PaymentMethodsSettings>(field: K, value: PaymentMethodsSettings[K]): void {
@@ -415,42 +314,6 @@ export class PaymentMethodsSectionComponent {
       this.generatingQr = false;
     }).catch(() => {
       this.generatingQr = false;
-    });
-  }
-
-  loadEasebuzzConfig(): void {
-    this.easebuzzLoading = true;
-    this.easebuzzError = '';
-    this.businessApi.getPaymentConfig().subscribe({
-      next: (config) => {
-        this.easebuzzConfig = config;
-        this.easebuzzEnabled = config.easebuzzEnabled || false;
-        this.easebuzzLoading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.easebuzzLoading = false;
-        this.easebuzzError = 'Unable to reach the payments service.';
-        this.cdr.markForCheck();
-      }
-    });
-  }
-
-  toggleEasebuzz(): void {
-    this.businessApi.updatePaymentConfig({ easebuzzEnabled: this.easebuzzEnabled }).subscribe({
-      next: (config) => {
-        this.easebuzzConfig = config;
-        this.toast.show(
-          this.easebuzzEnabled ? 'Easebuzz enabled' : 'Easebuzz disabled',
-          'success'
-        );
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.easebuzzEnabled = !this.easebuzzEnabled;
-        this.toast.show('Failed to update payment config', 'error');
-        this.cdr.markForCheck();
-      }
     });
   }
 }
