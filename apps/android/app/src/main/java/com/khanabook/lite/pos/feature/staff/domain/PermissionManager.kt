@@ -230,14 +230,25 @@ class PermissionManager @Inject constructor(
      * download/share the data off it, so the export action is owner-only.
      */
     private val SHOP_STAFF_CONFIG_KEYS = setOf(
+        // Menu editing (owner-only)
         MENU_TOGGLE_AVAILABILITY,
         MENU_EDIT_PRICE,
         MENU_EDIT_FULL,
         MENU_ADD_ITEM,
         MENU_DELETE_ITEM,
+        // Reports (export and GST are owner-only; staff can view day summary on device)
         REPORTS_EXPORT,
+        REPORTS_GST,
+        // Staff management (strictly owner-only)
+        STAFF_VIEW,
+        STAFF_ADD,
+        STAFF_EDIT,
+        STAFF_REMOVE,
+        STAFF_PERMISSIONS,
+        // Settings (printer config is granted to staff; profile, payment, terminal, GST are owner-only)
         SETTINGS_SHOP_PROFILE,
         SETTINGS_PAYMENT,
+        SETTINGS_TERMINAL,
         SETTINGS_GST
     )
 

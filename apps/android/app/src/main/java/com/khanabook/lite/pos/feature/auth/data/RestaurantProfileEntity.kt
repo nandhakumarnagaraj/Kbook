@@ -70,12 +70,21 @@ data class RestaurantProfileEntity(
 
 
     
+    // LEGACY HARDWARE PRINTER BINDINGS:
+    // Pruned from server restaurantprofiles in V99. In the Android app, all active printer
+    // hardware configuration (Bluetooth MAC, USB, Wi-Fi LAN IP/port, paper size) belongs
+    // exclusively to the local `printer_profiles` table managed by PrinterProfileRepository.
+    // Retained on RestaurantProfileEntity only for backwards compatibility with existing v84 Room installs.
+    @Deprecated("Legacy hardware binding: use printer_profiles table and PrinterProfileRepository instead")
     @ColumnInfo(name = "printer_enabled", defaultValue = "0")
     val printerEnabled: Boolean = false,
+    @Deprecated("Legacy hardware binding: use printer_profiles table and PrinterProfileRepository instead")
     @ColumnInfo(name = "printer_name")
     val printerName: String? = null,
+    @Deprecated("Legacy hardware binding: use printer_profiles table and PrinterProfileRepository instead")
     @ColumnInfo(name = "printer_mac")
     val printerMac: String? = null,
+    @Deprecated("Legacy hardware binding: use printer_profiles table and PrinterProfileRepository instead")
     @ColumnInfo(name = "paper_size", defaultValue = "58mm")
     val paperSize: String = "58mm",
     @ColumnInfo(name = "auto_print_on_success", defaultValue = "0")
@@ -90,16 +99,20 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "print_customer_whatsapp", defaultValue = "1")
     val printCustomerWhatsapp: Boolean = true,
 
-    // Kitchen printer — synced via server so config survives reinstall / new device
+    // Kitchen printer legacy bindings
+    @Deprecated("Legacy hardware binding: use printer_profiles table and PrinterProfileRepository instead")
     @SerializedName("kitchenPrinterEnabled")
     @ColumnInfo(name = "kitchen_printer_enabled", defaultValue = "0")
     val kitchenPrinterEnabled: Boolean = false,
+    @Deprecated("Legacy hardware binding: use printer_profiles table and PrinterProfileRepository instead")
     @SerializedName("kitchenPrinterName")
     @ColumnInfo(name = "kitchen_printer_name")
     val kitchenPrinterName: String? = null,
+    @Deprecated("Legacy hardware binding: use printer_profiles table and PrinterProfileRepository instead")
     @SerializedName("kitchenPrinterMac")
     @ColumnInfo(name = "kitchen_printer_mac")
     val kitchenPrinterMac: String? = null,
+    @Deprecated("Legacy hardware binding: use printer_profiles table and PrinterProfileRepository instead")
     @SerializedName("kitchenPrinterPaperSize")
     @ColumnInfo(name = "kitchen_printer_paper_size", defaultValue = "58mm")
     val kitchenPrinterPaperSize: String = "58mm",

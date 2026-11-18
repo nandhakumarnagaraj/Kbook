@@ -71,19 +71,26 @@ public class PermissionService {
     );
 
     public static final Set<String> SHOP_STAFF_CONFIG_KEYS = Set.of(
+            // Settings (printer config is granted to staff for POS hardware pairing; all other settings are owner-only)
             PermissionKey.SETTINGS_SHOP_PROFILE.getKey(),
             PermissionKey.SETTINGS_PAYMENT.getKey(),
-            PermissionKey.SETTINGS_PRINTER.getKey(),
             PermissionKey.SETTINGS_TERMINAL.getKey(),
             PermissionKey.SETTINGS_GST.getKey(),
+            // Staff management (strictly owner-only)
             PermissionKey.STAFF_VIEW.getKey(),
             PermissionKey.STAFF_ADD.getKey(),
             PermissionKey.STAFF_EDIT.getKey(),
             PermissionKey.STAFF_REMOVE.getKey(),
             PermissionKey.STAFF_PERMISSIONS.getKey(),
+            // Reports (export and GST reports are owner-only)
             PermissionKey.REPORTS_FULL.getKey(),
             PermissionKey.REPORTS_GST.getKey(),
             PermissionKey.REPORTS_EXPORT.getKey(),
+            // Menu editing (strictly owner-only; staff can only view menu items)
+            PermissionKey.MENU_TOGGLE_AVAILABILITY.getKey(),
+            PermissionKey.MENU_EDIT_PRICE.getKey(),
+            PermissionKey.MENU_EDIT_FULL.getKey(),
+            PermissionKey.MENU_ADD_ITEM.getKey(),
             PermissionKey.MENU_DELETE_ITEM.getKey()
     );
 

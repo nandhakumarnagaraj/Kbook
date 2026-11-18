@@ -67,6 +67,7 @@ class PermissionManagerTest {
         assertTrue(manager.hasPermission(PermissionManager.BILLING_VOID))
         assertTrue(manager.hasPermission(PermissionManager.BILLING_REFUND))
         assertTrue(manager.hasPermission(PermissionManager.MENU_VIEW))
+        assertTrue(manager.hasPermission(PermissionManager.SETTINGS_PRINTER))
         assertTrue(manager.hasAllPermissions(PermissionManager.BILLING_CREATE, PermissionManager.BILLING_SETTLE))
         assertTrue(manager.hasPermission(PermissionManager.REPORTS_FULL))
 
@@ -75,7 +76,11 @@ class PermissionManagerTest {
         assertFalse(manager.hasPermission(PermissionManager.MENU_EDIT_PRICE))
         assertFalse(manager.hasPermission(PermissionManager.SETTINGS_SHOP_PROFILE))
         assertFalse(manager.hasPermission(PermissionManager.SETTINGS_PAYMENT))
+        assertFalse(manager.hasPermission(PermissionManager.SETTINGS_TERMINAL))
         assertFalse(manager.hasPermission(PermissionManager.SETTINGS_GST))
+        assertFalse(manager.hasPermission(PermissionManager.STAFF_VIEW))
+        assertFalse(manager.hasPermission(PermissionManager.STAFF_ADD))
+        assertFalse(manager.hasPermission(PermissionManager.REPORTS_GST))
         // Report export is owner-only: staff read reports on-device but may not
         // download/share the data off it.
         assertFalse(manager.hasPermission(PermissionManager.REPORTS_EXPORT))
