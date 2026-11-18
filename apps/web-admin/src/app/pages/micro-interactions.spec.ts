@@ -162,7 +162,6 @@ function withPages(visit: (label: string, host: HTMLElement) => void): void {
 
   const platformApi = jasmine.createSpyObj('AdminApiService', [
     'getDashboardSummary', 'getBusinesses', 'getDailyTrends', 'getWebhookHealth', 'getBackupStatus',
-    'getSettlements', 'getSubMerchants', 'getTransactions',
   ]);
   platformApi.getDashboardSummary.and.returnValue(of({
     totalRevenue: 0, refundedAmount: 0, totalBusinesses: 0, liveBusinesses: 0, totalStaff: 0, totalOrders: 0,
@@ -172,9 +171,7 @@ function withPages(visit: (label: string, host: HTMLElement) => void): void {
   platformApi.getDailyTrends.and.returnValue(of([]));
   platformApi.getWebhookHealth.and.returnValue(of({ deadLetterCount: 0, pendingRetries: 0, totalJobs: 4 }));
   platformApi.getBackupStatus.and.returnValue(of(null));
-  platformApi.getSettlements.and.returnValue(of([]));
-  platformApi.getSubMerchants.and.returnValue(of([]));
-  platformApi.getTransactions.and.returnValue(of([]));    const platform = mount<PlatformDashboardPageComponent>(PlatformDashboardPageComponent, [
+  const platform = mount<PlatformDashboardPageComponent>(PlatformDashboardPageComponent, [
     { provide: AdminApiService, useValue: platformApi },
     provideRouter([]),
   ]);
