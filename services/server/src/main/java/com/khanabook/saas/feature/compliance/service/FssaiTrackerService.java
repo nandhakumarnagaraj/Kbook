@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +41,7 @@ public class FssaiTrackerService {
 
     /**
      * Run daily at 10:00 AM to check FSSAI expiry dates and renewal status.
+     * Operates directly on RestaurantProfile without separate database tables.
      */
     @Scheduled(cron = "0 0 10 * * ?")
     public void trackFssaiLicenses() {
@@ -55,7 +55,7 @@ public class FssaiTrackerService {
             }
 
             try {
-                // Fetch or initialize the FSSAI tracking record for this restaurant
+                // Initialize in-memory tracking record
                 FssaiTracker tracker = fssaiTrackerRepo.findByRestaurantId(profile.getRestaurantId())
                         .orElseGet(() -> {
                             FssaiTracker t = new FssaiTracker();
@@ -103,15 +103,16 @@ public class FssaiTrackerService {
                 fssaiTrackerRepo.save(tracker);
 
                 // 2. Check if the FSSAI license is expiring and needs warning alerts
-                if (tracker.getExpiryDate() != null && Boolean.TRUE.equals(tracker.getIsAlertActive())) {
-                    long daysToExpiry = ChronoUnit.DAYS.between(LocalDate.now(), tracker.getExpiryDate());
-                    log.info("RestaurantId={} FSSAI Tracker Expiry ({}) is in {} days (date: {})",
-                        profile.getRestaurantId(), fssaiNo, daysToExpiry, tracker.getExpiryDate());
+                LocalDate expiry = tracker.getExpiryDate() != null ? tracker.getExpiryDate() : profile.getFssaiExpiryDate();
+                if (expiry != null && Boolean.TRUE.equals(tracker.getIsAlertActive())) {
+                    long daysToExpiry = ChronoUnit.DAYS.between(LocalDate.now(), expiry);
+                    log.info("RestaurantId={} FSSAI Expiry ({}) is in {} days (date: {})",
+                        profile.getRestaurantId(), fssaiNo, daysToExpiry, expiry);
 
                     // Alert on the renewal milestones: 1 month (30d), 2 weeks (14d),
                     // 1 week (7d), 2 days, and the last date (0d).
                     if (daysToExpiry == 30 || daysToExpiry == 14 || daysToExpiry == 7 || daysToExpiry == 2 || daysToExpiry == 0) {
-                        sendRenewalNotification(profile, tracker, daysToExpiry);
+                        sendRenewalNotification(profile, expiry, daysToExpiry);
                         tracker.setLastAlertSentAt(System.currentTimeMillis());
                         fssaiTrackerRepo.save(tracker);
                     }
@@ -124,19 +125,20 @@ public class FssaiTrackerService {
         }
     }
 
-    private void sendRenewalNotification(RestaurantProfile profile, FssaiTracker tracker, long daysToExpiry) {
+    private void sendRenewalNotification(RestaurantProfile profile, LocalDate expiryDate, long daysToExpiry) {
         String shopName = profile.getShopName() != null ? profile.getShopName() : "Your restaurant";
         String severity = (daysToExpiry <= 7) ? "CRITICAL" : "WARNING";
         String title = (daysToExpiry == 0)
             ? "🚨 FSSAI License Expires Today!"
             : (daysToExpiry <= 7) ? "🚨 FSSAI License Expiring Critical!" : "⚠️ FSSAI License Expiring Soon!";
+        String expiryStr = expiryDate != null ? expiryDate.format(DATE_FORMATTER) : "";
         String message;
         if (daysToExpiry == 0) {
             message = String.format(
                 "Your FSSAI license (%s) for %s expires today (%s). Renew it immediately to avoid penalties.",
                 profile.getFssaiNumber(),
                 shopName,
-                tracker.getExpiryDate().format(DATE_FORMATTER)
+                expiryStr
             );
         } else {
             message = String.format(
@@ -144,7 +146,7 @@ public class FssaiTrackerService {
                 profile.getFssaiNumber(),
                 shopName,
                 daysToExpiry,
-                tracker.getExpiryDate().format(DATE_FORMATTER)
+                expiryStr
             );
         }
 

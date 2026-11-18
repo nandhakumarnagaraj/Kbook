@@ -139,12 +139,13 @@ class PostgresMigrationSmokeTest {
 
     @Test
     void fssaiAndNotificationTablesExist() {
-        // V50-V52: FSSAI tracker + notifications infrastructure
+        // V50-V52 / V128: notification infrastructure active; dead fssai compliance tables purged
         List<String> tables = jdbcTemplate.queryForList(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' " +
                 "AND table_name IN ('fssai_tracker', 'fssai_renewals', 'device_tokens', 'notification_events')",
                 String.class);
-        assertThat(tables).contains("fssai_tracker", "fssai_renewals");
+        assertThat(tables).contains("device_tokens", "notification_events");
+        assertThat(tables).doesNotContain("fssai_tracker", "fssai_renewals");
     }
 
     @Test
