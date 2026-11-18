@@ -4,6 +4,7 @@ import com.khanabook.saas.feature.billing.service.BillSyncService;
 import com.khanabook.saas.feature.sync.data.BaseSyncEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Transient;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -136,30 +137,25 @@ public class Bill extends BaseSyncEntity {
 	@Column(name = "last_reset_date", nullable = false)
 	private String lastResetDate;
 
-	@Column(name = "gateway_txn_id")
+	@Transient
 	private String gatewayTxnId;
 
-	@Column(name = "gateway_status")
+	@Transient
 	private String gatewayStatus;
 
-	/**
-	 * When the payment link was created. Sweep-only: a link with no confirmation after a few
-	 * minutes gets re-queried, and after {@code payments.sweep.expire-after-ms} is expired.
-	 * Separate from {@code updatedAt}, which every edit moves.
-	 */
-	@Column(name = "gateway_link_created_at")
+	@Transient
 	private Long gatewayLinkCreatedAt;
 
-	@Column(name = "refund_id")
+	@Transient
 	private String refundId;
 
-	@Column(name = "settled_amount", columnDefinition = "NUMERIC(12,2)")
+	@Transient
 	private java.math.BigDecimal settledAmount;
 
-	@Column(name = "settled_at")
+	@Transient
 	private Long settledAt;
 
-	@Column(name = "commission_amount", columnDefinition = "NUMERIC(12,2)")
+	@Transient
 	private java.math.BigDecimal commissionAmount;
 
 	@Column(name = "cancel_reason", columnDefinition = "TEXT DEFAULT ''")

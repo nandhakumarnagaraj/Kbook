@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -269,66 +270,26 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
             @Param("deviceId") String deviceId,
             @Param("localId") Long localId);
 
-    // --- Easebuzz / metrics queries (v2 port) ---
-    Optional<Bill> findByGatewayTxnId(String gatewayTxnId);
+    // --- Easebuzz / metrics queries (retired in V129) ---
+    default Optional<Bill> findByGatewayTxnId(String gatewayTxnId) {
+        return Optional.empty();
+    }
 
-    /**
-     * Payment links whose outcome the gateway has not confirmed for us. Ordered oldest first so
-     * a backlog drains in the order customers are waiting, and capped by the caller's page size
-     * so one run can never sweep the whole estate.
-     *
-     * <p>Both {@code link_created} (no verdict yet) and {@code pending} (gateway says "not yet")
-     * are candidates: a link that stays pending is exactly the case a daily reconciliation would
-     * leave invisible for a day.
-     */
-    @Query("""
-            SELECT b FROM Bill b
-            WHERE b.gatewayStatus IN ('link_created', 'pending')
-              AND b.paymentStatus NOT IN ('paid', 'success')
-              AND b.gatewayLinkCreatedAt IS NOT NULL
-              AND b.gatewayLinkCreatedAt < :cutoff
-              AND b.isDeleted = false
-            ORDER BY b.gatewayLinkCreatedAt ASC
-            """)
-    List<Bill> findUnconfirmedPaymentLinks(@Param("cutoff") long cutoff, Pageable pageable);
+    default List<Bill> findUnconfirmedPaymentLinks(long cutoff, Pageable pageable) {
+        return Collections.emptyList();
+    }
 
-    /**
-     * Expires a link that has been open too long, atomically.
-     *
-     * <p>Guarded on the same conditions the sweep read: a webhook can mark the bill paid between
-     * the gateway call and this update, and expiring a paid bill would be worse than leaving a
-     * stale one. Returns 0 when the bill moved on, which is a normal race, not an error.
-     */
-    @Modifying
-    @org.springframework.transaction.annotation.Transactional
-    @Query("""
-            UPDATE Bill b
-            SET b.gatewayStatus = 'link_expired', b.updatedAt = :now
-            WHERE b.id = :id
-              AND b.gatewayStatus IN ('link_created', 'pending')
-              AND b.paymentStatus NOT IN ('paid', 'success')
-            """)
-    int expireUnconfirmedLink(@Param("id") Long id, @Param("now") long now);
+    default int expireUnconfirmedLink(Long id, long now) {
+        return 0;
+    }
 
-    @org.springframework.data.jpa.repository.Query(value = """
-            SELECT b.restaurant_id, COUNT(b.id) AS order_count,
-                   COALESCE(SUM(b.commission_amount), 0) AS total_commission,
-                   COALESCE(SUM(b.total_amount), 0) AS total_revenue
-            FROM bills b
-            WHERE b.commission_amount IS NOT NULL AND b.is_deleted = false
-            GROUP BY b.restaurant_id ORDER BY b.restaurant_id
-            """, nativeQuery = true)
-    java.util.List<Object[]> findCommissionSummary();
+    default java.util.List<Object[]> findCommissionSummary() {
+        return Collections.emptyList();
+    }
 
-    @org.springframework.data.jpa.repository.Query(value = """
-            SELECT b.restaurant_id, COALESCE(SUM(b.settled_amount), 0) AS total_settled,
-                   COALESCE(SUM(b.commission_amount), 0) AS total_commission,
-                   COUNT(b.id) AS order_count, MAX(b.settled_at) AS last_settled_at
-            FROM bills b
-            WHERE b.settled_amount IS NOT NULL
-            GROUP BY b.restaurant_id ORDER BY b.restaurant_id
-            """, nativeQuery = true)
-    java.util.List<Object[]> findSettlementSummary();
+    default java.util.List<Object[]> findSettlementSummary() {
+        return Collections.emptyList();
+    }
 
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(b) FROM Bill b WHERE b.isDeleted = false AND b.paymentMode = :mode AND LOWER(b.paymentStatus) IN ('success','paid')")
     long countSuccessfulByMode(@org.springframework.data.repository.query.Param("mode") String mode);
@@ -361,9 +322,13 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     java.math.BigDecimal sumRefundByRestaurantIdBetween(@org.springframework.data.repository.query.Param("restaurantId") Long restaurantId, @org.springframework.data.repository.query.Param("from") long from, @org.springframework.data.repository.query.Param("to") long to);
 
     // ─── v2 port: settlement / metrics finders not present in the v1 repository ───
-    java.util.List<Bill> findBySettledAmountIsNotNull();
+    default java.util.List<Bill> findBySettledAmountIsNotNull() {
+        return Collections.emptyList();
+    }
 
-    java.util.List<Bill> findByRestaurantIdAndSettledAmountIsNotNull(Long restaurantId);
+    default java.util.List<Bill> findByRestaurantIdAndSettledAmountIsNotNull(Long restaurantId) {
+        return Collections.emptyList();
+    }
 
     Optional<Bill> findByRestaurantIdAndLifetimeOrderIdAndIsDeletedFalse(Long restaurantId, Long lifetimeOrderId);
 
@@ -382,7 +347,9 @@ public interface BillRepository extends SyncRepository<Bill, Long> {
     // --- Reconciliation ---
     java.util.List<Bill> findByPaymentStatusAndPaidAtBetween(String paymentStatus, Long paidAtStart, Long paidAtEnd);
 
-    java.util.List<Bill> findBySettledAtBetween(Long settledAtStart, Long settledAtEnd);
+    default java.util.List<Bill> findBySettledAtBetween(Long settledAtStart, Long settledAtEnd) {
+        return Collections.emptyList();
+    }
 
     java.util.List<Bill> findByRestaurantIdAndCreatedAtBetweenAndIsDeletedFalse(Long restaurantId, Long from, Long to);
 }

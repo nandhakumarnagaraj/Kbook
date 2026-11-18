@@ -1,27 +1,97 @@
 package com.khanabook.saas.feature.payments.data;
 
-import com.khanabook.saas.feature.payments.data.Chargeback;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
+/**
+ * @deprecated Retired in V129. In-memory stub for Chargeback compatibility.
+ */
+@Deprecated
 @Repository
-public interface ChargebackRepository extends JpaRepository<Chargeback, Long> {
+public class ChargebackRepository {
 
-    List<Chargeback> findByRestaurantIdAndStatusOrderByCreatedAtDesc(Long restaurantId, String status);
+    private final Map<Long, Chargeback> store = new ConcurrentHashMap<>();
 
-    List<Chargeback> findByRestaurantIdOrderByCreatedAtDesc(Long restaurantId);
+    public List<Chargeback> findAll() {
+        return List.copyOf(store.values());
+    }
 
-    @Query("SELECT COALESCE(SUM(c.amount), 0) FROM Chargeback c WHERE c.restaurantId = :restaurantId AND c.status != 'resolved'")
-    BigDecimal sumUnresolvedAmountByRestaurant(@Param("restaurantId") Long restaurantId);
+    public List<Chargeback> findByRestaurantIdAndStatusOrderByCreatedAtDesc(Long restaurantId, String status) {
+        if (restaurantId == null || status == null) return Collections.emptyList();
+        return store.values().stream()
+                .filter(c -> restaurantId.equals(c.getRestaurantId()) && status.equals(c.getStatus()))
+                .collect(Collectors.toList());
+    }
 
-    @Query("SELECT c.status, COUNT(c) FROM Chargeback c WHERE c.restaurantId = :restaurantId GROUP BY c.status")
-    List<Object[]> countByStatusForRestaurant(@Param("restaurantId") Long restaurantId);
+    public List<Chargeback> findByRestaurantIdOrderByCreatedAtDesc(Long restaurantId) {
+        if (restaurantId == null) return Collections.emptyList();
+        return store.values().stream()
+                .filter(c -> restaurantId.equals(c.getRestaurantId()))
+                .collect(Collectors.toList());
+    }
 
-    @Query("SELECT c.reasonCode, COUNT(c) FROM Chargeback c WHERE c.restaurantId = :restaurantId AND c.status != 'resolved' GROUP BY c.reasonCode")
-    List<Object[]> countByReasonCodeForRestaurant(@Param("restaurantId") Long restaurantId);
+    public BigDecimal sumUnresolvedAmountByRestaurant(Long restaurantId) {
+        return BigDecimal.ZERO;
+    }
+
+    public List<Object[]> countByStatusForRestaurant(Long restaurantId) {
+        return Collections.emptyList();
+    }
+
+    public List<Object[]> countByReasonCodeForRestaurant(Long restaurantId) {
+        return Collections.emptyList();
+    }
+
+    public Optional<Chargeback> findById(Long id) {
+        return Optional.ofNullable(store.get(id));
+    }
+
+    public <S extends Chargeback> S save(S entity) {
+        if (entity != null) {
+            if (entity.getId() == null) {
+                entity.setId((long) (store.size() + 1));
+            }
+            store.put(entity.getId(), entity);
+        }
+        return entity;
+    }
+
+    public <S extends Chargeback> S saveAndFlush(S entity) {
+        return save(entity);
+    }
+
+    public void flush() {}
+
+    public long count() {
+        return store.size();
+    }
+
+    public void delete(Chargeback entity) {
+        if (entity != null && entity.getId() != null) {
+            store.remove(entity.getId());
+        }
+    }
+
+    public void deleteById(Long id) {
+        store.remove(id);
+    }
+
+    public void deleteAll(Iterable<? extends Chargeback> entities) {
+        if (entities != null) {
+            for (Chargeback entity : entities) {
+                delete(entity);
+            }
+        }
+    }
+
+    public void deleteAll() {
+        store.clear();
+    }
 }

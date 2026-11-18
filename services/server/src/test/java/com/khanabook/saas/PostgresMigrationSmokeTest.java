@@ -165,6 +165,22 @@ class PostgresMigrationSmokeTest {
     }
 
     @Test
+    void easebuzzTablesAndDeadBillColumnsPurged() {
+        // V129: dead Easebuzz gateway tables and dead bill columns purged
+        List<String> tables = jdbcTemplate.queryForList(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' " +
+                "AND table_name IN ('chargebacks', 'easebuzz_payouts', 'easebuzz_refund_attempts', 'easebuzz_sub_merchant_webhook_event', 'easebuzz_webhook_events', 'webhook_retry_jobs', 'easebuzz_sub_merchant')",
+                String.class);
+        assertThat(tables).isEmpty();
+
+        List<String> deadBillColumns = jdbcTemplate.queryForList(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'bills' " +
+                "AND column_name IN ('gateway_link_created_at', 'settled_amount', 'settled_at', 'commission_amount', 'refund_id', 'gateway_txn_id', 'gateway_status')",
+                String.class);
+        assertThat(deadBillColumns).isEmpty();
+    }
+
+    @Test
     void noGapsInMigrationChain() {
         Integer failedCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM flyway_schema_history WHERE success = FALSE",
