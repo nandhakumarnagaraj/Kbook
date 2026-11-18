@@ -8,13 +8,6 @@ import com.khanabook.lite.pos.core.theme.KhanaRadii
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -65,11 +58,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -88,12 +81,9 @@ import java.util.Locale
 import androidx.hilt.navigation.compose.hiltViewModel
 import android.net.Uri
 import com.khanabook.lite.pos.R
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
-import com.khanabook.lite.pos.core.util.AppAssetStore
+import com.khanabook.lite.pos.core.util.LogoFileInfo
 import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import com.khanabook.lite.pos.core.util.ValidationUtils
 import com.khanabook.lite.pos.core.components.KhanaTimePickerField
@@ -117,6 +107,8 @@ import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.feature.settings.viewmodel.SettingsViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
+private val LOGO_MIME_TYPES = arrayOf("image/png", "image/jpeg", "image/webp")
+
 @Composable
 fun ShopConfigView(
     profile: RestaurantProfileEntity?,
@@ -136,6 +128,10 @@ fun ShopConfigView(
     val isCompactWidth = layout.isCompactForm
     var name by remember { mutableStateOf(profile?.shopName ?: "") }
     var address by remember { mutableStateOf(profile?.shopAddress ?: "") }
+    // Both fields carry a required asterisk, so save has to reject a blank value; the
+    // asterisk alone was a promise the save path did not keep.
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var addressError by remember { mutableStateOf<String?>(null) }
     var whatsapp by remember { mutableStateOf(profile?.whatsappNumber ?: "") }
     var email by remember { mutableStateOf(profile?.email ?: "") }
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
@@ -158,7 +154,8 @@ fun ShopConfigView(
     val saveProfileError by viewModel.saveProfileError.collectAsStateWithLifecycle()
     // saveProfileSuccess is consumed by SettingsScreen's shared effect via the onSaved
     // callback — collecting it here would leave a stale-copy hazard if re-added.
-    val logoUploadLoading by viewModel.logoUploadLoading.collectAsStateWithLifecycle()
+    val logoUploading by viewModel.logoUploading.collectAsStateWithLifecycle()
+    val logoUploadSuccess by viewModel.logoUploadSuccess.collectAsStateWithLifecycle()
     val logoUploadError by viewModel.logoUploadError.collectAsStateWithLifecycle()
     val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
     val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
@@ -175,6 +172,7 @@ fun ShopConfigView(
     var pendingPaymentFlowMode by remember { mutableStateOf<OrderPaymentFlowMode?>(null) }
     var showModePinDialog by remember { mutableStateOf(false) }
     val isPinEnabled = remember { appLockViewModel.isPinEnabled() }
+    val isCurrentDefault = openingTime == "00:00" && (closingTime == "23:59" || closingTime == "00:00")
 
     val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, invoiceFooter, openingTime, closingTime, profile) {
         name != (profile?.shopName ?: "") ||
@@ -220,14 +218,8 @@ fun ShopConfigView(
         }
     }
 
-    LaunchedEffect(logoUploadError) {
-        logoUploadError?.let { error ->
-            toastScope.launch {
-                KhanaToast.show(error, ToastKind.Error)
-            }
-            viewModel.clearLogoUploadState()
-        }
-    }
+    // Logo errors are shown inline with a Retry action by ShopLogoSection; showing a
+    // toast here used to clear the error before the owner could read or retry it.
 
     // Success handling moved to SettingsScreen's shared success effect (onSaved callback
     // sets pendingSaveSection = "shop" there). A private LaunchedEffect here could be
@@ -371,10 +363,69 @@ fun ShopConfigView(
         }
     }
 
-    val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+    val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             pendingLogoUri = it
+            viewModel.clearLogoUploadState()
         }
+    }
+
+    fun saveConfiguration() {
+        nameError = if (name.isBlank()) "Shop name is required" else null
+        addressError = if (address.isBlank()) "Shop address is required" else null
+        if (nameError != null || addressError != null) return
+
+        if (numberChanged && !isOtpVerified) {
+            toastScope.launch {
+                KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
+            }
+        } else if (email.isNotBlank() && !isEmailValid) {
+            toastScope.launch {
+                KhanaToast.show("Please enter a valid email address", ToastKind.Warning)
+            }
+        } else if (emailChanged && !isEmailOtpVerified) {
+            toastScope.launch {
+                KhanaToast.show(context.getString(R.string.toast_verify_new_email), ToastKind.Warning)
+            }
+        } else if (!isCurrentDefault && openingTime == closingTime) {
+            toastScope.launch {
+                KhanaToast.show("Opening and closing time cannot be the same (must be less than 24 hours)", ToastKind.Warning)
+            }
+        } else {
+            val updatedProfile = profile?.copy(
+                shopName = name,
+                shopAddress = address,
+                whatsappNumber = whatsapp,
+                email = email,
+                logoPath = profile.logoPath,
+                logoUrl = profile.logoUrl,
+                emailInvoiceConsent = consent,
+                reviewUrl = reviewUrl,
+                invoiceFooter = invoiceFooter,
+                openingTime = openingTime,
+                closingTime = closingTime,
+                orderPaymentFlowMode = selectedPaymentFlowMode.dbValue,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+            updatedProfile?.let {
+                focusManager.clearFocus()
+                onSaved()
+                viewModel.saveProfileWithLogo(context, it, pendingLogoUri)
+            }
+        }
+    }
+
+    // Keep the picked image (and its Retry path) until the backend confirms the upload.
+    LaunchedEffect(logoUploadSuccess) {
+        if (logoUploadSuccess != null) pendingLogoUri = null
+    }
+
+    // An upload in flight must not be abandoned halfway through.
+    BackHandler(enabled = logoUploading) {}
+
+    DisposableEffect(Unit) {
+        onDispose { viewModel.clearLogoUploadState() }
     }
 
     val scrollState = rememberScrollState()
@@ -408,105 +459,31 @@ fun ShopConfigView(
                         )
                     }
 
-                    // Logo section header — the card now starts with the logo itself, so it
-                    // needs a label saying what the logo is for.
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Shop Logo",
-                            color = TextLight,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = "Shown on bills and receipts",
-                            color = TextGold.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    // Logo Uploader Row
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(spacing.medium),
-                        modifier = Modifier.padding(vertical = spacing.extraSmall)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .clip(KhanaRadii.md)
-                                .background(Color.White)
-                                .border(1.dp, BorderGold.copy(alpha = 0.5f), KhanaRadii.md),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            val pendingModel = pendingLogoUri?.toString()
-                            val remoteModel = logoUrl?.takeIf { it.isNotBlank() }
-                            val localModel = AppAssetStore.resolveAssetPath(logoPath)
-                            val logoModel = pendingModel ?: remoteModel ?: localModel
-                            if (!logoModel.isNullOrBlank()) {
-                                var loadStage by remember(logoModel) { mutableIntStateOf(0) }
-                                var isLogoLoading by remember(logoModel) { mutableStateOf(true) }
-                                val canFallbackToLocal =
-                                    pendingModel == null && remoteModel != null &&
-                                        localModel != null && logoModel == remoteModel
-                                val effectiveModel = when (loadStage) {
-                                    0 -> logoModel
-                                    1 -> if (canFallbackToLocal) localModel else null
-                                    else -> null
-                                }
-                                if (effectiveModel != null) {
-                                    val logoCacheKey = "$effectiveModel:${profile?.logoVersion ?: 0}"
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        AsyncImage(
-                                            model = ImageRequest.Builder(LocalContext.current)
-                                                .data(effectiveModel)
-                                                .crossfade(true)
-                                                .memoryCacheKey(logoCacheKey)
-                                                .diskCacheKey(logoCacheKey)
-                                                .diskCachePolicy(CachePolicy.ENABLED)
-                                                .memoryCachePolicy(CachePolicy.ENABLED)
-                                                .build(),
-                                            contentDescription = "Logo",
-                                            modifier = Modifier.fillMaxSize().padding(spacing.extraSmall),
-                                            onLoading = { isLogoLoading = true },
-                                            onSuccess = { isLogoLoading = false },
-                                            onError = {
-                                                isLogoLoading = false
-                                                loadStage =
-                                                    if (loadStage == 0 && canFallbackToLocal) 1 else 2
-                                            }
-                                        )
-                                        if (isLogoLoading) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(iconSize.medium).align(Alignment.Center),
-                                                color = PrimaryGold,
-                                                strokeWidth = 2.dp
-                                            )
-                                        }
-                                    }
-                                } else {
-                                    Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
-                                }
-                            } else if (logoUploadLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = PrimaryGold, strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
-                            }
-                        }
-                        OutlinedButton(
-                            onClick = { logoLauncher.launch("image/*") },
-                            border = BorderStroke(1.dp, PrimaryGold),
-                            shape = KhanaRadii.xl,
-                            enabled = !logoUploadLoading && !readOnly
-                        ) {
-                            Text("Change Logo", color = PrimaryGold, style = MaterialTheme.typography.labelMedium)
-                        }
-                    }
+                    ShopLogoSection(
+                        logoUrl = logoUrl,
+                        logoPath = logoPath,
+                        logoVersion = profile?.logoVersion ?: 0,
+                        pendingLogoUri = pendingLogoUri,
+                        isUploading = logoUploading,
+                        uploadSuccess = logoUploadSuccess,
+                        uploadError = logoUploadError,
+                        readOnly = readOnly,
+                        onPickLogo = { logoLauncher.launch(LOGO_MIME_TYPES) },
+                        onRemovePending = {
+                            pendingLogoUri = null
+                            viewModel.clearLogoUploadState()
+                        },
+                        onRetry = { saveConfiguration() }
+                    )
 
                     // Field 1: Shop Name
                     ParchmentTextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = { name = it; nameError = null },
                         label = "Shop Name *",
                         placeholder = "Enter Shop Name",
+                        isError = nameError != null,
+                        supportingText = nameError,
                         leadingIcon = {
                             Icon(Icons.Default.Storefront, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
                         },
@@ -517,9 +494,11 @@ fun ShopConfigView(
                     // Field 2: Shop Address
                     ParchmentTextField(
                         value = address,
-                        onValueChange = { address = it },
+                        onValueChange = { address = it; addressError = null },
                         label = "Shop Address *",
                         placeholder = "Enter Shop Address",
+                        isError = addressError != null,
+                        supportingText = addressError,
                         leadingIcon = {
                             Icon(Icons.Default.LocationOn, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
                         },
@@ -546,7 +525,7 @@ fun ShopConfigView(
                                 viewModel.clearUserCheck()
                             }
                         },
-                        label = "WhatsApp Number",
+                        label = "WhatsApp Number *",
                         placeholder = "Enter WhatsApp Number",
                         leadingIcon = {
                             Icon(Icons.Default.Phone, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(20.dp))
@@ -754,8 +733,6 @@ fun ShopConfigView(
             Spacer(modifier = Modifier.height(spacing.medium))
 
             // Card 2: Business Hours (Default: 12 AM - 11:59 PM vs Custom)
-            val isCurrentDefault = openingTime == "00:00" && (closingTime == "23:59" || closingTime == "00:00")
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
@@ -801,47 +778,27 @@ fun ShopConfigView(
                         }
                     }
 
-                    // Mode options: Default Time vs Custom Time
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                    ) {
-                        BusinessHoursOptionCard(
-                            title = "Default Time",
-                            timeRange = "12:00 AM – 11:59 PM",
-                            description = "Full day (Midnight reset)",
-                            isSelected = isCurrentDefault,
-                            onClick = {
-                                if (!readOnly && !isCurrentDefault) {
-                                    openingTime = "00:00"
-                                    closingTime = "23:59"
-                                }
-                            },
-                            enabled = !readOnly,
-                            modifier = Modifier.weight(1f)
-                        )
+                    // Mode switch: one segment is active, and only that mode's panel is rendered.
+                    BusinessHoursModeToggle(
+                        isDefault = isCurrentDefault,
+                        onDefaultSelected = {
+                            if (!readOnly && !isCurrentDefault) {
+                                openingTime = "00:00"
+                                closingTime = "23:59"
+                            }
+                        },
+                        onCustomSelected = {
+                            if (!readOnly && isCurrentDefault) {
+                                openingTime = customOpeningTime
+                                closingTime = customClosingTime
+                            }
+                        },
+                        enabled = !readOnly
+                    )
 
-                        BusinessHoursOptionCard(
-                            title = "Custom Time",
-                            timeRange = if (!isCurrentDefault) "${formatClockTime(openingTime)} – ${formatClockTime(closingTime)}" else "User Defined",
-                            description = "Set opening & closing",
-                            isSelected = !isCurrentDefault,
-                            onClick = {
-                                if (!readOnly && isCurrentDefault) {
-                                    openingTime = customOpeningTime
-                                    closingTime = customClosingTime
-                                }
-                            },
-                            enabled = !readOnly,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    AnimatedVisibility(
-                        visible = !isCurrentDefault,
-                        enter = expandVertically(animationSpec = tween(durationMillis = 220)) + fadeIn(animationSpec = tween(durationMillis = 220)),
-                        exit = shrinkVertically(animationSpec = tween(durationMillis = 180)) + fadeOut(animationSpec = tween(durationMillis = 180))
-                    ) {
+                    if (isCurrentDefault) {
+                        BusinessHoursDefaultSummary()
+                    } else {
                         Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -931,48 +888,7 @@ fun ShopConfigView(
 
             // Full-Width Gold Pill CTA: Save Configuration
             Button(
-                onClick = {
-                    if (numberChanged && !isOtpVerified) {
-                        toastScope.launch {
-                            KhanaToast.show(context.getString(R.string.toast_verify_new_whatsapp), ToastKind.Warning)
-                        }
-                    } else if (email.isNotBlank() && !isEmailValid) {
-                        toastScope.launch {
-                            KhanaToast.show("Please enter a valid email address", ToastKind.Warning)
-                        }
-                    } else if (emailChanged && !isEmailOtpVerified) {
-                        toastScope.launch {
-                            KhanaToast.show(context.getString(R.string.toast_verify_new_email), ToastKind.Warning)
-                        }
-                    } else if (!isCurrentDefault && openingTime == closingTime) {
-                        toastScope.launch {
-                            KhanaToast.show("Opening and closing time cannot be the same (must be less than 24 hours)", ToastKind.Warning)
-                        }
-                    } else {
-                        val updatedProfile = profile?.copy(
-                            shopName = name,
-                            shopAddress = address,
-                            whatsappNumber = whatsapp,
-                            email = email,
-                            logoPath = profile?.logoPath,
-                            logoUrl = profile?.logoUrl,
-                            emailInvoiceConsent = consent,
-                            reviewUrl = reviewUrl,
-                            invoiceFooter = invoiceFooter,
-                            openingTime = openingTime,
-                            closingTime = closingTime,
-                            orderPaymentFlowMode = selectedPaymentFlowMode.dbValue,
-                            isSynced = false,
-                            updatedAt = System.currentTimeMillis()
-                        )
-                        updatedProfile?.let {
-                            focusManager.clearFocus()
-                            onSaved()
-                            viewModel.saveProfileWithLogo(context, it, pendingLogoUri)
-                            pendingLogoUri = null
-                        }
-                    }
-                },
+                onClick = { saveConfiguration() },
                 enabled = !readOnly && !saveProfileLoading,
                 modifier = Modifier
                     .fillMaxWidth()

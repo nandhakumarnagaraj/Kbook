@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -60,6 +61,7 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
+import com.khanabook.lite.pos.core.util.ValidationUtils
 import com.khanabook.lite.pos.feature.menu.domain.MenuPricingRules
 import com.khanabook.lite.pos.core.designsystem.KhanaBookDialog
 import com.khanabook.lite.pos.core.theme.BorderGold
@@ -80,6 +82,7 @@ fun ItemEditDialog(
     initialPrice: Double = 0.0,
     initialType: String = "veg",
     initialImageUrl: String? = null,
+    initialImageVersion: Int = 0,
     variants: List<com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity> = emptyList(),
     onDismiss: () -> Unit,
     onConfirm: (String, Double, String, List<EditableVariantDraft>) -> Unit = { _, _, _, _ -> },
@@ -109,7 +112,8 @@ fun ItemEditDialog(
                 EditableVariantDraft(
                     id = it.id,
                     name = it.variantName,
-                    price = it.price.toDoubleOrNull() ?: 0.0
+                    price = it.price.toDoubleOrNull() ?: 0.0,
+                    priceText = formatPriceInput(it.price.toDoubleOrNull() ?: 0.0)
                 )
             }
         )
@@ -117,6 +121,8 @@ fun ItemEditDialog(
 
     var selectedPhotoUri by remember { mutableStateOf<Uri?>(null) }
     var isPhotoRemoved by remember { mutableStateOf(false) }
+    var photoLoadFailed by remember(initialImageUrl, initialImageVersion) { mutableStateOf(false) }
+    var photoLoading by remember(initialImageUrl, initialImageVersion) { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -124,6 +130,7 @@ fun ItemEditDialog(
         if (uri != null) {
             selectedPhotoUri = uri
             isPhotoRemoved = false
+            photoLoadFailed = false
         }
     }
 
@@ -142,7 +149,10 @@ fun ItemEditDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // ── Dish Photo Section ─────────────────────────────────────────â”€
-                val hasPhoto = (selectedPhotoUri != null) || (!isPhotoRemoved && !initialImageUrl.isNullOrBlank())
+                val storedModel = if (isPhotoRemoved) null else initialImageUrl
+                val photoModel = selectedPhotoUri ?: storedModel
+                val showPhotoPlaceholder = photoModel == null || photoLoadFailed
+                val imageCacheKey = "$storedModel:$initialImageVersion"
 
                 Box(
                     modifier = Modifier
@@ -154,17 +164,42 @@ fun ItemEditDialog(
                         .clickable { photoPickerLauncher.launch("image/*") },
                     contentAlignment = Alignment.Center
                 ) {
-                    if (hasPhoto) {
+                    if (!showPhotoPlaceholder) {
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
-                                .data(selectedPhotoUri ?: if (isPhotoRemoved) null else initialImageUrl)
+                                .data(photoModel)
                                 .crossfade(true)
+                                .apply {
+                                    // Versioned keys only for the stored URL; a freshly
+                                    // picked local Uri is unique and needs no cache key.
+                                    if (photoModel == storedModel) {
+                                        memoryCacheKey(imageCacheKey)
+                                        diskCacheKey(imageCacheKey)
+                                    }
+                                }
+                                .memoryCachePolicy(CachePolicy.ENABLED)
                                 .diskCachePolicy(CachePolicy.ENABLED)
                                 .build(),
                             contentDescription = "Dish photo",
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            onLoading = { photoLoading = true },
+                            onSuccess = {
+                                photoLoading = false
+                                photoLoadFailed = false
+                            },
+                            onError = {
+                                photoLoading = false
+                                photoLoadFailed = true
+                            }
                         )
+                        if (photoLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = PrimaryGold,
+                                strokeWidth = 2.dp
+                            )
+                        }
                         Surface(
                             color = DarkBrown1.copy(alpha = 0.78f),
                             shape = KhanaRadii.pill,
@@ -173,6 +208,7 @@ fun ItemEditDialog(
                             TextButton(onClick = {
                                 selectedPhotoUri = null
                                 isPhotoRemoved = true
+                                photoLoadFailed = false
                             }) {
                                 Icon(Icons.Default.Delete, "Remove photo", tint = NonVegRed)
                                 Text("Remove", color = TextLight)
@@ -186,8 +222,17 @@ fun ItemEditDialog(
                                 tint = PrimaryGold,
                                 modifier = Modifier.size(28.dp)
                             )
-                            Text("Tap to add a dish photo", color = TextLight, style = MaterialTheme.typography.bodyMedium)
-                            Text("Optional · PNG, JPG, or WebP", color = TextGold, style = MaterialTheme.typography.labelSmall)
+                            Text(
+                                text = if (photoLoadFailed) "Photo couldn't load — tap to choose another"
+                                       else "Tap to add a dish photo",
+                                color = TextLight,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Optional · PNG, JPG or WebP · up to 10 MB",
+                                color = TextGold,
+                                style = MaterialTheme.typography.labelSmall
+                            )
                         }
                     }
                 }
@@ -219,12 +264,12 @@ fun ItemEditDialog(
                     OutlinedTextField(
                         value = price,
                         onValueChange = {
-                            price = it
+                            price = ValidationUtils.sanitizeDecimalInput(it, maxIntegerDigits = 6, maxFractionDigits = 2)
                             if (priceError != null) priceError = null
                         },
                         label = { Text("Base Price (₹)", color = TextGold) },
                         placeholder = { Text("e.g. 120", color = TextGold.copy(alpha = 0.7f)) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = priceError != null,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = PrimaryGold,
@@ -321,14 +366,14 @@ fun ItemEditDialog(
                         OutlinedTextField(
                             value = newVariantPrice,
                             onValueChange = {
-                                newVariantPrice = it
+                                newVariantPrice = ValidationUtils.sanitizeDecimalInput(it, maxIntegerDigits = 6, maxFractionDigits = 2)
                                 newVariantError = null
                             },
                             label = { Text("Price (₹)") },
                             placeholder = { Text("e.g. 80") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             isError = newVariantError != null,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryGold,
@@ -362,7 +407,8 @@ fun ItemEditDialog(
                                     else -> {
                                         editableVariants = editableVariants + EditableVariantDraft(
                                             name = newVariantName.trim(),
-                                            price = parsedVariantPrice
+                                            price = parsedVariantPrice,
+                                            priceText = newVariantPrice.trim()
                                         )
                                         price = ""
                                         newVariantName = ""
@@ -396,19 +442,24 @@ fun ItemEditDialog(
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
                         )
                         OutlinedTextField(
-                            value = if (variantDraft.price == 0.0) "" else variantDraft.price.toInt().toString(),
-                            onValueChange = {
-                                val parsed = it.toDoubleOrNull()
-                                if (it.isBlank() || parsed == null || parsed >= 0.0) {
-                                    editableVariants = editableVariants.toMutableList().also { updated ->
-                                        updated[index] = variantDraft.copy(price = parsed ?: 0.0)
-                                    }
-                                    if (variantError != null) variantError = null
+                            value = variantDraft.priceText ?: formatPriceInput(variantDraft.price),
+                            onValueChange = { raw ->
+                                val sanitized = ValidationUtils.sanitizeDecimalInput(
+                                    raw,
+                                    maxIntegerDigits = 6,
+                                    maxFractionDigits = 2
+                                )
+                                editableVariants = editableVariants.toMutableList().also { updated ->
+                                    updated[index] = variantDraft.copy(
+                                        priceText = sanitized,
+                                        price = sanitized.toDoubleOrNull() ?: 0.0
+                                    )
                                 }
+                                if (variantError != null) variantError = null
                             },
                             label = { Text("Price", style = MaterialTheme.typography.labelSmall) },
                             modifier = Modifier.weight(0.3f),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
                         )
                         IconButton(onClick = {

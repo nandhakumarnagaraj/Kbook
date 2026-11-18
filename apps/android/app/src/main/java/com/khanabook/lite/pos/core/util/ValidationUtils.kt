@@ -34,6 +34,40 @@ object ValidationUtils {
 
     fun isValidOtp(otp: String): Boolean = otp.length == 6 && otp.all { it.isDigit() }
 
+    /**
+     * Keeps a decimal text field parseable by toDoubleOrNull(): digits, at most one
+     * decimal separator, and bounded integer/fraction lengths. KeyboardType.Decimal
+     * still allows a second '.', a leading ',' or pasted letters, so the state has to
+     * be filtered rather than trusted.
+     */
+    fun sanitizeDecimalInput(raw: String, maxIntegerDigits: Int, maxFractionDigits: Int): String {
+        val out = StringBuilder()
+        var seenSeparator = false
+        var integerDigits = 0
+        var fractionDigits = 0
+        for (ch in raw) {
+            when {
+                ch.isDigit() && !seenSeparator -> {
+                    if (integerDigits < maxIntegerDigits) {
+                        out.append(ch)
+                        integerDigits++
+                    }
+                }
+                ch.isDigit() -> {
+                    if (fractionDigits < maxFractionDigits) {
+                        out.append(ch)
+                        fractionDigits++
+                    }
+                }
+                (ch == '.' || ch == ',') && !seenSeparator -> {
+                    seenSeparator = true
+                    out.append('.')
+                }
+            }
+        }
+        return out.toString()
+    }
+
     fun isValidTaxPercentage(percentage: String): Boolean {
         val value = percentage.toDoubleOrNull() ?: return false
         return value in 0.0..100.0

@@ -148,7 +148,17 @@ fun ParchmentTextField(
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
         isError = isError,
-        supportingText = supportingText?.let { { Text(it, color = DangerRed, style = MaterialTheme.typography.labelSmall) } },
+        // Callers pass neutral hints and error messages through the same slot; paint it red
+        // only when the field is actually invalid, or a hint reads as a failure.
+        supportingText = supportingText?.let {
+            {
+                Text(
+                    it,
+                    color = if (isError) DangerRed else TextGold.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        },
         singleLine = singleLine,
         keyboardOptions = keyboardOptions,
         enabled = enabled,

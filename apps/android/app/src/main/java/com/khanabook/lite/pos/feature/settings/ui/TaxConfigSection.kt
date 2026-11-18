@@ -32,6 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import java.math.BigDecimal
+import java.math.RoundingMode
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.core.util.ValidationUtils
 import com.khanabook.lite.pos.core.components.ParchmentTextField
@@ -42,6 +44,10 @@ import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.VegGreen
 import com.khanabook.lite.pos.core.theme.WarningYellow
+
+/** Renders a stored percentage without inventing decimals: 5 -> "5", 5.5 -> "5.5". */
+private fun formatPercentage(value: Double): String =
+    BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +64,7 @@ fun TaxConfigView(
     var countryExpanded by remember { mutableStateOf(false) }
     var gstEnabled by remember { mutableStateOf(profile?.gstEnabled ?: false) }
     var gstNumber by remember { mutableStateOf(profile?.gstin ?: "") }
-    var gstPct by remember { mutableStateOf(profile?.gstPercentage?.toInt()?.toString() ?: "0") }
+    var gstPct by remember { mutableStateOf(profile?.gstPercentage?.let(::formatPercentage) ?: "0") }
     var fssaiNumber by remember { mutableStateOf(profile?.fssaiNumber ?: "") }
 
     val isFssaiValid = fssaiNumber.isEmpty() || fssaiRegex.matches(fssaiNumber)
@@ -175,11 +181,13 @@ fun TaxConfigView(
                 Spacer(modifier = Modifier.height(spacing.small))
                 ParchmentTextField(
                     value = gstPct,
-                    onValueChange = { gstPct = it.filter(Char::isDigit).take(3) },
+                    onValueChange = {
+                        gstPct = ValidationUtils.sanitizeDecimalInput(it, maxIntegerDigits = 3, maxFractionDigits = 2)
+                    },
                     label = "GST % *",
                     isError = gstPct.isNotEmpty() && !isGstPctValid,
-                    supportingText = if (gstPct.isNotEmpty() && !isGstPctValid) "Enter whole number from 0 to 100" else null,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = if (gstPct.isNotEmpty() && !isGstPctValid) "Enter a number from 0 to 100" else null,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     enabled = !readOnly
                 )
             }

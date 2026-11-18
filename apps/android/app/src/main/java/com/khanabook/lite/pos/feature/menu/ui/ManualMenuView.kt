@@ -60,7 +60,13 @@ private data class PendingManualItemOverwrite(
 data class EditableVariantDraft(
     val id: Long? = null,
     val name: String,
-    val price: Double
+    val price: Double,
+    /**
+     * Raw text currently shown in the price box. A controlled field rebuilt from [price] on
+     * every keystroke drops a trailing '.' and turns 12.5 into 12; it also cannot display a
+     * typed 0. Null means the draft was not edited in this dialog.
+     */
+    val priceText: String? = null
 )
 
 /** What a reconciled variant draft implies for the stored row it belongs to. */
@@ -133,6 +139,7 @@ fun ManualMenuView(
     selectedCategoryId: Long?,
     menuItems: List<MenuWithVariants>,
     canWrite: Boolean,
+    uploadingPhotoItemId: Long? = null,
     onCategorySelect: (Long) -> Unit,
     onAddCategory: (String) -> Unit,
     onUpdateCategory: (CategoryEntity) -> Unit,
@@ -446,6 +453,7 @@ fun ManualMenuView(
                         MenuItemRow(
                             itemWithVariants = itemWithVariants,
                             canWrite = canWrite,
+                            isPhotoUploading = uploadingPhotoItemId == itemWithVariants.menuItem.id,
                             onToggleAvailability = onToggleAvailability,
                             onEditClick = { showEditItemDialog = it },
                             onDeleteItem = onDeleteItem,
@@ -655,6 +663,7 @@ fun ManualMenuView(
             initialPrice = itemWithVariants.menuItem.basePrice.toDoubleOrNull() ?: 0.0,
             initialType = itemWithVariants.menuItem.foodType,
             initialImageUrl = itemWithVariants.menuItem.imageUrl,
+            initialImageVersion = itemWithVariants.menuItem.imageVersion,
             variants = itemWithVariants.variants,
             onDismiss = { showEditItemDialog = null },
             onConfirmWithPhoto = { name, price, type, updatedVariants, photoUri, removePhoto ->
@@ -681,6 +690,7 @@ fun ManualMenuView(
 fun MenuItemRow(
     itemWithVariants: MenuWithVariants,
     canWrite: Boolean = true,
+    isPhotoUploading: Boolean = false,
     onToggleAvailability: (Long, Boolean) -> Unit,
     onEditClick: (MenuWithVariants) -> Unit,
     onUploadPhotoClick: (() -> Unit)? = null,
@@ -720,13 +730,30 @@ fun MenuItemRow(
             modifier = Modifier.padding(KhanaBookTheme.spacing.smallMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            MenuItemThumbnail(
-                imageUrl = item.imageUrl,
-                imageVersion = item.imageVersion,
-                foodType = item.foodType,
-                size = 56.dp,
-                showAddPhotoHint = canWrite
-            )
+            Box(contentAlignment = Alignment.Center) {
+                MenuItemThumbnail(
+                    imageUrl = item.imageUrl,
+                    imageVersion = item.imageVersion,
+                    foodType = item.foodType,
+                    size = 56.dp,
+                    showAddPhotoHint = canWrite
+                )
+                if (isPhotoUploading) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(KhanaRadii.md)
+                            .background(DarkBrown1.copy(alpha = 0.72f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = PrimaryGold,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.width(KhanaBookTheme.spacing.smallMedium))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -796,6 +823,27 @@ fun MenuItemRow(
                             expanded = moreMenuExpanded,
                             onDismissRequest = { moreMenuExpanded = false }
                         ) {
+                            if (onUploadPhotoClick != null) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(if (item.imageUrl.isNullOrBlank()) "Add Photo" else "Change Photo")
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = if (item.imageUrl.isNullOrBlank())
+                                                Icons.Default.AddPhotoAlternate
+                                            else Icons.Default.Edit,
+                                            contentDescription = null,
+                                            tint = TextGold
+                                        )
+                                    },
+                                    enabled = !isPhotoUploading,
+                                    onClick = {
+                                        moreMenuExpanded = false
+                                        onUploadPhotoClick?.invoke()
+                                    }
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Edit") },
                                 leadingIcon = { Icon(Icons.Default.Edit, null, tint = TextGold) },

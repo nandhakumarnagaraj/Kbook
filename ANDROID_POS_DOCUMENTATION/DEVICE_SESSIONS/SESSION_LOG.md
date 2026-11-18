@@ -1,5 +1,306 @@
 # Device Testing Session Log
 
+## Session 019: Cross-cutting UI copy, toast/notification and naming review (static)
+- **Session ID:** SES-20261118-019
+- **Date & Time:** 2026-11-18 (host clock; no device)
+- **Target Device / Architecture:** none. Static source inspection of `apps/android`, `services/server`, `apps/web-admin`. No APK was built, installed or launched.
+- **Objective:** owner asked for suggestions and improvements on input fields and their header names, then extended the request to toasts/notifications and to screen/function names in all three codebases.
+
+### Operations Performed
+1. Inventoried every input label, placeholder and supporting text in the Android source and cross-checked each against the validation code behind it.
+2. Reviewed `KhanaToast` (`core/designsystem/KhanaBookSnackbar.kt`), all 81 call sites and the single raw `Toast.makeText`.
+3. Reviewed notification channels, FCM handling, the in-app banner, the preferences screen and the offline read-state queue.
+4. Mapped screen names (Android routes/composables, Angular routes/sidebar/page headers, Spring controllers) and function-name verb conventions in all three layers.
+
+### Findings Recorded
+- 14 input findings (IN-01..IN-14), 6 toast findings (TO-01..TO-06), 12 notification findings (NF-01..NF-12), 12 naming findings (NM-01..NM-12). Full evidence: `RECOMMENDATIONS/FORMS_TOASTS_NAMING_REVIEW.md`.
+- The review was cross-checked against this log and `NEXT_ACTIONS.md`: item C covers part of IN-07/IN-09; items K/L/M are unrelated; Session 013 is the evidence base for IN-02/IN-07/IN-14; Session 018's photo work does not affect IN-04/IN-05.
+- Three verified defects registered: **BUG-010** (Change Password 6-character policy), **BUG-011** (variant price truncation), **BUG-012** (GST % rejects decimals).
+
+### Verification Status
+- **VERIFIED by reading:** all file/line references and counts in the review document.
+- **NOT VERIFIED:** no runtime behaviour, screenshot, build or test was executed this session. NF-03 (foreground tray + banner duplication) is a code-path reading, not a device observation.
+- **NOT IMPLEMENTED:** no recommendation was applied; this session changed documentation only.
+
+### Final Application State
+- Unchanged. No app data, build output or device state was touched.
+
+### Addendum 19:1x — Implemented the input defects (owner authorised: "go ahead solve it")
+
+Scope: the six locally fixable findings (IN-01..IN-06). Toast/notification/naming findings were deliberately left as documentation because they are structural and need product decisions.
+
+Source changes:
+- `core/util/ValidationUtils.kt` — new `sanitizeDecimalInput(raw, maxIntegerDigits, maxFractionDigits)`: keeps digits, at most one separator (`.` or `,` normalised to `.`), and bounded integer/fraction lengths.
+- `feature/auth/ui/ChangePasswordView.kt` — helper text and validation now use `ValidationUtils.isValidPassword` / `passwordStrengthMessage()`. The previous 6-character rule is gone (BUG-010).
+- `feature/menu/ui/ManualMenuView.kt` — `EditableVariantDraft` gained `priceText: String?`. `price` is still the value the reconciler consumes.
+- `feature/menu/ui/ItemEditDialog.kt` — base price and both variant price fields use `KeyboardType.Decimal` and sanitise input. The variant row renders `priceText` (or `formatPriceInput(price)`), so `12.5` survives and `0` is visible (BUG-011). Seeded and newly added drafts populate `priceText`.
+- `feature/settings/ui/TaxConfigSection.kt` — GST % accepts one decimal separator (3 integer / 2 fraction digits), uses `KeyboardType.Decimal`, seeds a stored `5.5` without truncation, and the helper now says "Enter a number from 0 to 100" (BUG-012).
+- `feature/settings/ui/ShopConfigSection.kt` — blank Shop Name / Shop Address set inline errors and block save; WhatsApp Number is labelled required (IN-02).
+- `core/components/CommonComponents.kt` — `ParchmentTextField` paints helper text red only when `isError`; neutral hints use muted gold (IN-06).
+- New `test/.../core/util/ValidationUtilsTest.kt` — password policy, decimal sanitiser and tax range.
+
+Verification:
+- `./gradlew.bat :app:testDebugUnitTest --tests "com.khanabook.lite.pos.core.util.ValidationUtilsTest"` → **BUILD SUCCESSFUL** (1m 46s), exit 0.
+- `./gradlew.bat :app:testDebugUnitTest --tests "com.khanabook.lite.pos.feature.menu.ui.VariantDraftReconcilerTest"` → **BUILD SUCCESSFUL** (9s), exit 0.
+
+NOT VERIFIED: no device run, no APK built. The exact UI flows (6-character rejection, `12.5` variant price, `5.5` GST) have not been exercised on hardware. NOT COMMITTED.
+
+Discrepancy recorded: the server still enforces `@Size(min = 6)` for signup, reset and change-password, so the 8-character + complexity policy is currently client-side only. Tightening it affects every client and was not changed here.
+
+## Session 018: Menu food-item pictures — fixes from Session 016
+- **Session ID:** SES-20261118-018
+- **Date & Time:** 2026-11-18 18:4x–19:0x (device wall-clock)
+- **Objective:** Owner said "go ahead" on the Session 016 findings. Implemented findings #1–#4 and the copy part of #5; no unrelated screen changes.
+
+### Source changes
+- `feature/menu/viewmodel/MenuViewModel.kt` — replaced the unused `isPhotoUploading: StateFlow<Boolean>` with **`uploadingPhotoItemId: StateFlow<Long?>`**, set to the item id at the start of `uploadItemPhoto` / `deleteItemPhoto` and cleared in `finally`. A spinner can now be shown on the correct row.
+- `feature/menu/ui/MenuConfigurationScreen.kt` — collects `uploadingPhotoItemId` and passes it to `ManualMenuView`.
+- `feature/menu/ui/ManualMenuView.kt` — new `uploadingPhotoItemId` parameter; `MenuItemRow` gets `isPhotoUploading` and shows a dark overlay + gold spinner over its 56 dp thumbnail; the row's More menu now actually invokes the previously dead `onUploadPhotoClick`, with a contextual **Add Photo** / **Change Photo** item (disabled while that item is uploading); passes `imageVersion` into `ItemEditDialog`.
+- `feature/menu/ui/ItemEditDialog.kt` — new `initialImageVersion`; preview now uses versioned memory+disk cache keys for the stored URL, loading spinner, `onError` → "Photo couldn't load — tap to choose another" placeholder, and the accurate copy "Optional · PNG, JPG or WebP · up to 10 MB".
+- Not implemented: an inline **Retry** action for dish-photo upload failures (needs a persisted error + URI; the existing toast + More → Change Photo is the current recovery path).
+
+### Build note (concurrent work, not authored by this session)
+- `--offline` builds began failing because Session 017's Roborazzi/Robolectric dependencies were not cached. Those build-config files were **not** modified by this session. Builds were run online to resolve them. For Session 017's own status: `:app:compileDebugKotlin`, `:app:testDebugUnitTest` and `:app:assembleDebug` **did run and pass** in this session with those changes present (unit suite green), so the added test sources and `Theme.kt` helper compile — but `recordRoborazziDebug` / `verifyRoborazziDebug` were not run here and goldens are still unverified.
+
+### Verification
+- APK SHA-256 `A46F6E334ADAE5120E531E9309C2E56AE249C3FE70E2B4A8903BEB770119E69C`, `adb install -r` → Success on `ZA222J5KT7`.
+- **VERIFIED on device:** More menu on `webtest` (no photo) shows **Add Photo**; on `Livetest` (has photo) shows **Change Photo**; Edit Item → webtest shows "Tap to add a dish photo" and "Optional · PNG, JPG or WebP · up to 10 MB"; no crash entries. Dialogs dismissed with Cancel — no menu data changed.
+- **NOT VERIFIED:** the row upload spinner (no upload was triggered on the shared device), error placeholder (no broken URL available), and cache invalidation after a real replacement.
+
+## Session 017: Design-system screenshot tests (Roborazzi) — added and verified
+- **Session ID:** SES-20261118-017
+- **Date & Time:** 2026-11-18 13:22–13:26 (host clock; `gradle` test XML timestamps 13:23:57 and 13:24:15)
+- **Target Device / Architecture:** none. Host-side JVM rendering only (Robolectric 4.15.1 + Roborazzi 1.43.1, Robolectric runtime SDK 34). No APK was built or installed; no device was touched.
+- **Objective:** Owner approved wiring screenshot regression tests for the Android design system, so `ANDROID_UI_RULES.md` and the Android UI section of `docs/meta/AGENTS.md` are enforced mechanically instead of by review only.
+
+### Why not the AGP Compose screenshot plugin
+`com.android.compose.screenshot` was the first choice and was rejected: Google's page now marks the standalone plugin **unmaintained** and points to AGP test suites, which require **AGP 9.5+**. This project is on **AGP 8.9.1**. Roborazzi 1.43.1 (stable) works on the current AGP/Kotlin 2.0.21 without an experimental plugin or a future AGP migration.
+
+### Changes made (source)
+1. `apps/android/gradle/libs.versions.toml` — added `roborazzi = "1.43.1"`, `robolectric = "4.15.1"`; libraries `roborazzi`, `roborazzi-compose`, `robolectric`; plugin `io.github.takahirom.roborazzi`.
+2. `apps/android/build.gradle.kts` — `alias(libs.plugins.roborazzi) apply false`.
+3. `apps/android/app/build.gradle.kts` — applied the plugin; `testOptions.unitTests.isIncludeAndroidResources = true`; `testImplementation` for the Compose BOM, `ui-test-junit4`, `robolectric`, `roborazzi`, `roborazzi-compose`.
+4. `apps/android/app/src/test/resources/robolectric.properties` — `sdk=34`. Robolectric 4.15.x has no SDK 36 runtime, so the runtime is pinned independently of `compileSdk`/`targetSdk` 36 to keep goldens stable across SDK bumps.
+5. `apps/android/app/src/test/java/com/khanabook/lite/pos/designsystem/DesignSystemScreenshotTest.kt` — 6 host-side goldens covering `KhanaBookCard` (clickable + static), `KhanaBookInputField` (default + error), `KhanaBookSwitch` (off + on), the three buttons, all 5 `KhanaStatusKind` badges (filled + outline) and `StatItem` (normal + large).
+6. `.github/workflows/android-ci.yml` — new `android-screenshot-tests` job running `:app:verifyRoborazziDebug`.
+7. `docs/qa/TESTING.md` — §1 command row, §2 workflow row, new §7 documenting the rules and caveats.
+
+### Change made to production code (justify or revert)
+`core/theme/Theme.kt` previously did `view.context as Activity` in two places. That is an unchecked cast: it crashes whenever Compose is handed a `ContextThemeWrapper` (OEM skins, themed inflaters) and it makes headless rendering impossible. Replaced with a `Context.findActivity()` helper that walks `ContextWrapper` chains and returns null; both call sites now fall back to `WindowWidthSizeClass.Compact` / skip the window side-effect. **Behaviour on a real device with an Activity context is unchanged.** No UI was redesigned.
+
+### Verification Status
+- **VERIFIED by execution (host):**
+  - `gradlew.bat :app:recordRoborazziDebug` → **BUILD SUCCESSFUL in 1m 28s** (2 executed, 36 up-to-date). Produced 6 PNGs in `apps/android/app/src/test/screenshots/`.
+  - `gradlew.bat :app:verifyRoborazziDebug` → **BUILD SUCCESSFUL in 1m 12s**. Goldens match on re-render.
+  - Test XML `app/build/test-results/testDebugUnitTest/TEST-com.khanabook.lite.pos.designsystem.DesignSystemScreenshotTest.xml`: `tests="6" skipped="0" failures="0" errors="0" time="11.525"`.
+  - Image sizes 25,494–46,741 bytes at 1233×2673 px (w411dp-h891dp-xxhdpi), i.e. real rendered content, not blank frames.
+- **VERIFIED by reading:** Maven Central resolves `roborazzi:1.43.1`, `roborazzi-compose:1.43.1` and the Gradle plugin marker (HTTP 200).
+- **NOT VERIFIED:** the pixels themselves were never inspected by a human or a vision-capable model — only file size, dimensions and the pass/fail comparison were checked. Someone should open the 6 PNGs once and confirm they look like KhanaBook (dark background, gold accents, rounded cards).
+- **NOT VERIFIED:** glyph rendering. Poppins is a Google-Fonts downloadable font that Robolectric cannot fetch, so goldens use the platform fallback typeface. Layout, colour, spacing, shape and state are locked; font metrics are not.
+- **NOT VERIFIED:** the CI job. It has never run. Goldens were recorded on Windows and the runner is Linux, so the first comparison may differ by rasterisation — hence `continue-on-error: true`.
+
+### Tooling note (affects reproducibility, not the code)
+The supervising agent's own shell was unusable for this session — every spawn of
+`C:\Users\nandh\AppData\Local\Microsoft\WindowsApps\pwsh.exe` returned *Access is denied
+(os error 5)*, including `echo ok`. The build was executed through Serena's shell facade
+(`cmd.exe`) instead. If that shell breakage reproduces, check Windows **App execution aliases**
+and any AV/EDR block on `pwsh.exe` before assuming a Gradle problem.
+
+An earlier attempt failed with `java.io.IOException: Unable to delete directory
+...\build\test-results\testDebugUnitTest\binary ... output.bin` — that was two overlapping
+Gradle daemons holding the file, not a code or test failure. `gradlew --stop` plus removing the
+stale directory cleared it.
+
+### Reproduce
+```
+cd apps/android
+./gradlew.bat :app:recordRoborazziDebug    # writes app/src/test/screenshots/*.png
+./gradlew.bat :app:verifyRoborazziDebug    # compares; must pass
+```
+Delete `continue-on-error: true` from the `android-screenshot-tests` job in
+`.github/workflows/android-ci.yml` once CI agrees with the committed goldens.
+
+### Evidence
+- `apps/android/app/src/test/screenshots/{button,card,input_field,stat_item,status_badge,switch}_states.png` — the 6 goldens.
+- `apps/android/app/build/test-results/testDebugUnitTest/TEST-com.khanabook.lite.pos.designsystem.DesignSystemScreenshotTest.xml` — 6 tests, 0 failures.
+- `apps/android/app/build/reports/roborazzi/index.html` — diff report (empty pass on a green run).
+
+## Session 016: Menu food-item pictures — read-only cross-check
+- **Session ID:** SES-20261118-016
+- **Date & Time:** 2026-11-18 18:25–18:30 (device wall-clock)
+- **Target Device / Architecture:** `ZA222J5KT7` (moto g34 5G, debug build from Session 015). Device was again used concurrently; navigation was re-attempted after confirming app focus.
+- **Objective:** Owner asked to "cross check menu food items pictures". Android-only, review only — **no source change authorised or made**. No screenshots were altered; the Edit Item dialog was dismissed with Cancel.
+
+### Operations Performed
+1. Read `ANDROID_POS_DOCUMENTATION/README.md`, `04_SCREEN_INVENTORY.md`, `docs/android/UI_IMPROVEMENT_FINDINGS.md` and the head of this log before operating, per the AGENTS.md policy.
+2. Source audit: `core/designsystem/MenuItemThumbnail.kt`, `feature/menu/ui/ItemEditDialog.kt`, `feature/menu/ui/ManualMenuView.kt`, `feature/menu/ui/MenuConfigurationScreen.kt`, `feature/menu/viewmodel/MenuViewModel.kt:400-615`, `feature/menu/data/MenuItemEntity.kt`.
+3. Device: launched app → Settings → Menu Configuration → Manual Entry **View**; dumped UI and captured screenshots. Opened Edit Item on "Livetest", captured the photo panel, then dismissed with Cancel.
+
+### Verified — what works
+- **`MenuItemThumbnail`** (used in the manual-entry list at 56 dp and in order/menu grids): versioned cache keys (`"$imageUrl:${imageVersion}"`) on **both** memory and disk, `onError` flips to a dish placeholder while keeping the FSSAI veg/non-veg badge, `ContentScale.Crop` (no stretching), and `showAddPhotoHint = canWrite` for users who can edit. This is the resilient pattern the old shop-logo loader was measured against.
+- On device: `Livetest` renders its stored photo with a green FSSAI badge; `webtest` (no photo) renders the add-photo placeholder with the same badge. No crash entries for the package.
+- **Upload path** (`MenuViewModel.uploadItemPhoto`): `IllegalArgumentException` from `MultipartUtils` is caught and its actionable message shown verbatim (unlike the logo path before Session 015); one 409 retry; local `imageUrl`/`imageVersion` metadata is written from the server response only after confirmation; delete keeps the existing photo on failure. `MultipartUtils` enforces PNG/JPEG/WebP magic bytes, 10 MB input cap, 64–4096 px, ≤10:1 aspect, WebP re-encode under 2 MB.
+
+### Findings (report only — not implemented)
+1. **No visible upload state.** `MenuViewModel.isPhotoUploading` (`MenuViewModel.kt:177-178`) is set during upload/delete (`:542,584,598,612`) but has **no consumer anywhere** — verified by repo-wide search. The owner sees nothing between picking a photo and the success/error toast. Same "Visibility of System Status" gap fixed for the logo in Session 015.
+2. **Quick per-row photo upload is dead wiring.** `MenuItemRow.onUploadPhotoClick` (`ManualMenuView.kt:686`) is declared but never invoked; the row's More menu at `:787-827` offers only **Edit** and **Move to Category**, despite the comment at `:147-151` claiming "every item row shows an upload icon". `onQuickPhotoUpload` / `quickPhotoPickerLauncher` (`:175-183`, `:455-460`) are therefore unreachable from the UI.
+3. **Consequence for new items:** `uploadNewItemPhotoWhenReady` (`:510-529`) waits up to 20 s for `serverId`, and on timeout tells the owner *"Item added. Photo could not upload yet — tap Add Photo to retry."* — but there is no "Add Photo" control (see #2), so the stated recovery path does not exist. The item is saved; only the photo is lost until the owner opens Edit Item.
+4. **Edit-dialog preview is weaker than the list thumbnail.** `ItemEditDialog.kt:158-167` uses inline `AsyncImage` with `diskCachePolicy(ENABLED)` but **no versioned `memoryCacheKey`/`diskCacheKey`** and **no `onError` placeholder or loading indicator**. A replaced photo at the same URL can show a stale bitmap, and a failed remote load leaves a blank 112 dp box. `MenuItemThumbnail` already solves both problems.
+5. **Requirements copy is thinner than the Shop Logo section.** Edit Item shows only "Optional · PNG, JPG, or WebP" (`:190`) — no 10 MB cap, no auto-resize/compression hint, no retry. Inconsistent with the new logo UX.
+6. **No local file persistence for dish photos** (unlike the logo's `logoPath`): offline without a Coil disk-cache hit falls back to the placeholder. Source-verified, not a defect — documented for expectation-setting.
+
+### Verification Status
+- **VERIFIED by source:** every finding above with `file:line`; no consumer of `isPhotoUploading`.
+- **VERIFIED on device:** list thumbnails (with-photo and no-photo states), Edit Item photo panel with Remove, no save performed, no crash entries.
+- **NOT VERIFIED on device:** upload/replace/delete flows, error/retry states, progress — none were triggered to avoid changing the shared device's menu data.
+
+### Evidence
+- `artifacts/android-ui-tests/menu-pictures-list-2026-11-18.png` — list with a stored photo and the no-photo placeholder.
+- `artifacts/android-ui-tests/menu-edit-photo-2026-11-18.png` — Edit Item photo panel.
+- Observation only: the Shop Logo preview changed from `EK TOTAL` artwork to the default KhanaBook mark between screenshots; the Settings screen reported `Last sync: 18 Nov, 06:25 pm`, so this is consistent with a master-sync refresh. This session did not change the logo.
+
+## Session 015: Shop Logo upload experience — audit and redesign
+- **Session ID:** SES-20261118-015
+- **Date & Time:** 2026-11-18 18:1x (device wall-clock)
+- **Target Device / Architecture:** `ZA222J5KT7` (moto g34 5G, debug build). The device was used concurrently by a person during verification — it switched to WhatsApp twice mid-test; tests were re-run after confirming app focus each time.
+- **Objective (owner brief):** redesign the Shop Logo block in Restaurant Configuration with six explicit upload states, one contextual primary action, accurate requirements, accessible preview, and no unrelated screen changes. No reference screenshot was attached; the documented KhanaBook palette/components were used.
+
+### Audit — verified facts that shaped the design
+- Current UI (`ShopConfigSection.kt:404-495`): 56 dp preview, **"Change Logo" shown even with no logo**, no status/requirements/error/retry.
+- Upload path: gallery pick → `pendingLogoUri` → **Save Configuration** → `SettingsViewModel.saveProfileWithLogo` → `MultipartUtils.imageUriToPart` → `POST /api/v1/restaurants/logo` → `RestaurantRepository.uploadLogo` writes `logoUrl`/`logoVersion` to Room → profile Flow re-renders the UI. The existing logo is preserved on failure (best-effort catch).
+- Server (`AssetStorageService.validate`): only non-empty, ≤2 MiB, declared MIME starting `image/`. **No dimension, aspect-ratio or magic-byte checks.** Android `MultipartUtils` adds PNG/JPEG/WebP magic bytes, 10 MB input cap, 64–4096 px, ≤10:1 aspect, downscale to 1024 px, WebP re-encode under 2 MB. User-facing copy was written from these real rules.
+- No progress callback exists anywhere client- or server-side → indeterminate spinner only, no fabricated percentage.
+- No per-bill logo snapshot: Android `InvoicePDFGenerator`/`InvoiceFormatter` and server `InvoiceController` read the **current** profile; thermal ESC/POS prints no logo; `QrCodeManager` scales the logo square (aspect not preserved). **Invoice logic was not modified.**
+
+### Defects found and fixed
+1. `logoUploadLoading` was never set in `saveProfileWithLogo` → added `_logoUploading` phase state.
+2. `UserMessageSanitizer.sanitize()` replaced `IllegalArgumentException` validation messages with a vague fallback → validation errors now pass through unchanged.
+3. No filename/size, no retry, no visible success → added `LogoFileInfo` + inline success/error panels with Retry.
+4. `SettingsScreen` navigated to the menu immediately on save success, hiding any status → shop saves with a logo result now stay on screen.
+5. `pendingLogoUri` was cleared immediately on save, making Retry impossible → now cleared only after backend-confirmed success.
+
+### Source changes
+- **New** `core/util/LogoFileInfo.kt` — reads `OpenableColumns.DISPLAY_NAME` / `SIZE` from the picked Uri.
+- `feature/settings/viewmodel/SettingsViewModel.kt` — added `logoUploading` / `logoUploadSuccess` flows, real phase handling in `saveProfileWithLogo`, validation-message pass-through, `clearLogoUploadState()` clears success too.
+- `feature/settings/ui/ShopConfigComponents.kt` — new reusable `ShopLogoSection`: header + info icon (`KhanaBookDialog` with the exact requested copy), responsive square preview (116/140/168 dp) with `ContentScale.Fit` + versioned Coil cache keys + local fallback, empty placeholder, contextual single primary button, compact requirements + "File details" progressive disclosure, uploading overlay, success panel, error panel with Retry, pending-image removal/helper text, ellipsised long filenames, ≥48 dp targets, content descriptions. Removed the old inline loader and `BusinessHoursOptionCard` from earlier in the day remains deleted.
+- `feature/settings/ui/ShopConfigSection.kt` — replaced the old logo block with `ShopLogoSection`; picker changed from `GetContent` to `OpenDocument` restricted to PNG/JPEG/WebP; extracted `saveConfiguration()` for Retry; `BackHandler` blocks navigation during upload; `DisposableEffect` clears logo status; removed the error-toast that used to erase the inline error.
+- `feature/settings/ui/SettingsScreen.kt` — stays on Restaurant Configuration when a shop save produced a logo success or error.
+
+### Verification
+- `:app:compileDebugKotlin` → BUILD SUCCESSFUL (42s); `:app:testDebugUnitTest :app:assembleDebug --offline` → BUILD SUCCESSFUL (3m 41s), unit suite green.
+- APK SHA-256 `87A337A424224DEA2D65509CA540611992E02E4B67CD6C0BDCE7A8A47D6FDC54`, `adb install -r` → Success.
+- **VERIFIED on device:** header/subtitle/info icon and large existing-logo preview render; only one action (`Change Logo`) is present — no `Upload Logo`; requirement line and `File details` collapsed by default; tapping the info icon shows `Shop logo` / "Your restaurant logo will appear on customer bills and receipts." / `Got it`; expanding File details shows all four accurate bullet lines; no crash entry for the package.
+- **NOT DEVICE-VERIFIED:** empty state (no logo on this profile), real upload/success/failure/retry states, invalid-file validation, replacement flow — exercising these requires changing the shop logo or injecting a file through the picker, which was not done on the shared device. Server/invoice behaviour was audited by source only; no bill was printed.
+
+### Evidence
+- `artifacts/android-ui-tests/shop-logo-redesign-2026-11-18.png` — existing-logo state.
+- `artifacts/android-ui-tests/shop-logo-file-details-2026-11-18.png` — File details expanded.
+
+## Session 014: Business Hours — segmented mode switch (owner-authorised UX change)
+- **Session ID:** SES-20261118-014
+- **Date & Time:** 2026-11-18 17:42–17:46 (device wall-clock)
+- **Target Device / Architecture:** Primary `ZA222J5KT7` (moto g34 5G, debug build). Devices flapped during the session: the Nord `AC2001` came back online while `ZA222J5KT7` was offline, so the new APK was installed on both; the Nord could not be brought to the foreground (a permission dialog / notification shade covered it), and verification was completed on `ZA222J5KT7` when it returned. Consequence: `NEXT_ACTIONS.md` item 5 (Nord redeploy) is now also satisfied by this install.
+- **Objective:** Owner confirmed "Change the Business Hours UI" and chose a **segmented toggle** as the switcher. Replace the always-visible `Default Time` / `Custom Time` cards with a single segmented control and render only the selected mode's content. No other screen changed.
+
+### Source changes (working tree, uncommitted)
+- `feature/settings/ui/ShopConfigComponents.kt`
+  - Removed `BusinessHoursOptionCard` (its two callers were the cards being replaced).
+  - Added `BusinessHoursModeToggle` + private `BusinessHoursModeSegment` — a two-segment pill using existing tokens (`CardBG`, `BorderGold`, `PrimaryGold`, `KhanaRadii.xl`, 44 dp height, labelLarge), both segments clickable, `enabled = !readOnly` propagated.
+  - Added `BusinessHoursDefaultSummary` — a read-only tinted panel showing `12:00 AM – 11:59 PM` / `Full day (Midnight reset)`, i.e. the information that used to live on the Default card.
+- `feature/settings/ui/ShopConfigSection.kt`
+  - The two `BusinessHoursOptionCard` calls became one `BusinessHoursModeToggle`; selection handlers still write `00:00`/`23:59` for Default and restore `customOpeningTime`/`customClosingTime` for Custom.
+  - The `AnimatedVisibility(!isCurrentDefault)` block became a plain `if (isCurrentDefault) … else …`, so exactly one content panel is composed at a time (no crossfade where both modes appear briefly). Custom branch keeps the `Opening Time` / `Closing Time` pickers, duration and overnight hints unchanged.
+  - Removed the six animation imports made unused. Default summary is `BusinessHoursDefaultSummary()`.
+- Unchanged by design: `isCurrentDefault` derivation, rollover subtitle (`businessDayRolloverLabel`), `isDirty`, save validation and the saved profile shape.
+
+### Verification
+- `:app:compileDebugKotlin --offline` → BUILD SUCCESSFUL (30s), exit 0.
+- `:app:testDebugUnitTest :app:assembleDebug --offline` → BUILD SUCCESSFUL (1m 33s), unit suite green.
+- APK SHA-256 `88EBD62F25FF2ED2F494A10C0B1E30617EF0524D2184A02606B90E95109E436D`; `adb install -r` → Success on `ZA222J5KT7` and on the Nord.
+- **VERIFIED on device (`ZA222J5KT7`, uiautomator + screenshots):**
+  - Saved profile opens with `Custom Time` active; below the toggle only `Opening Time 06:00 AM`, `Closing Time 01:00 AM`, `Operating duration: 19 hrs`, `🌙 Overnight service (< 24 hrs)`; subtitle `reset at 1:30 AM`.
+  - Tapping `Default Time` swaps the panel to `12:00 AM – 11:59 PM` / `Full day (Midnight reset)` with no time inputs, and the subtitle becomes `reset at 12:00 AM`. Tapping back restores the custom panel.
+  - Back via `Unsaved Changes` → `Discard`; re-entry shows the saved custom profile (`reset at 1:30 AM`) intact — no device data changed.
+  - `logcat -b crash`: no entry for `com.piquantservices.khanabooklite.debug` (the single buffer entry is an unrelated `dmesg` SIGSYS from 2026-11-17).
+- **NOT DONE:** no commit or push; read-only (staff role) variant and tablet layout not exercised; no OTP/PIN flows re-run.
+
+### Evidence
+- `artifacts/android-ui-tests/rest-config-segmented-custom-2026-11-18.png` — Custom active, time inputs + hints only.
+- `artifacts/android-ui-tests/rest-config-segmented-default-2026-11-18.png` — Default active, summary only.
+- `artifacts/android-ui-tests/rest-config-after-discard-2026-11-18.png` — saved profile restored after discard.
+
+## Session 013: Restaurant Configuration — UX field inventory and Default/Custom visibility check
+- **Session ID:** SES-20261118-013
+- **Date & Time:** 2026-11-18 17:29–17:32 (device wall-clock)
+- **Target Device / Architecture:** Physical `ZA222J5KT7` — Motorola moto g34 5G, Android 15 / API 35, debug build `com.piquantservices.khanabooklite.debug` from Session 012. Only this device is connected (the Nord is still offline).
+- **Objective (owner request):** Android-only. First read and enumerate every UI input field and section under Restaurant Configuration, then answer whether "Default Time" and "Custom Time" are both shown at the same time. **Review only — no source change authorised or made.**
+
+### Operations Performed
+1. Read `README.md`, `03_UI_NAVIGATION_MAP.md`, `OPERATIONS/BUSINESS_SETTINGS_OPERATIONS.md`, `docs/meta/AGENTS.md`, `docs/meta/ANDROID_UI_RULES.md` and the head of this log before operating, per the AGENTS.md policy.
+2. Source inventory (read-only): `feature/settings/ui/ShopConfigSection.kt` (1046 lines) and `ShopConfigComponents.kt` (321 lines).
+3. Device navigation: Home → bottom `Settings` → `Restaurant Configuration`; uiautomator dumps and two screenshots. Tapped `Custom Time`, then backed out via `Unsaved Changes` → `Discard` — **no device data was saved or modified**.
+
+### Source-verified UI inventory — Restaurant Configuration
+
+**Card 1 — Shop identity/contact** (`CardBG`, `KhanaRadii.lg`, 25% gold border):
+- Conditional read-only notice for non-owners.
+- "Shop Logo" / "Shown on bills and receipts" header; 56 dp logo preview box + `Change Logo` button (gallery picker).
+- Text fields: `Shop Name *`, `Shop Address *`, `WhatsApp Number`, `Email *`, `Review Link`, `Invoice Footer`.
+- Conditional OTP fields: `Enter 6-digit OTP` (when `otpSent && numberChanged`) and `Enter 6-digit Email OTP` (when `emailOtpSent && emailChanged`). WhatsApp/Email carry a trailing `Get OTP` button, spinner or green verified lock.
+- Note: `emailInvoiceConsent` is held in state and written on save, but no control for it was found in this file.
+
+**Card 2 — Business Hours**:
+- Header: clock icon, title, subtitle `Daily Order Number will reset at <time>`.
+- Two option cards, **both rendered together in one `Row`**: `Default Time` (`12:00 AM – 11:59 PM`, "Full day (Midnight reset)") and `Custom Time` (`<resolved times>` or "User Defined", "Set opening & closing").
+- Conditional block (`AnimatedVisibility(visible = !isCurrentDefault)`): `Opening Time` and `Closing Time` pickers side by side, plus either the red "opening and closing time cannot be the same" warning or `Operating duration: …` and, for a closing time before the opening time, the "🌙 Overnight service (< 24 hrs)" hint.
+
+**Card 3 — Billing Mode** (`RestaurantPaymentFlowSelector`): header + a 56 dp pill toggle showing `Pay Before Food` / `Pay After Food`. Switching with an app PIN set opens `Confirm Billing Mode`.
+
+**Footer / dialogs:** full-width `Save Configuration` button (52 dp, "Saving…" while busy); `Unsaved Changes` dialog (Keep Editing / Discard) on back when dirty.
+
+### Answer to the owner's question
+- **VERIFIED (source + device): yes — the two selector cards "Default Time" and "Custom Time" are displayed at the same time, always.** They are one radio-style `Row` (`ShopConfigSection.kt:805-838`); both remain visible, only the highlighted/radio state changes. This is deliberate structure, not both modes' inputs leaking together.
+- **VERIFIED (source + device): the actual time inputs are mutually exclusive.** With `Default Time` selected, no `Opening Time` / `Closing Time` fields exist in the hierarchy. After tapping `Custom Time`, both pickers plus the duration/overnight hints appear. Source: `AnimatedVisibility(visible = !isCurrentDefault)` at `ShopConfigSection.kt:840-906`.
+- Device state at check time: the saved profile is a **custom** schedule, opening `06:00`, closing `01:00`; subtitle reads `Daily Order Number will reset at 1:30 AM` (closing + the 30-minute settlement buffer). On the very first entry after app launch the screen briefly showed `Default Time` selected with `reset at 12:00 AM`; immediate re-entry consistently showed the custom state. This is **consistent with** state being initialised from fallback values (`00:00`/`23:59`) before the profile Flow emits, but it was **not reproduced deterministically** — recorded as an unconfirmed observation, not a bug.
+- `businessDayRolloverLabel` in `ShopConfigComponents.kt` computes the subtitle from an active server cutoff, else the closing boundary, else calendar midnight; the 30-minute arithmetic (`01:00 → 1:30 AM`) was checked manually and matches.
+
+### Verification Status
+- **VERIFIED by source:** every field/card listed above, the always-visible selector row, and the conditional time-input block.
+- **VERIFIED on device:** UI dump and screenshots in both states; the `Custom Time` tap revealing the pickers; Discard leaving data unchanged.
+- **NOT DONE:** no code edit, no save, no PIN dialog, no OTP flow, no role/read-only variant exercised this session.
+
+### Evidence
+- `artifacts/android-ui-tests/rest-config-default-state-2026-11-18.png` — Business Hours with `Default Time` selected, no time inputs.
+- `artifacts/android-ui-tests/rest-config-custom-state-2026-11-18.png` — after tapping `Custom Time`, both pickers + duration/overnight hints visible.
+
+## Session 012: Debug APK update on the connected device
+- **Session ID:** SES-20261118-012
+- **Date & Time:** 2026-11-18 17:18 (device wall-clock; APK `lastUpdateTime` 17:18:11)
+- **Target Device / Architecture:** Physical `ZA222J5KT7` — Motorola moto g34 5G, Android 15 / API 35, debug build `com.piquantservices.khanabooklite.debug`. A second device (OnePlus Nord `AC2001`, wireless `adb-dbd06e58-...`) was listed at the start of the session but dropped offline before the install; it was not touched. `NEXT_ACTIONS.md` item 5 (Nord redeploy) is still open.
+- **Objective:** Rebuild the current source tree and update the debug APK on the connected device. No source change was requested or made.
+
+### Operations Performed
+1. Read `NEXT_ACTIONS.md`, `02_DEVICE_AND_ENVIRONMENT_SETUP.md`, `README.md` and the head of this log before operating, per the AGENTS.md policy.
+2. `adb devices -l` → two devices present; after the Nord dropped, `ZA222J5KT7` was the only connected device, so "the connected device" was unambiguous.
+3. Pre-install check on `ZA222J5KT7`: `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-14 19:04:04` (the Session 011-era build).
+4. `git status --short` → clean working tree; the APK was built from committed HEAD, not from local edits.
+5. From `apps/android`: `.\\gradlew.bat :app:assembleDebug --offline` → **BUILD SUCCESSFUL** in 1m 47s (6 tasks executed, 37 up-to-date). No source, dependency or build-config workaround; the only unusual output was an auto-detection warning for an unrelated IntelliJ Corretto-8 JDK under `C:\\Users\\nandh\\.jdks\\corretto-8`.
+6. APK identity: `apps/android/app/build/outputs/apk/debug/app-debug.apk`, 42,729,434 B, SHA-256 `A9D1BF92E741FDB4632CC2F6359561A14E8EF2C871FB4F7CB6C7AA1E652D4C94`.
+7. `adb -s ZA222J5KT7 install -r <apk>` → `Performing Streamed Install` / `Success`.
+8. Post-install check: `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-18 17:18:11`. Version is pinned in `local.properties` and is not evidence of the deploy — the `lastUpdateTime` change and the APK hash above are.
+9. Smoke test: launched `com.piquantservices.khanabooklite.debug/com.khanabook.lite.pos.core.app.MainActivity` and dumped the UI hierarchy.
+
+### Verification Status
+- **VERIFIED by build:** `assembleDebug --offline` exits 0; clean working tree, so no local changes were shipped.
+- **VERIFIED by install:** `adb install -r` returned Success; on-device `lastUpdateTime` advanced from 2026-11-14 19:04:04 to 2026-11-18 17:18:11.
+- **VERIFIED on device (smoke test, uiautomator dump):** Home screen renders `Good Evening`, `Piquant Services's Restaurant`, `Cloud Synced`, `Today's Summary` (0 Orders / ₹ 0 Avg Order / 0 KOT Pending), the Quick Bill / Normal Bill toggle, `Create Quick Bill`, `Active Orders` / `No active orders`, `Reprint KOT`, and the bottom nav `Home` / `Orders` / `Settings`.
+- **VERIFIED:** `logcat -b crash` has no entry for `com.piquantservices.khanabooklite.debug`. The one entry in the buffer is an unrelated `dmesg` SIGSYS crash from 2026-11-17.
+- **NOT DONE:** No UI operation beyond a launch smoke test was exercised. The deeper re-checks in `NEXT_ACTIONS.md` items 2–4 (midnight crossover, Restaurant Configuration layout, Quick Start screen) were not performed this session.
+
+### Evidence
+- Screenshot: `artifacts/android-ui-tests/debug-apk-update-2026-11-18.png` (Home screen on the installed build).
+- uiautomator text dump captured immediately after launch (quoted above).
+
 ## Session 011: Orders Screen — One Table Only, Preset Chips Show Their Resolved Date
 - **Session ID:** SES-20261114-011
 - **Date & Time:** 2026-11-14 (source work, then APK install at 16:10:35 and UI checks 16:1x)

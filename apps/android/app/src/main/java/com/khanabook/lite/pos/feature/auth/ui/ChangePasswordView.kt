@@ -65,6 +65,7 @@ import com.khanabook.lite.pos.core.theme.PrimaryGold
 import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
+import com.khanabook.lite.pos.core.util.ValidationUtils
 import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
 
@@ -249,7 +250,7 @@ fun ChangePasswordView(
                     onValueChange = { newPassword = it },
                     supportingText = {
                         Text(
-                            "Minimum 6 characters, use letters & numbers",
+                            ValidationUtils.passwordStrengthMessage(),
                             color = TextGold.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -341,7 +342,7 @@ fun ChangePasswordView(
                             }
                         }
                         3 -> when {
-                            newPassword.length < 6 -> localError = "Password must be at least 6 characters."
+                            !ValidationUtils.isValidPassword(newPassword) -> localError = ValidationUtils.passwordStrengthMessage()
                             newPassword != confirmPassword -> localError = "Passwords do not match."
                             else -> authViewModel.resetPassword(phone.trim(), otp, newPassword)
                         }

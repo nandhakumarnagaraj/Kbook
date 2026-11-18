@@ -2,6 +2,66 @@
 
 Ordered by blocking value. Session references point at `DEVICE_SESSIONS/SESSION_LOG.md`.
 
+## Cross-cutting copy & naming review (2026-11-18, Session 019 — static only)
+
+- **DONE (static):** reviewed every Android input field/header, toast/snackbar, notification path, and the screen/function/route names in Android, `services/server`, and `apps/web-admin`. Full evidence and IDs: `RECOMMENDATIONS/FORMS_TOASTS_NAMING_REVIEW.md`.
+- **Bugs registered:** BUG-010 (Change Password allows a 6-character password), BUG-011 (variant price truncates paise), BUG-012 (GST % rejects decimals).
+- **Top actions, in order:** (1) fix IN-01 / BUG-010; (2) settle the tenant noun `shop`/`business`/`restaurant` (NM-12) before any renaming; (3) collapse the duplicate password-reset endpoint families (NM-06); (4) unify terminal recovery verbs (NM-07); (5) align required markers with `saveConfiguration()` (IN-02).
+- **Not implemented:** every item is documented only. No source outside `ANDROID_POS_DOCUMENTATION/` was changed.
+- **Already tracked, not duplicated:** item **C** below (unify the phone/email OTP flows) covers part of IN-07/IN-09; items **K/L/M** are unrelated and remain as they were.
+- **IMPLEMENTED (2026-11-18, working tree, uncommitted):** BUG-010, BUG-011, BUG-012 and IN-01..IN-06 fixed. `:app:compileDebugKotlin` and the focused `ValidationUtilsTest` / `VariantDraftReconcilerTest` pass. **Not device-verified, not committed.** Next: run the app on `ZA222J5KT7` and check Change Password, GST 5.5, and a variant price of 12.5. Server-side password minimum (still 6) is a separate cross-client decision.
+
+## Screenshot tests landed; three follow-ups (2026-11-18, Session 017)
+
+- **DONE and verified (host):** design-system screenshot gate. `:app:recordRoborazziDebug` and
+  `:app:verifyRoborazziDebug` both exit 0; 6 goldens committed under
+  `apps/android/app/src/test/screenshots/`; test XML reports 6 tests / 0 failures. Detail:
+  `DEVICE_SESSIONS/SESSION_LOG.md` → Session 017.
+- **Follow-up 1 (needs eyes):** nobody has actually looked at the 6 PNGs. Open them once and
+  confirm they show KhanaBook — dark background, gold accents, rounded cards. Only file size,
+  dimensions and pass/fail were checked.
+- **Follow-up 2 (needs a decision):** make the CI gate real. `android-screenshot-tests` in
+  `.github/workflows/android-ci.yml` runs with `continue-on-error: true` because goldens were
+  recorded on Windows and the runner is Linux. After one green CI run, delete that line.
+- **Follow-up 3 (unresolved limitation):** Poppins never renders in goldens — it is a Google-Fonts
+  downloadable font and Robolectric cannot fetch it, so goldens use the platform fallback
+  typeface. Typeface regressions still need a device. If that matters, bundling the Poppins
+  TTFs in `res/font/` (already suggested in `Type.kt`'s own comment and in
+  `docs/android/DEVICE_COVERAGE_AUDIT.md` §5) would fix both the offline-fallback gap and the
+  goldens at once.
+- **Production change to review on device:** `core/theme/Theme.kt` no longer casts
+  `view.context as Activity`; it uses a `ContextWrapper`-walking `findActivity()` and degrades to
+  `Compact` instead of crashing. It compiles and all goldens render, but it has not been exercised
+  on hardware — walk login → home → any Scaffold screen on the moto g34.
+- **Reviewed and rejected:** `com.android.compose.screenshot` (Google's standalone plugin) is
+  unmaintained and its successor needs AGP 9.5+; this project is on AGP 8.9.1. Do not add it
+  during an AGP upgrade without re-checking the compatibility table.
+
+## Current deployed build (2026-11-18, Sessions 012 / 014 / 015)
+
+- The latest debug APK is SHA-256 `A46F6E334ADAE5120E531E9309C2E56AE249C3FE70E2B4A8903BEB770119E69C`
+  (menu photo fixes, Session 018), installed on `ZA222J5KT7`. Earlier builds this day were
+  `87A337A4…D6FDC54` (Shop Logo), `88EBD62F…09E436D` (Business Hours toggle) and
+  `A9D1BF92…A652D4C94` (plain update).
+- The Session 014 build was also installed on the OnePlus Nord `AC2001` when devices flapped, so
+  **item 5 (Nord redeploy) was satisfied at that point**; the Nord has not received the Session 015
+  Shop Logo build.
+- `ZA222J5KT7`: Session 012 install returned Success (`lastUpdateTime` 17:18:11) and the app launched
+  to Home with no crash entry. Session 014 added the Business Hours change; compile, unit tests and
+  `assembleDebug` all exit 0, both toggle states verified on device. Details: `DEVICE_SESSIONS/SESSION_LOG.md`
+  → Sessions 012 and 014.
+- The "after the next APK install" trigger for item 3 below has fired, but item 3's collapse/expand and
+  Billing Mode surface assertions were **not** executed; it stays open.
+
+## Restaurant Configuration UX check and change (2026-11-18, Sessions 013–014)
+
+- Owner asked whether `Default Time` and `Custom Time` are both shown at once. **Answer (before the change): yes for the two selector cards — they were one radio-style `Row`; no for the time inputs — `Opening Time` / `Closing Time` were conditional.** Full field inventory and evidence: `DEVICE_SESSIONS/SESSION_LOG.md` → Session 013.
+- Owner then authorised a change and chose a **segmented toggle**. **DONE in Session 014:** the two cards were replaced by a `Default Time | Custom Time` segmented control and only the selected mode's panel is composed. Verified on device; no source from Session 013 remains as a pending recommendation.
+- **Shop Logo redesign DONE in Session 015** (full audit, files, verification and limitations in `DEVICE_SESSIONS/SESSION_LOG.md`). Remaining verification, not done on the shared device: empty state, real upload success/failure/retry, invalid-file validation and invoice/receipt rendering.
+- **Menu food-item pictures: audit (Session 016) and fixes (Session 018).** `MenuItemThumbnail` was already resilient. Fixed: upload status now shows on the correct row via `uploadingPhotoItemId`; the row's More menu now exposes a real **Add Photo / Change Photo** action (so the new-item "tap Add Photo to retry" message is valid); Edit Item preview has versioned cache keys, a loading spinner and an error placeholder, plus accurate file requirements. Still open: an inline **Retry** action for failed dish-photo uploads, and device verification of the spinner/error states. Full evidence in `DEVICE_SESSIONS/SESSION_LOG.md` → Sessions 016 and 018.
+- Build note: concurrent Session 017 added Roborazzi/Robolectric; `--offline` builds fail until those artifacts are cached, so build online or after warming the cache.
+- **Identified backend/printing limitations (not changed):** server validates only non-empty / ≤2 MiB / `image/*` MIME; no dimension or magic-byte checks. No upload-progress API. No per-bill logo snapshot — reprints use the current logo; ESC/POS thermal prints no logo; UPI QR overlay scales the logo square (aspect not preserved). These need separate product decisions; do not change invoice logic from the Shop Logo work.
+
 ## From the 2026-11-14 lint cleanup (addendum 18:0x)
 
 S. **Launcher icon warnings** — **DONE 2026-11-14 19:0x.** Adaptive icon merged into `res/mipmap/`
