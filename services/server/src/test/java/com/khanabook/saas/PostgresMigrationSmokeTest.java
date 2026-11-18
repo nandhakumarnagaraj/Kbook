@@ -88,7 +88,9 @@ class PostgresMigrationSmokeTest {
         List<String> tables = jdbcTemplate.queryForList(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'",
                 String.class);
-        assertThat(tables).contains("feature_flag", "feature_flag_override", "feature_flag_audit", "webhook_inbox");
+        // V48 added feature_flags & webhook_inbox; V123 purged dead webhook_inbox table
+        assertThat(tables).contains("feature_flag", "feature_flag_override", "feature_flag_audit");
+        assertThat(tables).doesNotContain("webhook_inbox");
 
         Integer seededFlags = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM feature_flag", Integer.class);
@@ -99,42 +101,38 @@ class PostgresMigrationSmokeTest {
                 Integer.class);
         // Every flag defaults disabled on first migration.
         assertThat(disabledFlags).isEqualTo(seededFlags);
-
-        Integer partialIndexes = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM pg_indexes WHERE indexname IN ('idx_webhook_inbox_claim', 'idx_webhook_inbox_review')",
-                Integer.class);
-        assertThat(partialIndexes).isEqualTo(2);
     }
 
     @Test
     void permissionSystemTablesExist() {
-        // V72: staff_permissions, permission_requests, role_templates
+        // V72 added custom permission tables; V124 purged them in favor of unified OWNER/SHOP_STAFF/KBOOK_ADMIN roles
         List<String> tables = jdbcTemplate.queryForList(
                 "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' " +
-                "AND table_name IN ('staff_permissions', 'permission_requests', 'role_templates')",
+                "AND table_name IN ('staff_permissions', 'permission_requests', 'role_templates', 'restaurant_subscriptions', 'subscription_plans')",
                 String.class);
-        assertThat(tables).containsExactlyInAnyOrder("staff_permissions", "permission_requests", "role_templates");
+        assertThat(tables).doesNotContain("staff_permissions", "permission_requests", "role_templates", "restaurant_subscriptions", "subscription_plans");
 
-        // Verify key columns on staff_permissions (especially revoked_at from V72's evolved schema)
-        List<String> spColumns = jdbcTemplate.queryForList(
-                "SELECT column_name FROM information_schema.columns WHERE table_name = 'staff_permissions'",
+        // Verify users.role exists for unified staff role management
+        List<String> userColumns = jdbcTemplate.queryForList(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'",
                 String.class);
-        assertThat(spColumns).contains("id", "restaurant_id", "user_id", "permission_key",
-                "granted", "granted_by", "granted_at", "revoked_at", "updated_at");
+        assertThat(userColumns).contains("id", "restaurant_id", "email", "role", "is_active", "pin_hash");
+    }
 
-        // Verify permission_requests has the status check constraint
-        List<String> prColumns = jdbcTemplate.queryForList(
-                "SELECT column_name FROM information_schema.columns WHERE table_name = 'permission_requests'",
+    @Test
+    void v131ActiveOrderAndSyncIndexesExist() {
+        // V131: multi-column composite B-tree indexes for active orders & delta sync pulls
+        List<String> indexes = jdbcTemplate.queryForList(
+                "SELECT indexname FROM pg_indexes WHERE indexname IN (" +
+                "'idx_bills_active_created', 'idx_bills_active_status_created', " +
+                "'idx_menuitems_active_sync', 'idx_bill_payments_sync_pull')",
                 String.class);
-        assertThat(prColumns).contains("id", "restaurant_id", "user_id", "permission_key",
-                "status", "reason", "requested_at", "resolved_by", "resolved_at", "rejection_reason");
-
-        // Verify role_templates has is_default (not is_system — confirms V72 schema)
-        List<String> rtColumns = jdbcTemplate.queryForList(
-                "SELECT column_name FROM information_schema.columns WHERE table_name = 'role_templates'",
-                String.class);
-        assertThat(rtColumns).contains("id", "restaurant_id", "name", "permissions", "is_default");
-        assertThat(rtColumns).doesNotContain("is_system");
+        assertThat(indexes).containsExactlyInAnyOrder(
+                "idx_bills_active_created",
+                "idx_bills_active_status_created",
+                "idx_menuitems_active_sync",
+                "idx_bill_payments_sync_pull"
+        );
     }
 
     @Test
