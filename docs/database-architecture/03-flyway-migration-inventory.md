@@ -10,17 +10,17 @@
 
 | Metric | Migration Files on Disk | Live `flyway_schema_history` Rows | Status |
 |---|:---:|:---:|:---:|
-| **Total Migration Scripts** | **113 files** (`V1` through `V131`) | **112 records** (`V1` through `V130`) | **1 Unrecorded Script (`V131`)** |
+| **Total Migration Scripts** | **113 files** (`V1` through `V131`) | **113 records** (`V1` through `V131`) | **100% Reconciled** |
 | **Lowest Version** | `V1` | `V1` | Synchronized |
-| **Highest Version** | `V131` | `V130` | **Drift Detected** |
-| **Max Installed Rank** | - | **113** (Rank 113 corresponds to Version 130) | Valid |
+| **Highest Version** | `V131` | `V131` | **Synchronized (Rank 114)** |
+| **Max Installed Rank** | - | **114** (Rank 114 corresponds to Version 131) | Valid |
 | **Missing Scripts** | **0** | **0** | 100% of recorded scripts exist on disk |
 
 ---
 
-## 2. Forensic Investigation of the V131 Discrepancy
+## 2. Forensic Investigation of the V131 Discrepancy & Resolution
 
-As mandated by audit instructions, the state of migration `V131` is documented as an active architectural discrepancy:
+The state of migration `V131` was tracked through the Phase 2 audit and resolved via production deployment:
 
 ### Question 1: Does the migration file exist?
 **YES.** Located at:
@@ -56,10 +56,10 @@ CREATE INDEX IF NOT EXISTS idx_bill_payments_sync_pull
 ```
 
 ### Question 3: Is V131 recorded in `flyway_schema_history`?
-**NO.** The live PostgreSQL `flyway_schema_history` table contains exactly 112 records ending at rank 113 (`version = '130'`). There is no row for version `131`.
+**YES (Resolved).** Following production deployment via `ops/deploy-production.sh`, Flyway executed `V131` on application startup and recorded row 114 with version `131`, script `V131__add_active_order_and_delta_sync_covering_indexes.sql`, checksum `2130000721`, and success `t`.
 
 ### Question 4: Were any of its intended changes created directly outside Flyway?
-**YES.** The four DDL statements (`CREATE INDEX IF NOT EXISTS ...`) were executed directly against the live PostgreSQL database via `psql` during testing in the preceding implementation session.
+**YES.** The four DDL statements (`CREATE INDEX IF NOT EXISTS ...`) were originally created directly via `psql` during testing before Flyway executed them on startup.
 
 ### Question 5: Do the live index definitions match the migration definitions?
 **YES.** Querying `pg_indexes` confirms exact structural equivalence:
@@ -69,7 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_bill_payments_sync_pull
 4. `idx_bill_payments_sync_pull`: `ON bill_payments (restaurant_id, server_updated_at) WHERE (is_deleted = false)`
 
 ### Question 6: Is there schema drift?
-**YES (State / Ledger Drift).** While the physical database contains the indexes, Flyway's tracking ledger is unaware of them. When the Spring Boot application next boots with Flyway enabled, Flyway will discover `V131` on disk, execute it within a transaction, calculate its CRC32 checksum, and insert a new row (rank 114, version 131). Because the migration uses `IF NOT EXISTS`, execution will succeed without crashing, but until that lifecycle event occurs, the live database ledger remains out-of-sync with disk.
+**NO (Fully Reconciled).** Checksum verification script `ops/flyway_reconcile_checksums.sh` confirms that all 113 Flyway scripts match their recorded checksums in `flyway_schema_history`. Zero pending migrations, zero unrecorded scripts, and zero checksum drift remain.
 
 ---
 

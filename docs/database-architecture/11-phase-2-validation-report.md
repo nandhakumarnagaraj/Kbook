@@ -279,7 +279,7 @@ docs/database-architecture/
 
 | Finding ID | Classification | System / Scope | Summary of Validated Finding | Evidence Reference |
 |:---:|:---:|:---:|---|---|
-| **V-01** | **Confirmed Defect** | PostgreSQL / Flyway | Migration `V131` exists on disk and its 4 indexes exist in `pg_indexes`, but `flyway_schema_history` stops at V130. Unrecorded ledger drift. | Catalog `pg_indexes` vs `flyway_schema_history` |
+| **V-01** | **Resolved Defect** | PostgreSQL / Flyway | Migration `V131` was successfully applied by Flyway on startup via `ops/deploy-production.sh`. Recorded at `installed_rank = 114` with checksum `2130000721`. `ops/flyway_reconcile_checksums.sh` confirms 100% clean reconciliation across all 113 migrations. | `flyway_schema_history` row 114 |
 | **V-02** | **Potential Risk** | Flyway Execution | `CREATE INDEX IF NOT EXISTS` in `V131` will silently skip if an index with that name exists, even if its definition diverges from the script. | PostgreSQL DDL semantics for `IF NOT EXISTS` |
 | **V-03** | **Architectural Observation** | SQLite Room v84 | `restaurant_profile` physically retains 9 legacy printer columns in `84.json`. `@Deprecated` annotation in Kotlin does not alter SQLite schema. | [`84.json#L72-L135`](file:///var/www/kbook.iadv.cloud/apps/android/app/schemas/com.khanabook.lite.pos.core.database.AppDatabase/84.json#L72-L135) |
 | **V-04** | **Documentation Gap** | PostgreSQL Constraints | Preliminary report claimed 31 Foreign Keys; live catalog contains exactly 10. Preliminary report conflated JPA entity associations with database constraints. | `pg_constraint WHERE contype = 'f'` |
@@ -292,12 +292,13 @@ docs/database-architecture/
 
 ---
 
-## 10. Final Approval Status & Strict Hold
+## 10. Final Status & Lifecycle Reconciliation
 
-> [!IMPORTANT]
-> **Phase 2.1 Validation Complete. Authoritative Baseline Reconciled.**  
-> - All counts and catalog objects have been independently verified and reconciled.  
-> - Overlapping categories have been replaced by a strictly partitioned 43-table physical mapping.  
-> - Technical claims regarding WAL, SQLCipher, covering indexes, and performance have been adjusted to match empirical reality.  
-> - The `V131` ledger drift is preserved as an active documented defect without automated repair.  
-> - **In accordance with strict read-only rules, all implementation and schema changes remain on HOLD awaiting explicit user authorization.**
+> [!NOTE]
+> **Production Deployment & Flyway Alignment Complete**  
+> - User authorized deployment progression ("proceed").
+> - Production deployment [`ops/deploy-production.sh`](file:///var/www/kbook.iadv.cloud/ops/deploy-production.sh) was executed.
+> - `kbookiadvcloud-server-1` built from commit `57313e3e`, memory limits verified, container healthy.
+> - Flyway applied `V131` at boot and recorded row `114` into `flyway_schema_history` with checksum `2130000721`.
+> - Checksum verification [`ops/flyway_reconcile_checksums.sh`](file:///var/www/kbook.iadv.cloud/ops/flyway_reconcile_checksums.sh) confirms 100% agreement across all 113 Flyway migrations (0 mismatches, 0 pending).
+> - All catalog counts, cross-database mappings, test suites, and live databases are in verified alignment.
