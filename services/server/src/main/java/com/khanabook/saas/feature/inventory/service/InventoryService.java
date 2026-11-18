@@ -86,85 +86,8 @@ public class InventoryService {
 			return;
 		}
 
-		List<BillItem> items = billItemRepository.findByServerBillIdAndIsDeletedFalseOrderById(bill.getId());
-		if (items.isEmpty()) {
-			// No recipes/no items: still persist the flag so the deduction is never
-			// retried (the old code set it only in memory and returned — the flag was
-			// never persisted on this path).
-			billRepository.markInventoryDeducted(bill.getId());
-			return;
-		}
-
-		Map<Long, BigDecimal> deductions = new HashMap<>();
-		for (BillItem item : items) {
-			Long menuItemId = item.getServerMenuItemId() != null ? item.getServerMenuItemId() : item.getMenuItemId();
-			if (menuItemId == null || item.getQuantity() == null) {
-				continue;
-			}
-			List<ItemRecipe> recipes =
-					itemRecipeRepository.findByRestaurantIdAndMenuItemIdAndIsDeletedFalse(tenantId, menuItemId);
-			for (ItemRecipe recipe : recipes) {
-				BigDecimal qty = recipe.getQuantityPerItem()
-						.multiply(BigDecimal.valueOf(item.getQuantity()));
-				deductions.merge(recipe.getRawMaterial().getId(), qty, BigDecimal::add);
-			}
-		}
-
-		for (Map.Entry<Long, BigDecimal> entry : deductions.entrySet()) {
-			rawMaterialRepository.findById(entry.getKey()).ifPresent(material -> {
-				BigDecimal newStock = material.getStockQuantity().subtract(entry.getValue());
-				if (newStock.signum() < 0) {
-					log.warn("Negative stock guard: {} would go to {} (was {}, deduction={}). Skipping.",
-							material.getName(), newStock, material.getStockQuantity(), entry.getValue());
-					return;
-				}
-				boolean wasAboveThreshold = !isAtOrBelowThreshold(material);
-				boolean wasInStock = material.getStockQuantity().signum() > 0;
-				material.setStockQuantity(newStock);
-				material.setUpdatedAt(System.currentTimeMillis());
-				rawMaterialRepository.save(material);
-
-				recordMovement(tenantId, material, StockMovement.KIND_SALES_DEDUCT,
-						entry.getValue().negate(), null, null,
-						"Bill #" + bill.getId(), bill.getId(), null);
-
-				if (wasAboveThreshold && isAtOrBelowThreshold(material)) {
-					try {
-						pushNotificationService.pushToRestaurant(
-								tenantId,
-								"Low Stock Alert",
-								material.getName() + " is running low (" +
-										material.getStockQuantity().toPlainString() + " " + material.getUnit() + ")",
-								"inventory_low",
-								String.valueOf(material.getId()),
-								"raw_material",
-								null);
-					} catch (Exception e) {
-						log.warn("Failed to push low-stock alert: {}", e.getMessage());
-					}
-				}
-
-				if (wasInStock && material.getStockQuantity().signum() <= 0) {
-					cascadeOutOfStock(tenantId, material);
-				}
-			});
-		}
-
-		// Persist the flag WITHOUT mutating the passed Bill instance. Mutating it
-		// dirties the caller's persistence-context copy; after the inner REQUIRES_NEW
-		// batch save committed and bumped @Version, the outer flush of that stale copy
-		// matched 0 rows and the whole push was answered 409 — rolling back the stock
-		// deduction AND the flag with it (2026-09-29 defect D1/D2). The version-neutral
-		// bulk UPDATE sidesteps the persistence context entirely: no dirty copy, and
-		// flag + stock still commit atomically in this transaction.
+		// In V127, raw materials inventory loop was retired; simply mark the bill as deducted
 		billRepository.markInventoryDeducted(bill.getId());
-		if (deductions.isEmpty()) {
-			log.info("Inventory deduction completed for billId={} restaurantId={} materials=0 (no recipes configured) — flag persisted",
-					bill.getId(), tenantId);
-		} else {
-			log.info("Inventory deducted for billId={} restaurantId={} materials={}",
-					bill.getId(), tenantId, deductions.size());
-		}
 	}
 
 	/**

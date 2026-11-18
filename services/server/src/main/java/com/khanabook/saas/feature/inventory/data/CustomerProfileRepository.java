@@ -1,28 +1,48 @@
 package com.khanabook.saas.feature.inventory.data;
 
-import com.khanabook.saas.feature.inventory.data.CustomerProfile;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * @deprecated Retired in V127. Customer data is stored directly on bills.
+ */
+@Deprecated
 @Repository
-public interface CustomerProfileRepository extends JpaRepository<CustomerProfile, Long> {
+public class CustomerProfileRepository {
 
-    Optional<CustomerProfile> findByRestaurantIdAndPhoneHash(Long restaurantId, String phoneHash);
+    public Optional<CustomerProfile> findByRestaurantIdAndPhoneHash(Long restaurantId, String phoneHash) {
+        return Optional.empty();
+    }
 
-    List<CustomerProfile> findByRestaurantIdOrderByTotalSpendDesc(Long restaurantId);
+    public List<CustomerProfile> findByRestaurantIdOrderByTotalSpendDesc(Long restaurantId) {
+        return Collections.emptyList();
+    }
 
-    @Query("SELECT c.segment, COUNT(c) FROM CustomerProfile c WHERE c.restaurantId = :restaurantId GROUP BY c.segment")
-    List<Object[]> countBySegmentForRestaurant(@Param("restaurantId") Long restaurantId);
+    public List<Object[]> countBySegmentForRestaurant(Long restaurantId) {
+        return Collections.emptyList();
+    }
 
-    @Query("SELECT COUNT(c) FROM CustomerProfile c WHERE c.restaurantId = :restaurantId AND c.totalOrders >= :minOrders")
-    long countRepeatCustomers(@Param("restaurantId") Long restaurantId, @Param("minOrders") long minOrders);
+    public long countRepeatCustomers(Long restaurantId, long minOrders) {
+        return 0L;
+    }
 
-    @Query("SELECT COALESCE(AVG(c.averageOrderValue), 0) FROM CustomerProfile c WHERE c.restaurantId = :restaurantId")
-    BigDecimal avgOrderValueForRestaurant(@Param("restaurantId") Long restaurantId);
+    public BigDecimal avgOrderValueForRestaurant(Long restaurantId) {
+        return BigDecimal.ZERO;
+    }
+
+    public <S extends CustomerProfile> S save(S entity) {
+        return entity;
+    }
+
+    public Optional<CustomerProfile> findById(Long id) {
+        return Optional.empty();
+    }
+
+    public void deleteById(Long id) {}
+
+    public void deleteAll() {}
 }

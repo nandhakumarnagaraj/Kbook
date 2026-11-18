@@ -54,6 +54,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@org.junit.jupiter.api.Disabled("Retired in V127 along with dormant raw materials inventory loop")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class NegativeInventoryGuardTest extends BaseIntegrationTest {
 

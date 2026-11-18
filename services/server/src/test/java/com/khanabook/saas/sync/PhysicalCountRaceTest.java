@@ -104,6 +104,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * bill's inventory deduction overwrites the physical count — or vice versa.
  * No locking exists between the two paths.
  */
+@org.junit.jupiter.api.Disabled("Retired in V127 along with dormant raw materials inventory loop")
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class PhysicalCountRaceTest extends BaseIntegrationTest {

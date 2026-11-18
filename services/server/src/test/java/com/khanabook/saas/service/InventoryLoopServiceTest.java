@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * reason, physical-count variance, movement ledger completeness, and
  * zero-stock cascade hiding dependent menu items.
  */
+@org.junit.jupiter.api.Disabled("Retired in V127 along with dormant raw materials inventory loop")
 class InventoryLoopServiceTest extends BaseIntegrationTest {
 
     @Autowired private InventoryService inventoryService;

@@ -41,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * crossing the low-stock threshold fires exactly one alert, and material
  * CRUD is tenant-scoped.
  */
+@org.junit.jupiter.api.Disabled("Retired in V127 along with dormant raw materials inventory loop")
 @AutoConfigureMockMvc
 class InventoryServiceIntegrationTest extends BaseIntegrationTest {
 

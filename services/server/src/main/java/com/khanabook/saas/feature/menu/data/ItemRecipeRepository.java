@@ -1,26 +1,49 @@
 package com.khanabook.saas.feature.menu.data;
 
-import com.khanabook.saas.feature.menu.data.ItemRecipe;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * @deprecated Retired in V127. POS operates on finished MenuItem and ItemVariant catalog records.
+ */
+@Deprecated
 @Repository
-public interface ItemRecipeRepository extends JpaRepository<ItemRecipe, Long> {
+public class ItemRecipeRepository {
 
-    List<ItemRecipe> findByRestaurantIdAndMenuItemIdAndIsDeletedFalse(Long restaurantId, Long menuItemId);
+    public List<ItemRecipe> findByRestaurantIdAndMenuItemIdAndIsDeletedFalse(Long restaurantId, Long menuItemId) {
+        return Collections.emptyList();
+    }
 
-    List<ItemRecipe> findByRestaurantIdAndIsDeletedFalse(Long restaurantId);
+    public List<ItemRecipe> findByRestaurantIdAndIsDeletedFalse(Long restaurantId) {
+        return Collections.emptyList();
+    }
 
-    @Query("SELECT DISTINCT r.menuItemId FROM ItemRecipe r " +
-           "WHERE r.restaurantId = :restaurantId AND r.isDeleted = false")
-    List<Long> findMenuItemIdsWithRecipes(@Param("restaurantId") Long restaurantId);
+    public List<Long> findMenuItemIdsWithRecipes(Long restaurantId) {
+        return Collections.emptyList();
+    }
 
-    @Query("SELECT r FROM ItemRecipe r WHERE r.restaurantId = :restaurantId " +
-           "AND r.rawMaterial.id = :rawMaterialId AND r.isDeleted = false")
-    List<ItemRecipe> findByRestaurantIdAndRawMaterial(@Param("restaurantId") Long restaurantId,
-                                                      @Param("rawMaterialId") Long rawMaterialId);
+    public List<ItemRecipe> findByRestaurantIdAndRawMaterial(Long restaurantId, Long rawMaterialId) {
+        return Collections.emptyList();
+    }
+
+    public Optional<ItemRecipe> findById(Long id) {
+        return Optional.empty();
+    }
+
+    public <S extends ItemRecipe> S save(S entity) {
+        return entity;
+    }
+
+    public <S extends ItemRecipe> S saveAndFlush(S entity) {
+        return save(entity);
+    }
+
+    public void flush() {}
+
+    public void deleteById(Long id) {}
+
+    public void deleteAll() {}
 }

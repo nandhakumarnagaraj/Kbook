@@ -1,25 +1,46 @@
 package com.khanabook.saas.feature.inventory.data;
 
-import com.khanabook.saas.feature.inventory.data.StockMovement;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * @deprecated Retired in V127. POS operates on finished MenuItem and ItemVariant catalog records.
+ */
+@Deprecated
 @Repository
-public interface StockMovementRepository extends JpaRepository<StockMovement, Long> {
+public class StockMovementRepository {
 
-    List<StockMovement> findByRestaurantIdAndCreatedAtBetween(Long restaurantId, Long from, Long to);
+    public List<StockMovement> findByRestaurantIdAndCreatedAtBetween(Long restaurantId, Long from, Long to) {
+        return Collections.emptyList();
+    }
 
-    List<StockMovement> findByRestaurantIdAndRawMaterialIdOrderByCreatedAtDesc(
-            Long restaurantId, Long rawMaterialId);
+    public List<StockMovement> findByRestaurantIdAndRawMaterialIdOrderByCreatedAtDesc(Long restaurantId, Long rawMaterialId) {
+        return Collections.emptyList();
+    }
 
-    @Query("SELECT COALESCE(SUM(m.quantity), 0) FROM StockMovement m " +
-           "WHERE m.restaurantId = :restaurantId AND m.rawMaterial.id = :rawMaterialId " +
-           "AND m.kind IN ('SALES_DEDUCT','WASTAGE') AND m.createdAt >= :from")
-    java.math.BigDecimal sumConsumedSince(@Param("restaurantId") Long restaurantId,
-                                          @Param("rawMaterialId") Long rawMaterialId,
-                                          @Param("from") Long from);
+    public BigDecimal sumConsumedSince(Long restaurantId, Long rawMaterialId, Long from) {
+        return BigDecimal.ZERO;
+    }
+
+    public Optional<StockMovement> findById(Long id) {
+        return Optional.empty();
+    }
+
+    public <S extends StockMovement> S save(S entity) {
+        return entity;
+    }
+
+    public <S extends StockMovement> S saveAndFlush(S entity) {
+        return save(entity);
+    }
+
+    public void flush() {}
+
+    public void deleteById(Long id) {}
+
+    public void deleteAll() {}
 }
