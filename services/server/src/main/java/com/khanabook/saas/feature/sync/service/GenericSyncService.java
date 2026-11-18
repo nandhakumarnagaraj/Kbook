@@ -399,6 +399,12 @@ public class GenericSyncService {
 		java.util.Map<java.util.UUID, Bill> winningBillByToken = new java.util.HashMap<>();
 		// alias localId -> winning localId (same publicToken, superseded snapshot)
 		java.util.Map<Long, Long> billAliasLocalIds = new java.util.HashMap<>();
+		// client localId -> persisted localId (when canonical identity matches an existing row with a different localId)
+		java.util.Map<Long, Long> clientToExistingLocalIdMap = new java.util.HashMap<>();
+		java.util.Set<Long> clientPayloadLocalIds = payload.stream()
+				.map(BaseSyncEntity::getLocalId)
+				.filter(Objects::nonNull)
+				.collect(Collectors.toSet());
 
 		for (T record : payload) {
 			if (record.getLocalId() == null && record.getId() != null) {
@@ -660,7 +666,7 @@ public class GenericSyncService {
 								.findFirst().orElse(null);
 					}
 
-					// ── Priority 2: publicToken (canonical identity) — checked BEFORE
+					// ── Priority 2: Canonical identity — checked BEFORE
 					// (deviceId, localId) to prevent wrong-row match on localId reuse ──
 					if (existingRecord == null
 							&& incomingRecord instanceof Bill incomingBill
@@ -669,6 +675,21 @@ public class GenericSyncService {
 						existingRecord = (T) billRepo
 								.findByRestaurantIdAndPublicTokenAndIsDeletedFalse(targetTenantId, incomingBill.getPublicToken())
 								.orElse(null);
+					}
+
+					if (existingRecord == null
+							&& incomingRecord instanceof BillPayment incomingPayment
+							&& repository instanceof BillPaymentRepository paymentRepo) {
+						if (incomingPayment.getGatewayTxnId() != null && !incomingPayment.getGatewayTxnId().isBlank()) {
+							existingRecord = (T) paymentRepo
+									.findByRestaurantIdAndGatewayTxnId(targetTenantId, incomingPayment.getGatewayTxnId())
+									.orElse(null);
+						}
+						if (existingRecord == null && incomingPayment.getOperationId() != null && !incomingPayment.getOperationId().isBlank()) {
+							existingRecord = (T) paymentRepo
+									.findByRestaurantIdAndOperationId(targetTenantId, incomingPayment.getOperationId())
+									.orElse(null);
+						}
 					}
 
 					// ── Priority 3: (deviceId, localId) — legacy fallback ──
@@ -761,7 +782,16 @@ public class GenericSyncService {
 						incomingRecord.setIsDeleted(false);
 					}
 
+					// Resolve relational IDs early for all records so downstream comparisons and ownership
+					// checks operate on resolved server IDs.
+					relationalIdResolver.resolve(incomingRecord, idMaps);
+
+					Long clientLocalId = incomingRecord.getLocalId();
+
 					if (existingRecord != null) {
+						if (!Objects.equals(clientLocalId, existingRecord.getLocalId())) {
+							clientToExistingLocalIdMap.put(clientLocalId, existingRecord.getLocalId());
+						}
 						if (incomingRecord instanceof Bill incomingBill && existingRecord instanceof Bill existingBill
 								&& trustedTerminalId != null) {
 							String owner = BillTerminalUtil.ownerTerminalId(existingBill);
@@ -938,18 +968,16 @@ public class GenericSyncService {
 							if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
 								recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
 							}
-							successfulLocalIds.add(incomingRecord.getLocalId());
+							successfulLocalIds.add(clientLocalId);
 						} else if (billSyncService.isTransactionalIdempotentRetry(incomingRecord, existingRecord)) {
-							Long localId = incomingRecord.getLocalId();
-							successfulLocalIds.add(localId);
-							localToServerIdMap.put(localId, existingRecord.getId());
+							successfulLocalIds.add(clientLocalId);
+							localToServerIdMap.put(clientLocalId, existingRecord.getId());
 							log.info("Acknowledged idempotent retry type={} tenantId={} deviceId={} localId={} serverId={}",
 									incomingRecord.getClass().getSimpleName(), targetTenantId, incomingRecord.getDeviceId(),
-									localId, existingRecord.getId());
+									clientLocalId, existingRecord.getId());
 						} else {
-							Long failedLocalId = incomingRecord.getLocalId();
-							failedLocalIds.add(failedLocalId);
-							failedReasons.put(failedLocalId, "Incoming record is older than the server record");
+							failedLocalIds.add(clientLocalId);
+							failedReasons.put(clientLocalId, "Incoming record is older than the server record");
 						}
 					} else {
 							// Idempotency guards for bill payments delegated to BillPaymentSyncService
@@ -1104,6 +1132,19 @@ public class GenericSyncService {
 						localToServerIdMap.put(entity.getLocalId(), entity.getId());
 					}
 				}
+				for (Map.Entry<Long, Long> idAliasEntry : clientToExistingLocalIdMap.entrySet()) {
+					Long clientLid = idAliasEntry.getKey();
+					Long existingLid = idAliasEntry.getValue();
+					Long serverId = localToServerIdMap.get(existingLid);
+					if (serverId != null) {
+						localToServerIdMap.put(clientLid, serverId);
+						successfulLocalIds.add(clientLid);
+						if (!clientPayloadLocalIds.contains(existingLid)) {
+							localToServerIdMap.remove(existingLid);
+							successfulLocalIds.remove(existingLid);
+						}
+					}
+				}
 			} catch (RuntimeException e) {
 				// saveAll is all-or-nothing: a single unique-constraint collision
 				// (e.g. ux_bills_restaurant_invoice_series_active) rolls back the
@@ -1153,6 +1194,28 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 								if (record.getLocalId() != null && existing.getId() != null) {
 									localToServerIdMap.put(record.getLocalId(), existing.getId());
 								}
+								for (Map.Entry<Long, Long> idAliasEntry : clientToExistingLocalIdMap.entrySet()) {
+									if (idAliasEntry.getValue().equals(record.getLocalId())) {
+										localToServerIdMap.put(idAliasEntry.getKey(), existing.getId());
+										successfulLocalIds.add(idAliasEntry.getKey());
+									}
+								}
+								// Don't add to failedLocalIds — this is a success
+								continue;
+							}
+						}
+						if (record instanceof BillPayment failedPayment) {
+							BillPayment existing = billPaymentSyncService.attemptIdempotentRecovery(failedPayment, record.getRestaurantId());
+							if (existing != null) {
+								if (record.getLocalId() != null && existing.getId() != null) {
+									localToServerIdMap.put(record.getLocalId(), existing.getId());
+								}
+								for (Map.Entry<Long, Long> idAliasEntry : clientToExistingLocalIdMap.entrySet()) {
+									if (idAliasEntry.getValue().equals(record.getLocalId())) {
+										localToServerIdMap.put(idAliasEntry.getKey(), existing.getId());
+										successfulLocalIds.add(idAliasEntry.getKey());
+									}
+								}
 								// Don't add to failedLocalIds — this is a success
 								continue;
 							}
@@ -1168,6 +1231,13 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 							successfulLocalIds.remove(record.getLocalId());
 							failedLocalIds.add(record.getLocalId());
 							failedReasons.put(record.getLocalId(), sanitizeFailureReason(recordCause));
+							for (Map.Entry<Long, Long> idAliasEntry : clientToExistingLocalIdMap.entrySet()) {
+								if (idAliasEntry.getValue().equals(record.getLocalId())) {
+									successfulLocalIds.remove(idAliasEntry.getKey());
+									failedLocalIds.add(idAliasEntry.getKey());
+									failedReasons.put(idAliasEntry.getKey(), sanitizeFailureReason(recordCause));
+								}
+							}
 						}
 					} catch (RuntimeException recordEx) {
 						// The aborted-outer-transaction case and other runtime failures:
@@ -1404,6 +1474,13 @@ log.error("Batch save failed (recoverable conflict) during saveAll for {} record
 		incoming.setId(existing.getId());
 		incoming.setVersion(existing.getVersion());
 		incoming.setCreatedAt(existing.getCreatedAt());
+		incoming.setLocalId(existing.getLocalId());
+		if (existing.getDeviceId() != null) {
+			incoming.setDeviceId(existing.getDeviceId());
+		}
+		if (existing.getRestaurantId() != null) {
+			incoming.setRestaurantId(existing.getRestaurantId());
+		}
 	}
 
 	static void preserveServerOwnedState(BaseSyncEntity incoming, BaseSyncEntity existing) {

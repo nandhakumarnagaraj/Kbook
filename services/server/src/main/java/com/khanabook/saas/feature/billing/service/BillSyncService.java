@@ -300,12 +300,33 @@ public class BillSyncService {
                 || incoming instanceof BillPayment;
         if (!transactional || existing == null || incoming.getLocalId() == null
                 || existing.getLocalId() == null
-                || !incoming.getLocalId().equals(existing.getLocalId())
                 || !Objects.equals(incoming.getDeviceId(), existing.getDeviceId())
                 || !Objects.equals(incoming.getRestaurantId(), existing.getRestaurantId())
                 || existing.getId() == null) {
             return false;
         }
+
+        // Check if identity matches: either by identical localId or by canonical business identity
+        boolean identityMatch = Objects.equals(incoming.getLocalId(), existing.getLocalId());
+        if (!identityMatch) {
+            if (incoming instanceof Bill incomingBill && existing instanceof Bill existingBill) {
+                identityMatch = incomingBill.getPublicToken() != null
+                        && incomingBill.getPublicToken().equals(existingBill.getPublicToken());
+            } else if (incoming instanceof BillPayment incomingPayment && existing instanceof BillPayment existingPayment) {
+                identityMatch = (incomingPayment.getGatewayTxnId() != null && !incomingPayment.getGatewayTxnId().isBlank()
+                        && incomingPayment.getGatewayTxnId().equals(existingPayment.getGatewayTxnId()))
+                        || (incomingPayment.getOperationId() != null && !incomingPayment.getOperationId().isBlank()
+                        && incomingPayment.getOperationId().equals(existingPayment.getOperationId()));
+            }
+        }
+        if (!identityMatch) {
+            return false;
+        }
+
+        if (incoming instanceof BillPayment incomingPayment && existing instanceof BillPayment existingPayment) {
+            return isExactPaymentMatch(existingPayment, incomingPayment);
+        }
+
         // For bills, also verify that the payment/order status hasn't changed —
         // a retry with a different paymentStatus (e.g. pending -> paid) is NOT idempotent.
         if (incoming instanceof Bill incomingBill && existing instanceof Bill existingBill) {

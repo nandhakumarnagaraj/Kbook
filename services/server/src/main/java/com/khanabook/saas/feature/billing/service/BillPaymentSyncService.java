@@ -105,4 +105,30 @@ public class BillPaymentSyncService {
 
         return IdempotencyResult.notFound();
     }
+
+    /**
+     * Recovers an already persisted payment row when a unique-constraint violation occurs
+     * during batch/per-record save (e.g. gateway_txn_id or operation_id collision from network retry).
+     */
+    public BillPayment attemptIdempotentRecovery(BillPayment failedPayment, Long restaurantId) {
+        String txnId = failedPayment.getGatewayTxnId();
+        if (txnId != null && !txnId.isBlank()) {
+            var match = billPaymentRepository.findByRestaurantIdAndGatewayTxnId(restaurantId, txnId);
+            if (match.isPresent()) {
+                log.info("Idempotent recovery: payment gatewayTxnId={} already persisted serverId={}",
+                        txnId, match.get().getId());
+                return match.get();
+            }
+        }
+        String opId = failedPayment.getOperationId();
+        if (opId != null && !opId.isBlank()) {
+            var match = billPaymentRepository.findByRestaurantIdAndOperationId(restaurantId, opId);
+            if (match.isPresent()) {
+                log.info("Idempotent recovery: payment operationId={} already persisted serverId={}",
+                        opId, match.get().getId());
+                return match.get();
+            }
+        }
+        return null;
+    }
 }
