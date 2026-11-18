@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -258,40 +260,45 @@ public class PushNotificationService {
             .setAndroidConfig(androidConfig.build())
             .build();
 
-        try {
-            BatchResponse response = FirebaseMessaging.getInstance(firebaseApp).sendEachForMulticast(multicast);
-            int successCount = response.getSuccessCount();
-            int failureCount = response.getFailureCount();
-            log.info("Push sent to restaurantId={} success={} failure={} type={}",
-                restaurantId, successCount, failureCount, notificationType);
+        Long eventId = event.getId();
+        executePushTaskSafely(() -> {
+            try {
+                BatchResponse response = FirebaseMessaging.getInstance(firebaseApp).sendEachForMulticast(multicast);
+                int successCount = response.getSuccessCount();
+                int failureCount = response.getFailureCount();
+                log.info("Push sent to restaurantId={} success={} failure={} type={}",
+                    restaurantId, successCount, failureCount, notificationType);
 
-            // isPushed means "at least one device accepted by FCM" — consistent
-            // with the targeted path's semantics.
-            if (successCount > 0) {
-                event.setIsPushed(true);
-                notificationEventRepo.save(event);
-            }
+                if (successCount > 0 && eventId != null) {
+                    notificationEventRepo.findById(eventId).ifPresent(ev -> {
+                        ev.setIsPushed(true);
+                        notificationEventRepo.save(ev);
+                    });
+                }
 
-            if (failureCount > 0) {
-                List<SendResponse> responses = response.getResponses();
-                for (int i = 0; i < responses.size() && i < tokens.size(); i++) {
-                    SendResponse sendResponse = responses.get(i);
-                    if (!sendResponse.isSuccessful()) {
-                        Exception ex = sendResponse.getException();
-                        String errorMsg = ex != null ? ex.getMessage() : "unknown";
-                        log.warn("Push failed for token: {}", errorMsg);
-                        if (isUnregistered(ex)) {
-                            DeviceToken dt = tokens.get(i);
-                            dt.setActive(false);
-                            dt.setUpdatedAt(System.currentTimeMillis());
-                            deviceTokenRepo.save(dt);
+                if (failureCount > 0) {
+                    List<SendResponse> responses = response.getResponses();
+                    for (int i = 0; i < responses.size() && i < tokens.size(); i++) {
+                        SendResponse sendResponse = responses.get(i);
+                        if (!sendResponse.isSuccessful()) {
+                            Exception ex = sendResponse.getException();
+                            String errorMsg = ex != null ? ex.getMessage() : "unknown";
+                            log.warn("Push failed for token: {}", errorMsg);
+                            if (isUnregistered(ex)) {
+                                DeviceToken dt = tokens.get(i);
+                                dt.setActive(false);
+                                dt.setUpdatedAt(System.currentTimeMillis());
+                                deviceTokenRepo.save(dt);
+                            }
                         }
                     }
                 }
+            } catch (FirebaseMessagingException e) {
+                log.error("Failed to send push to restaurantId={}: {}", restaurantId, e.getMessage());
+            } catch (Exception e) {
+                log.error("Unexpected error sending push to restaurantId={}: {}", restaurantId, e.getMessage(), e);
             }
-        } catch (FirebaseMessagingException e) {
-            log.error("Failed to send push to restaurantId={}: {}", restaurantId, e.getMessage());
-        }
+        }, restaurantId);
     }
 
     /**
@@ -317,38 +324,70 @@ public class PushNotificationService {
         NotificationEvent event = saveNotificationEvent(restaurantId, title, message,
             notificationType, referenceId, referenceType, amount);
 
-        int successCount = 0;
-        for (DeviceToken dt : tokens) {
-            Map<String, String> data = Map.of(
-                "title", title != null ? title : "",
-                "message", message != null ? message : "",
-                "type", notificationType != null ? notificationType : "",
-                "referenceId", referenceId != null ? referenceId : "",
-                "referenceType", referenceType != null ? referenceType : "",
-                "notificationId", event.getId().toString(),
-                "amount", amount != null ? amount.toPlainString() : ""
-            );
-            try {
-                sendDirectPush(dt.getToken(), title, message, data);
-                successCount++;
-            } catch (FirebaseMessagingException e) {
-                log.warn("Targeted push failed for token: {}", e.getMessage());
-                if (isUnregistered(e)) {
-                    dt.setActive(false);
-                    dt.setUpdatedAt(System.currentTimeMillis());
-                    deviceTokenRepo.save(dt);
+        Long eventId = event.getId();
+        executePushTaskSafely(() -> {
+            int successCount = 0;
+            for (DeviceToken dt : tokens) {
+                Map<String, String> data = Map.of(
+                    "title", title != null ? title : "",
+                    "message", message != null ? message : "",
+                    "type", notificationType != null ? notificationType : "",
+                    "referenceId", referenceId != null ? referenceId : "",
+                    "referenceType", referenceType != null ? referenceType : "",
+                    "notificationId", eventId != null ? eventId.toString() : "",
+                    "amount", amount != null ? amount.toPlainString() : ""
+                );
+                try {
+                    sendDirectPush(dt.getToken(), title, message, data);
+                    successCount++;
+                } catch (FirebaseMessagingException e) {
+                    log.warn("Targeted push failed for token: {}", e.getMessage());
+                    if (isUnregistered(e)) {
+                        dt.setActive(false);
+                        dt.setUpdatedAt(System.currentTimeMillis());
+                        deviceTokenRepo.save(dt);
+                    }
+                } catch (Exception e) {
+                    log.warn("Targeted push failed unexpectedly: {}", e.getMessage());
                 }
-            } catch (Exception e) {
-                log.warn("Targeted push failed unexpectedly: {}", e.getMessage());
             }
-        }
 
-        log.info("Targeted push sent to users={} restaurantId={} success={}/{} type={}",
-            userIds, restaurantId, successCount, tokens.size(), notificationType);
+            log.info("Targeted push sent to users={} restaurantId={} success={}/{} type={}",
+                userIds, restaurantId, successCount, tokens.size(), notificationType);
 
-        if (successCount > 0) {
-            event.setIsPushed(true);
-            notificationEventRepo.save(event);
+            if (successCount > 0 && eventId != null) {
+                notificationEventRepo.findById(eventId).ifPresent(ev -> {
+                    ev.setIsPushed(true);
+                    notificationEventRepo.save(ev);
+                });
+            }
+        }, restaurantId);
+    }
+
+    /**
+     * Dispatches an FCM send task to the background push executor.
+     * If an outer database transaction is active (e.g. during a bill sync push),
+     * execution is deferred until after transaction commit so that remote FCM
+     * network calls never hold database connection locks or stall caller threads.
+     */
+    private void executePushTaskSafely(Runnable task, Long restaurantId) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        pushExecutor.execute(task);
+                    } catch (java.util.concurrent.RejectedExecutionException e) {
+                        log.debug("Push task discarded (executor saturated) for restaurantId={}", restaurantId);
+                    }
+                }
+            });
+        } else {
+            try {
+                pushExecutor.execute(task);
+            } catch (java.util.concurrent.RejectedExecutionException e) {
+                log.debug("Push task discarded (executor saturated) for restaurantId={}", restaurantId);
+            }
         }
     }
 

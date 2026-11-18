@@ -39,6 +39,12 @@ public class DailyClosingReportService {
 
     private static final DateTimeFormatter DISPLAY_DATE_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter TIMESTAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+    private static final java.util.regex.Pattern EMAIL_PATTERN =
+            java.util.regex.Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+
+    public static boolean isValidEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email.trim()).matches();
+    }
 
     /**
      * Aggregates financial and shift data for a given restaurant and business date.
@@ -206,6 +212,12 @@ public class DailyClosingReportService {
 
         String primaryRecipient = recipientsRaw.split("[,;]")[0].trim();
         if (primaryRecipient.isBlank()) {
+            return null;
+        }
+
+        if (!isValidEmail(primaryRecipient)) {
+            log.warn("Invalid email address configured for restaurant {}: '{}'. Skipping daily closing email outbox insertion.",
+                    restaurantId, primaryRecipient);
             return null;
         }
 

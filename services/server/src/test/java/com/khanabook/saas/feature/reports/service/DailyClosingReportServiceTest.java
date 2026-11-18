@@ -255,4 +255,18 @@ class DailyClosingReportServiceTest {
         assertThat(result.getSentAt()).isNull();
         assertThat(result.getAttemptCount()).isEqualTo(1);
     }
+
+    @Test
+    void rejectsInvalidEmailAndDoesNotQueueOutbox() throws Exception {
+        RestaurantProfile profile = createMockProfile();
+        profile.setEmail("8791136355"); // Phone number entered as email
+        profile.setDailyClosingEmailRecipients("8791136355");
+        when(restaurantProfileRepository.findByRestaurantId(tenantId)).thenReturn(Optional.of(profile));
+
+        EmailOutbox result = service.generateAndSendReport(tenantId, businessDate, false);
+
+        assertThat(result).isNull();
+        verify(emailOutboxRepository, never()).save(any(EmailOutbox.class));
+        verify(emailNotificationService, never()).sendDailyClosingReport(anyString(), anyString(), anyString());
+    }
 }

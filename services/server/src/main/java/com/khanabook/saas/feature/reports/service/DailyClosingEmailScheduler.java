@@ -54,6 +54,10 @@ public class DailyClosingEmailScheduler {
         if (recipient == null || recipient.isBlank()) {
             return;
         }
+        String primaryRecipient = recipient.split("[,;]")[0].trim();
+        if (!DailyClosingReportService.isValidEmail(primaryRecipient)) {
+            return;
+        }
 
         ZoneId zone = BusinessDay.zoneOf(profile.getTimezone());
         ZonedDateTime now = ZonedDateTime.now(zone);

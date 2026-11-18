@@ -3,6 +3,7 @@ package com.khanabook.saas.feature.notifications.service;
 import com.google.firebase.FirebaseApp;
 import com.khanabook.saas.feature.notifications.data.DeviceToken;
 import com.khanabook.saas.feature.notifications.data.DeviceTokenRepository;
+import com.khanabook.saas.feature.notifications.data.NotificationEvent;
 import com.khanabook.saas.feature.notifications.data.NotificationEventRepository;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,7 @@ import java.util.concurrent.RejectedExecutionException;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -64,6 +66,12 @@ class PushSyncNowOffloadTest {
 	void setUp() {
 		service = new PushNotificationService(deviceTokenRepo, notificationEventRepo,
 				restaurantProfileRepo, firebaseApp, Runnable::run);
+		lenient().when(notificationEventRepo.save(any(NotificationEvent.class)))
+				.thenAnswer(i -> {
+					NotificationEvent e = i.getArgument(0);
+					if (e.getId() == null) e.setId(99L);
+					return e;
+				});
 	}
 
 	private DeviceToken token(long id) {
@@ -132,5 +140,32 @@ class PushSyncNowOffloadTest {
 		assertThatCode(() -> service.pushSyncNow(RESTAURANT)).doesNotThrowAnyException();
 		verify(deviceTokenRepo, times(1)).findByRestaurantIdAndActiveTrue(RESTAURANT);
 		verify(deviceTokenRepo, never()).save(any(DeviceToken.class));
+	}
+
+	@Test
+	@DisplayName("pushToRestaurant offloads safely to executor without failing caller")
+	void pushToRestaurantOffloadsSafely() {
+		when(deviceTokenRepo.findByRestaurantIdAndActiveTrue(RESTAURANT))
+				.thenReturn(List.of(token(1)));
+
+		assertThatCode(() -> service.pushToRestaurant(
+				RESTAURANT, "Title", "Msg", "payment_received", "bill-1", "bill", java.math.BigDecimal.valueOf(100)))
+				.doesNotThrowAnyException();
+		verify(notificationEventRepo, times(1)).save(any(NotificationEvent.class));
+	}
+
+	@Test
+	@DisplayName("pushToRestaurant discards cleanly when executor rejects")
+	void pushToRestaurantDiscardsWhenExecutorRejects() {
+		Executor abortingExecutor = task -> { throw new RejectedExecutionException("queue full"); };
+		PushNotificationService aborting = new PushNotificationService(deviceTokenRepo,
+				notificationEventRepo, restaurantProfileRepo, firebaseApp, abortingExecutor);
+
+		when(deviceTokenRepo.findByRestaurantIdAndActiveTrue(RESTAURANT))
+				.thenReturn(List.of(token(1)));
+
+		assertThatCode(() -> aborting.pushToRestaurant(
+				RESTAURANT, "Title", "Msg", "payment_received", "bill-1", "bill", java.math.BigDecimal.valueOf(100)))
+				.doesNotThrowAnyException();
 	}
 }
