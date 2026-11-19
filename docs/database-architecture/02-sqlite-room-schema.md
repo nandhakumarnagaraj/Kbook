@@ -1,25 +1,25 @@
-# 02 - Android Room SQLite Schema Audit (Schema Version 84)
+# 02 - Android Room SQLite Schema Audit (Schema Version 85)
 > **KhanaBook Android POS Local Database Architecture**  
-> **Target Schema:** Room Schema Version 84 (Exported artifact: `apps/android/app/schemas/.../84.json`)  
+> **Target Schema:** Room Schema Version 85 (Exported artifact: `apps/android/app/schemas/.../85.json`)  
 > **Database Configuration:** Room Database + SQLCipher SQLite  
 > **Entity Declaration:** [`AppDatabase.kt`](file:///var/www/kbook.iadv.cloud/apps/android/app/src/main/java/com/khanabook/lite/pos/core/database/AppDatabase.kt#L38-L64)  
-> **Audit Mode:** STRICT READ-ONLY Inspection of Room Compilation Metadata & Entities  
+> **Audit Mode:** Forensic Architecture & Production Verification  
 
 ---
 
 ## 1. Executive Summary & Inventory Totals
 
-Inspection of Room schema version 84 establishes:
-- **Room Database Version:** **84** (`APP_DATABASE_VERSION = 84`).
-- **Total Tables / Entities:** Exactly **18 tables**.
-- **Total Columns:** Exactly **349 columns**.
-- **Foreign Key Constraints:** **6 foreign key definitions** (`menu_items -> categories`, `item_variants -> menu_items`, `bills -> users`, `bill_items -> bills`, `bill_items -> menu_items`, `bill_items -> item_variants`, `bill_payments -> bills`).
-- **Indices:** **35 local indices**.
+Inspection of Room schema version 85 establishes:
+- **Room Database Version:** **85** (`APP_DATABASE_VERSION = 85`).
+- **Total Tables / Entities:** Exactly **17 tables**.
+- **Total Columns:** Exactly **324 columns**.
+- **Foreign Key Constraints:** **7 foreign key definitions** (`menu_items -> categories`, `item_variants -> menu_items`, `bills -> users`, `bill_items -> bills` [x2], `bill_items -> menu_items`, `bill_items -> item_variants`, `bill_payments -> bills`).
+- **Indices:** **33 local indices**.
 - **Primary Keys:** Every table defines an explicit primary key (composite keys on `kot_events`, `terminal_daily_counter`, `permission_cache`).
 
 ---
 
-## 2. Master SQLite Table Catalog (Room v84)
+## 2. Master SQLite Table Catalog (Room v85)
 
 | # | SQLite Table Name | Kotlin Entity Class | Column Count | Primary Key | Indices | Foreign Keys | Purpose & Lifecycle |
 |---|---|---|---:|---|:---:|:---:|---|
@@ -33,14 +33,13 @@ Inspection of Room schema version 84 establishes:
 | 8 | `bills` | `BillEntity` | 56 | `id` (AutoInc) | 11 | 1 | Orders, bill numbers (`daily_order_id`), invoices (`lifetime_order_id`) |
 | 9 | `bill_items` | `BillItemEntity` | 21 | `id` (AutoInc) | 3 | 3 | Order lines, portion quantities, prices, sent_to_kot state |
 | 10 | `bill_payments` | `BillPaymentEntity` | 21 | `id` (AutoInc) | 2 | 1 | Payment tenders, cash/UPI splits, idempotency keys |
-| 11 | `local_cashier_shifts` | `CashierShiftEntity` | 25 | `id` (AutoInc) | 3 | 0 | Drawer float and shift reconciliation (Dormant UI) |
-| 12 | `sync_quarantine_records`| `SyncQuarantineEntity` | 11 | `id` (AutoInc) | 3 | 0 | Dead-letter queue for rejected sync payloads |
-| 13 | `menu_item_category_repairs`| `MenuItemCategoryRepairEntity` | 5 | `id` (AutoInc) | 1 | 0 | Self-healing map for dishes pulled before their category |
-| 14 | `kot_events` | `KotEventEntity` | 12 | Composite (`public_token`, `kot_revision`) | 2 | 0 | Local kitchen ticket reprint audit ledger |
-| 15 | `terminal_daily_counter`| `TerminalDailyCounterEntity` | 6 | Composite (`restaurant_id`, `terminal_id`, `date`) | 0 | 0 | Monotonic sequence generator for daily bill numbers |
-| 16 | `notifications` | `NotificationEntity` | 10 | `id` (AutoInc) | 0 | 0 | Local broadcast alerts and operational push messages |
-| 17 | `staff_permissions` | `StaffPermissionEntity` | 7 | `id` (AutoInc) | 2 | 0 | Offline cashier PIN verification hashes and permissions |
-| 18 | `permission_cache` | `PermissionCacheEntity` | 4 | `user_id` | 0 | 0 | Revision marker for fast offline privilege checks |
+| 11 | `sync_quarantine_records`| `SyncQuarantineEntity` | 11 | `id` (AutoInc) | 3 | 0 | Dead-letter queue for rejected sync payloads |
+| 12 | `menu_item_category_repairs`| `MenuItemCategoryRepairEntity` | 5 | `id` (AutoInc) | 1 | 0 | Self-healing map for dishes pulled before their category |
+| 13 | `kot_events` | `KotEventEntity` | 12 | Composite (`public_token`, `kot_revision`) | 2 | 0 | Local kitchen ticket reprint audit ledger |
+| 14 | `terminal_daily_counter`| `TerminalDailyCounterEntity` | 6 | Composite (`restaurant_id`, `terminal_id`, `date`) | 0 | 0 | Monotonic sequence generator for daily bill numbers |
+| 15 | `notifications` | `NotificationEntity` | 10 | `id` (AutoInc) | 0 | 0 | Local broadcast alerts and operational push messages |
+| 16 | `staff_permissions` | `StaffPermissionEntity` | 7 | `id` (AutoInc) | 2 | 0 | Offline staff permissions and PIN verification cache |
+| 17 | `permission_cache` | `PermissionCacheEntity` | 4 | `user_id` | 0 | 0 | Revision marker for fast offline privilege checks |
 
 ---
 

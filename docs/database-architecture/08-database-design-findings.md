@@ -25,11 +25,11 @@ Our rigorous forensic review of both SQLite (Room v84) and PostgreSQL (`kbook_sa
 
 ---
 
-### Finding F-02: Dormant Cashier Shifts and Stock Logs Tables in PostgreSQL
-- **Category:** `Architectural Observation`
-- **Evidence:** `PostgreSQL tables `cashier_shifts` (26 cols, 0 rows) and `stock_logs` (16 cols, 0 rows)`
-- **Business & Architectural Impact:** Tables exist in PostgreSQL schema from legacy v1 migrations but have 0 live rows. The application currently manages daily roll via Business Hours (`00:00 - 23:59` or custom `<24h` cutoff). Keeping them dormant incurs 0 runtime cost but adds documentation footprint.
-- **Remediation / Recommendation:** Retain as dormant or safely decommission in a coordinated future release without touching active billing entities.
+### Finding F-02: Decommissioning Dormant Shift Feature & Legacy Stock Logs
+- **Category:** `Architectural Cleanup & Resolution`
+- **Evidence:** `PostgreSQL table cashier_shifts purged in V132; Android table local_cashier_shifts purged in MIGRATION_84_85 (Room v85). PostgreSQL stock_logs (16 cols, 163 legacy rows) retained.`
+- **Business & Architectural Impact:** Cashier shifts were never hooked up to the Android UI and had 0 live rows in production. Daily financial rollovers are managed cleanly via Business Hours (`00:00 - 23:59` or custom `< 24h` cutoff in `restaurantprofiles`). Safely purging the shift tables and endpoints eliminated schema bloat and dead sync DTOs without affecting active billing.
+- **Remediation / Recommendation:** Shift purge completed and verified in production. `stock_logs` remains dormant with zero runtime impact on orders.
 
 ---
 

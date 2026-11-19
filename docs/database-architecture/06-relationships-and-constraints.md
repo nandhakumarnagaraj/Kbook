@@ -75,9 +75,9 @@ PostgreSQL catalog query of `pg_constraint WHERE contype = 'c'` reveals 10 check
 
 ## 5. Relationships Present in Application Code but Missing in Database
 
-1. **`bills` $\leftrightarrow$ `local_cashier_shifts`:**
-   - Application Code: `BillEntity.kt` has optional `cashier_shift_id` concepts in shift viewmodels.
-   - Database State: No foreign key constraint exists in either PostgreSQL or SQLite between bills and cashier shifts.
-2. **`printer_profiles` $\leftrightarrow$ `kitchen_print_queue`:**
+1. **`printer_profiles` $\leftrightarrow$ `kitchen_print_queue`:**
    - Application Code: Queue jobs target a printer by MAC address (`printer_mac`).
-   - Database State: No foreign key constraint exists; hardware bindings are dynamic.
+   - Database State: No foreign key constraint exists; hardware bindings are dynamic per device.
+2. **`bills` $\leftrightarrow$ `cashier_shifts` (Historical / Purged):**
+   - Application Code: Legacy optional shift references were permanently purged across backend and Android client in Flyway `V132` and Room `v85`.
+   - Database State: Neither PostgreSQL nor SQLite contains shift tables or foreign key links; business-day cutoff boundaries govern fiscal periods cleanly.

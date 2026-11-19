@@ -11,8 +11,8 @@
 
 A direct read-only catalog query of PostgreSQL 16.15 confirms:
 - **Application Schemas:** 1 active schema (`public`). System schemas: `information_schema`, `pg_catalog`, `pg_toast`.
-- **Total Tables:** Exactly **25 tables**.
-- **Total Columns:** Exactly **393 columns**.
+- **Total Tables:** Exactly **24 tables**.
+- **Total Columns:** Exactly **367 columns**.
 - **Total Catalog Rows:** **22,668 live database records**.
 - **Views / Materialized Views:** **0** (All analytics queries run directly against tables or Spring Data aggregates).
 - **Triggers:** **0** (Business logic is strictly server-orchestrated in Spring Boot).
@@ -28,28 +28,27 @@ A direct read-only catalog query of PostgreSQL 16.15 confirms:
 | 1 | `bill_items` | BASE TABLE | 22 | 4,402 | Business (Synced) | `BillItem.java` / `BillItemRepository.java` — Line items, portion quantities, item rates |
 | 2 | `bill_payments` | BASE TABLE | 18 | 2,204 | Business (Synced) | `BillPayment.java` / `BillPaymentRepository.java` — Split tenders, cash/UPI splits, `operation_id` |
 | 3 | `bills` | BASE TABLE | 43 | 2,306 | Business (Synced) | `Bill.java` / `BillRepository.java` — Central fiscal ledger, `daily_order_id`, `lifetime_order_id` |
-| 4 | `cashier_shifts` | BASE TABLE | 26 | 0 | Business (Dormant) | `CashierShift.java` — Drawer float & shift balancing (Dormant; 0 live rows in production) |
-| 5 | `categories` | BASE TABLE | 15 | 408 | Business (Synced) | `Category.java` / `CategoryRepository.java` — Menu categories, display sort orders, favourites |
-| 6 | `device_registration_request` | BASE TABLE | 18 | 99 | Cloud Governance | `DeviceRegistrationRequest.java` — POS tablet pairing requests awaiting owner approval |
-| 7 | `device_tokens` | BASE TABLE | 9 | 31 | Cloud Infra | `DeviceToken.java` — FCM push notification tokens for Android devices |
-| 8 | `email_outbox` | BASE TABLE | 16 | 1,442 | Cloud Queue | `EmailOutbox.java` — Outbox spooler for PDF receipts and EOD closing email dispatches |
-| 9 | `feature_flag` | BASE TABLE | 6 | 14 | SaaS Governance | `FeatureFlag.java` — Platform-wide feature toggle definitions |
-| 10 | `feature_flag_audit` | BASE TABLE | 9 | 0 | Cloud Audit | `FeatureFlagAudit.java` — Audit trail for feature toggle adjustments (0 live rows) |
-| 11 | `feature_flag_override` | BASE TABLE | 6 | 0 | SaaS Governance | `FeatureFlagOverride.java` — Tenant-specific feature overrides (0 live rows) |
-| 12 | `flyway_schema_history` | BASE TABLE | 10 | 112 | Framework / Metadata | Flyway migration ledger tracking applied schema scripts (V1 through V130) |
-| 13 | `itemvariants` | BASE TABLE | 18 | 2,462 | Business (Synced) | `ItemVariant.java` / `ItemVariantRepository.java` — Portion rates (Half, Full, Small, Large) |
-| 14 | `menu_extraction_jobs` | BASE TABLE | 8 | 0 | Cloud Queue | `MenuExtractionJob.java` — Cloud OCR queue for physical menu photo uploads (0 rows) |
-| 15 | `menuitems` | BASE TABLE | 25 | 3,669 | Business (Synced) | `MenuItem.java` / `MenuItemRepository.java` — Dishes, prices, barcodes, veg/non-veg tags |
-| 16 | `notification_events` | BASE TABLE | 12 | 138 | Cloud Queue | `NotificationEvent.java` — Transactional outbox for FCM push notifications |
-| 17 | `otp_requests` | BASE TABLE | 7 | 0 | Security / Auth | `OtpRequest.java` — SMS and WhatsApp OTP verification challenge cache |
-| 18 | `rate_limit_attempts` | BASE TABLE | 5 | 2 | Security / Auth | `RateLimitAttempt.java` — Brute-force protection for PIN, OTP, and login endpoints |
-| 19 | `refresh_tokens` | BASE TABLE | 8 | 843 | Security / Auth | `RefreshToken.java` — Cryptographically hashed JWT refresh tokens |
-| 20 | `restaurant_terminal` | BASE TABLE | 14 | 172 | Cloud Governance | `RestaurantTerminal.java` — Enrolled POS fleet registry, series letters ('A'..'E') |
-| 21 | `restaurantprofiles` | BASE TABLE | 43 | 169 | Business (Synced) | `RestaurantProfile.java` — Tenant settings, GSTIN, business day cutoff time |
-| 22 | `security_audit_log` | BASE TABLE | 11 | 5,632 | Cloud Audit | `SecurityAuditLog.java` — Immutable audit log of all logins, bill voids, and role changes |
-| 23 | `stock_logs` | BASE TABLE | 16 | 163 | Business (Dormant) | `StockLog.java` — Legacy inventory stock movement logs (163 historical rows) |
-| 24 | `token_blocklist` | BASE TABLE | 3 | 50 | Security / Auth | `TokenBlocklist.java` — Revoked JWT identifiers (JTI) for immediate session termination |
-| 25 | `users` | BASE TABLE | 25 | 174 | Business (Synced) | `User.java` / `UserRepository.java` — Staff accounts, owner logins, bcrypt hashes, roles |
+| 4 | `categories` | BASE TABLE | 15 | 408 | Business (Synced) | `Category.java` / `CategoryRepository.java` — Menu categories, display sort orders, favourites |
+| 5 | `device_registration_request` | BASE TABLE | 18 | 99 | Cloud Governance | `DeviceRegistrationRequest.java` — POS tablet pairing requests awaiting owner approval |
+| 6 | `device_tokens` | BASE TABLE | 9 | 31 | Cloud Infra | `DeviceToken.java` — FCM push notification tokens for Android devices |
+| 7 | `email_outbox` | BASE TABLE | 16 | 1,442 | Cloud Queue | `EmailOutbox.java` — Outbox spooler for PDF receipts and EOD closing email dispatches |
+| 8 | `feature_flag` | BASE TABLE | 6 | 14 | SaaS Governance | `FeatureFlag.java` — Platform-wide feature toggle definitions |
+| 9 | `feature_flag_audit` | BASE TABLE | 9 | 0 | Cloud Audit | `FeatureFlagAudit.java` — Audit trail for feature toggle adjustments (0 live rows) |
+| 10 | `feature_flag_override` | BASE TABLE | 6 | 0 | SaaS Governance | `FeatureFlagOverride.java` — Tenant-specific feature overrides (0 live rows) |
+| 11 | `flyway_schema_history` | BASE TABLE | 10 | 114 | Framework / Metadata | Flyway migration ledger tracking applied schema scripts (V1 through V132) |
+| 12 | `itemvariants` | BASE TABLE | 18 | 2,462 | Business (Synced) | `ItemVariant.java` / `ItemVariantRepository.java` — Portion rates (Half, Full, Small, Large) |
+| 13 | `menu_extraction_jobs` | BASE TABLE | 8 | 0 | Cloud Queue | `MenuExtractionJob.java` — Cloud OCR queue for physical menu photo uploads (0 rows) |
+| 14 | `menuitems` | BASE TABLE | 25 | 3,669 | Business (Synced) | `MenuItem.java` / `MenuItemRepository.java` — Dishes, prices, barcodes, veg/non-veg tags |
+| 15 | `notification_events` | BASE TABLE | 12 | 138 | Cloud Queue | `NotificationEvent.java` — Transactional outbox for FCM push notifications |
+| 16 | `otp_requests` | BASE TABLE | 7 | 0 | Security / Auth | `OtpRequest.java` — SMS and WhatsApp OTP verification challenge cache |
+| 17 | `rate_limit_attempts` | BASE TABLE | 5 | 2 | Security / Auth | `RateLimitAttempt.java` — Brute-force protection for PIN, OTP, and login endpoints |
+| 18 | `refresh_tokens` | BASE TABLE | 8 | 843 | Security / Auth | `RefreshToken.java` — Cryptographically hashed JWT refresh tokens |
+| 19 | `restaurant_terminal` | BASE TABLE | 14 | 172 | Cloud Governance | `RestaurantTerminal.java` — Enrolled POS fleet registry, series letters ('A'..'E') |
+| 20 | `restaurantprofiles` | BASE TABLE | 43 | 169 | Business (Synced) | `RestaurantProfile.java` — Tenant settings, GSTIN, business day cutoff time |
+| 21 | `security_audit_log` | BASE TABLE | 11 | 5,632 | Cloud Audit | `SecurityAuditLog.java` — Immutable audit log of all logins, bill voids, and role changes |
+| 22 | `stock_logs` | BASE TABLE | 16 | 163 | Business (Dormant) | `StockLog.java` — Legacy inventory stock movement logs (163 historical rows) |
+| 23 | `token_blocklist` | BASE TABLE | 3 | 50 | Security / Auth | `TokenBlocklist.java` — Revoked JWT identifiers (JTI) for immediate session termination |
+| 24 | `users` | BASE TABLE | 25 | 174 | Business (Synced) | `User.java` / `UserRepository.java` — Staff accounts, owner logins, bcrypt hashes, roles |
 
 ---
 

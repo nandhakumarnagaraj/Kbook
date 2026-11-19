@@ -74,19 +74,18 @@ As instructed, `idx_bills_active_created` and `idx_menuitems_active_sync` were i
 
 ---
 
-## 4. SQLite Room v84 Indices Catalog (35 Indices)
+## 4. SQLite Room v85 Indices Catalog (30 Indices)
 
-From Room schema `84.json`:
-1. `bills`: 11 indices (`index_bills_created_by`, `index_bills_order_status`, `index_bills_created_at`, `index_bills_daily_order_id`, `index_bills_restaurant_public_token` (UNIQUE), `index_bills_terminal_daily`, `index_bills_invoice_sequence`, `index_bills_payment_attempt_status`, etc.)
+From Room schema `85.json`:
+1. `bills`: 11 indices (`index_bills_created_by`, `index_bills_order_status`, `index_bills_created_at`, `index_bills_daily_order_id`, `index_bills_restaurant_public_token` (UNIQUE), `index_bills_restaurant_id_terminal_id_created_at`, `index_bills_restaurant_id_financial_year_invoice_series_invoice_sequence`, `index_bills_record_origin`, `index_bills_record_scope`, `index_bills_terminal_origin_scope`, `index_bills_payment_attempt_status`)
 2. `bill_items`: 3 indices (`index_bill_items_bill_id`, `index_bill_items_menu_item_id`, `index_bill_items_variant_id`)
-3. `bill_payments`: 2 indices (`index_bill_payments_bill_id`, `index_bill_payments_operation_id` (UNIQUE))
-4. `categories`: 1 index (`index_categories_sort_order`)
+3. `bill_payments`: 2 indices (`index_bill_payments_bill_id`, `idx_bill_payments_restaurant_operation` (UNIQUE))
+4. `categories`: 1 index (`index_categories_restaurant_id_name` (UNIQUE))
 5. `menu_items`: 2 indices (`index_menu_items_category_id`, `index_menu_items_is_available`)
 6. `item_variants`: 1 index (`index_item_variants_menu_item_id`)
-7. `printer_profiles`: 1 index (`index_printer_profiles_restaurant_role` (UNIQUE))
-8. `kitchen_print_queue`: 1 index (`index_kitchen_print_queue_bill_id`)
-9. `local_cashier_shifts`: 3 indices (`index_local_cashier_shifts_terminal`, `index_local_cashier_shifts_status`, `index_local_cashier_shifts_date`)
-10. `sync_quarantine_records`: 3 indices (`index_quarantine_entity`, `index_quarantine_status`, `index_quarantine_timestamp`)
-11. `menu_item_category_repairs`: 1 index (`index_repairs_restaurant_item` (UNIQUE))
-12. `kot_events`: 2 indices (`index_kot_events_public_token`, `index_kot_events_originating_device_id`)
-13. `staff_permissions`: 2 indices (`index_staff_permissions_user`, `index_staff_permissions_key`)
+7. `printer_profiles`: 1 index (`index_printer_profiles_restaurant_id_role` (UNIQUE))
+8. `kitchen_print_queue`: 1 index (`index_kitchen_print_queue_bill_id_printer_mac` (UNIQUE))
+9. `sync_quarantine_records`: 3 indices (`index_sync_quarantine_records_restaurant_id`, `index_sync_quarantine_records_restaurant_id_parent_bill_id`, `index_sync_quarantine_records_restaurant_id_child_entity_type_child_local_id` (UNIQUE))
+10. `menu_item_category_repairs`: 1 index (`index_menu_item_category_repairs_restaurant_id_item_local_id` (UNIQUE))
+11. `kot_events`: 2 indices (`index_kot_events_public_token`, `index_kot_events_originating_device_id`)
+12. `staff_permissions`: 2 indices (`index_staff_permissions_restaurant_id_user_id`, `index_staff_permissions_restaurant_id_user_id_permission_key` (UNIQUE))
