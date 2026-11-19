@@ -35,7 +35,7 @@ In an offline-first restaurant POS system, storage residency is driven by three 
 | **SaaS Governance & Flags** | **2. PostgreSQL Only** | Cloud PostgreSQL (`feature_flag*`, `restaurantprofiles.is_suspended`) | *(None)* | Central subscription kill-switch and instant feature entitlement management. |
 | **Cloud OCR Menu Processing** | **2. PostgreSQL Only** | Cloud PostgreSQL (`menu_extraction_jobs`) | *(None)* | Heavy asynchronous machine learning OCR jobs run on cloud servers. |
 | **Migration Registry** | **2. PostgreSQL Only** | Cloud PostgreSQL (`flyway_schema_history`) | *(None)* | Central Flyway schema migration tracking ledger (V1 through V132). |
-| **Legacy Inventory Logs** | **2. PostgreSQL Only** | Cloud PostgreSQL (`stock_logs`) | *(None)* | Dormant legacy audit logs (163 historical rows); real-time stock handled via `bills.inventory_deducted`. |
+| **Web Admin Inventory Logs** | **2. PostgreSQL Only** | Cloud PostgreSQL (`stock_logs`) | *(None)* | Dedicated Web Admin dashboard inventory tracking (16 cols); monitors dish availability states (`IN_STOCK`, `RUNNING_LOW`, `OUT_OF_STOCK`) and ingredient stock deltas. |
 | **Orders & Invoices** | **3. Synced (Both)** (9 Pairs / 18 Tables) | Android SQLite (`bills`) | Cloud PostgreSQL (`bills`) | Punch orders offline; sync financial ledger to cloud for web portal, analytics, and GST tax filing. |
 | **Order Line Items** | **3. Synced (Both)** | Android SQLite (`bill_items`) | Cloud PostgreSQL (`bill_items`) | Line items punch instantly locally; cloud stores items for item-wise sales reports and tax audits. |
 | **Payment Transactions** | **3. Synced (Both)** | Android SQLite (`bill_payments`) | Cloud PostgreSQL (`bill_payments`) | Cash/UPI splits punch locally; cloud reconciles gateway callbacks and payment status. |
@@ -65,3 +65,17 @@ KhanaBook enforces a **Strict 3-Role Model with Constant, Compiled Permissions**
 ### 3.2 Database Footprint of Permissions
 - **PostgreSQL (`kbook_saas`):** **0 custom permission tables**. All dynamic permission tables (`role_templates`, `staff_permissions`, `staff_permission_revision`, `permission_requests`) were permanently dropped via Flyway migration `V124`. The server evaluates permissions via Java enum constants in `PermissionService.java`.
 - **Android SQLite:** Permissions are evaluated in-memory via `PermissionManager.kt` (`SHOP_STAFF_GRANTED_KEYS = ALL_PERMISSION_KEYS - SHOP_STAFF_CONFIG_KEYS`). The local `permission_cache` table only stores the active user's revision and granted CSV to ensure instant, zero-latency authorization immediately upon offline cold restart. Local PIN verification is performed against the 4-digit hashed PIN in `users.pin_hash`.
+
+---
+
+## 4. Decommissioned Online Gateways & Marketplaces
+
+1. **Easebuzz Payment Gateway (V129 & V130):**
+   - **Database Footprint:** **Zero tables and zero columns** across PostgreSQL and SQLite.
+   - **Purge History:** Flyway `V129` dropped all 7 Easebuzz gateway tables (`chargebacks`, `easebuzz_payouts`, `easebuzz_refund_attempts`, `easebuzz_sub_merchant_webhook_event`, `easebuzz_webhook_events`, `webhook_retry_jobs`, `easebuzz_sub_merchant`) and 7 dead columns from `bills`. Flyway `V130` dropped `restaurantprofiles.easebuzz_enabled`.
+   - **Active Payment Mode:** 100% of restaurants operate on **Counter Cash** and **Direct UPI QR**. In `RestaurantPaymentConfigController.java`, enabling Easebuzz is blocked with HTTP 400. Backend models are `@Deprecated` with in-memory stubs.
+2. **Swiggy & Zomato Marketplaces (V123 & V125):**
+   - **Database Footprint:** **Zero tables and zero columns** across PostgreSQL and SQLite.
+   - **Purge History:** Flyway `V123` dropped `marketplace_orders`, `marketplace_order_items`, and `bills.marketplace_order_id`. Flyway `V125` dropped all API credential columns (`zomato_api_key`, `swiggy_api_key`, `zomato_webhook_secret`, `swiggy_webhook_secret`, `zomato_outlet_id`, `swiggy_store_id`) from `restaurantprofiles`. Room migration 68_69 dropped `zomato_enabled` and `swiggy_enabled`.
+   - **Attribution Tag:** `bills.source_channel` retains string tags (`'zomato'`, `'swiggy'`) for manual order punches and Web Admin sales breakdown reporting.
+

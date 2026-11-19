@@ -81,3 +81,20 @@ Our rigorous forensic review of both SQLite (Room v84) and PostgreSQL (`kbook_sa
 
 ---
 
+### Finding F-09: Complete Retirement of Easebuzz Online Payment Tables (Flyway V129 & V130)
+- **Category:** `Architectural Cleanup & Resolution`
+- **Evidence:** `PostgreSQL 7 Easebuzz tables purged in V129; 7 dead gateway columns dropped from bills; easebuzz_enabled dropped from restaurantprofiles in V130.`
+- **Business & Architectural Impact:** All production merchants punch orders via Counter Cash and Direct UPI QR. The online payment gateway was retired, eliminating 7 empty tables and dead webhook processing loops from the cloud database.
+- **Remediation / Recommendation:** Zero database tables remain in PostgreSQL and Room SQLite. Java backend models retain `@Deprecated` in-memory stubs for contract stability, and `RestaurantPaymentConfigController.java` returns HTTP 400 if online payment activation is requested.
+
+---
+
+### Finding F-10: Decommissioning Prototype Swiggy & Zomato Marketplace Tables (Flyway V123 & V125)
+- **Category:** `Architectural Cleanup & Resolution`
+- **Evidence:** `PostgreSQL marketplace_orders and marketplace_order_items dropped in V123; marketplace credential columns purged in V125; Room dropped zomato_enabled/swiggy_enabled in migration 68_69.`
+- **Business & Architectural Impact:** Prototype automated marketplace order injection was replaced by manual cashier channel tagging. Purging prototype tables eliminated 0-row schema bloat.
+- **Remediation / Recommendation:** Retain `bills.source_channel` as a lightweight string tag for manual sales attribution and Web Admin dashboard reporting without complex external API dependencies.
+
+
+---
+
