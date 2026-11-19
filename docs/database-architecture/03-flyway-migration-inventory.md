@@ -82,10 +82,12 @@ CREATE INDEX IF NOT EXISTS idx_bill_payments_sync_pull
 | **V128** | `V128__drop_dead_fssai_compliance_tables.sql` | Nov 18, 2026 | **YES** | Permanently dropped 2 dormant compliance tables: `fssai_renewals`, `fssai_tracker`. |
 | **V129** | `V129__purge_easebuzz_tables_and_dead_bill_columns.sql` | Nov 18, 2026 | **YES** | Permanently dropped 5 Easebuzz tables (`easebuzz_accounts`, `easebuzz_payment_intents`, `easebuzz_refunds`, `easebuzz_splits`, `sub_merchants`) and dropped 6 dead columns from `bills`. |
 | **V130** | `V130__drop_misplaced_and_dead_profile_columns.sql` | Nov 18, 2026 | **YES** | Dropped 8 dead/hardware columns from `restaurantprofiles` (`logo_path`, `auto_print_on_success`, `include_logo_in_print`, `country`, `show_branding`, `mask_customer_phone`, `easebuzz_enabled`, `fssai_expiry_date`) and 2 from `bills` (`custom_tax_amount`, `created_by_user_id`). |
+| **V131** | `V131__add_active_order_and_delta_sync_covering_indexes.sql` | Nov 18, 2026 | **YES** | Added multi-column composite B-tree indexes for active orders and delta sync queries. Applied and reconciled in production (Rank 114). |
+| **V132** | `V132__drop_cashier_shifts.sql` | Nov 19, 2026 | **PENDING/DEPLOY** | Purged dormant `cashier_shifts` table and associated indexes (0 live rows). |
 
 ---
 
-## 4. Complete Chronological Index of Historical Flyway Migrations (V1–V131)
+## 4. Complete Chronological Index of Historical Flyway Migrations (V1–V132)
 
 - **V1 through V20:** Initial schema setup, base entities (`bills`, `users`, `categories`, `menuitems`), JWT auth tokens, and OTP requests.
 - **V21 through V50:** Added `bill_items`, portions (`itemvariants`), split payment tenders (`bill_payments`), and unique composite idempotency keys.
@@ -93,4 +95,5 @@ CREATE INDEX IF NOT EXISTS idx_bill_payments_sync_pull
 - **V81 through V110:** Multi-terminal series isolation, business day cutoff times (`business_day_cutoff_time`), GST invoice series formatting, and dropping hardware printer bindings from profile (V99).
 - **V111 through V125:** Optimistic concurrency locks (`status_version`), phone number sanitization, unique terminal constraints, and role consolidation to `OWNER`, `SHOP_STAFF`, `KBOOK_ADMIN` (V124).
 - **V126 through V130:** Aggressive schema cleanup: dropped raw material inventory tables (V127), dropped dead FSSAI tables (V128), purged Easebuzz gateway tables (V129), and pruned dead profile columns (V130).
-- **V131 (Unrecorded):** Added covering indexes for active orders and delta sync.
+- **V131:** Added composite indexes for active orders and delta sync.
+- **V132:** Purged dormant `cashier_shifts` table and indexes.

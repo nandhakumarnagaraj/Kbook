@@ -28,10 +28,10 @@
 
 ```mermaid
 flowchart TD
-    subgraph SQLitePOS ["Android POS SQLite (Room v84: 18 Tables, 349 Columns)"]
+    subgraph SQLitePOS ["Android POS SQLite (Room v85: 17 Tables, 324 Columns)"]
         direction TB
         SQ_HW["Hardware & Local Queue (8 Tables - SQLite Only)<br/>• printer_profiles (15 cols)<br/>• kitchen_print_queue (16 cols)<br/>• kot_events (12 cols)<br/>• sync_quarantine_records (11 cols)<br/>• menu_item_category_repairs (5 cols)<br/>• terminal_daily_counter (6 cols)<br/>• staff_permissions (7 cols)<br/>• permission_cache (4 cols)"]
-        SQ_SYNC["Synchronized Business Master Data (10 Tables)<br/>• bills (56 cols - daily_order_id, lifetime_order_id, public_token)<br/>• bill_items (21 cols) | bill_payments (21 cols)<br/>• categories (14 cols) | menu_items (26 cols) | item_variants (16 cols)<br/>• restaurant_profile (65 cols - shop config, GSTIN, business cutoff)<br/>• users (19 cols) | notifications (10 cols)<br/>• local_cashier_shifts (25 cols - dormant)"]
+        SQ_SYNC["Synchronized Business Master Data (9 Tables)<br/>• bills (56 cols - daily_order_id, lifetime_order_id, public_token)<br/>• bill_items (21 cols) | bill_payments (21 cols)<br/>• categories (14 cols) | menu_items (26 cols) | item_variants (16 cols)<br/>• restaurant_profile (65 cols - shop config, GSTIN, business cutoff)<br/>• users (19 cols) | notifications (10 cols)"]
     end
 
     subgraph SyncProtocol ["Delta Sync Mesh (Bi-Directional JSON Batches)"]
@@ -39,9 +39,9 @@ flowchart TD
         Pull["GET /api/v1/sync/master/pull"]
     end
 
-    subgraph PostgresCloud ["Cloud SaaS PostgreSQL 16 (kbook_saas: 25 Tables, 393 Columns)"]
+    subgraph PostgresCloud ["Cloud SaaS PostgreSQL 16 (kbook_saas: 24 Tables, 367 Columns)"]
         direction TB
-        PG_MASTER["Central Fiscal & Menu Master Data (10 Tables)<br/>• bills (43 cols) | bill_items (22 cols) | bill_payments (18 cols)<br/>• categories (15 cols) | menuitems (25 cols) | itemvariants (18 cols)<br/>• restaurantprofiles (43 cols) | users (25 cols)<br/>• cashier_shifts (26 cols - 0 rows)"]
+        PG_MASTER["Central Fiscal & Menu Master Data (9 Tables)<br/>• bills (43 cols) | bill_items (22 cols) | bill_payments (18 cols)<br/>• categories (15 cols) | menuitems (25 cols) | itemvariants (18 cols)<br/>• restaurantprofiles (43 cols) | users (25 cols)"]
         PG_CLOUD["Cloud Fleet, Audit & Queues (15 Tables - PG Only)<br/>• security_audit_log (11 cols, 5,632 rows)<br/>• email_outbox (16 cols, 1,442 rows)<br/>• notification_events (12 cols, 138 rows)<br/>• device_tokens (9 cols, 31 rows)<br/>• restaurant_terminal (14 cols, 172 rows - series A..E)<br/>• device_registration_request (18 cols, 99 rows)<br/>• refresh_tokens (843 rows) | token_blocklist (50 rows)<br/>• feature_flag (14 rows) | feature_flag_override (0 rows)<br/>• feature_flag_audit (0 rows) | menu_extraction_jobs (0 rows)<br/>• otp_requests (0 rows) | rate_limit_attempts (2 rows)<br/>• stock_logs (16 cols, 163 rows - dormant)<br/>• flyway_schema_history (112 rows, V1 through V130)"]
     end
 

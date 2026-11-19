@@ -92,7 +92,6 @@ public class MasterSyncController {
 	private final FeatureFlagService featureFlagService;
 	private final com.khanabook.saas.feature.restaurants.service.TerminalManagementService terminalManagementService;
 	private final com.khanabook.saas.feature.staff.service.PermissionService permissionService;
-	private final com.khanabook.saas.feature.shifts.service.CashierShiftService cashierShiftService;
 
 	@org.springframework.beans.factory.annotation.Autowired(required = false)
 	private com.khanabook.saas.feature.subscription.service.SubscriptionService subscriptionService;
@@ -208,14 +207,12 @@ public class MasterSyncController {
 			response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), CategoryDTO.class));
 			response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), MenuItemDTO.class));
 			response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), ItemVariantDTO.class));
-			response.setCashierShifts(SyncMapper.mapList(cashierShiftService.pullData(tenantId, lastSyncTimestamp, deviceId, sharedDataCrossDevice), com.khanabook.saas.feature.shifts.data.CashierShiftDTO.class));
 		} else {
 			response.setProfiles(java.util.Collections.emptyList());
 			response.setUsers(java.util.Collections.emptyList());
 			response.setCategories(java.util.Collections.emptyList());
 			response.setMenuItems(java.util.Collections.emptyList());
 			response.setItemVariants(java.util.Collections.emptyList());
-			response.setCashierShifts(java.util.Collections.emptyList());
 		}
 
 		org.springframework.data.domain.Page<com.khanabook.saas.feature.inventory.data.StockLog> stockLogsPage =

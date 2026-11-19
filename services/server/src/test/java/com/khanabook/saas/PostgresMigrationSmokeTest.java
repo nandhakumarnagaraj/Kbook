@@ -136,6 +136,14 @@ class PostgresMigrationSmokeTest {
     }
 
     @Test
+    void v132CashierShiftsPurged() {
+        List<String> tables = jdbcTemplate.queryForList(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'cashier_shifts'",
+                String.class);
+        assertThat(tables).doesNotContain("cashier_shifts");
+    }
+
+    @Test
     void fssaiAndNotificationTablesExist() {
         // V50-V52 / V128: notification infrastructure active; dead fssai compliance tables purged
         List<String> tables = jdbcTemplate.queryForList(

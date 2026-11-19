@@ -8,8 +8,6 @@ import com.khanabook.saas.feature.notifications.service.EmailNotificationService
 import com.khanabook.saas.feature.reports.dto.DailyClosingReportData;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
-import com.khanabook.saas.feature.shifts.data.CashierShift;
-import com.khanabook.saas.feature.shifts.data.CashierShiftRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +31,6 @@ import static org.mockito.Mockito.*;
 class DailyClosingReportServiceTest {
 
     @Mock private BillRepository billRepository;
-    @Mock private CashierShiftRepository cashierShiftRepository;
     @Mock private RestaurantProfileRepository restaurantProfileRepository;
     @Mock private EmailOutboxRepository emailOutboxRepository;
     @Mock private EmailNotificationService emailNotificationService;
@@ -48,7 +45,6 @@ class DailyClosingReportServiceTest {
     void setUp() {
         service = new DailyClosingReportService(
                 billRepository,
-                cashierShiftRepository,
                 restaurantProfileRepository,
                 emailOutboxRepository,
                 emailNotificationService,
@@ -99,20 +95,6 @@ class DailyClosingReportServiceTest {
         when(billRepository.findByRestaurantIdAndLastResetDateAndIsDeletedFalse(tenantId, businessDate))
                 .thenReturn(List.of(bill1, bill2, bill3));
 
-        CashierShift shift = new CashierShift();
-        shift.setCashierName("John Doe");
-        shift.setTerminalSeries("A");
-        shift.setOpeningFloat(new BigDecimal("1000.00"));
-        shift.setDeclaredCash(new BigDecimal("1500.00"));
-        shift.setExpectedCash(new BigDecimal("1500.00"));
-        shift.setCashVariance(BigDecimal.ZERO);
-        shift.setTotalRevenue(new BigDecimal("1500.00"));
-        shift.setTotalOrders(2);
-        shift.setStatus("CLOSED");
-
-        when(cashierShiftRepository.findByRestaurantIdAndBusinessDateAndIsDeletedFalseOrderByOpenedAtAsc(eq(tenantId), any(LocalDate.class)))
-                .thenReturn(List.of(shift));
-
         DailyClosingReportData data = service.generateReportData(tenantId, businessDate);
 
         assertThat(data.getRestaurantName()).isEqualTo("Khana Paradise");
@@ -131,9 +113,7 @@ class DailyClosingReportServiceTest {
         assertThat(data.getUpiTotal()).isEqualByComparingTo(new BigDecimal("1000.00"));
         assertThat(data.getUpiCount()).isEqualTo(1);
 
-        assertThat(data.getShifts()).hasSize(1);
-        assertThat(data.getShifts().get(0).getCashierName()).isEqualTo("John Doe");
-        assertThat(data.getShifts().get(0).getCashVariance()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(data.getShifts()).isEmpty();
     }
 
     @Test
@@ -145,8 +125,6 @@ class DailyClosingReportServiceTest {
                 .thenReturn(Optional.empty());
 
         when(billRepository.findByRestaurantIdAndLastResetDateAndIsDeletedFalse(tenantId, businessDate))
-                .thenReturn(List.of());
-        when(cashierShiftRepository.findByRestaurantIdAndBusinessDateAndIsDeletedFalseOrderByOpenedAtAsc(eq(tenantId), any(LocalDate.class)))
                 .thenReturn(List.of());
 
         when(templateEngine.process(eq("email/daily-closing-report"), any(Context.class)))
@@ -238,8 +216,6 @@ class DailyClosingReportServiceTest {
                 .thenReturn(Optional.of(existing));
 
         when(billRepository.findByRestaurantIdAndLastResetDateAndIsDeletedFalse(tenantId, businessDate))
-                .thenReturn(List.of());
-        when(cashierShiftRepository.findByRestaurantIdAndBusinessDateAndIsDeletedFalseOrderByOpenedAtAsc(eq(tenantId), any(LocalDate.class)))
                 .thenReturn(List.of());
         when(templateEngine.process(eq("email/daily-closing-report"), any(Context.class)))
                 .thenReturn("<html>Daily Report</html>");

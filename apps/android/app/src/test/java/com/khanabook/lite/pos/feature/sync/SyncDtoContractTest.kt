@@ -5,14 +5,12 @@ import com.khanabook.lite.pos.feature.auth.data.UserEntity
 import com.khanabook.lite.pos.feature.billing.data.BillEntity
 import com.khanabook.lite.pos.feature.billing.data.BillItemEntity
 import com.khanabook.lite.pos.feature.billing.data.BillPaymentEntity
-import com.khanabook.lite.pos.feature.billing.data.CashierShiftEntity
 import com.khanabook.lite.pos.feature.menu.data.CategoryEntity
 import com.khanabook.lite.pos.feature.menu.data.MenuItemEntity
 import com.khanabook.lite.pos.feature.menu.data.ItemVariantEntity
 import com.khanabook.lite.pos.feature.sync.data.BillItemSyncDto
 import com.khanabook.lite.pos.feature.sync.data.BillPaymentSyncDto
 import com.khanabook.lite.pos.feature.sync.data.BillSyncDto
-import com.khanabook.lite.pos.feature.sync.data.CashierShiftSyncDto
 import com.khanabook.lite.pos.feature.sync.data.CategorySyncDto
 import com.khanabook.lite.pos.feature.sync.data.ItemVariantSyncDto
 import com.khanabook.lite.pos.feature.sync.data.MenuItemSyncDto
@@ -218,10 +216,6 @@ class SyncDtoContractTest {
         assertAllBusinessFieldsMapped(UserEntity::class.java, UserSyncDto::class.java)
 
     @Test
-    fun cashierShiftEntityHasNoUnmappedFields() =
-        assertAllBusinessFieldsMapped(CashierShiftEntity::class.java, CashierShiftSyncDto::class.java)
-
-    @Test
     fun restaurantProfileEntityHasNoUnmappedFields() =
         assertAllBusinessFieldsMapped(RestaurantProfileEntity::class.java, RestaurantProfileSyncDto::class.java)
 
@@ -238,7 +232,6 @@ class SyncDtoContractTest {
             ItemVariantEntity::class.java to ItemVariantSyncDto::class.java,
             UserEntity::class.java to UserSyncDto::class.java,
             RestaurantProfileEntity::class.java to RestaurantProfileSyncDto::class.java,
-            CashierShiftEntity::class.java to CashierShiftSyncDto::class.java,
         )
         val stale = mutableListOf<String>()
         for ((entity, dto) in pairs) {

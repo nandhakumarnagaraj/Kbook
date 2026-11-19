@@ -10,8 +10,6 @@ import com.khanabook.saas.feature.reports.dto.DailyClosingReportData;
 import com.khanabook.saas.feature.reports.dto.DailyClosingReportData.ShiftSummaryItem;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfile;
 import com.khanabook.saas.feature.restaurants.data.RestaurantProfileRepository;
-import com.khanabook.saas.feature.shifts.data.CashierShift;
-import com.khanabook.saas.feature.shifts.data.CashierShiftRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,7 +29,6 @@ import java.util.*;
 public class DailyClosingReportService {
 
     private final BillRepository billRepository;
-    private final CashierShiftRepository cashierShiftRepository;
     private final RestaurantProfileRepository restaurantProfileRepository;
     private final EmailOutboxRepository emailOutboxRepository;
     private final EmailNotificationService emailNotificationService;
@@ -63,8 +60,6 @@ public class DailyClosingReportService {
         }
 
         List<Bill> bills = billRepository.findByRestaurantIdAndLastResetDateAndIsDeletedFalse(restaurantId, businessDate);
-        List<CashierShift> shifts = cashierShiftRepository
-                .findByRestaurantIdAndBusinessDateAndIsDeletedFalseOrderByOpenedAtAsc(restaurantId, parsedDate);
 
         BigDecimal grossSales = BigDecimal.ZERO;
         BigDecimal totalTax = BigDecimal.ZERO;
@@ -129,21 +124,6 @@ public class DailyClosingReportService {
 
         BigDecimal netSales = grossSales.subtract(totalTax).max(BigDecimal.ZERO);
 
-        List<ShiftSummaryItem> shiftItems = new ArrayList<>();
-        for (CashierShift shift : shifts) {
-            shiftItems.add(ShiftSummaryItem.builder()
-                    .cashierName(shift.getCashierName() != null ? shift.getCashierName() : "Cashier")
-                    .terminal(shift.getTerminalSeries() != null ? shift.getTerminalSeries() : shift.getTerminalId())
-                    .openingFloat(shift.getOpeningFloat() != null ? shift.getOpeningFloat() : BigDecimal.ZERO)
-                    .declaredCash(shift.getDeclaredCash() != null ? shift.getDeclaredCash() : BigDecimal.ZERO)
-                    .expectedCash(shift.getExpectedCash() != null ? shift.getExpectedCash() : BigDecimal.ZERO)
-                    .cashVariance(shift.getCashVariance() != null ? shift.getCashVariance() : BigDecimal.ZERO)
-                    .totalRevenue(shift.getTotalRevenue() != null ? shift.getTotalRevenue() : BigDecimal.ZERO)
-                    .totalOrders(shift.getTotalOrders() != null ? shift.getTotalOrders() : 0)
-                    .status(shift.getStatus())
-                    .build());
-        }
-
         String opTime = profile.getOpeningTime() != null ? profile.getOpeningTime().toString().substring(0, 5) : "08:00";
         String clTime = profile.getClosingTime() != null ? profile.getClosingTime().toString().substring(0, 5) : "23:00";
         String cutoff = profile.getBusinessDayCutoffTime() != null ? profile.getBusinessDayCutoffTime().toString().substring(0, 5) : "00:00";
@@ -179,7 +159,7 @@ public class DailyClosingReportService {
                 .splitCount(splitCount)
                 .otherTotal(otherTotal)
                 .otherCount(otherCount)
-                .shifts(shiftItems)
+                .shifts(Collections.emptyList())
                 .build();
     }
 

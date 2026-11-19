@@ -21,12 +21,12 @@ object ShiftMigrations {
      * `business_day_cutoff_time = '00:00'` (calendar day) and
      * `cutoff_effective_from = NULL` (never active), so an upgrade alone changes nothing.
      *
-     * The DDL here must match `CashierShiftEntity` **column for column and index for
-     * index** — Room validates the post-migration schema and reports any drift as
+     * The DDL here historically matched `local_cashier_shifts` (subsequently dropped in MIGRATION_84_85).
+     * Room validates the post-migration schema and reports any drift as
      * "Migration didn't properly handle". In particular there is deliberately no partial
      * `WHERE status = 'ACTIVE'` index: Room cannot express one, and an index that exists
      * in the database but not on the entity fails that validation. "At most one ACTIVE
-     * shift per terminal" is therefore enforced by `CashierShiftDao.openShift`.
+     * shift per terminal" was therefore enforced at the application level.
      *
      * ALTERs are guarded: an out-of-band column aborted the v39→40 chain once
      * (see MIGRATION_39_40), and a duplicate-column exception kills the whole upgrade.
@@ -97,6 +97,19 @@ object ShiftMigrations {
             android.util.Log.i(
                 "ShiftMigrations",
                 "MIGRATION_83_84 complete: business-day config + local_cashier_shifts"
+            )
+        }
+    }
+
+    /**
+     * Purges dormant `local_cashier_shifts` table and indexes from the client SQLite database.
+     */
+    val MIGRATION_84_85 = object : Migration(84, 85) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("DROP TABLE IF EXISTS `local_cashier_shifts`")
+            android.util.Log.i(
+                "ShiftMigrations",
+                "MIGRATION_84_85 complete: dropped local_cashier_shifts"
             )
         }
     }

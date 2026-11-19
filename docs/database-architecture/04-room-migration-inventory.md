@@ -30,6 +30,7 @@ Automated test inspection of `DatabaseMigrationListConsistencyTest.kt` confirms:
 | **`71 -> 72`** | `AppDatabase.kt` | Collapsed legacy staff roles (`WAITER`, `CASHIER`, `MANAGER`) into unified `SHOP_STAFF`. | Data DML: `UPDATE users SET role = 'SHOP_STAFF'` |
 | **`77 -> 78`** | `AppDatabase.kt` | Added `menu_item_category_repairs` self-healing table for orphaned dishes. | `CREATE TABLE IF NOT EXISTS menu_item_category_repairs` |
 | **`83 -> 84`** | `ShiftMigrations.kt` | Added business hours cutoff (`business_day_cutoff_time`, `opening_time`, `closing_time`) to `restaurant_profile` and created `local_cashier_shifts`. | 5 `ALTER TABLE` statements + `CREATE TABLE local_cashier_shifts` |
+| **`84 -> 85`** | `ShiftMigrations.kt` | Purged dormant `local_cashier_shifts` table and indexes. | `DROP TABLE IF EXISTS local_cashier_shifts` |
 
 ---
 

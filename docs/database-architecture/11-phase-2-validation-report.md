@@ -148,9 +148,8 @@ Synchronized bi-directionally over HTTPS via [`MasterSyncProcessor.kt`](file:///
 7. `restaurantprofiles` (PG, 43 cols) $\longleftrightarrow$ `restaurant_profile` (SQLite, 65 cols)
 8. `users` (PG, 25 cols) $\longleftrightarrow$ `users` (SQLite, 19 cols)
 
-#### B. Shared Physical Tables — Dormant / Incomplete Feature (1 Pair = 2 Tables)
-Backend entity, sync controller, and local Room table exist, but POS UI was never completed:
-9. `cashier_shifts` (PG, 26 cols, 0 rows) $\longleftrightarrow$ `local_cashier_shifts` (SQLite, 25 cols, dormant UI)
+#### B. Shared Physical Tables — Dormant Feature Resolution (Purged via V132 & Room v85)
+Backend entities, sync controller endpoints, and Room tables were permanently purged via Flyway **V132** (`DROP TABLE cashier_shifts`) and Room **v85** (`DROP TABLE local_cashier_shifts`), eliminating schema bloat and dead sync DTOs in favor of the lightweight business-day cutoff system.
 
 #### C. PostgreSQL-Exclusive Physical Tables (16 Tables)
 10. `restaurant_terminal` (14 cols, 172 rows) — Fleet enrollment and hardware series letter ('A'..'E') registry
