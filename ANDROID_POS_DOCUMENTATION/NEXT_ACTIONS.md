@@ -2,6 +2,14 @@
 
 Ordered by blocking value. Session references point at `DEVICE_SESSIONS/SESSION_LOG.md`.
 
+## UX motion static review (2026-11-20, Session 067)
+- **OPEN (not implemented) — review findings UM-01 … UM-10:** full evidence, principle numbers and exact line references in `RECOMMENDATIONS/UX_MOTION_REVIEW.md`.
+- **Decide first — UM-01:** no explicit reduced-motion branch; verify with Android *Remove animations* on before classifying as a defect. Infinite shimmer/pulse/glow and scale bounces are the parts most likely to need an explicit fade-only path.
+- **Then — UM-02 / UM-03:** `MainScreen.kt:318-331` restarts a 0.7→1.25→1.0 tab-icon bounce on every tap; `AppNavGraph.kt:66-93` gives route exits the same 300 ms as entries and an ease-in-out curve. Both are high-frequency, global changes.
+- **Then — UM-04 / UM-05:** shared cards suppress the ripple and use a 2% default-spring press; the payment-success badge runs to 1.3 s with no skip. Keep the checkmark moment; shorten the rest.
+- **P3 — UM-06 … UM-10:** New Bill 32 dp quantity controls (device-measure hit boxes first), 450 ms PIN shake, 80 ms stagger gaps, 400/300 ms setup crossfade, dialogs not anchored to their trigger.
+- **Verification needed:** no device was used and no screenshots were captured in Session 067. §5 of the report lists the five checks to run before closing any item.
+
 ## Cross-cutting copy & naming review (2026-11-18, Session 019 — static only)
 
 - **DONE (static):** reviewed every Android input field/header, toast/snackbar, notification path, and the screen/function/route names in Android, `services/server`, and `apps/web-admin`. Full evidence and IDs: `RECOMMENDATIONS/FORMS_TOASTS_NAMING_REVIEW.md`.

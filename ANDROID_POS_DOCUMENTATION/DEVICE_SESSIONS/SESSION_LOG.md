@@ -1,5 +1,25 @@
 # Device Testing Session Log
 
+## Session 067: UX motion static review (no device)
+- **Session ID:** SES-20261120-067
+- **Date & Time:** 2026-11-20, 12:06 IST
+- **Scope:** static review of `apps/android/app/src/main/java`; no APK build, install, device walk, or new screenshot.
+- **Objective:** apply the `ux-motion` 20-principle review to the Android POS UI and record problems and improvements.
+
+### Operations Performed
+1. Read `README.md`, `03_UI_NAVIGATION_MAP.md`, `04_SCREEN_INVENTORY.md`, `NEXT_ACTIONS.md`, `AI_ENGINEERING_RULES.md`, and the existing recommendation files before inspecting source.
+2. Inventoried animation APIs, durations, easings, navigation transitions, loading feedback, and interactive bounds in the main source set.
+3. Read the concrete implementations at the line references recorded in `RECOMMENDATIONS/UX_MOTION_REVIEW.md`.
+4. Registered 10 findings (UM-01 … UM-10) and 12 code-observed UI operations; listed existing good patterns to preserve.
+
+### Result
+- Full report: `RECOMMENDATIONS/UX_MOTION_REVIEW.md`.
+- Top items: UM-01 (no explicit reduced-motion branch), UM-02 (0.7→1.25 tab-icon bounce on every tap), UM-03 (NavHost exits as slow as entries), UM-04 (ripple removed on shared cards), UM-05 (1.3 s payment-success celebration).
+- **Nothing was implemented**; no source outside `ANDROID_POS_DOCUMENTATION/` was changed.
+- **Not verified:** all findings are source-observed. Device checks are listed in §5 of the report; historical screenshots are cited there as evidence of existing patterns, not as proof of these findings.
+
+---
+
 ## Session 019: Cross-cutting UI copy, toast/notification and naming review (static)
 - **Session ID:** SES-20261118-019
 - **Date & Time:** 2026-11-18 (host clock; no device)

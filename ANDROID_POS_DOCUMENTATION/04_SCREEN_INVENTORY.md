@@ -2,6 +2,8 @@
 
 This catalog lists all verified graphical user interface screens in KhanaBook Lite POS, including primary interactive touch elements.
 
+> Static-only motion and interaction operations discovered in source (not device-verified) are catalogued in `RECOMMENDATIONS/UX_MOTION_REVIEW.md` §3; they are not promoted to verified screen behaviour here.
+
 ---
 
 ## Screen Inventory Table
