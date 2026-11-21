@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start": "ng serve",
+    "story:frames": "node scripts/render-story-frames.mjs",
     "build": "ng build --configuration production",
     "build:dev": "ng build --configuration development",
     "test": "ng test",

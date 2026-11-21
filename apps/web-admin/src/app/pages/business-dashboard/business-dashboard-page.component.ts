@@ -24,6 +24,7 @@ import { OrderDetailModalComponent } from '../../shared/order-detail-modal.compo
 import { RefreshButtonComponent } from '../../shared/refresh-button.component';
 import { NotificationBellComponent } from '../../shared/notification-bell.component';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
+import { ScrollSequenceComponent } from '../../shared/scroll-sequence.component';
 import { animate, stagger } from 'animejs';
 
 export interface PosActiveOrder {
@@ -98,7 +99,8 @@ function getTodayIsoDate(): string {
     OrderDetailModalComponent,
     NotificationBellComponent,
     RefreshButtonComponent,
-    KpiRowComponent
+    KpiRowComponent,
+    ScrollSequenceComponent
   ],
   template: `
     @if (viewDashboard(); as data) {
@@ -209,6 +211,22 @@ function getTodayIsoDate(): string {
             <button type="button" class="ghost-btn" (click)="refresh()">Retry</button>
           </div>
         }
+        <!-- Shop hero band: 120 frames scrubbed while the band crosses the
+             viewport, so the shop gets a mark at the top without a scroll track
+             that would push the KPIs below the fold. -->
+        <section class="dash-hero" aria-label="Shop">
+          <kb-scroll-sequence
+            class="dash-hero__sequence"
+            variant="band"
+            frameBase="/sequence/plate"
+            [frameCount]="120"
+            label="A gold thali of seven dishes on a deep violet table">
+            <div class="dash-hero__copy">
+              <p class="dash-hero__shop">{{ viewDashboard()?.shopName || 'Your restaurant' }}</p>
+              <p class="dash-hero__note">Every bill, the moment it happens.</p>
+            </div>
+          </kb-scroll-sequence>
+        </section>
         <!-- ── ③ First Row: 4 Equal-Width KPI Cards ── -->
         <section class="dash-kpi-section" aria-label="Key Performance Indicators">
           <app-kpi-row
@@ -980,6 +998,49 @@ function getTodayIsoDate(): string {
       background: var(--kb-color-surface);
       border: 1px solid var(--kb-color-border);
       border-radius: var(--kb-radius-card);
+    }
+
+    /* Shop hero band: a short stack of frames that plays while it scrolls past.
+       The surface and height are set on the component itself, because the
+       component declares its own defaults on :host. */
+    .dash-hero {
+      border-radius: var(--kb-radius-card);
+      overflow: hidden;
+      border: 1px solid var(--kb-color-border);
+    }
+
+    .dash-hero__sequence {
+      --kb-sequence-surface: var(--pos-sidebar-peek-bg);
+      --kb-sequence-stage-height: 10rem;
+    }
+
+    .dash-hero__copy {
+      display: grid;
+      align-content: end;
+      gap: var(--kb-space-1);
+      padding: var(--kb-space-5);
+      background: linear-gradient(
+        to top,
+        color-mix(in srgb, var(--pos-sidebar-peek-bg) 94%, transparent) 0%,
+        color-mix(in srgb, var(--pos-sidebar-peek-bg) 55%, transparent) 70%,
+        transparent 100%
+      );
+    }
+
+    .dash-hero__shop {
+      margin: 0;
+      font-family: var(--kb-font-display);
+      font-size: var(--kb-text-xl);
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--pos-sidebar-ink);
+      text-wrap: balance;
+    }
+
+    .dash-hero__note {
+      margin: 0;
+      font-size: var(--kb-text-sm);
+      color: var(--pos-sidebar-text);
     }
 
     .dash-top-header__identity {

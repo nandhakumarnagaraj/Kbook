@@ -10,6 +10,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/login/login-page.component').then(m => m.LoginPageComponent)
   },
   {
+    // Preview of the scroll-sequence component (see docs/scroll-story.md).
+    path: 'story',
+    loadComponent: () => import('./pages/story/story-page.component').then(m => m.StoryPageComponent)
+  },
+  {
     path: 'limited-access',
     canActivate: [authGuard],
     loadComponent: () => import('./pages/limited-access/limited-access-page.component').then(m => m.LimitedAccessPageComponent)
