@@ -291,7 +291,6 @@ export class SalesOverviewPageComponent implements OnInit {
   readonly businesses = signal<AdminBusinessListItem[]>([]);
   readonly rawBills = signal<AdminBillListItem[]>([]);
   readonly dailyTrends = signal<AdminDailyTrendItem[]>([]);
-  readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
   readonly kpis = computed<KpiItem[]>(() => {
@@ -361,8 +360,10 @@ export class SalesOverviewPageComponent implements OnInit {
     // they always add up to exactly 100 rather than 99.9 or 100.1.
     let assigned = 0;
     return rows.map((row, index) => {
+      // Floor at zero: rounding the rows above can overshoot 100 by a tenth, and a
+      // negative arc is worse than a 0.1% inaccuracy.
       const share = index === rows.length - 1
-        ? Math.round((100 - assigned) * 10) / 10
+        ? Math.max(0, Math.round((100 - assigned) * 10) / 10)
         : Math.round((row.count / total) * 1000) / 10;
       assigned += share;
       return {
@@ -419,47 +420,41 @@ export class SalesOverviewPageComponent implements OnInit {
   }
 
   refresh(): void {
-    this.loading.set(true);
     this.error.set(null);
-    let pending = 4;
 
-    const settle = () => {
-      pending -= 1;
-      if (pending === 0) {
-        this.loading.set(false);
-      }
-    };
-    const fail = (err: unknown) => {
-      this.error.set(
-        (err as { error?: { message?: string } })?.error?.message ||
-          'Could not load sales data from the server.',
-      );
-      settle();
-    };
+    // Any failure is reported once; the panels that did load keep their data.
+    const fail = (err: unknown) => this.error.set(
+      (err as { error?: { message?: string } })?.error?.message ||
+        'Could not load sales data from the server.',
+    );
 
     this.adminApi.getDashboardSummary().subscribe({
-      next: (res) => { this.summary.set(res); settle(); },
+      next: (res) => this.summary.set(res),
       error: (err) => fail(err),
     });
 
     this.adminApi.getBusinesses().subscribe({
-      next: (res) => { this.businesses.set(Array.isArray(res) ? res : []); settle(); },
+      next: (res) => this.businesses.set(Array.isArray(res) ? res : []),
       error: (err) => fail(err),
     });
 
     this.adminApi.getBills(BILL_SAMPLE_SIZE).subscribe({
-      next: (res) => { this.rawBills.set(Array.isArray(res) ? res : []); settle(); },
+      next: (res) => this.rawBills.set(Array.isArray(res) ? res : []),
       error: (err) => fail(err),
     });
 
     this.adminApi.getDailyTrends(this.rangeDays()).subscribe({
-      next: (res) => { this.dailyTrends.set(Array.isArray(res) ? res : []); settle(); },
+      next: (res) => this.dailyTrends.set(Array.isArray(res) ? res : []),
       error: (err) => fail(err),
     });
   }
 
+  /** "This Month" is the days elapsed so far, not a rolling 30, so the label is true. */
   private rangeDays(): number {
-    return this.range() === 'Last 7 Days' ? 7 : this.range() === 'This Month' ? 30 : 30;
+    if (this.range() === 'Last 7 Days') {
+      return 7;
+    }
+    return this.range() === 'This Month' ? Math.max(1, new Date().getDate()) : 30;
   }
 
   private trendSlice(): AdminDailyTrendItem[] {
