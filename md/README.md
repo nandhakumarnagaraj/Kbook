@@ -14,7 +14,7 @@ KhanaBook is an offline-first restaurant billing and operations system for small
 | `services/server/` | Spring Boot API and Flyway migrations | Central multi-tenant cloud service, edge synchronization engine (`/sync/push`, `/sync/pull`), Easebuzz dynamic payment webhooks, and audit logging. |
 | `docs/` | All documentation — start at [`docs/README.md`](docs/README.md) | Architectural specifications, database schemas, and operational runbooks. |
 | `ops/` | Deploy scripts, Docker Compose files, Apache/nginx configs, backups | Production infrastructure and container setup. |
-| `specs/` · `mcp/` · `cdn/` | Local tooling and runtime uploads (git-ignored) | Tooling, MCP definitions, and local media artifacts. |
+| `md/local/` · `md/mcp/` | Local tooling, MCP definitions and stale agent state (git-ignored) | Editor/agent tooling and local notes, kept out of the repository root. |
 
 See [`docs/README.md`](docs/README.md) for the full documentation index.
 

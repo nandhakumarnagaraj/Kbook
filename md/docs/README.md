@@ -35,7 +35,7 @@ difference matters when you cite something:
 | `android/` | Android checklists & audits: `PLAYSTORE_RELEASE_CHECKLIST.md`, `MIGRATION_TESTING_PLAYBOOK.md`, `ACCESSIBILITY_CHECKLIST.md`, `DEVICE_COVERAGE_AUDIT.md`, `EDGE_TO_EDGE_BOTTOM_BAR.md`, conformance/redesign audits |
 | `planning/` | Active plans only: `PLAN.md`, `FIX_PLAN.md`, `ROOT_CAUSE_LOG.md`, `OWNER_EDIT_BILL_AND_CONFIG_PLAN.md`, `BILLINGVM_SPLIT_PLAN.md`, `SYNC_PROCESSOR_SPLIT_PLAN.md`, `NEWBILLSCREEN_SPLIT_PLAN.md`, `BUSINESS_DAY_CUTOFF_AND_SHIFTS_PLAN_2026-11-06.md` (cutoff + shifts + closing outbox design), `BUSINESS_DAY_CUTOFF_AND_SHIFTS_REQUIREMENTS_2026-11-06.md` (what is built, requirement by requirement), `SAAS_SLICE_*` records, `feature-plans/` |
 | `prototypes/` | HTML state prototypes for web-admin pages + `IMPLEMENTATION_PLAN.md` |
-| `specs/` | `UX_SIMPLIFICATION.md`, `EASEBUZZ_CPV_HARDENING.md`, `MENU_CONFIG_UX_SPEC.md`, `web-admin-v1-features.md`, `v2-third-party-integration-inventory.md` (note: new files here are git-ignored by the unanchored `specs/` rule) |
+| `md/local/specs/` | `UX_SIMPLIFICATION.md`, `EASEBUZZ_CPV_HARDENING.md`, `MENU_CONFIG_UX_SPEC.md`, `web-admin-v1-features.md`, `v2-third-party-integration-inventory.md` (note: new files here are git-ignored by the unanchored `specs/` rule) |
 | `baseline-provenance/` | Baseline commit & reconciliation docs, `residual-provenance-risk.md` |
 | `mcp/` | MCP install links |
 

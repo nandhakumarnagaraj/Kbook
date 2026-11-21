@@ -30,7 +30,7 @@ Do not conflate these three layers. They must align, but they serve different pu
 | :--- | :--- | :--- | :--- |
 | **Code Comments** | Inline in `.kt`, `.java`, `.ts` | Explains what the code actually does and why it was structured this way | Runtime implementation & mechanics |
 | **Technical Architecture** | `md/docs/`, `ADR/`, `md/openspec/` | System architecture, data flow, synchronization contracts, schema migrations | High-level engineering design |
-| **Product Requirements** | `specs/`, PR descriptions | Expected domain behavior, business rules, edge cases | Desired product intent |
+| **Product Requirements** | `md/local/specs/`, PR descriptions | Expected domain behavior, business rules, edge cases | Desired product intent |
 
 ---
 

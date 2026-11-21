@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * cannot replace: those pin our bytes, this proves the gateway accepts them.
  *
  * <pre>
- * set -a; . ./env/.env; set +a
+ * set -a; . ./md/env/.env; set +a
  * EASEBUZZ_LIVE_UAT=1 ./mvnw -o test -Dtest=EasebuzzLiveUatTest
  * </pre>
  *

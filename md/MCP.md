@@ -606,8 +606,8 @@ speaks MCP over stdio — `initialize`, then `tools/list` — so a dead package,
 missing runtime shows up as a failure instead of a silently empty tool list:
 
 ```bash
-node mcp/verify-mcp.mjs                 # every config
-node mcp/verify-mcp.mjs git-mcp.json    # one config
+node md/mcp/verify-mcp.mjs                 # every config
+node md/mcp/verify-mcp.mjs git-mcp.json    # one config
 ```
 
 Output is one line per config with the tool count that server actually published, and the exit
