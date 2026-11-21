@@ -32,7 +32,7 @@ Every claim below carries one of these markers, because a feature that merely ha
 - **[I]** **Inferred** — concluded from configuration or structure, not from a run (e.g. CI gating).
 - **[U]** **Unverified** — could not be established from the repository; listed so it is not mistaken for an assumption.
 
-Per `AGENTS.md`, this audit does not implement its own recommendations, and it does not delete or overwrite historical findings. Related prior evidence lives in `ANDROID_POS_DOCUMENTATION/` (device sessions), `REQUIREMENT_IMPLEMENTATION_GAPS.md` (open identity/OTP gaps), and `docs/audit/` (earlier web-admin audits).
+Per `AGENTS.md`, this audit does not implement its own recommendations, and it does not delete or overwrite historical findings. Related prior evidence lives in `md/ANDROID_POS_DOCUMENTATION/` (device sessions), `REQUIREMENT_IMPLEMENTATION_GAPS.md` (open identity/OTP gaps), and `docs/audit/` (earlier web-admin audits).
 
 ## 3. Headline findings
 
@@ -66,7 +66,7 @@ None of the above requires new features to fix. All of them are addressed in `14
 
 ## 5. What this audit did **not** establish
 
-- No device or emulator session: touch behaviour, printer output, offline replay, and midnight rollover remain as recorded in `ANDROID_POS_DOCUMENTATION/UNVERIFIED_ASSUMPTIONS.md`.
+- No device or emulator session: touch behaviour, printer output, offline replay, and midnight rollover remain as recorded in `md/ANDROID_POS_DOCUMENTATION/UNVERIFIED_ASSUMPTIONS.md`.
 - Test suites were not executed end-to-end (server `mvnw test`, Angular `ng test`, Android instrumented). Counts and gating were inspected; pass/fail was not re-established.
 - The deployed reverse proxy (`ops/apache-kbook.conf`) was not verified against the running host, so AUD-004 remains open.
 - No load or query-plan measurements were taken, so performance findings are structural, not measured.

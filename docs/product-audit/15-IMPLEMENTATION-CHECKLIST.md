@@ -65,7 +65,7 @@ These were repairs required to restore a compiling tree; they are not recommenda
 
 ## §4 Test gates (AUD-007, AUD-015, AUD-019)
 
-- [ ] Run `./gradlew connectedDebugAndroidTest` once and record the real result in `ANDROID_POS_DOCUMENTATION/DEVICE_SESSIONS/SESSION_LOG.md`.
+- [ ] Run `./gradlew connectedDebugAndroidTest` once and record the real result in `md/ANDROID_POS_DOCUMENTATION/DEVICE_SESSIONS/SESSION_LOG.md`.
 - [ ] Delete `continue-on-error: true` from `android-instrumented-tests` once green, or delete the failing tests.
 - [ ] Add Room migration tests to a required job.
 - [ ] Remove the duplicated Android unit-test job from `android-ci.yml` (keep lint + instrumented) and the duplicated `ng test` from `web-admin.yml` (keep `npm run build`).

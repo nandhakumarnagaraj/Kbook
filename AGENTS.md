@@ -14,11 +14,11 @@
 
 ## Android POS UI Operations Documentation Policy
 Whenever an AI agent explores, operates, tests, or analyzes the KhanaBook Android POS application:
-1. It MUST read the relevant files inside `ANDROID_POS_DOCUMENTATION/` before starting.
+1. It MUST read the relevant files inside `md/ANDROID_POS_DOCUMENTATION/` before starting.
 2. It MUST document every newly discovered UI operation.
 3. It MUST update existing documentation when actual UI behavior changes.
 4. It MUST record bugs, suggestions, and recommendations.
-5. It MUST maintain a session audit log in `ANDROID_POS_DOCUMENTATION/DEVICE_SESSIONS/SESSION_LOG.md`.
+5. It MUST maintain a session audit log in `md/ANDROID_POS_DOCUMENTATION/DEVICE_SESSIONS/SESSION_LOG.md`.
 6. It MUST reference actual screenshots and logs.
 7. It MUST distinguish verified behavior from assumptions and proposals.
 8. It MUST NOT implement recommendations without explicit authorization.

@@ -4,7 +4,7 @@
 > instructions that previously lived in both `docs/meta/AGENTS.md` and `ops/`.
 >
 > Verified against `main` / HEAD `afa5cc86` on 2026-10-17. Authoritative stack detail:
-> `../../ops/PRODUCTION_STACK.md`.
+> `../../md/PRODUCTION_STACK.md`.
 
 ## 1. Production topology
 

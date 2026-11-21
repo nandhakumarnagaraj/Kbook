@@ -55,7 +55,7 @@ apps/web-admin/src/app/pages/notifications/notifications-page.component.ts  (NEW
 apps/web-admin/src/app/pages/platform-settings/platform-settings-page.component.ts(NEW)
 apps/web-admin/src/app/pages/backups/backups-page.component.ts              (NEW)
 apps/web-admin/src/app/pages/integrations/integrations-page.component.ts    (NEW)
-prototype-docs/screen-inventory.md / architecture-audit.md / implementation-report.md (NEW)
+md/screen-inventory.md / md/architecture-audit.md / md/implementation-report.md (NEW)
 %TEMP%\kb-preview\ (downscaled reference previews + QA harness, outside the repo)
 ```
 

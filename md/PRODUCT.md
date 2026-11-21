@@ -399,7 +399,7 @@
 
 ## 9. Reference Links
 
-- **Android POS docs**: `ANDROID_POS_DOCUMENTATION/README.md`
+- **Android POS docs**: `md/ANDROID_POS_DOCUMENTATION/README.md`
 - **Web Admin spec**: `docs/specs/web-admin-v1-features.md`
 - **Architecture decisions**: `docs/adr/`
 - **UI design reference**: `docs/android/ANDROID_DESIGN_REFERENCE_PACK.md`

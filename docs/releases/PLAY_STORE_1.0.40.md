@@ -1,7 +1,7 @@
 # Play Store release notes — 1.0.40 (versionCode 40)
 
 **Artifact:** `apps/android/app/build/outputs/bundle/release/app-release.aab` (SHA-256 `250ca1b0…3f914076`)
-**Source:** Sessions 036–066 in `ANDROID_POS_DOCUMENTATION/CHANGELOG.md`, reduced to user-visible changes.
+**Source:** Sessions 036–066 in `md/ANDROID_POS_DOCUMENTATION/CHANGELOG.md`, reduced to user-visible changes.
 
 > 1.0.39 was blocked in Play review because the Easebuzz checkout activity made portrait a required hardware feature. 1.0.40 fixes that and reuses this same user-facing copy; versionCode 39 is spent.
 

@@ -317,7 +317,7 @@ Live Floor filter buttons are `.floor-chip`, not `.channel-chip`).
 
 The production backend runs as a **Docker Compose** stack on the VPS, NOT systemd.
 (A legacy `deploy.sh` + `khanabook.service` systemd path also exists but is superseded
-by the compose stack described in `ops/PRODUCTION_STACK.md`.)
+by the compose stack described in `md/PRODUCTION_STACK.md`.)
 
 - **Repo root on VPS:** `/var/www/kbook.iadv.cloud`
 - **Stack files:** `ops/docker-compose.production.yml`, `.env` (secrets — never commit)

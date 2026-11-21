@@ -429,7 +429,7 @@ Generated file list excluding framework-owned build/dependency/cache folders:
 - `opencode.json`
 - `ops/backup_postgres.sh`
 - `ops/khanabook.service.example`
-- `ops/PRODUCTION_STACK.md`
+- `md/PRODUCTION_STACK.md`
 - `ops/restore_postgres.sh`
 - `README.md`
 - `scratch/shots/s1.png`

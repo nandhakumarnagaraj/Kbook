@@ -60,7 +60,7 @@ Two page components are outsized (AUD-009): `business-dashboard` 3,901 lines and
 | Risk | Level | Detail |
 | --- | --- | --- |
 | `sync` ↔ everything | Medium | `GenericSyncService` and `MasterSyncProcessor` switch over every syncable entity. Adding a field to any entity touches the largest files in both codebases. |
-| `auth` → `notifications` | Medium | OTP delivery failure surfaces as an auth error. `ANDROID_POS_DOCUMENTATION` BUG-004 is exactly this: code correct, SMTP unset. |
+| `auth` → `notifications` | Medium | OTP delivery failure surfaces as an auth error. `md/ANDROID_POS_DOCUMENTATION` BUG-004 is exactly this: code correct, SMTP unset. |
 | `payments` → provider | High | Easebuzz is a single external dependency for money movement; webhook endpoints are intentionally `permitAll` and must be signature-verified downstream. |
 | Google/Firebase config | Low | `google-services.json` is per-developer and gitignored; CI synthesises a stub. Any feature that assumed real Firebase at build time breaks CI. |
 

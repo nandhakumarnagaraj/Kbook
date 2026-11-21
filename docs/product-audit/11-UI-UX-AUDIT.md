@@ -1,6 +1,6 @@
 # 11 — UI/UX Audit
 
-**Evidence basis:** source review plus the screenshots and session records already committed under `docs/audit/`, `artifacts/android-ui-tests/` and `ANDROID_POS_DOCUMENTATION/DEVICE_SESSIONS/SESSION_LOG.md`. **No new screenshots were taken for this audit**; no browser/emulator run, no tap-through.
+**Evidence basis:** source review plus the screenshots and session records already committed under `docs/audit/`, `artifacts/android-ui-tests/` and `md/ANDROID_POS_DOCUMENTATION/DEVICE_SESSIONS/SESSION_LOG.md`. **No new screenshots were taken for this audit**; no browser/emulator run, no tap-through.
 
 ## 1. Workflow completeness
 

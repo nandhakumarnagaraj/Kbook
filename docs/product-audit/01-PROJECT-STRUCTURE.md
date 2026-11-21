@@ -13,7 +13,7 @@
 ├── services/
 │   └── server/           Spring Boot 3.5.12 API (Maven)
 ├── docs/                 product, api, adr, runbooks, audit, qa, specs…
-├── ANDROID_POS_DOCUMENTATION/   device-verified POS knowledge base [V]
+├── md/ANDROID_POS_DOCUMENTATION/   device-verified POS knowledge base [V]
 ├── ops/                  apache config, deployment assets
 ├── artifacts/            screenshots and device evidence
 ├── openspec/             change proposals / specs
@@ -48,7 +48,7 @@ Consistent and enforceable:
 - Android: `<Screen>Screen.kt`, `<Name>View.kt`, `<Name>ViewModel.kt`, `<Name>Repository.kt`, `<Name>Dao.kt`.
 - Flyway: `V<n>__lower_snake_case.sql` — 103 files, no gaps in the `V1..V121` sequence apart from the discarded `V9` (see `06`).
 
-**Inconsistency worth noting:** two UI dialects coexist on Android — `*Screen.kt` (nav destinations) and `*View.kt` (embedded views such as `ShopConfigView`, `ChangePasswordView`). It is followed consistently, but it is undocumented; a new contributor will guess wrong. Recommendation: one paragraph in `ANDROID_POS_DOCUMENTATION/01_APPLICATION_OVERVIEW.md` stating the rule.
+**Inconsistency worth noting:** two UI dialects coexist on Android — `*Screen.kt` (nav destinations) and `*View.kt` (embedded views such as `ShopConfigView`, `ChangePasswordView`). It is followed consistently, but it is undocumented; a new contributor will guess wrong. Recommendation: one paragraph in `md/ANDROID_POS_DOCUMENTATION/01_APPLICATION_OVERVIEW.md` stating the rule.
 
 ### Separation of concerns [C]
 
