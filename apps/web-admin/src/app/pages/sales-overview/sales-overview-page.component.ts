@@ -292,6 +292,8 @@ export class SalesOverviewPageComponent implements OnInit {
   readonly rawBills = signal<AdminBillListItem[]>([]);
   readonly dailyTrends = signal<AdminDailyTrendItem[]>([]);
   readonly error = signal<string | null>(null);
+  /** Identifies the latest trends request so a slower, older one cannot win. */
+  private trendsToken = 0;
 
   readonly kpis = computed<KpiItem[]>(() => {
     const s = this.summary();
@@ -450,9 +452,20 @@ export class SalesOverviewPageComponent implements OnInit {
   }
 
   private loadTrends(): void {
+    // Two quick pill taps race; only the answer to the latest one may land, or a
+    // 30-day response arriving late would overwrite the 7-day chart.
+    const token = ++this.trendsToken;
     this.adminApi.getDailyTrends(this.rangeDays()).subscribe({
-      next: (res) => this.dailyTrends.set(Array.isArray(res) ? res : []),
-      error: (err) => this.fail(err),
+      next: (res) => {
+        if (token === this.trendsToken) {
+          this.dailyTrends.set(Array.isArray(res) ? res : []);
+        }
+      },
+      error: (err) => {
+        if (token === this.trendsToken) {
+          this.fail(err);
+        }
+      },
     });
   }
 
@@ -481,9 +494,11 @@ export class SalesOverviewPageComponent implements OnInit {
     const values = points.map((point) => Number(value(point) || 0));
     const max = Math.max(1, ...values);
     const count = Math.max(1, values.length);
+    // x starts at 2 and the bar is 5 wide, so the last bar ends at most at 259.3
+    // and never pokes past the 260-unit viewBox.
     return values.map((v, i) => {
       const height = Math.round((v / max) * 130);
-      return { i, x: Math.round(i * (260 / count)) + 4, y: 150 - height, height };
+      return { i, x: Math.round(i * (260 / count)) + 2, y: 150 - height, height };
     });
   }
 
