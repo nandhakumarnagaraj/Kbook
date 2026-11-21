@@ -1,6 +1,22 @@
 #!/bin/sh
 # openqodex pre-push hook: openqodex hook uninstall removes it
-'/root/.openqodex/bin/openqodex' hook pre-push "$@"
+#
+# The installed checker is not always at /root/.openqodex/bin/openqodex (a
+# Windows checkout keeps it under the user profile, and CI has none at all), so
+# resolve it: PATH first, then the home install, then the pinned release via npx.
+if command -v openqodex >/dev/null 2>&1; then
+  OPENQODEX=openqodex
+elif [ -x "$HOME/.openqodex/bin/openqodex" ]; then
+  OPENQODEX="$HOME/.openqodex/bin/openqodex"
+else
+  OPENQODEX=
+fi
+
+if [ -n "$OPENQODEX" ]; then
+  "$OPENQODEX" hook pre-push "$@"
+else
+  npx -y openqodex@0.16.0 hook pre-push "$@"
+fi
 status=$?
 [ "$status" -eq 1 ] && exit 1
 exit 0
