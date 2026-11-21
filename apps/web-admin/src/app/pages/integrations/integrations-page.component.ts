@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { IconComponent } from '../../shared/icon.component';
@@ -35,10 +35,10 @@ interface VendorRow {
         </div>
       </app-page-header>
 
-      <app-kpi-row [items]="kpis" ariaLabel="Integration summary"></app-kpi-row>
+      <app-kpi-row [items]="kpis()" ariaLabel="Integration summary"></app-kpi-row>
 
       <div class="vendor-grid" role="list">
-        <article class="panel vendor-card" *ngFor="let vendor of vendors; trackBy: trackById" role="listitem">
+        <article class="panel vendor-card" *ngFor="let vendor of vendors(); trackBy: trackById" role="listitem">
           <header class="vendor-head">
             <span class="vendor-icon" [class.vendor-icon--payments]="vendor.category === 'payments'" [class.vendor-icon--messaging]="vendor.category === 'messaging'">
               <kb-icon [name]="vendorIcon(vendor.category)" [size]="20"></kb-icon>
@@ -92,21 +92,28 @@ interface VendorRow {
   ],
 })
 export class IntegrationsPageComponent {
-  readonly kpis: KpiItem[] = [
-    { label: 'Connected Services', value: 4, icon: 'extension', tone: 'success', caption: 'Active platform services' },
-    { label: 'Active Outlets', value: 167, icon: 'business', tone: 'brand', caption: 'Verified in restaurantprofiles' },
-    { label: 'FCM Devices', value: 26, icon: 'monitoring', tone: 'success', caption: 'Active in device_tokens' },
-    { label: 'Offline Fallbacks', value: '100%', icon: 'flag', tone: 'success', caption: 'UPI QR & local sync active' },
-  ];
-
-  readonly vendors: VendorRow[] = [
+  readonly vendors = signal<VendorRow[]>([
     { id: 'cash-upi', name: 'Offline UPI & Cash Register', blurb: 'Direct merchant QR codes, instant zero-commission counter payments.', category: 'payments', state: 'connected', metric: '100% active registers' },
     { id: 'upi', name: 'Dynamic UPI / QR', blurb: 'Per-outlet static and dynamic QR generation for offline registers.', category: 'payments', state: 'connected', metric: '139 outlets configured' },
     { id: 'whatsapp', name: 'WhatsApp Business API', blurb: 'Automated invoice PDFs, digital receipts and staff OTP dispatch.', category: 'messaging', state: 'connected', metric: 'Meta Graph API v20.0' },
     { id: 'firebase', name: 'Firebase Cloud Messaging', blurb: 'Live POS order dispatch, push notifications and device sync alerts.', category: 'data', state: 'connected', metric: '26 registered devices' },
     { id: 'gst', name: 'GST Compliant E-Invoicing', blurb: 'Automated B2B/B2C GST tax reports and monthly GSTR summary exports.', category: 'data', state: 'connected', metric: 'Sequence engine active' },
     { id: 'sms', name: 'SMS Fallback Service', blurb: 'OTP and transaction fallback for non-WhatsApp customer terminals.', category: 'messaging', state: 'available', metric: 'Ready to configure' },
-  ];
+  ]);
+
+  /**
+   * Counted from this page's own catalogue. The previous tiles also claimed 167
+   * verified outlets and 26 FCM devices, which no endpoint reports; those are
+   * gone rather than guessed at.
+   */
+  readonly kpis = computed<KpiItem[]>(() => {
+    const list = this.vendors();
+    const connected = list.filter((vendor) => vendor.state === 'connected').length;
+    return [
+      { label: 'Connected Services', value: connected, icon: 'extension', tone: 'success', caption: 'Connected in this catalogue' },
+      { label: 'Available to Configure', value: list.length - connected, icon: 'flag', tone: 'brand', caption: 'Listed but not enabled' },
+    ];
+  });
 
   vendorIcon(category: VendorRow['category']): string {
     if (category === 'payments') return 'payments';
@@ -115,7 +122,10 @@ export class IntegrationsPageComponent {
   }
 
   toggleVendor(vendor: VendorRow): void {
-    vendor.state = vendor.state === 'available' ? 'connected' : 'available';
+    const next = vendor.state === 'available' ? 'connected' : 'available';
+    this.vendors.update((list) =>
+      list.map((entry) => (entry.id === vendor.id ? { ...entry, state: next } : entry)),
+    );
   }
 
   trackById(index: number, vendor: VendorRow): string { return vendor.id; }

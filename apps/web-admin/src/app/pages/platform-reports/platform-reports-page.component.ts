@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 import { IconComponent } from '../../shared/icon.component';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AdminDashboardSummary } from '../../core/models/api.models';
 
 interface ReportRow {
   name: string;
@@ -34,7 +35,7 @@ interface ReportRow {
         </div>
       </app-page-header>
 
-      <app-kpi-row [items]="kpis" ariaLabel="Report summary"></app-kpi-row>
+      <app-kpi-row [items]="kpis()" ariaLabel="Report summary"></app-kpi-row>
 
       <div class="report-grid" role="list">
         <article class="panel report-card" *ngFor="let report of reports; trackBy: trackByName" role="listitem">
@@ -87,20 +88,40 @@ interface ReportRow {
     `,
   ],
 })
-export class PlatformReportsPageComponent {
+export class PlatformReportsPageComponent implements OnInit {
   private readonly adminApi = inject(AdminApiService);
   private readonly toast = inject(ToastService);
 
-  readonly kpis: KpiItem[] = [
-    { label: 'Outlets Covered', value: 139, icon: 'reports', tone: 'brand', caption: 'Full platform footprint' },
-    { label: 'Live Data Exports', value: 6, icon: 'dashboard', tone: 'success', caption: 'Direct PostgreSQL streaming' },
-    { label: 'Total Settled Bills', value: '1,692', icon: 'orders', tone: 'brand', caption: 'Available for CSV export' },
-    { label: 'Audit Status', value: 'Clean', icon: 'health', tone: 'success', caption: 'GST & Ledger compliant' },
-  ];
+  readonly summary = signal<AdminDashboardSummary | null>(null);
+
+  /**
+   * Only figures the summary endpoint reports. The old tiles claimed 139 outlets,
+   * 1,692 bills, 6 live exports and a "Clean" audit status; none of those came
+   * from anywhere, so they are gone rather than restyled.
+   */
+  readonly kpis = computed<KpiItem[]>(() => {
+    const s = this.summary();
+    return [
+      { label: 'Outlets Covered', value: s ? Number(s.totalBusinesses || 0).toLocaleString('en-IN') : '—', icon: 'reports', tone: 'brand', caption: 'Businesses in the platform summary' },
+      { label: 'Total Settled Bills', value: s ? Number(s.totalOrders || 0).toLocaleString('en-IN') : '—', icon: 'orders', tone: 'brand', caption: 'Orders reported by the summary' },
+    ];
+  });
+
+  ngOnInit(): void {
+    this.loadSummary();
+  }
+
+  private loadSummary(): void {
+    this.adminApi.getDashboardSummary().subscribe({
+      next: (res) => this.summary.set(res),
+      // KPI values stay "—"; the export buttons fail loudly on their own.
+      error: () => this.summary.set(null),
+    });
+  }
 
   readonly reports: ReportRow[] = [
     { name: 'Platform Sales Report', cadence: 'Continuous', window: 'Live bills database', state: 'Ready' },
-    { name: 'Outlet Operations Settlement', cadence: 'Monthly', window: 'All 139 Outlets', state: 'Ready' },
+    { name: 'Outlet Operations Settlement', cadence: 'Monthly', window: 'All outlets in the directory', state: 'Ready' },
     { name: 'Restaurant Master Ledger', cadence: 'Daily', window: 'Full outlet directory', state: 'Ready' },
     { name: 'Feature Flag Audit Export', cadence: 'Live', window: 'Current PostgreSQL flags', state: 'Ready' },
     { name: 'Payment Transactions Digest', cadence: 'Real-time', window: 'Settlements & Webhooks', state: 'Ready' },
