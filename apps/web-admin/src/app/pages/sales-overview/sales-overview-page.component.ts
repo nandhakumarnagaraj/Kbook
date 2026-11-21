@@ -59,7 +59,7 @@ const BILL_SAMPLE_SIZE = 100;
           </span>
           <div class="range-pills" role="tablist" aria-label="Date range">
             @for (pill of rangeOptions; track pill) {
-              <button type="button" class="range-pill" role="tab" [class.active]="range() === pill" [attr.aria-selected]="range() === pill" (click)="range.set(pill)">{{ pill }}</button>
+              <button type="button" class="range-pill" role="tab" [class.active]="range() === pill" [attr.aria-selected]="range() === pill" (click)="setRange(pill)">{{ pill }}</button>
             }
           </div>
           <button class="header-action-btn" type="button" (click)="refresh()">
@@ -422,31 +422,46 @@ export class SalesOverviewPageComponent implements OnInit {
   refresh(): void {
     this.error.set(null);
 
-    // Any failure is reported once; the panels that did load keep their data.
-    const fail = (err: unknown) => this.error.set(
-      (err as { error?: { message?: string } })?.error?.message ||
-        'Could not load sales data from the server.',
-    );
-
     this.adminApi.getDashboardSummary().subscribe({
       next: (res) => this.summary.set(res),
-      error: (err) => fail(err),
+      error: (err) => this.fail(err),
     });
 
     this.adminApi.getBusinesses().subscribe({
       next: (res) => this.businesses.set(Array.isArray(res) ? res : []),
-      error: (err) => fail(err),
+      error: (err) => this.fail(err),
     });
 
     this.adminApi.getBills(BILL_SAMPLE_SIZE).subscribe({
       next: (res) => this.rawBills.set(Array.isArray(res) ? res : []),
-      error: (err) => fail(err),
+      error: (err) => this.fail(err),
     });
 
+    this.loadTrends();
+  }
+
+  /** The range pill changes the window the endpoint is asked for, not just the slice. */
+  setRange(next: (typeof this.rangeOptions)[number]): void {
+    if (this.range() === next) {
+      return;
+    }
+    this.range.set(next);
+    this.loadTrends();
+  }
+
+  private loadTrends(): void {
     this.adminApi.getDailyTrends(this.rangeDays()).subscribe({
       next: (res) => this.dailyTrends.set(Array.isArray(res) ? res : []),
-      error: (err) => fail(err),
+      error: (err) => this.fail(err),
     });
+  }
+
+  /** Any failure is reported once; the panels that did load keep their data. */
+  private fail(err: unknown): void {
+    this.error.set(
+      (err as { error?: { message?: string } })?.error?.message ||
+        'Could not load sales data from the server.',
+    );
   }
 
   /** "This Month" is the days elapsed so far, not a rolling 30, so the label is true. */

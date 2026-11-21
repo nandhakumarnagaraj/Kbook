@@ -97,7 +97,9 @@ describe('SalesOverviewPageComponent — API figures only', () => {
   it('draws exactly the trend points the endpoint returned', async () => {
     await mount({ trends: TRENDS });
     expect(component.revenueChart().length).toBe(30);
-    component.range.set('Last 7 Days');
+    component.setRange('Last 7 Days');
+    // The pill refetches the window it names, not just the slice on screen.
+    expect(adminApiSpy.getDailyTrends.calls.mostRecent().args[0]).toBe(7);
     expect(component.revenueChart().length).toBe(7);
     expect(component.ordersChart().length).toBe(7);
     for (const bar of component.revenueChart()) {

@@ -16,23 +16,14 @@ interface TicketRow {
   createdOn: string;
 }
 
-export const DEFAULT_TICKETS: TicketRow[] = [
-  { id: 'TK-1041', subject: 'Printer not working', restaurant: 'Spice Villa', category: 'Technical', priority: 'High', status: 'Open', createdOn: '28 Oct 2026, 09:12 am' },
-  { id: 'TK-1040', subject: 'GST configuration', restaurant: 'Dosa Plaza', category: 'Billing', priority: 'Medium', status: 'In Progress', createdOn: '27 Oct 2026, 05:15 pm' },
-  { id: 'TK-1039', subject: 'App pairing issue', restaurant: 'The Grill House', category: 'Onboarding', priority: 'High', status: 'Open', createdOn: '27 Oct 2026, 11:30 am' },
-  { id: 'TK-1038', subject: 'Payment issue', restaurant: 'Tasty Bites', category: 'Billing', priority: 'Medium', status: 'In Progress', createdOn: '27 Oct 2026, 07:00 am' },
-  { id: 'TK-1037', subject: 'Add new staff', restaurant: 'Cafe Corner', category: 'Onboarding', priority: 'Low', status: 'Resolved', createdOn: '26 Oct 2026, 04:38 pm' },
-  { id: 'TK-1036', subject: 'Refund not reflecting', restaurant: 'Royal Kitchen', category: 'Billing', priority: 'High', status: 'Open', createdOn: '26 Oct 2026, 10:00 am' },
-  { id: 'TK-1035', subject: 'Menu categories', restaurant: 'Food Junction', category: 'Feature Request', priority: 'Low', status: 'Resolved', createdOn: '25 Oct 2026, 08:45 am' },
-  { id: 'TK-1034', subject: 'Slow dashboard load', restaurant: 'Dine Hub', category: 'Technical', priority: 'Medium', status: 'Resolved', createdOn: '24 Oct 2026, 06:20 pm' },
-  { id: 'TK-1033', subject: 'SMS notifications', restaurant: 'Madras Meals', category: 'Feature Request', priority: 'Low', status: 'Closed', createdOn: '23 Oct 2026, 02:12 pm' },
-  { id: 'TK-1032', subject: 'Terminal offline', restaurant: 'Spice Villa', category: 'Technical', priority: 'High', status: 'In Progress', createdOn: '22 Oct 2026, 09:05 am' },
-  { id: 'TK-1031', subject: 'Invoice download', restaurant: 'Biryani House', category: 'Billing', priority: 'Low', status: 'Closed', createdOn: '21 Oct 2026, 12:30 pm' },
-  { id: 'TK-1030', subject: 'Inventory export', restaurant: 'Urban Dine', category: 'Feature Request', priority: 'Medium', status: 'Resolved', createdOn: '20 Oct 2026, 03:00 pm' },
-];
 
 /**
- * Admin → Support Tickets: Tracks operational requests raised by platform outlets.
+ * Admin → Support Tickets.
+ *
+ * WHY: there is no support-ticket endpoint yet, so the register lives in
+ * localStorage. The page used to seed twelve sample tickets and a "139 outlets,
+ * 100% operational" tile, which read as live platform data; both are gone, and
+ * an empty register says so instead of inventing a queue.
  */
 @Component({
   selector: 'app-support-tickets-page',
@@ -143,8 +134,8 @@ export const DEFAULT_TICKETS: TicketRow[] = [
               @if (!filteredRows().length) {
                 <tr>
                   <td colspan="8" class="muted empty-cell">
-                    <strong>All 139 Outlets Operating Normally</strong>
-                    <div class="empty-sub">No unresolved support tickets on the platform. Inquiries from WhatsApp or Email (+91 80000 00000 / support&#64;khanabook.com) will appear here.</div>
+                    <strong>No support tickets logged</strong>
+                    <div class="empty-sub">Tickets created here are kept in this browser until a support endpoint exists; email support&#64;khanabook.com for anything urgent.</div>
                   </td>
                 </tr>
               }
@@ -260,7 +251,6 @@ export class SupportTicketsPageComponent {
       { label: 'Total Tickets', value: total, icon: 'help', tone: 'brand', caption: total > 0 ? 'Logged support requests' : 'Zero open inquiries' },
       { label: 'Open', value: open, icon: 'notifications', tone: open > 0 ? 'danger' : 'success', caption: open > 0 ? 'Needs response' : 'Inbox clear' },
       { label: 'In Progress', value: inProgress, icon: 'history', tone: inProgress > 0 ? 'warning' : 'success', caption: inProgress > 0 ? 'Being resolved' : 'None active' },
-      { label: 'Platform Outlets', value: '139', icon: 'health', tone: 'success', caption: '100% outlets operational' },
     ];
   });
 
@@ -276,10 +266,11 @@ export class SupportTicketsPageComponent {
       const raw = localStorage.getItem('kbook_admin_support_tickets');
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {}
-    return [...DEFAULT_TICKETS];
+    // No seed rows: an empty register is the honest state, not twelve samples.
+    return [];
   }
 
   private saveStoredTickets(list: TicketRow[]): void {
