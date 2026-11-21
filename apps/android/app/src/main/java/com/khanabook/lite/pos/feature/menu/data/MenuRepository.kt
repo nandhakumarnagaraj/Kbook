@@ -293,7 +293,7 @@ class MenuRepository(
      * than trusting callers means adding, renaming, or removing a variant can never leave
      * the parent claiming a mode it does not have — which is the class of bug that
      * produced the menu save crash documented in
-     * docs/evidence/reviews/KHANABOOK_MENU_PRICE_SYNC_DATA_LOSS_2026-09-27.md.
+     * md/docs/evidence/reviews/KHANABOOK_MENU_PRICE_SYNC_DATA_LOSS_2026-09-27.md.
      */
     private suspend fun refreshHasVariantsFlag(itemId: Long) {
         val restaurantId = sessionManager.getRestaurantId()

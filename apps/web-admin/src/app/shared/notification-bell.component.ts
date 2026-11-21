@@ -29,7 +29,7 @@ import { FocusTrapDirective } from '../core/components/focus-trap.directive';
  * The presentation is unchanged: same `.icon-action-btn`, same `.kpi-tag`
  * vocabulary-free badge, same flyout markup and styles, now in one place so the
  * platform dashboard can reuse it. No colour, radius or spacing token is added
- * (docs/design/DESIGN_SYSTEM_FREEZE.md).
+ * (md/docs/design/DESIGN_SYSTEM_FREEZE.md).
  */
 @Component({
   selector: 'app-notification-bell',

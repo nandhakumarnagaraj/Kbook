@@ -51,7 +51,7 @@ data class MenuItemEntity(
      *
      * Explicit on purpose. Pricing mode used to be inferred from a blank or zero
      * [basePrice], which forced every caller to guess and is what crashed the menu save
-     * dialog. See docs/design/MENU_ITEM_MODEL_INDIA_FIT_GAP.md section 6.
+     * dialog. See md/docs/design/MENU_ITEM_MODEL_INDIA_FIT_GAP.md section 6.
      *
      * [basePrice] deliberately stays NOT NULL: every competitor in the reference set
      * keeps a non-null parent price and puts the nullability on the cart line instead.

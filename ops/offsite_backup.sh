@@ -21,10 +21,10 @@
 #        EOF
 #      Losing RESTIC_PASSWORD means losing every backup. Store it separately.
 #   3. Initialise once:  set -a; . /etc/kbook/restic.env; set +a; restic init
-#   4. Prove it:         RESTORE-TO-A-SCRATCH-DB test, see docs/runbooks/BACKUP_AND_RESTORE.md
+#   4. Prove it:         RESTORE-TO-A-SCRATCH-DB test, see md/docs/runbooks/BACKUP_AND_RESTORE.md
 #   5. Schedule, after daily_backup.sh (which runs 21:00):
 #         crontab -e  →  30 21 * * * /var/www/kbook.iadv.cloud/ops/offsite_backup.sh
-#   6. Alert on failure (see docs/runbooks/MONITORING.md) — a silent backup job
+#   6. Alert on failure (see md/docs/runbooks/MONITORING.md) — a silent backup job
 #      is worse than none, because it is believed.
 #
 # RETENTION: 14 daily, 8 weekly, 12 monthly, all encrypted client-side.

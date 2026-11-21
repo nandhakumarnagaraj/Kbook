@@ -13,7 +13,7 @@ import java.time.ZoneId
 
 /**
  * The boundary table from the design doc
- * (`docs/planning/BUSINESS_DAY_CUTOFF_AND_SHIFTS_PLAN_2026-11-06.md` §10).
+ * (`md/docs/planning/BUSINESS_DAY_CUTOFF_AND_SHIFTS_PLAN_2026-11-06.md` §10).
  *
  * The Java twin (`BusinessDayTest`) runs the same cases, because a client and a server
  * that disagree by one day is exactly the failure `applyServerBusinessDate` exists to

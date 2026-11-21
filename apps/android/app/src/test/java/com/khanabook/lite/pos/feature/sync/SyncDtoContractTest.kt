@@ -27,7 +27,7 @@ import org.junit.Test
  * the field written as NULL server-side, and the symptom appears days later as a
  * value that "mysteriously reverted" (stock ledger dead, stock deducted twice,
  * Zomato/Swiggy credentials wiped, kitchen special instructions erased — 20 defects
- * total, see docs/evidence/reviews/KHANABOOK_MENU_PRICE_SYNC_DATA_LOSS_2026-09-27.md).
+ * total, see md/docs/evidence/reviews/KHANABOOK_MENU_PRICE_SYNC_DATA_LOSS_2026-09-27.md).
  *
  * The mappers in feature/sync/data/SyncEntityMappers.kt are hand-maintained for nine
  * entities, and the same field lists are hand-copied AGAIN into the quarantine

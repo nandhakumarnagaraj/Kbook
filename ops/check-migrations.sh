@@ -86,7 +86,7 @@ fi
 # rollback restores, so every one of them must be visible in review. The historic
 # three (V9, V99, V116) are deliberate; anything new is a decision, not a detail.
 # Reported, not failed: dropping a retired column is legitimate, and this script
-# cannot know which drops were approved. docs/engineering/MIGRATION_SAFETY.md.
+# cannot know which drops were approved. md/docs/engineering/MIGRATION_SAFETY.md.
 destructive=$(grep -rlniE '^[^-]*drop (table|column)' "$DIR" 2>/dev/null | xargs -r -n1 basename | sort || true)
 if [ -n "$destructive" ]; then
   echo "  destructive DDL (review required, data cannot be rolled back):"
@@ -100,7 +100,7 @@ fi
 # their DDL must never be edited. Everything from V123 on is enforced instead:
 # an unguarded CREATE TABLE / CREATE INDEX / ADD COLUMN raises "already exists"
 # the moment it runs twice, which is exactly what a lost schema history does.
-# docs/engineering/MIGRATION_SAFETY.md §3. Override the boundary with
+# md/docs/engineering/MIGRATION_SAFETY.md §3. Override the boundary with
 # IDEMPOTENT_FROM=<n> if a frozen range ever has to move.
 IDEMPOTENT_FROM=${IDEMPOTENT_FROM:-123}
 unguarded=""

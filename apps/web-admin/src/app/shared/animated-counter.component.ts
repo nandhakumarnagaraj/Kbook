@@ -27,7 +27,7 @@ import { formatCurrency } from './formatters';
  *   - It never restyles the value. It renders bare text so the surrounding
  *     `.bento-tile__main-metric` keeps owning size, weight and `tabular-nums`
  *     (no digit jitter while rolling). No colour, radius or spacing is added,
- *     per docs/design/DESIGN_SYSTEM_FREEZE.md.
+ *     per md/docs/design/DESIGN_SYSTEM_FREEZE.md.
  *   - It does not rely on the global `prefers-reduced-motion` block in
  *     styles.css: that rule caps CSS animation durations, and a
  *     `requestAnimationFrame` loop is immune to it, so the check is repeated

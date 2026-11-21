@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 
 /**
- * The design freeze (docs/design/DESIGN_SYSTEM_FREEZE.md, rule 3) says the shared
+ * The design freeze (md/docs/design/DESIGN_SYSTEM_FREEZE.md, rule 3) says the shared
  * vocabulary in `styles/bento.css` is the single definition of these classes: a class
  * name must mean exactly one thing across the app, and pages use the shared class
  * "instead of page-local equivalents".

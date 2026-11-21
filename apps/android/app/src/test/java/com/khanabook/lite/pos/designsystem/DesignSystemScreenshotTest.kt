@@ -41,7 +41,7 @@ import org.robolectric.annotation.GraphicsMode
  *
  * Each test renders a component inside the real [KhanaBookLiteTheme] and writes a PNG to
  * `app/src/test/screenshots/`. Those PNGs are committed: they are the only automated
- * enforcement of `docs/meta/ANDROID_UI_RULES.md` and `docs/meta/AGENTS.md` (dark-only
+ * enforcement of `md/docs/meta/ANDROID_UI_RULES.md` and `md/docs/meta/AGENTS.md` (dark-only
  * palette, gold accents, token spacing, KhanaRadii shapes, type tiers).
  *
  *   record goldens : ./gradlew.bat :app:recordRoborazziDebug

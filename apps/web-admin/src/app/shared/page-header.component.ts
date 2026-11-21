@@ -27,7 +27,7 @@ import { CommonModule } from '@angular/common';
  * is live right now. Do not invent a page-local badge class: `.active-badge`,
  * `.staff-count-badge`, `.settle-badge` and `.sync-state-badge` all existed once and
  * meant slightly different things, which is the drift
- * docs/design/DESIGN_SYSTEM_FREEZE.md rule 3 exists to stop.
+ * md/docs/design/DESIGN_SYSTEM_FREEZE.md rule 3 exists to stop.
  *
  * Usage:
  *   <span kbHeaderBadge class="kpi-tag kpi-tag--green">Live</span>

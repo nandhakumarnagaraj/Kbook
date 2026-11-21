@@ -131,7 +131,7 @@ class MenuRepositoryTest {
 
     // --- Explicit variant mode -------------------------------------------------
     // has_variants must be derived from the variant table, never inferred from a blank or
-    // zero base price. See docs/design/MENU_ITEM_MODEL_INDIA_FIT_GAP.md section 6.
+    // zero base price. See md/docs/design/MENU_ITEM_MODEL_INDIA_FIT_GAP.md section 6.
 
     private fun variant(itemId: Long = 1L, id: Long = 7L) = ItemVariantEntity(
         id = id,

@@ -29,7 +29,7 @@ import java.time.ZoneId
  * duplicate guard: business day D starts at D 00:00 before activation (and on the
  * switch day), and at D cutoff afterwards, which makes the switch day 28 hours long.
  * That is deliberate — see the design doc
- * `docs/planning/BUSINESS_DAY_CUTOFF_AND_SHIFTS_PLAN_2026-11-06.md`.
+ * `md/docs/planning/BUSINESS_DAY_CUTOFF_AND_SHIFTS_PLAN_2026-11-06.md`.
  */
 object BusinessDate {
 
