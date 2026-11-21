@@ -39,6 +39,7 @@ import com.khanabook.lite.pos.feature.payments.data.*
 import com.khanabook.lite.pos.core.util.AppAssetStore
 import com.khanabook.lite.pos.core.util.BackendErrorParser
 import com.khanabook.lite.pos.core.util.SyncConflictException
+import com.khanabook.lite.pos.domain.model.RemoteStatusNormalizer
 import javax.inject.Inject
 import javax.inject.Singleton
 import org.json.JSONObject
@@ -1804,11 +1805,13 @@ BillEntity(
                         sgstAmount = remoteBill.sgstAmount.toSafeAmount(),
                         customTaxAmount = remoteBill.customTaxAmount.toSafeAmount(),
                         totalAmount = remoteBill.totalAmount.toSafeAmount(),
-                        paymentMode = remoteBill.paymentMode.orFallback("cash"),
+                        // Normalised, not stored verbatim: the server may send "PAID" or
+                        // "Completed", and local readers compare fixed lowercase literals (BUG-042).
+                        paymentMode = RemoteStatusNormalizer.paymentMode(remoteBill.paymentMode),
                         partAmount1 = remoteBill.partAmount1.toSafeAmount(),
                         partAmount2 = remoteBill.partAmount2.toSafeAmount(),
-                        paymentStatus = remoteBill.paymentStatus.orFallback("success"),
-                        orderStatus = remoteBill.orderStatus.orFallback("completed"),
+                        paymentStatus = RemoteStatusNormalizer.paymentStatus(remoteBill.paymentStatus),
+                        orderStatus = RemoteStatusNormalizer.orderStatus(remoteBill.orderStatus),
                         createdBy = resolvedCreatedBy,
                         createdAt = remoteBill.createdAt ?: System.currentTimeMillis(),
                         paidAt = remoteBill.paidAt,

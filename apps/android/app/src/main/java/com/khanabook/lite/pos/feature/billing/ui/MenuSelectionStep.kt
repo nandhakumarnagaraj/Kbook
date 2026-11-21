@@ -1038,7 +1038,8 @@ private fun SquareMenuItemCard(
                     }
                 }
 
-                // Out of stock frosted scrim
+                // Disabled-item scrim: itemAvailable is item.isAvailable, not stock.
+                // Inventory was removed from Android; this only marks a manually hidden dish.
                 if (!itemAvailable) {
                     Box(
                         modifier = Modifier

@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos.feature.billing.domain
 
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.payments.domain.PaymentLimits
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -50,6 +51,15 @@ object BillCalculator {
             .toString()
         }
 
+    /**
+     * Payable total for one cart.
+     *
+     * With inclusive pricing the GST is already inside `subtotal`: it is printed for the customer
+     * but must NOT be added again. Custom tax is never embedded in the price (it applies only while
+     * GST is off), so it is always added. Previously the inclusive branch returned the subtotal
+     * alone and dropped custom tax, and neither production caller passed the flag at all — a
+     * tax-inclusive shop was therefore charged its GST twice (registered as BUG-041).
+     */
     fun calculateTotal(
         subtotal: String,
         cgst: String,
@@ -57,15 +67,63 @@ object BillCalculator {
         customTax: String,
         isInclusive: Boolean = false
     ): String {
-        return if (isInclusive) {
-            BigDecimal(subtotal).setScale(2, RoundingMode.HALF_UP).toString()
+        val bdSubtotal = subtotal.toBigDecimalOrNull() ?: BigDecimal.ZERO
+        val gst = if (isInclusive) {
+            BigDecimal.ZERO
         } else {
-            val total = (subtotal.toBigDecimalOrNull() ?: BigDecimal.ZERO)
-                .add(cgst.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+            (cgst.toBigDecimalOrNull() ?: BigDecimal.ZERO)
                 .add(sgst.toBigDecimalOrNull() ?: BigDecimal.ZERO)
-                .add(customTax.toBigDecimalOrNull() ?: BigDecimal.ZERO)
-            total.setScale(2, RoundingMode.HALF_UP).toString()
         }
+        val total = bdSubtotal
+            .add(gst)
+            .add(customTax.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+        return total.setScale(2, RoundingMode.HALF_UP).toString()
+    }
+
+    /** The tax components and the payable total for one cart. */
+    data class BillTotals(
+        val subtotal: String,
+        val cgst: String,
+        val sgst: String,
+        val customTax: String,
+        val total: String
+    )
+
+    /**
+     * Single source of truth for the bill arithmetic used by both the cart summary
+     * (`CartManager.computeSummary`) and the persisted bill recalc in `BillingViewModel`.
+     *
+     * GST applies when the shop has it enabled, custom tax only otherwise - never both, because
+     * `customTaxPercentage` is the counterpart of the GST toggle. `isTaxInclusive` is honoured
+     * end to end here: it changes how the GST rows are derived AND whether they are added to the
+     * total, which is the pair of decisions that must always be made together.
+     */
+    fun calculateBillTotals(
+        items: List<Pair<String, Int>>,
+        profile: RestaurantProfileEntity?
+    ): BillTotals {
+        val subtotal = calculateSubtotal(items)
+        val inclusive = profile?.isTaxInclusive == true
+        var cgst = "0.00"
+        var sgst = "0.00"
+        var customTax = "0.00"
+
+        if (profile?.gstEnabled == true) {
+            val gst = calculateGST(subtotal, profile.gstPercentage, inclusive)
+            cgst = gst.cgst
+            sgst = gst.sgst
+        } else {
+            val customPct = profile?.customTaxPercentage ?: 0.0
+            if (customPct > 0.0) customTax = calculateCustomTax(subtotal, customPct)
+        }
+
+        return BillTotals(
+            subtotal = subtotal,
+            cgst = cgst,
+            sgst = sgst,
+            customTax = customTax,
+            total = calculateTotal(subtotal, cgst, sgst, customTax, inclusive)
+        )
     }
 
     fun validatePartPayment(a1: String, a2: String, total: String): Boolean {

@@ -6,6 +6,10 @@ import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.feature.billing.data.BillRepository
+import com.khanabook.lite.pos.feature.billing.data.BillWithItems
+import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueRepository
+import com.khanabook.lite.pos.feature.printing.domain.PrintRouter
+import com.khanabook.lite.pos.feature.printing.viewmodel.PrintCoordinator
 import com.khanabook.lite.pos.feature.reports.domain.ReportGenerator
 import com.khanabook.lite.pos.feature.reports.domain.OrderDetailRow
 import com.khanabook.lite.pos.feature.reports.domain.OrderLevelRow
@@ -31,8 +35,41 @@ import javax.inject.Inject
 class ReportsViewModel @Inject constructor(
     private val billRepository: BillRepository,
     private val restaurantRepository: RestaurantRepository,
-    private val permissionManager: com.khanabook.lite.pos.feature.staff.domain.PermissionManager
+    private val permissionManager: com.khanabook.lite.pos.feature.staff.domain.PermissionManager,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
+    printRouter: PrintRouter,
+    kitchenPrintQueueRepository: KitchenPrintQueueRepository
 ) : ViewModel() {
+
+    // Built the same way BillingViewModel builds it: one coordinator instance owns the print
+    // status/queue flags, so Reports does not share them with the billing screen.
+    private val printCoordinator = PrintCoordinator(
+        appContext = appContext,
+        printRouter = printRouter,
+        kitchenPrintQueueRepository = kitchenPrintQueueRepository
+    )
+
+    /**
+     * Reprints a saved bill on the configured printer, through the same
+     * [PrintCoordinator] the billing screen and search reprint use.
+     *
+     * Orders used to call `openBillToPrint`, which only ever generated a PDF and opened a
+     * chooser, so on a shop with a configured printer the Print button never reached the
+     * printer and the receipt never came out (BUG-052). The PDF is still the fallback, but
+     * only when printing fails or no printer is configured — [printCoordinator] decides that.
+     */
+    fun printReceipt(
+        bill: BillWithItems,
+        profile: RestaurantProfileEntity?
+    ) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            // Failures go through the screen's existing error channel, which the composable
+            // already turns into a toast.
+            printCoordinator.printReceipt(bill, profile) { message ->
+                _error.value = UserMessageSanitizer.sanitizeBackendMessage(message, "Printing failed.")
+            }
+        }
+    }
 
     /**
      * Whether the acting user may see revenue beyond today's summary.

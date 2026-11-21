@@ -124,6 +124,7 @@ fun ShopConfigView(
     authViewModel: AuthViewModel,
     appLockViewModel: com.khanabook.lite.pos.feature.auth.viewmodel.AppLockViewModel = hiltViewModel(),
     onBack: () -> Unit,
+    onDirtyChange: (Boolean) -> Unit = {},
     readOnly: Boolean = false,
     onSaved: () -> Unit = {}
 ) {
@@ -189,6 +190,10 @@ fun ShopConfigView(
             openingTime != (profile?.openingTime ?: "00:00").take(5) ||
             closingTime != (profile?.closingTime ?: "23:59").take(5)
     }
+
+    // Report the dirty state to the host screen, which renders the header arrow
+    // and must run the same unsaved-changes guard (BUG-019).
+    LaunchedEffect(isDirty) { onDirtyChange(isDirty) }
 
     var showUnsavedDialog by remember { mutableStateOf(false) }
     BackHandler(enabled = isDirty && !saveProfileLoading) {
@@ -410,20 +415,15 @@ fun ShopConfigView(
                         )
                     }
 
-                    // Logo section header — the card now starts with the logo itself, so it
-                    // needs a label saying what the logo is for.
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = "Shop Logo",
-                            color = TextLight,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = "Shown on bills and receipts",
-                            color = TextGold.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
+                    // Logo section header — the card starts with the logo itself, so it needs a
+                    // label. Owner asked for the plain "Shop Profile" title only; the
+                    // "Shown on bills and receipts" subtitle was removed. Gold matches the
+                    // Shop Name field label above the first input.
+                    Text(
+                        text = "Shop Profile",
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                    )
 
                     // Logo Uploader Row
                     Row(
@@ -433,7 +433,7 @@ fun ShopConfigView(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(56.dp)
+                                .size(112.dp)
                                 .clip(KhanaRadii.md)
                                 .background(Color.White)
                                 .border(1.dp, BorderGold.copy(alpha = 0.5f), KhanaRadii.md),
@@ -485,12 +485,12 @@ fun ShopConfigView(
                                         }
                                     }
                                 } else {
-                                    Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
+                                    Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
                                 }
                             } else if (logoUploadLoading) {
                                 CircularProgressIndicator(modifier = Modifier.size(iconSize.medium), color = PrimaryGold, strokeWidth = 2.dp)
                             } else {
-                                Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(KhanaBookTheme.iconSize.large))
+                                Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
                             }
                         }
                         OutlinedButton(
@@ -807,41 +807,25 @@ fun ShopConfigView(
                         }
                     }
 
-                    // Mode options: Default Time vs Custom Time
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                    ) {
-                        BusinessHoursOptionCard(
-                            title = "Default Time",
-                            timeRange = "12:00 AM – 11:59 PM",
-                            description = "Full day (Midnight reset)",
-                            isSelected = isCurrentDefault,
-                            onClick = {
-                                if (!readOnly && !isCurrentDefault) {
-                                    openingTime = "00:00"
-                                    closingTime = "23:59"
-                                }
-                            },
-                            enabled = !readOnly,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        BusinessHoursOptionCard(
-                            title = "Custom Time",
-                            timeRange = if (!isCurrentDefault) "${formatClockTime(openingTime)} – ${formatClockTime(closingTime)}" else "User Defined",
-                            description = "Set opening & closing",
-                            isSelected = !isCurrentDefault,
-                            onClick = {
-                                if (!readOnly && isCurrentDefault) {
-                                    openingTime = customOpeningTime
-                                    closingTime = customClosingTime
-                                }
-                            },
-                            enabled = !readOnly,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    // Mode switch: Default Time vs Custom Time. One segmented control replaces
+                    // the two option cards, and only the selected mode's inputs are composed
+                    // below, so the panel can never show both modes at once.
+                    BusinessHoursModeToggle(
+                        isDefault = isCurrentDefault,
+                        onDefaultSelected = {
+                            if (!readOnly && !isCurrentDefault) {
+                                openingTime = "00:00"
+                                closingTime = "23:59"
+                            }
+                        },
+                        onCustomSelected = {
+                            if (!readOnly && isCurrentDefault) {
+                                openingTime = customOpeningTime
+                                closingTime = customClosingTime
+                            }
+                        },
+                        enabled = !readOnly
+                    )
 
                     AnimatedVisibility(
                         visible = !isCurrentDefault,
@@ -935,7 +919,7 @@ fun ShopConfigView(
 
             Spacer(modifier = Modifier.height(spacing.large))
 
-            // Full-Width Gold Pill CTA: Save Configuration
+            // Full-Width Green Pill CTA: Save Configuration (matches the shared Save button)
             Button(
                 onClick = {
                     nameError = if (name.isBlank()) "Shop name is required" else null
@@ -988,29 +972,31 @@ fun ShopConfigView(
                     .fillMaxWidth()
                     .height(52.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryGold,
-                    contentColor = DarkBrown1,
-                    disabledContainerColor = PrimaryGold.copy(alpha = 0.4f),
-                    disabledContentColor = DarkBrown1.copy(alpha = 0.5f)
+                    containerColor = SuccessGreen,
+                    contentColor = Color.White,
+                    disabledContainerColor = Color(0xFF5F5F5F),
+                    disabledContentColor = Color.White.copy(alpha = 0.65f)
                 ),
                 shape = KhanaRadii.xl
             ) {
                 if (saveProfileLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
-                        color = DarkBrown1,
+                        color = Color.White,
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(spacing.small))
                 }
                 Text(
                     text = if (saveProfileLoading) "Saving..." else "Save Configuration",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = DarkBrown1
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
 
-            Spacer(modifier = Modifier.height(spacing.huge))
+            // Bottom breathing room only. The 48 dp builder-style spacer that used to sit
+            // here stacked on top of the screen's content padding and read as dead space
+            // below the CTA.
+            Spacer(modifier = Modifier.height(spacing.medium))
         }
     }
 

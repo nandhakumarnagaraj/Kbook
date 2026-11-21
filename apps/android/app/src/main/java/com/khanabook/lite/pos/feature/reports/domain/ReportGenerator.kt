@@ -16,20 +16,6 @@ import java.math.RoundingMode
  */
 class ReportGenerator(private val billRepository: BillRepository) {
 
-    /**
-     * Net revenue for a bill = gross total minus any admin-recorded refund.
-     * refundAmount is server-owned (nullable String) and synced down via pull.
-     * Guarded to never go negative.
-     */
-    private fun netAmount(bill: BillEntity): BigDecimal {
-        val gross = bill.totalAmount.toBigDecimalOrNull() ?: BigDecimal.ZERO
-        val refund = bill.refundAmount
-            ?.takeIf { it.isNotBlank() }
-            ?.let { runCatching { BigDecimal(it) }.getOrNull() }
-            ?: BigDecimal.ZERO
-        return gross.subtract(refund).max(BigDecimal.ZERO)
-    }
-
     suspend fun getPaymentBreakdown(from: Long, to: Long): Map<String, String> =
         buildPaymentBreakdown(
             billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
@@ -48,14 +34,22 @@ class ReportGenerator(private val billRepository: BillRepository) {
             if (OrderStatus.fromDbValue(bill.orderStatus) != OrderStatus.COMPLETED) continue
             
             val mode = PaymentMode.fromDbValue(bill.paymentMode)
-            // Net of refunds so report totals match the admin dashboard.
-            val amount = netAmount(bill)
+            // Net of refunds so report totals match the admin dashboard and the Home tiles.
+            val amount = bill.netAmount()
             val label = mode.displayLabel
             
             if (PaymentModeManager.isPartPayment(mode)) {
                 val labels = PaymentModeManager.getPartLabels(mode)
-                val p1 = bill.partAmount1.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                val p2 = bill.partAmount2.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                // The refund is taken out of the legs too, first leg first, so the parts always
+                // add up to the netted mode row instead of exceeding it (BUG-043 follow-up).
+                var refund = (bill.totalAmount.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+                    .subtract(amount)
+                    .max(BigDecimal.ZERO)
+                val grossP1 = bill.partAmount1.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                val grossP2 = bill.partAmount2.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                val p1 = grossP1.subtract(refund.min(grossP1)).max(BigDecimal.ZERO)
+                refund = refund.subtract(grossP1).max(BigDecimal.ZERO)
+                val p2 = grossP2.subtract(refund.min(grossP2)).max(BigDecimal.ZERO)
 
                 breakdown[labels.first] = (breakdown[labels.first] ?: BigDecimal.ZERO).add(p1)
                 breakdown[labels.second] = (breakdown[labels.second] ?: BigDecimal.ZERO).add(p2)

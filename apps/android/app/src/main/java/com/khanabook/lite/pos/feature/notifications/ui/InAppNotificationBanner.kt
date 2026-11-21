@@ -1,52 +1,49 @@
 package com.khanabook.lite.pos.feature.notifications.ui
 
+import android.os.Build
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.core.theme.DarkBrown2
-import com.khanabook.lite.pos.core.theme.TextLight
+import com.khanabook.lite.pos.core.designsystem.KhanaNoticePill
+import com.khanabook.lite.pos.core.designsystem.ToastKind
 import com.khanabook.lite.pos.feature.notifications.data.NotificationEntity
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
- * LinkedIn-style in-app notification banner: slides in under the status bar
- * when a new notification arrives while the app is in the foreground, auto
- * dismisses, and deep-links to the matching screen when tapped.
+ * Foreground notification banner, rendered with the same white notice pill as the
+ * snackbar so "something happened" always looks the same.
+ *
+ * Unlike a toast this banner is tappable (opens the matching screen) and carries the
+ * push title. It stays long enough to be read: the window is extended by the platform
+ * when the user has requested longer timeouts, and auto-dismiss is disabled entirely
+ * while TalkBack touch exploration is active. Touching or focusing the banner also
+ * restarts the window instead of letting it vanish under a finger.
  */
 @Composable
 fun InAppNotificationBanner(
@@ -56,95 +53,105 @@ fun InAppNotificationBanner(
     modifier: Modifier = Modifier,
 ) {
     var visible by remember { mutableStateOf(false) }
+    var dismissing by remember { mutableStateOf(false) }
+    var hasFocus by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
 
-    // Entrance animation + auto-dismiss, mirroring the tray notification lifetime.
-    LaunchedEffect(notification.id) {
-        visible = true
-        delay(AUTO_DISMISS_MS)
-        onDismiss()
+    val context = LocalContext.current
+    val accessibilityManager = remember(context) {
+        context.getSystemService(AccessibilityManager::class.java)
+    }
+    val touchExplorationEnabled = accessibilityManager?.isTouchExplorationEnabled == true
+    val timeoutMs = remember(accessibilityManager) { recommendedTimeout(accessibilityManager) }
+
+    val kind = noticeKindFor(notification.notificationType)
+
+    // The parent removes this composable as soon as onDismiss() runs. Waiting for the
+    // exit transition before calling it is what makes the declared exit animation
+    // reachable at all.
+    fun hide() {
+        if (dismissing) return
+        dismissing = true
+        scope.launch {
+            visible = false
+            delay(EXIT_MS.toLong())
+            onDismiss()
+        }
     }
 
-    val accent = accentFor(notification.notificationType)
+    LaunchedEffect(notification.id) {
+        visible = true
+        dismissing = false
+    }
+
+    val paused = pressed || hasFocus || touchExplorationEnabled || dismissing
+    LaunchedEffect(notification.id, paused, timeoutMs) {
+        if (paused) return@LaunchedEffect
+        delay(timeoutMs.toLong())
+        hide()
+    }
 
     AnimatedVisibility(
         visible = visible,
-        enter = slideInVertically { -it } + fadeIn(),
-        exit = slideOutVertically { -it } + fadeOut(),
+        enter = slideInVertically(
+            animationSpec = tween(ENTER_MS, easing = FastOutSlowInEasing),
+            initialOffsetY = { -it / 2 },
+        ) + fadeIn(tween(ENTER_MS)),
+        exit = slideOutVertically(
+            animationSpec = tween(EXIT_MS, easing = LinearOutSlowInEasing),
+            targetOffsetY = { -it / 2 },
+        ) + fadeOut(tween(EXIT_MS)),
         modifier = modifier.statusBarsPadding(),
     ) {
-        androidx.compose.material3.Surface(
-            onClick = onOpen,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 6.dp)
-                .shadow(6.dp, MaterialTheme.shapes.medium),
-            shape = MaterialTheme.shapes.medium,
-            color = DarkBrown2,
-            border = BorderStroke(1.dp, accent.copy(alpha = 0.6f)),
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
         ) {
-            Row(
-                // No background() here on purpose: the Surface already paints DarkBrown2.
-                // An unrounded background painted over the rounded Surface edge, which
-                // hid the 1dp accent border along the left and right sides.
+            KhanaNoticePill(
+                kind = kind,
+                message = notification.message.orEmpty(),
+                title = notification.title,
                 modifier = Modifier
+                    .widthIn(max = 480.dp)
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .height(40.dp)
-                        .clip(MaterialTheme.shapes.small)
-                        .background(accent)
-                )
-                Spacer(Modifier.width(10.dp))
-                Icon(
-                    imageVector = Icons.Filled.Notifications,
-                    contentDescription = null,
-                    tint = accent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Spacer(Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = notification.title,
-                        color = TextLight,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    notification.message?.takeIf { it.isNotBlank() }?.let { message ->
-                        Spacer(Modifier.height(2.dp))
-                        Text(
-                            text = message,
-                            color = TextLight.copy(alpha = 0.85f),
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Dismiss notification",
-                        tint = TextLight,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-            }
+                    .onFocusChanged { hasFocus = it.hasFocus },
+                onDismiss = { hide() },
+                onClick = onOpen,
+                interactionSource = interactionSource,
+            )
         }
     }
 }
 
-private fun accentFor(type: String): Color = when (type) {
-    "payment_received", "qr_order" -> Color(0xFF16A34A) // Green, payments
-    "refund" -> Color(0xFFEF4444) // Red, refunds
-    "kyc" -> Color(0xFF8B5CF6) // Violet, KYC
-    "settlement" -> Color(0xFF0284C7) // Blue, settlements
-    "fssai_expiry" -> Color(0xFFF97316) // Saffron, FSSAI
-    else -> Color(0xFF7C5CDB) // Purple, system defaults
+/**
+ * Push type -> notice kind. Six tray accents collapse into four kinds on purpose:
+ * several of the old per-type colours cannot carry a white glyph (white on
+ * #F97316 is 2.80:1), and type is already stated by the title and message.
+ * A refund/kyc/settlement update is information, not a failure, so it stays Info.
+ */
+internal fun noticeKindFor(type: String?): ToastKind = when (type) {
+    "payment_received", "qr_order" -> ToastKind.Success
+    "fssai_expiry", "inventory_low", "order_cancelled" -> ToastKind.Warning
+    "refund", "kyc", "settlement" -> ToastKind.Info
+    else -> ToastKind.Info
+}
+
+private fun recommendedTimeout(manager: AccessibilityManager?): Int {
+    val base = AUTO_DISMISS_MS.toInt()
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        manager?.getRecommendedTimeoutMillis(
+            base,
+            AccessibilityManager.FLAG_CONTENT_TEXT or AccessibilityManager.FLAG_CONTENT_CONTROLS
+        ) ?: base
+    } else {
+        base
+    }
 }
 
 private const val AUTO_DISMISS_MS = 6_000L
+private const val ENTER_MS = 180
+private const val EXIT_MS = 140

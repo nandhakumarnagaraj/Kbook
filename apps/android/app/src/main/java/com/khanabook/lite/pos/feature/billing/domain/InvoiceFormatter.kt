@@ -7,6 +7,7 @@ import android.util.Log
 import com.khanabook.lite.pos.feature.billing.data.BillWithItems
 import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.billing.data.getInvoiceNumberDisplay
+import com.khanabook.lite.pos.feature.payments.domain.QrCodeManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
@@ -85,6 +86,25 @@ object InvoiceFormatter {
         return null
     }
 
+    /**
+     * Same rule the PDF renderer applies before it draws the review QR
+     * (see InvoicePDFGenerator.isValidReviewUrl): a non-http or host-less value is not
+     * scannable, so it must not be encoded here either. Uses java.net.URI rather than
+     * android.net.Uri so the receipt byte stream stays unit-testable on the JVM.
+     */
+    private fun isValidReviewUrl(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        return try {
+            val parsed = java.net.URI(url)
+            parsed.scheme?.lowercase() in listOf("http", "https") &&
+                !parsed.host.isNullOrBlank() &&
+                parsed.host != "localhost" &&
+                url.length > 10
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun resolveCurrency(profile: RestaurantProfileEntity?): String {
         return if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
     }
@@ -108,6 +128,11 @@ object InvoiceFormatter {
         val width = if (is80mm) 40 else 32
         val leftPad = if (is80mm) "    " else "" // 4 spaces to center 40 chars on 48-char standard 80mm printer
         val currency = resolveCurrency(profile)
+        // GST output follows the shop setting, not the bill's stored amounts: when the owner has
+        // not enabled GST, no GST identity or tax lines may appear (pinned by GenerateBillTextTest,
+        // "GSTIN must not leak when GST disabled"). The cost is that a bill issued while GST was
+        // on, then reprinted after it was turned off, loses its tax breakdown while its stored
+        // total still includes it - raised with the owner as BUG-036.
         val isGst = profile?.gstEnabled == true
         
         val line = leftPad + "-".repeat(width)
@@ -123,7 +148,8 @@ object InvoiceFormatter {
         add(RESET)
         add(ALIGN_CENTER)
         
-        // Pure text thermal invoice - logo bitmap suppressed for ESC/POS hardware compatibility
+        // Text invoice (the shop logo bitmap stays suppressed for ESC/POS compatibility).
+        // The only raster this receipt emits is the review QR, encoded as GS v 0 by decodeBitmapToESC_POS.
 
         // 2. Header - Center Bold
         add(BOLD_ON)
@@ -135,7 +161,9 @@ object InvoiceFormatter {
         // Address & Tax Info
         profile?.shopAddress?.takeIf { it.isNotBlank() }?.let { add("$it\n") }
         profile?.fssaiNumber?.takeIf { it.isNotBlank() }?.let { add("FSSAI: $it\n") }
-        profile?.gstin?.takeIf { it.isNotBlank() }?.let { add("GSTIN: $it\n") }
+        // GSTIN is a tax identity, not a shop detail: print it only when the shop has GST
+        // enabled, exactly like the PDF copy (InvoicePDFGenerator uses the same rule).
+        if (isGst) profile?.gstin?.takeIf { it.isNotBlank() }?.let { add("GSTIN: $it\n") }
         val invLabel = if (isGst) "TAX INVOICE NO" else "INVOICE NO"
         add("$invLabel: ${bill.bill.getInvoiceNumberDisplay()}\n")
         add("$line\n")
@@ -194,6 +222,8 @@ object InvoiceFormatter {
             add(leftPad + formatRow("SGST ($gstPct%):", formatMoney(bill.bill.sgstAmount), width))
         }
         
+        // Custom tax only applies while GST is off (CartManager picks one or the other), and the
+        // row appears only when this bill actually carries an amount.
         if (profile?.gstEnabled == false) {
             val customTaxAmt = try { java.math.BigDecimal(bill.bill.customTaxAmount) } catch (e: Exception) { java.math.BigDecimal.ZERO }
             if (customTaxAmt.compareTo(java.math.BigDecimal.ZERO) > 0) {
@@ -211,9 +241,19 @@ object InvoiceFormatter {
         // 6. Payment & QR
         add(leftPad + "Payment Mode : ${bill.bill.paymentMode.uppercase()}\n")
 
-        if (profile?.reviewUrl?.isNotBlank() == true) {
+        val reviewUrl = profile?.reviewUrl?.takeIf { isValidReviewUrl(it) }
+        if (reviewUrl != null) {
             add(ALIGN_CENTER)
-            add("RATE US / FEEDBACK:\n${profile.reviewUrl}\n")
+            add("RATE US / FEEDBACK:\n")
+            val qrDots = if (is80mm) 240 else 192
+            val qr = QrCodeManager.generateQr(reviewUrl, qrDots)
+            if (qr != null) {
+                add(decodeBitmapToESC_POS(qr, qrDots, qrDots))
+                qr.recycle()
+            } else {
+                // Encoder unavailable: still hand the customer a usable link rather than nothing.
+                add("$reviewUrl\n")
+            }
         }
 
         // 7. Footer

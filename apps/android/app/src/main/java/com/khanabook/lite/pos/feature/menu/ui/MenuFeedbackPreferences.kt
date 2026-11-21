@@ -10,9 +10,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
 data class MenuFeedbackSettings(
-    val soundEnabled: Boolean = true,
+    val soundEnabled: Boolean = false,
     val hapticEnabled: Boolean = false,
-    val voiceAnnouncementEnabled: Boolean = true
+    val voiceAnnouncementEnabled: Boolean = false
 )
 
 class MenuFeedbackPreferences(context: Context) {
@@ -22,9 +22,9 @@ class MenuFeedbackPreferences(context: Context) {
     )
 
     fun read(): MenuFeedbackSettings = MenuFeedbackSettings(
-        soundEnabled = preferences.getBoolean(KEY_SOUND_ENABLED, true),
+        soundEnabled = preferences.getBoolean(KEY_SOUND_ENABLED, false),
         hapticEnabled = preferences.getBoolean(KEY_HAPTIC_ENABLED, false),
-        voiceAnnouncementEnabled = preferences.getBoolean(KEY_VOICE_ANNOUNCEMENT_ENABLED, true)
+        voiceAnnouncementEnabled = preferences.getBoolean(KEY_VOICE_ANNOUNCEMENT_ENABLED, false)
     )
 
     fun setSoundEnabled(enabled: Boolean) {

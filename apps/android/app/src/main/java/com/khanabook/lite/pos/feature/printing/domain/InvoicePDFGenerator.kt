@@ -21,6 +21,10 @@ import java.io.FileOutputStream
 
 private const val TAG = "InvoicePDFGenerator"
 
+/** Parses a stored money string without throwing on legacy/blank values. */
+private fun amountOf(value: String?): java.math.BigDecimal =
+    value?.toBigDecimalOrNull() ?: java.math.BigDecimal.ZERO
+
 private fun isValidReviewUrl(url: String?): Boolean {
     if (url.isNullOrBlank()) return false
     return try {
@@ -123,6 +127,11 @@ class InvoicePDFGenerator(private val context: Context) {
             val includeCustomerWa = profile?.printCustomerWhatsapp == true
 
             val bodySize     = if (is80mm) 7f else 6f
+            // GST output follows the shop setting (matching the thermal receipt and
+            // GenerateBillTextTest): no GST identity or tax rows once GST is disabled.
+            // Custom tax is not GST, so its row follows the bill: an older bill keeps it after the
+            // owner turns GST on, instead of showing a total no row accounts for (BUG-036).
+            val showCustomTax = amountOf(bill.bill.customTaxAmount) > java.math.BigDecimal.ZERO
             val itemColWidth = if (is80mm) 100f else 65f
 
             // ── Pre-calculate accurate item section height ──────────────────────
@@ -143,9 +152,10 @@ class InvoicePDFGenerator(private val context: Context) {
             val shopWaH  = if (!profile?.whatsappNumber.isNullOrBlank()) 9 else 0
             val shopEmailH = if (!profile?.email.isNullOrBlank()) 9 else 0
             val gstTaxH  = if (profile?.gstEnabled == true) 22 else 0
+            val customTaxH = if (showCustomTax) 10 else 0
 
             val headerH  = 145 + logoH + waH + fssaiH + gstinH + shopWaH + shopEmailH
-            val summaryH = 100 + gstTaxH
+            val summaryH = 100 + gstTaxH + customTaxH
             val reviewQrH = if (isValidReviewUrl(profile?.reviewUrl)) 110 else 0
             val footerH  = if (isValidReviewUrl(profile?.reviewUrl)) 100 else 80
             val pageHeight = headerH + itemSectionHeight + summaryH + reviewQrH + footerH + 30 // 30px safety margin
@@ -231,7 +241,9 @@ class InvoicePDFGenerator(private val context: Context) {
                 y += 9f
                 drawCenteredLabelValue("TAX INVOICE NO: ", bill.bill.getInvoiceNumberDisplay())
                 y += 9f
-            } else if (profile?.gstEnabled == false) {
+            } else {
+                // Always fall back to the invoice number: the previous `else if (gstEnabled == false)`
+                // printed no number at all for a GST-enabled profile with a blank GSTIN.
                 drawCenteredLabelValue("INVOICE NO: ", bill.bill.getInvoiceNumberDisplay())
                 y += 9f
             }
@@ -431,6 +443,17 @@ class InvoicePDFGenerator(private val context: Context) {
                 canvas.drawText("SGST ($gstPct%)", summaryLabelX, y, paint)
                 paint.textAlign = Paint.Align.RIGHT
                 canvas.drawText(formatAmount(bill.bill.sgstAmount), amtRightX, y, paint)
+            }
+
+            // The thermal receipt has always printed this row; the PDF left it out, so a shop
+            // without GST saw SUB-TOTAL < NET AMOUNT with nothing explaining the difference.
+            if (showCustomTax) {
+                y += 10f
+                paint.textAlign = Paint.Align.LEFT
+                val customLabel = profile?.customTaxName?.takeIf { it.isNotBlank() } ?: "Tax"
+                canvas.drawText(customLabel.uppercase(), summaryLabelX, y, paint)
+                paint.textAlign = Paint.Align.RIGHT
+                canvas.drawText(formatAmount(bill.bill.customTaxAmount), amtRightX, y, paint)
             }
 
             y += 8f

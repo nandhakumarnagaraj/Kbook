@@ -27,7 +27,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.khanabook.lite.pos.core.util.openBillToPrint
 import com.khanabook.lite.pos.core.util.shareInvoice
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
@@ -74,18 +73,25 @@ fun OrdersScreen(
     // Staggered entry animation — same pattern used across all screens
     var headerVisible by remember { mutableStateOf(false) }
     var contentVisible by remember { mutableStateOf(false) }
-    val enterSpec = fadeIn(tween(350)) + slideInVertically(
-        initialOffsetY = { it / 6 },
-        animationSpec = tween(350, easing = FastOutSlowInEasing)
-    )
-    val exitSpec = fadeOut(tween(200))
+    val reducedMotion = rememberReducedMotion()
+    val enterSpec = if (reducedMotion) {
+        fadeIn(tween(REDUCED_MOTION_MS))
+    } else {
+        fadeIn(tween(350)) + slideInVertically(
+            initialOffsetY = { it / 6 },
+            animationSpec = tween(350, easing = FastOutSlowInEasing)
+        )
+    }
+    val exitSpec = fadeOut(tween(if (reducedMotion) REDUCED_MOTION_MS else 200))
     LaunchedEffect(Unit) {
         headerVisible = true
-        kotlinx.coroutines.delay(80)
+        kotlinx.coroutines.delay(if (reducedMotion) 0L else 45L)
         contentVisible = true
     }
     
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
+    // Vertical position of the tapped order row; drives the dialog's entrance pivot.
+    var dialogOriginY by remember { mutableFloatStateOf(0.5f) }
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsStateWithLifecycle()
     val enabledModes = remember(profile) {
         profile?.let { PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
@@ -162,7 +168,7 @@ fun OrdersScreen(
                         )
                     }
                     Text(
-                        text = "Orders",
+                        text = "Orders Details",
                         modifier = Modifier.align(Alignment.Center),
                         color = PrimaryGold,
                         style = MaterialTheme.typography.headlineMedium
@@ -251,8 +257,9 @@ fun OrdersScreen(
                         // rows show `hh:mm a` and the header reads `Time`, never `Date/Time`.
                         // The day itself is stated by the selected chip above the table.
                         includeDate = false,
-                        onViewDetails = { billId ->
+                        onViewDetails = { billId, originY ->
                             selectedBillId = billId
+                            dialogOriginY = originY
                             viewModel.loadBillDetails(billId)
                         }
                     )
@@ -273,7 +280,9 @@ fun OrdersScreen(
                     viewModel.clearBillDetails()
                 },
                 onPrintReceipt = { detail ->
-                    openBillToPrint(context, detail, profile)
+                    // Straight to the configured printer (PDF only as the failure fallback) so a
+                    // reprint does not open a file chooser instead of printing (BUG-052).
+                    viewModel.printReceipt(detail, profile)
                 },
                 onShareInvoice = { detail ->
                     // Online -> WhatsApp link, offline -> SMS text, quick bill -> share sheet.
@@ -289,7 +298,8 @@ fun OrdersScreen(
                     } else {
                         viewModel.updatePaymentMode(detail.bill.id, mode.dbValue)
                     }
-                }
+                },
+                originY = dialogOriginY
             )
         }
 

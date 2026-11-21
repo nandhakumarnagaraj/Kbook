@@ -32,7 +32,9 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.core.designsystem.REDUCED_MOTION_MS
 import com.khanabook.lite.pos.core.designsystem.ScrollableCenteredLayout
+import com.khanabook.lite.pos.core.designsystem.rememberReducedMotion
 import com.khanabook.lite.pos.core.network.TerminalListItem
 import com.khanabook.lite.pos.core.util.DateUtils
 import com.khanabook.lite.pos.core.theme.*
@@ -49,6 +51,7 @@ fun DeviceSetupScreen(
     val syncState by viewModel.syncState.collectAsStateWithLifecycle()
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val reducedMotion = rememberReducedMotion()
 
     LaunchedEffect(syncState) {
         when (syncState) {
@@ -167,7 +170,8 @@ fun DeviceSetupScreen(
                     AnimatedContent(
                         targetState = stageIndex,
                         transitionSpec = {
-                            fadeIn(tween(400)) togetherWith fadeOut(tween(300))
+                            fadeIn(tween(if (reducedMotion) REDUCED_MOTION_MS else 250)) togetherWith
+                                fadeOut(tween(if (reducedMotion) REDUCED_MOTION_MS else 120))
                         },
                         label = "sync_stage"
                     ) { idx ->

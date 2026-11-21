@@ -6,6 +6,7 @@ import com.khanabook.lite.pos.domain.model.PaymentStatus
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -507,23 +508,46 @@ fun CartItemNoteDialog(initialNote: String, itemName: String, onDismiss: () -> U
 fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
     if (quantity == 0) {
-        OutlinedButton(
+        // Reserve the 48 dp touch target first, then draw the 32 dp button inside
+        // it. This is the same pattern used by the cart stepper in MenuSelectionStep.
+        Box(
+            modifier = Modifier.minimumInteractiveComponentSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            OutlinedButton(
                 onClick = onAdd,
                 modifier = Modifier.height(32.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
                 border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryGold),
                 contentPadding = PaddingValues(horizontal = spacing.smallMedium)
-        ) { Text("Add", style = MaterialTheme.typography.labelMedium) }
+            ) { Text("Add", style = MaterialTheme.typography.labelMedium) }
+        }
     } else {
         Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.background(PrimaryGold, KhanaRadii.sm).height(32.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .background(PrimaryGold, KhanaRadii.sm)
+                .heightIn(min = spacing.buttonHeightCompact)
         ) {
-            IconButton(onClick = onRemove, modifier = Modifier.size(KhanaBookTheme.iconSize.large)) {
+            Box(
+                modifier = Modifier
+                    // minimumInteractiveComponentSize must precede the visual
+                    // size, otherwise the 32 dp size caps the reserved area.
+                    .minimumInteractiveComponentSize()
+                    .size(32.dp)
+                    .clickable(onClick = onRemove),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(Icons.Default.Remove, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
             }
             Text("$quantity", color = DarkBrown1, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            IconButton(onClick = onAdd, modifier = Modifier.size(KhanaBookTheme.iconSize.large)) {
+            Box(
+                modifier = Modifier
+                    .minimumInteractiveComponentSize()
+                    .size(32.dp)
+                    .clickable(onClick = onAdd),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(Icons.Default.Add, null, tint = DarkBrown1, modifier = Modifier.size(16.dp))
             }
         }

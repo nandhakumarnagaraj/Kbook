@@ -32,13 +32,16 @@ import com.khanabook.lite.pos.feature.printing.domain.KitchenPrintQueueManager
 import com.khanabook.lite.pos.feature.printing.domain.PrinterTransportDispatcher
 import com.khanabook.lite.pos.feature.printing.domain.PrinterConnectionType
 import com.khanabook.lite.pos.feature.printing.domain.PrinterHealth
+import com.khanabook.lite.pos.feature.printing.domain.PrinterMode
 import com.khanabook.lite.pos.feature.printing.domain.PrinterRole
+import com.khanabook.lite.pos.feature.printing.domain.printerModeValue
 import com.khanabook.lite.pos.feature.printing.domain.connectionTargetKey
 import com.khanabook.lite.pos.feature.printing.domain.connectionTypeValue
 import com.khanabook.lite.pos.feature.printing.domain.isConnectionConfigured
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import com.khanabook.lite.pos.feature.sync.domain.SyncManager
 import com.khanabook.lite.pos.feature.payments.domain.OrderPaymentFlowMode
+import com.khanabook.lite.pos.core.util.LogoFileInfo
 import com.khanabook.lite.pos.core.util.MultipartUtils
 import com.khanabook.lite.pos.core.util.UserMessageSanitizer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -410,8 +413,16 @@ class SettingsViewModel @Inject constructor(
      */
     fun refreshWifiReachability() {
         viewModelScope.launch(Dispatchers.IO) {
+            // In one-printer mode the kitchen ticket goes to the main printer, so a leftover
+            // KITCHEN profile is not in use. Probing it anyway kept a stale Bluetooth printer
+            // in the retry loop: every refresh spent seconds failing RFCOMM connects to a device
+            // the shop no longer prints on, filling the log with "All 2 RFCOMM connect attempts
+            // failed" while the visible Wi-Fi card was healthy (BUG-054).
+            val singlePrinterMode =
+                restaurantRepository.getProfile()?.printerModeValue() == PrinterMode.SINGLE
             val profiles = printerProfileRepository.getProfiles()
                 .filter { it.enabled && it.isConnectionConfigured() }
+                .filter { !singlePrinterMode || it.role != PrinterRole.KITCHEN.name }
             val mismatchMap = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
             profiles.forEach { profile ->
                 launch {
@@ -783,13 +794,12 @@ class SettingsViewModel @Inject constructor(
                     "\n\n\n\n" +
                     "\u001d\u0056\u0042\u0000"
                 ).toByteArray(Charsets.US_ASCII)
-                val printed = try {
-                    printerTransport.print(printer, testData)
-                } finally {
-                    if (printer.connectionTypeValue() == PrinterConnectionType.BLUETOOTH) {
-                        btManager.disconnect(printer.macAddress)
-                    }
-                }
+                // Do NOT tear the Bluetooth socket down here. The old `finally` block called
+                // btManager.disconnect() after every test print, which cleared the connection
+                // state the card reads: a successful test flipped the badge to "Not connected"
+                // while the printer was still linked and printing (BUG-053). A failed write
+                // already disconnects inside printBytesTo, so there is nothing to clean up.
+                val printed = printerTransport.print(printer, testData)
                 _printerEvents.emit(
                     if (printed) PrinterUiEvent.TestPrintSent else PrinterUiEvent.TestPrintFailed
                 )
@@ -1038,9 +1048,9 @@ class SettingsViewModel @Inject constructor(
         autoPrint: Boolean,
         paperSize: String,
         includeLogo: Boolean,
-        // Routing layout, only meaningful for the customer row. Applied here as well as in
-        // savePrinterSettingsLocally because both write the same profile row from separate
-        // coroutines: without it, whichever write landed last could restore the old layout.
+        // Routing layout, only meaningful for the customer row. The printer_profiles row has
+        // no mode column, so the value is mirrored onto the restaurant profile, which is what
+        // PrintRouter and KitchenPrintQueueManager read (printerModeValue()).
         printerMode: String? = null
     ) {
         // G2: printer configuration is owner-only (see SessionManager doc).
@@ -1133,6 +1143,15 @@ class SettingsViewModel @Inject constructor(
     private val _logoUploadLoading = MutableStateFlow(false)
     val logoUploadLoading: StateFlow<Boolean> = _logoUploadLoading.asStateFlow()
 
+    // True only while a picked logo is actually being sent, so the UI can show a
+    // determinate-looking status without inventing a progress percentage (the
+    // Retrofit multipart POST exposes no progress callback).
+    private val _logoUploading = MutableStateFlow(false)
+    val logoUploading: StateFlow<Boolean> = _logoUploading.asStateFlow()
+
+    private val _logoUploadSuccess = MutableStateFlow<LogoFileInfo?>(null)
+    val logoUploadSuccess: StateFlow<LogoFileInfo?> = _logoUploadSuccess.asStateFlow()
+
     private val _isUserChecking = MutableStateFlow(false)
     val isUserChecking: StateFlow<Boolean> = _isUserChecking.asStateFlow()
 
@@ -1161,6 +1180,7 @@ class SettingsViewModel @Inject constructor(
 
     fun clearLogoUploadState() {
         _logoUploadError.value = null
+        _logoUploadSuccess.value = null
     }
 
     fun saveProfile(profile: RestaurantProfileEntity, confirmEasebuzzToggle: Boolean = false) {
@@ -1199,35 +1219,6 @@ class SettingsViewModel @Inject constructor(
                 _saveProfileError.value = UserMessageSanitizer.sanitize(
                     e,
                     "Couldn't save settings. Please try again."
-                )
-            } finally {
-                _saveProfileLoading.value = false
-            }
-        }
-    }
-
-    fun savePrinterSettingsLocally(profile: RestaurantProfileEntity) {
-        // Single-flight: same rationale as saveProfile — a double tap re-entering this
-        // function resets the success flag mid-flight and swallows the navigation.
-        if (_saveProfileLoading.value) return
-        // G2: printer settings (mac/paper/routing on the shop profile) are owner-only
-        // config writes; the guard mirrors saveProfile().
-        if (!sessionManager.canWritePrinterConfig()) {
-            _saveProfileError.value = "Only the owner can change printer settings."
-            return
-        }
-        viewModelScope.launch {
-            _saveProfileLoading.value = true
-            _saveProfileError.value = null
-            _saveProfileSuccess.value = false
-            try {
-                restaurantRepository.saveProfileLocally(profile)
-                _saveProfileSuccess.value = true
-            } catch (e: Exception) {
-                Log.e("SettingsViewModel", "Printer settings save failed", e)
-                _saveProfileError.value = UserMessageSanitizer.sanitize(
-                    e,
-                    "Couldn't save printer settings. Please try again."
                 )
             } finally {
                 _saveProfileLoading.value = false
@@ -1276,13 +1267,24 @@ class SettingsViewModel @Inject constructor(
             _saveProfileSuccess.value = false
             try {
                 var finalProfile = profile
+                _logoUploadSuccess.value = null
+                _logoUploadError.value = null
                 if (logoUri != null) {
+                    _logoUploading.value = true
                     try {
                         val part = withContext(Dispatchers.IO) {
                             MultipartUtils.imageUriToPart(context.applicationContext, logoUri)
                         }
                         val url = restaurantRepository.uploadLogo(part)
                         finalProfile = profile.copy(logoUrl = url)
+                        // Only published after the backend confirmed the upload; the
+                        // repository has already written the new logoUrl/version to Room.
+                        _logoUploadSuccess.value = LogoFileInfo.from(context.applicationContext, logoUri)
+                    } catch (validationError: IllegalArgumentException) {
+                        // MultipartUtils emits actionable, user-facing validation messages.
+                        // The generic sanitizer would replace them with a vague fallback.
+                        _logoUploadError.value = validationError.message
+                            ?: "This image can't be used. Please choose another."
                     } catch (logoError: Exception) {
                         // Logo upload is best-effort: keep the previous logo
                         // and still save the rest of the profile so a flaky
@@ -1292,6 +1294,8 @@ class SettingsViewModel @Inject constructor(
                         _logoUploadError.value = UserMessageSanitizer.sanitize(
                             logoError, "Logo upload failed. Other changes saved."
                         )
+                    } finally {
+                        _logoUploading.value = false
                     }
                 }
                 restaurantRepository.saveProfile(finalProfile)

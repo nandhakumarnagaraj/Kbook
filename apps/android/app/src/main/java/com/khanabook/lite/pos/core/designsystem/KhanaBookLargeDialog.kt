@@ -23,8 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.khanabook.lite.pos.core.touch.TouchAwareDialog
 import com.khanabook.lite.pos.core.theme.BorderGold
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.KhanaBookLiteTheme
@@ -43,7 +43,7 @@ fun KhanaBookLargeDialog(
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
 
-    Dialog(
+    TouchAwareDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

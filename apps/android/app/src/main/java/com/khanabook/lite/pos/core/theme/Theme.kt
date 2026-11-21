@@ -1,6 +1,8 @@
 package com.khanabook.lite.pos.core.theme
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Build
 import android.util.Log
 import androidx.compose.material3.MaterialTheme
@@ -14,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.Density
@@ -32,6 +35,19 @@ private val DarkColorScheme = darkColorScheme(
     onBackground = TextLight,
     onSurface = TextLight,
 )
+
+/**
+ * Resolves the hosting Activity through any chain of [ContextWrapper]s.
+ *
+ * `LocalView.current.context` is not always the Activity on real devices — themed and
+ * layout-inflater contexts wrap it (OEM skins, `ContextThemeWrapper`), and host-side
+ * renderers such as Robolectric hand Compose a non-Activity context. An unchecked
+ * `as Activity` therefore crashes instead of degrading, so callers must handle null.
+ */
+private fun Context.findActivity(): Activity? =
+    generateSequence(this) { (it as? ContextWrapper)?.baseContext }
+        .filterIsInstance<Activity>()
+        .firstOrNull()
 
 object KhanaBookTheme {
     val spacing: Spacing
@@ -57,10 +73,11 @@ fun KhanaBookLiteTheme(
     val view = LocalView.current
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
-    val widthSizeClass = if (view.isInEditMode) {
+    val hostActivity = LocalContext.current.findActivity()
+    val widthSizeClass = if (view.isInEditMode || hostActivity == null) {
         WindowWidthSizeClass.Compact
     } else {
-        calculateWindowSizeClass(view.context as Activity).widthSizeClass
+        calculateWindowSizeClass(hostActivity).widthSizeClass
     }
     val responsiveLayout = responsiveLayoutForWindowSizeClass(
         screenWidthDp = configuration.screenWidthDp,
@@ -99,7 +116,7 @@ fun KhanaBookLiteTheme(
     if (!view.isInEditMode) {
 
         SideEffect {
-            val window = (view.context as Activity).window
+            val window = hostActivity?.window ?: return@SideEffect
             val controller = WindowCompat.getInsetsController(window, view)
             // Force dark system bar icons (light-on-dark) for our dark theme.
             controller.isAppearanceLightStatusBars = false

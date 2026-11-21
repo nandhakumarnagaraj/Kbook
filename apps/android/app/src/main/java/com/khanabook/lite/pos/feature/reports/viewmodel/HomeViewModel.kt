@@ -5,7 +5,9 @@ import com.khanabook.lite.pos.core.util.AppConstants
 import android.bluetooth.BluetoothAdapter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.feature.billing.data.BillRepository
+import com.khanabook.lite.pos.feature.reports.domain.netAmount
 import com.khanabook.lite.pos.feature.printing.data.KitchenPrintQueueRepository
 import com.khanabook.lite.pos.feature.printing.data.PrinterProfileRepository
 import com.khanabook.lite.pos.feature.auth.data.RestaurantRepository
@@ -254,8 +256,16 @@ class HomeViewModel @Inject constructor(
                 billsFlow,
                 pendingKdsFlow
             ) { bills, kdsPendingCount ->
-                    val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
-                    val totalRevenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 }
+                    // Same definition as the Reports screen: completed orders only, net of any
+                    // admin-recorded refund, accumulated as BigDecimal. The previous filter used
+                    // case-sensitive literals (a pulled "PAID" bill counted as zero revenue) and
+                    // ignored refunds, so Home and Reports disagreed (BUG-043).
+                    val completedBills = bills.filter {
+                        OrderStatus.fromDbValue(it.orderStatus) == OrderStatus.COMPLETED
+                    }
+                    val totalRevenue = completedBills
+                        .fold(java.math.BigDecimal.ZERO) { acc, bill -> acc.add(bill.netAmount()) }
+                        .toDouble()
                     HomeStats(
                         orderCount = bills.size,
                         avgOrderValue = if (completedBills.isNotEmpty()) totalRevenue / completedBills.size else 0.0,

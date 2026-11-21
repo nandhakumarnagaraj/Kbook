@@ -60,7 +60,9 @@ fun TaxConfigView(
 ) {
     val spacing = KhanaBookTheme.spacing
     val fssaiRegex = remember { Regex("^\\d{14}$") }
-    var country by remember { mutableStateOf("India") }
+    // Seeded from the stored profile: this field is saved back on every tax save, so a hardcoded
+    // default silently rewrote a non-India country each time the owner touched this screen.
+    var country by remember { mutableStateOf(profile?.country?.takeIf { it.isNotBlank() } ?: "India") }
     var countryExpanded by remember { mutableStateOf(false) }
     var gstEnabled by remember { mutableStateOf(profile?.gstEnabled ?: false) }
     var gstNumber by remember { mutableStateOf(profile?.gstin ?: "") }

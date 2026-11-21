@@ -346,9 +346,18 @@ private fun PaymentSuccessBadge() {
     val ripple2Scale = remember { Animatable(1f) }
     val ripple2Alpha = remember { Animatable(0.4f) }
     val confettiProgress = remember { Animatable(0f) }
+    val reducedMotion = rememberReducedMotion()
 
     LaunchedEffect(Unit) {
-        // Animate checkmark circle scale with a bounce spring
+        if (reducedMotion) {
+            // Static success badge: checkmark at full size, no bounce, ripple or confetti.
+            scale.snapTo(1f)
+            ripple1Alpha.snapTo(0f)
+            ripple2Alpha.snapTo(0f)
+            return@LaunchedEffect
+        }
+        // The checkmark keeps its spring pop. Supporting effects stay short so
+        // the highest-frequency flow in the app is not held up by a celebration.
         launch {
             scale.animateTo(
                 targetValue = 1f,
@@ -358,41 +367,41 @@ private fun PaymentSuccessBadge() {
                 )
             )
         }
-        // Animate ripple rings
+        // First ripple expands and fades over 360 ms.
         launch {
             ripple1Scale.animateTo(
                 targetValue = 2.0f,
-                animationSpec = tween(durationMillis = 800, easing = FastOutLinearInEasing)
+                animationSpec = tween(durationMillis = 360, easing = FastOutLinearInEasing)
             )
         }
         launch {
             ripple1Alpha.animateTo(
                 targetValue = 0f,
-                animationSpec = tween(durationMillis = 800, easing = FastOutLinearInEasing)
+                animationSpec = tween(durationMillis = 360, easing = FastOutLinearInEasing)
             )
         }
-        // Delayed second ripple
+        // Second ripple starts at +100 ms and ends at ~420 ms.
         launch {
-            kotlinx.coroutines.delay(200)
+            kotlinx.coroutines.delay(100)
             launch {
                 ripple2Scale.animateTo(
                     targetValue = 2.0f,
-                    animationSpec = tween(durationMillis = 800, easing = FastOutLinearInEasing)
+                    animationSpec = tween(durationMillis = 320, easing = FastOutLinearInEasing)
                 )
             }
             launch {
                 ripple2Alpha.animateTo(
                     targetValue = 0f,
-                    animationSpec = tween(durationMillis = 800, easing = FastOutLinearInEasing)
+                    animationSpec = tween(durationMillis = 320, easing = FastOutLinearInEasing)
                 )
             }
         }
-        // Confetti burst
+        // Confetti starts at +120 ms and ends at ~420 ms.
         launch {
-            kotlinx.coroutines.delay(300)
+            kotlinx.coroutines.delay(120)
             confettiProgress.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = 1000, easing = LinearOutSlowInEasing)
+                animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing)
             )
         }
     }

@@ -1,5 +1,6 @@
 package com.khanabook.lite.pos
 
+import com.khanabook.lite.pos.feature.auth.data.RestaurantProfileEntity
 import com.khanabook.lite.pos.feature.billing.domain.BillCalculator
 import org.junit.Assert.*
 import org.junit.Test
@@ -200,5 +201,68 @@ class BillCalculatorTest {
         assertEquals("100000.00", subtotal)
         assertEquals("5000.00", gst.totalGst)
         assertEquals("105000.00", total)
+    }
+
+    // ── Full bill totals: tax-inclusive pricing must not add the GST twice (BUG-041) ──────────
+
+    @Test
+    fun `inclusive bill keeps the total at the price sum instead of adding gst again`() {
+        val profile = RestaurantProfileEntity(
+            gstEnabled = true, gstPercentage = 18.0, isTaxInclusive = true
+        )
+        val totals = BillCalculator.calculateBillTotals(listOf("118.00" to 1), profile)
+
+        assertEquals("118.00", totals.subtotal)
+        assertEquals("9.00", totals.cgst)
+        assertEquals("9.00", totals.sgst)
+        // Before BUG-041 this was 136.00 - the embedded GST added a second time.
+        assertEquals("118.00", totals.total)
+    }
+
+    @Test
+    fun `exclusive bill still adds gst to the total`() {
+        val profile = RestaurantProfileEntity(
+            gstEnabled = true, gstPercentage = 18.0, isTaxInclusive = false
+        )
+        val totals = BillCalculator.calculateBillTotals(listOf("100.00" to 1), profile)
+
+        assertEquals("9.00", totals.cgst)
+        assertEquals("9.00", totals.sgst)
+        assertEquals("118.00", totals.total)
+    }
+
+    @Test
+    fun `inclusive flag does not drop custom tax when gst is off`() {
+        val profile = RestaurantProfileEntity(
+            gstEnabled = false,
+            customTaxPercentage = 5.0,
+            isTaxInclusive = true
+        )
+        val totals = BillCalculator.calculateBillTotals(listOf("100.00" to 1), profile)
+
+        assertEquals("0.00", totals.cgst)
+        assertEquals("5.00", totals.customTax)
+        assertEquals("105.00", totals.total)
+    }
+
+    @Test
+    fun `custom tax applies only while gst is off`() {
+        val profile = RestaurantProfileEntity(
+            gstEnabled = true, gstPercentage = 5.0, customTaxPercentage = 5.0
+        )
+        val totals = BillCalculator.calculateBillTotals(listOf("100.00" to 1), profile)
+
+        assertEquals("2.50", totals.cgst)
+        assertEquals("2.50", totals.sgst)
+        assertEquals("0.00", totals.customTax)
+        assertEquals("105.00", totals.total)
+    }
+
+    @Test
+    fun `no profile bills at face value`() {
+        val totals = BillCalculator.calculateBillTotals(listOf("99.50" to 2), null)
+
+        assertEquals("199.00", totals.subtotal)
+        assertEquals("199.00", totals.total)
     }
 }

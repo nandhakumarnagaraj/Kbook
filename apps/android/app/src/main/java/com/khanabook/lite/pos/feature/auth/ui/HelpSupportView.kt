@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -47,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -74,6 +76,13 @@ import androidx.compose.foundation.BorderStroke
 
 private const val SUPPORT_WHATSAPP = "919471676935"
 private const val SUPPORT_EMAIL = "kbook@pcts.tech"
+
+private data class AboutLink(
+    val label: String,
+    val url: String,
+    val icon: ImageVector,
+    val openInApp: Boolean = false
+)
 
 @Composable
 fun HelpSupportView(viewModel: SettingsViewModel) {
@@ -227,7 +236,7 @@ fun HelpSupportView(viewModel: SettingsViewModel) {
 }
 
 @Composable
-fun AboutAppView() {
+fun AboutAppView(onWatchTutorials: () -> Unit) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
     val currentYear = Year.now().value
@@ -280,13 +289,20 @@ fun AboutAppView() {
             modifier = Modifier.padding(horizontal = spacing.large)
         )
 
-        // Legal links (Play Store requirement: reachable privacy policy).
-        // Open in the browser — kept on this single screen by design.
+        // Legal links stay in the external browser (Play Store requirement: reachable privacy
+        // policy). The tutorial is played in the app's own WebView so staff never leave the POS.
         // The old /terms path returns 404 — the live page is /terms-and-conditions.
+        // The /cdn/tutorials directory also 404s; the direct WebM used by Quick Start is live.
         listOf(
-            "Privacy Policy" to "https://www.khanabook.in/privacy-policy",
-            "Terms of Use" to "https://khanabook.in/terms-and-conditions"
-        ).forEach { (label, url) ->
+            AboutLink("Privacy Policy", "https://www.khanabook.in/privacy-policy", Icons.AutoMirrored.Filled.OpenInNew),
+            AboutLink("Terms of Use", "https://khanabook.in/terms-and-conditions", Icons.AutoMirrored.Filled.OpenInNew),
+            AboutLink(
+                label = "Watch Tutorials",
+                url = "https://kbook.iadv.cloud/cdn/tutorials/create-quickbill.webm",
+                icon = Icons.Filled.PlayArrow,
+                openInApp = true
+            )
+        ).forEach { link ->
             KhanaBookCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = CardBG),
@@ -296,11 +312,15 @@ fun AboutAppView() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
-                            try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                            } catch (_: Exception) {
-                                toastScope.launch {
-                                    KhanaToast.show("No browser available", ToastKind.Error)
+                            if (link.openInApp) {
+                                onWatchTutorials()
+                            } else {
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
+                                } catch (_: Exception) {
+                                    toastScope.launch {
+                                        KhanaToast.show("No browser available", ToastKind.Error)
+                                    }
                                 }
                             }
                         }
@@ -308,14 +328,14 @@ fun AboutAppView() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.OpenInNew,
+                        link.icon,
                         contentDescription = null,
                         tint = PrimaryGold.copy(alpha = 0.8f),
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(spacing.medium))
                     Text(
-                        label,
+                        link.label,
                         color = TextLight,
                         style = MaterialTheme.typography.bodyMedium
                     )

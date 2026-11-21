@@ -92,13 +92,15 @@ fun HomeScreen(
     var primaryVisible by rememberSaveable { mutableStateOf(false) }
     var actionsVisible by rememberSaveable { mutableStateOf(false) }
 
+    val reducedMotion = rememberReducedMotion()
     LaunchedEffect(Unit) {
+        val stagger = if (reducedMotion) 0L else 45L
         headerVisible = true
-        delay(80)
+        delay(stagger)
         statsVisible = true
-        delay(80)
+        delay(stagger)
         primaryVisible = true
-        delay(80)
+        delay(stagger)
         actionsVisible = true
     }
 
@@ -108,11 +110,15 @@ fun HomeScreen(
         }
     }
 
-    val enterSpec = fadeIn(tween(350)) + slideInVertically(
-        initialOffsetY = { it / 6 },
-        animationSpec = tween(350, easing = FastOutSlowInEasing)
-    )
-    val exitSpec = fadeOut(tween(200))
+    val enterSpec = if (reducedMotion) {
+        fadeIn(tween(REDUCED_MOTION_MS))
+    } else {
+        fadeIn(tween(350)) + slideInVertically(
+            initialOffsetY = { it / 6 },
+            animationSpec = tween(350, easing = FastOutSlowInEasing)
+        )
+    }
+    val exitSpec = fadeOut(tween(if (reducedMotion) REDUCED_MOTION_MS else 200))
 
     BoxWithConstraints(
         modifier = Modifier

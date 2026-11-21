@@ -130,26 +130,23 @@ class CartManager(
     /**
      * Pure function — computes a BillSummary from current cart items and profile.
      * No DB access, no side-effects.
+     *
+     * The arithmetic lives in [BillCalculator.calculateBillTotals], which the persisted-bill
+     * recalc in `BillingViewModel` uses as well; before that was shared, the two call sites
+     * silently diverged on tax-inclusive pricing (BUG-041).
      */
     fun computeSummary(items: List<BillingViewModel.CartItem>, profile: RestaurantProfileEntity?): BillingViewModel.BillSummary {
-        val subtotal = BillCalculator.calculateSubtotal(items.map {
-            (it.variant?.price ?: it.item.basePrice) to it.quantity
-        })
-
-        var cgst = "0.0"
-        var sgst = "0.0"
-        var customTax = "0.0"
-
-        if (profile?.gstEnabled == true) {
-            val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage, profile?.isTaxInclusive == true)
-            cgst = gst.cgst
-            sgst = gst.sgst
-        } else if (profile?.customTaxPercentage != null && profile.customTaxPercentage > 0) {
-            customTax = BillCalculator.calculateCustomTax(subtotal, profile.customTaxPercentage)
-        }
-
-        val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
-        return BillingViewModel.BillSummary(subtotal, cgst, sgst, customTax, total)
+        val totals = BillCalculator.calculateBillTotals(
+            items = items.map { (it.variant?.price ?: it.item.basePrice) to it.quantity },
+            profile = profile
+        )
+        return BillingViewModel.BillSummary(
+            totals.subtotal,
+            totals.cgst,
+            totals.sgst,
+            totals.customTax,
+            totals.total
+        )
     }
 
     fun updateSummary(profile: RestaurantProfileEntity?) {

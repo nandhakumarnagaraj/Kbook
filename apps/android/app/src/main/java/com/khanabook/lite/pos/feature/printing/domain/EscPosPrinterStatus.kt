@@ -7,10 +7,13 @@ package com.khanabook.lite.pos.feature.printing.domain
  * Decoding follows the ESC/POS standard "DLE EOT" real-time status commands
  * (ASB not required): the printer replies with a single status byte.
  *
- *  - DLE EOT 1 → printer status
- *  - DLE EOT 2 → drawer kick-out connector status
- *  - DLE EOT 3 → error status
+ *  - DLE EOT 1 → printer status (online/offline, drawer pin state)
+ *  - DLE EOT 2 → offline cause status (cover open, paper end)
+ *  - DLE EOT 3 → error cause status (mechanical / recoverable / unrecoverable)
  *  - DLE EOT 4 → paper roll sensor status
+ *
+ * Only n = 1, 3 and 4 are queried; cover-open therefore surfaces through n = 1
+ * going offline rather than through a dedicated n = 2 read.
  */
 enum class PrinterHealth {
     /** Socket reachable AND printer reports paper present, no errors. */
@@ -41,44 +44,68 @@ enum class PrinterHealth {
 /**
  * Decodes ESC/POS DLE EOT status bytes.
  *
- * All bytes are "active-low" for their designated bits: a 1 in the documented
- * bit position means the condition is FALSE (per ESC/POS spec the bits are
- * defined as "0 = condition true" for most statuses).
+ * Each reply is a bitmap of flags, not an active-low "1 = fault" byte: bits that carry
+ * a condition are SET when the condition holds (e.g. DLE EOT 1 bit 3 = offline), while
+ * the bits marked "fixed" in the spec (1, 4) are simply always 1. Reading an inverted
+ * flag as an error is what made a healthy printer report "Printer error" (BUG-033).
  */
 object EscPosStatusDecoder {
 
-    /** Decodes DLE EOT 1 (printer status). Returns true when the printer reports an error. */
+    /**
+     * Decodes DLE EOT 1 (printer status). Returns true when the printer reports a fault.
+     *
+     * Bit 3 = offline, bit 5 = waiting for online recovery (both mean "cannot print now").
+     * Bit 2 is the drawer kick-out connector pin (0 = LOW, 1 = HIGH) and is NOT an error:
+     * the all-clear reply 0x12 has it clear, because no cash drawer is wired to pin 3.
+     */
     fun printerError(statusByte: Int): Boolean {
-        // Bit 2 (0x04): 1 = no error... actually spec: bit2=0 → cover open / paper end / error occurred
-        // Spec: bit 2 = 0 means "an error has occurred" style encoding: status byte bit 2 == 0 → error.
-        return (statusByte and 0x04) == 0
+        return (statusByte and (PRINTER_OFFLINE or PRINTER_RECOVERY_WAIT)) != 0
     }
+
+    /** DLE EOT 1 bit 3: 1 = offline. */
+    private const val PRINTER_OFFLINE = 0x08
+
+    /** DLE EOT 1 bit 5: 1 = waiting for online recovery after an error. */
+    private const val PRINTER_RECOVERY_WAIT = 0x20
 
     /**
      * Decodes DLE EOT 4 (paper roll sensor status).
      * @return true when paper is present; false when paper end / near-end detected.
      */
     fun paperPresent(paperStatusByte: Int): Boolean {
-        val paperEnd = (paperStatusByte and 0x60) == 0x60 // bits 5,6 set → paper roll end
-        val paperLow = (paperStatusByte and 0x0C) == 0x0C // bits 2,3 set → paper near-end
+        val paperEnd = (paperStatusByte and PAPER_END_MASK) == PAPER_END_MASK
+        val paperLow = (paperStatusByte and PAPER_NEAR_END_MASK) == PAPER_NEAR_END_MASK
         return !paperEnd && !paperLow
     }
 
+    /** DLE EOT 4 bits 2-3: 1,1 = paper roll end sensor active (the roll is empty). */
+    private const val PAPER_END_MASK = 0x0C
+
+    /** DLE EOT 4 bits 5-6: 1,1 = paper roll near-end sensor active (the roll is running low). */
+    private const val PAPER_NEAR_END_MASK = 0x60
+
     /** @return true when paper roll is running low (near-end sensor). */
     fun paperLow(paperStatusByte: Int): Boolean =
-        (paperStatusByte and 0x0C) == 0x0C && !paperOut(paperStatusByte)
+        (paperStatusByte and PAPER_NEAR_END_MASK) == PAPER_NEAR_END_MASK &&
+            !paperOut(paperStatusByte)
 
     /** @return true when the paper roll end sensor is active. */
     fun paperOut(paperStatusByte: Int): Boolean =
-        (paperStatusByte and 0x60) == 0x60
+        (paperStatusByte and PAPER_END_MASK) == PAPER_END_MASK
 
-    /** Decodes DLE EOT 3 (error status): cover open, paper end by error, recoverable error. */
+    /**
+     * Decodes DLE EOT 3 (error cause status).
+     *
+     * Bit 3 = mechanical error, bit 5 = auto-recoverable error, bit 6 = unrecoverable
+     * error. Cover-open and paper-end are NOT reported here - they live in DLE EOT 2
+     * (offline cause); this byte's bits 0-2 are undefined and must not be decoded.
+     */
     fun fatalOrCoverError(errorStatusByte: Int): Boolean {
-        val coverOpen = (errorStatusByte and 0x04) == 0x04  // bit 2: 1 = cover open
-        val paperEndErr = (errorStatusByte and 0x08) == 0x08 // bit 3: 1 = paper end
-        val unrecoverable = (errorStatusByte and 0x20) == 0x20 // bit 5: 1 = unrecoverable error
-        return coverOpen || paperEndErr || unrecoverable
+        return (errorStatusByte and ERROR_CAUSE_MASK) != 0
     }
+
+    /** DLE EOT 3: bit 3 mechanical, bit 5 auto-recoverable, bit 6 unrecoverable. */
+    private const val ERROR_CAUSE_MASK = 0x08 or 0x20 or 0x40
 
     /**
      * Builds a [PrinterHealth] from the raw status bytes. Any null byte means the

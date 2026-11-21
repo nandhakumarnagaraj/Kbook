@@ -25,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,16 +55,21 @@ fun ClosingAlertBanner(
     ) {
         if (alert == null) return@AnimatedVisibility
 
-        val infiniteTransition = rememberInfiniteTransition(label = "beacon_pulse")
-        val alpha by infiniteTransition.animateFloat(
-            initialValue = 0.4f,
-            targetValue = 1.0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulse_alpha"
-        )
+        // Reduced motion keeps the beacon visible with a steady opacity.
+        val alpha = if (rememberReducedMotion()) {
+            0.7f
+        } else {
+            val infiniteTransition = rememberInfiniteTransition(label = "beacon_pulse")
+            infiniteTransition.animateFloat(
+                initialValue = 0.4f,
+                targetValue = 1.0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1000),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "pulse_alpha"
+            ).value
+        }
 
         Surface(
             modifier = modifier

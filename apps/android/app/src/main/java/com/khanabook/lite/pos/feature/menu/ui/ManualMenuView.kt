@@ -3,6 +3,7 @@
 package com.khanabook.lite.pos.feature.menu.ui
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.designsystem.*
+import com.khanabook.lite.pos.core.util.CurrencyUtils
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -763,23 +764,32 @@ fun MenuItemRow(
                     fontWeight = FontWeight.Bold
                 )
                 if (variants.isNotEmpty()) {
+                    // Paise are kept: `.toInt()` used to render 149.50 as "₹149", a price that
+                    // differs from the one charged on the bill (BUG-047).
+                    val floor = variants.mapNotNull { it.price.toDoubleOrNull() }.minOrNull()
                     Text(
-                        text = "${variants.size} variants • Starts from ₹${variants.minOf { it.price.toDoubleOrNull() ?: 0.0 }.toInt()}",
+                        text = if (floor != null) {
+                            "${variants.size} variants • Starts from ${CurrencyUtils.formatPriceCompact(floor)}"
+                        } else {
+                            "${variants.size} variants"
+                        },
                         color = TextGold,
                         style = MaterialTheme.typography.labelSmall
                     )
                 } else {
                     Text(
-                        text = "₹${item.basePrice.toDoubleOrNull()?.toInt() ?: item.basePrice}",
+                        text = item.basePrice.toDoubleOrNull()
+                            ?.let { CurrencyUtils.formatPriceCompact(it) }
+                            ?: item.basePrice,
                         color = TextGold,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
-            // Outside the canWrite block on purpose: this star is the counter's own list, not
-            // master data, so a cashier without menu-edit rights can still keep one. It sorts
-            // the dish to the top of its category everywhere the till lists dishes.
-            if (onToggleLocalFavourite != null) {
+            // Owner-only, like every other menu edit. The star writes a column on menu_items -
+            // one row per dish shared by everyone signed in on this till - so letting staff
+            // toggle it rewrote the owner's list (BUG-032). Menu access for staff is read-only.
+            if (canWrite && onToggleLocalFavourite != null) {
                 IconButton(
                     onClick = { onToggleLocalFavourite(item, !item.localFavourite) },
                     modifier = Modifier.size(40.dp)
@@ -787,9 +797,9 @@ fun MenuItemRow(
                     Icon(
                         imageVector = if (item.localFavourite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                         contentDescription = if (item.localFavourite)
-                            "Remove ${item.name} from this till's favourites"
+                            "Remove ${item.name} from favourites"
                         else
-                            "Add ${item.name} to this till's favourites",
+                            "Add ${item.name} to favourites",
                         tint = if (item.localFavourite) PrimaryGold else TextGold.copy(alpha = 0.5f)
                     )
                 }

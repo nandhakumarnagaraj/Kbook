@@ -80,10 +80,11 @@ fun KhanaBookLoadingOverlay(
     subtitle: String? = null,
     progress: Float? = null
 ) {
+    val reducedMotion = rememberReducedMotion()
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(tween(200)),
-        exit = fadeOut(tween(200))
+        enter = fadeIn(tween(if (reducedMotion) REDUCED_MOTION_MS else 200)),
+        exit = fadeOut(tween(if (reducedMotion) REDUCED_MOTION_MS else 100))
     ) {
         Box(
             modifier = Modifier

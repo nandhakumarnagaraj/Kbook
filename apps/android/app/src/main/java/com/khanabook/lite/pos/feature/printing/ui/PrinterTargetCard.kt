@@ -114,8 +114,8 @@ fun PrinterTargetCard(
                     text = statusText(connectionDescription, isConnected, health, networkMismatch),
                     kind = when {
                         connectionDescription.isNullOrBlank() -> KhanaStatusKind.Neutral
-                        !isConnected -> KhanaStatusKind.Warning
                         networkMismatch -> KhanaStatusKind.Warning
+                        !isConnected -> KhanaStatusKind.Warning
                         health == com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_OUT ->
                             KhanaStatusKind.Danger
                         health == com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.PAPER_LOW ||
@@ -248,8 +248,8 @@ private fun statusText(
     networkMismatch: Boolean
 ): String = when {
     connectionDescription.isNullOrBlank() -> "No printer"
-    !isConnected -> "Ready"
     networkMismatch -> "Network Mismatch"
+    !isConnected -> "Not connected"
     health == null -> "Connected"
     else -> when (health) {
         com.khanabook.lite.pos.feature.printing.domain.PrinterHealth.HEALTHY -> "Connected"
@@ -277,14 +277,14 @@ fun DeviceRow(
     val backgroundColor = if (isSelected) DarkBrown1 else DarkBrown1.copy(alpha = 0.5f)
 
     KhanaBookCard(
-        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.extraSmall),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = spacing.extraSmall)
+            .then(border?.let { Modifier.border(it, KhanaRadii.md) } ?: Modifier),
         onClick = if (!isConnecting) onClick else null,
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         shape = KhanaRadii.md
     ) {
-        if (border != null) {
-            Modifier.border(border, KhanaRadii.md)
-        }
         Row(modifier = Modifier.padding(spacing.medium), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.Bluetooth,

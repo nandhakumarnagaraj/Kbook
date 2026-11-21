@@ -25,9 +25,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.khanabook.lite.pos.core.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.core.designsystem.KhanaBookSwitch
+import com.khanabook.lite.pos.core.touch.TouchIndicatorConfig
 import com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackPreferences
 import com.khanabook.lite.pos.feature.menu.ui.rememberMenuFeedbackSettings
 import com.khanabook.lite.pos.feature.menu.ui.rememberMenuItemAddFeedback
@@ -44,9 +46,11 @@ import com.khanabook.lite.pos.core.theme.VegGreen
 fun InteractionFeedbackView() {
     val spacing = KhanaBookTheme.spacing
     val iconSize = KhanaBookTheme.iconSize
+    val context = LocalContext.current
     val preferences = rememberMenuFeedbackPreferences()
     val settings by rememberMenuFeedbackSettings(preferences)
     val playPreview = rememberMenuItemAddFeedback(settings)
+    val showTapsEnabled by TouchIndicatorConfig.enabledState
 
     Column(
         modifier = Modifier
@@ -88,9 +92,9 @@ fun InteractionFeedbackView() {
                         )
                     },
                     title = "Touch feedback",
-                    description = "Add a subtle tap vibration with the sound",
-                    checked = settings.hapticEnabled,
-                    onCheckedChange = preferences::setHapticEnabled
+                    description = "Show a dot under each finger on the screen",
+                    checked = showTapsEnabled,
+                    onCheckedChange = { TouchIndicatorConfig.setEnabled(context, it) }
                 )
             }
         }

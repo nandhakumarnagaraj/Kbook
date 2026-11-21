@@ -32,10 +32,17 @@ enum class OrderStatus(val dbValue: String, val displayLabel: String) {
     CANCELLED("cancelled", "Cancelled");
 
     companion object {
-        fun fromDbValue(value: String?): OrderStatus = 
-            if (value == null) DRAFT else values().find { 
-                it.dbValue.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) 
+        /**
+         * Alias-aware: `paid`/`settled`/`closed` read as COMPLETED and `void` as CANCELLED, so
+         * server spellings and rows written before [RemoteStatusNormalizer] existed still classify
+         * correctly instead of silently becoming DRAFT (BUG-042). Unknown input is still DRAFT.
+         */
+        fun fromDbValue(value: String?): OrderStatus {
+            RemoteStatusNormalizer.orderStatusOrNull(value)?.let { return it }
+            return values().find {
+                it.dbValue.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true)
             } ?: DRAFT
+        }
     }
 }
 
@@ -45,10 +52,12 @@ enum class PaymentStatus(val dbValue: String) {
     FAILED("failed");
 
     companion object {
-        fun fromDbValue(value: String?): PaymentStatus = 
-            if (value == null) FAILED else values().find { 
-                it.dbValue.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true) 
+        fun fromDbValue(value: String?): PaymentStatus {
+            RemoteStatusNormalizer.paymentStatusOrNull(value)?.let { return it }
+            return values().find {
+                it.dbValue.equals(value, ignoreCase = true) || it.name.equals(value, ignoreCase = true)
             } ?: FAILED
+        }
     }
 }
 

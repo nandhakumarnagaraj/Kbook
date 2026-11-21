@@ -18,10 +18,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.khanabook.lite.pos.core.touch.TouchAwareDialog
 import com.khanabook.lite.pos.core.theme.BorderGold
 import com.khanabook.lite.pos.core.theme.DarkBrown1
 import com.khanabook.lite.pos.core.theme.KhanaBookLiteTheme
@@ -37,13 +38,15 @@ fun KhanaBookDialog(
     message: String? = null,
     dismissOnClickOutside: Boolean = true,
     dismissOnBackPress: Boolean = true,
+    /** Pivot for the short entrance scale; callers can pass the trigger's position. */
+    transformOrigin: TransformOrigin = TransformOrigin.Center,
     content: @Composable ColumnScope.() -> Unit = {},
     actions: @Composable RowScope.() -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
 
-    Dialog(
+    TouchAwareDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
@@ -54,7 +57,8 @@ fun KhanaBookDialog(
         Surface(
             modifier = modifier
                 .fillMaxWidth(layout.dialogWidthFraction)
-                .widthIn(max = layout.dialogMaxWidth),
+                .widthIn(max = layout.dialogMaxWidth)
+                .dialogEntrance(transformOrigin),
             shape = KhanaRadii.xl,
             color = DarkBrown1,
             border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.35f))

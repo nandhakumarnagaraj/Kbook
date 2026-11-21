@@ -27,8 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.khanabook.lite.pos.core.touch.TouchAwareDialog
 import com.khanabook.lite.pos.core.designsystem.KhanaPrimaryButton
 import com.khanabook.lite.pos.core.designsystem.KhanaSecondaryButton
 import com.khanabook.lite.pos.core.theme.*
@@ -100,7 +100,7 @@ fun CustomDateRangePickerDialog(
     // column scrolls instead of clipping, and on normal phones no scrollbar ever appears.
     val maxHeight = (LocalConfiguration.current.screenHeightDp * 0.92f).dp
 
-    Dialog(
+    TouchAwareDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

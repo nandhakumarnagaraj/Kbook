@@ -2,8 +2,6 @@
 
 package com.khanabook.lite.pos.feature.settings.ui
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -51,6 +49,7 @@ data class QuickMenuItem(
 fun QuickStartScreen(
     onComplete: () -> Unit,
     onSkip: () -> Unit,
+    onWatchTutorials: () -> Unit,
     viewModel: QuickStartViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
@@ -204,17 +203,7 @@ fun QuickStartScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedButton(
-                            onClick = {
-                                val tutorialUrl = "https://kbook.iadv.cloud/cdn/tutorials/create-quickbill.webm"
-                                try {
-                                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(tutorialUrl))
-                                    context.startActivity(intent)
-                                } catch (e: Exception) {
-                                    coroutineScope.launch {
-                                        KhanaToast.show("Unable to open tutorial video", ToastKind.Warning)
-                                    }
-                                }
-                            },
+                            onClick = onWatchTutorials,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight(),

@@ -63,6 +63,7 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
+    alias(libs.plugins.roborazzi)
 }
 
 kotlin {
@@ -138,6 +139,13 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    // Robolectric needs merged Android resources (strings, drawables, themes) on the
+    // unit-test classpath to inflate Compose content at all.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
     }
     // Workaround: Room Gradle plugin has issues with spaces in paths.
     // Disabling its extension and using manual KSP argument with a relative path instead.
@@ -312,6 +320,13 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
+    // Host-side screenshot tests: Roborazzi + Robolectric render real Compose output to
+    // PNG without a device. Goldens live in app/src/test/screenshots (committed).
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.room.testing)

@@ -555,8 +555,10 @@ class BluetoothPrinterManager(private val context: Context) {
      * the live RFCOMM socket and decodes it into a [PrinterHealth].
      *
      * Writes the DLE EOT commands, then reads one status byte per command with a
-     * short timeout. Printers that do not implement DLE EOT simply don't answer;
-     * the result then degrades to [PrinterHealth.UNKNOWN] (treated as reachable).
+     * short timeout. Bytes still buffered from a previous reply are discarded before
+     * each write, so a late answer cannot be read as the next command's status.
+     * Printers that do not implement DLE EOT simply don't answer; the result then
+     * degrades to [PrinterHealth.UNKNOWN] (treated as reachable).
      */
     suspend fun queryHealth(mac: String): PrinterHealth {
         val socket = activeSockets[mac]?.takeIf { it.isConnected } ?: return PrinterHealth.UNREACHABLE
@@ -567,6 +569,12 @@ class BluetoothPrinterManager(private val context: Context) {
 
                 fun query(cmd: ByteArray): Int? {
                     return try {
+                        // Drop stale bytes from the previous query before asking again.
+                        var stale = input.available()
+                        while (stale > 0) {
+                            if (input.skip(stale.toLong()) <= 0) break
+                            stale = input.available()
+                        }
                         output.write(cmd)
                         output.flush()
                         // Drain: the printer replies with exactly one status byte.

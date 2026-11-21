@@ -19,8 +19,31 @@ data class BillWithItems(
     )
     val payments: List<BillPaymentEntity>
 ) {
+    /**
+     * Identity of a receipt line: the menu row and variant when they still exist, plus the name
+     * and price so rows that lost their menu id are never merged with a different dish.
+     *
+     * `bill_items.menu_item_id` is `SET_NULL` on menu-item delete, so grouping on
+     * `(menuItemId ?: 0L, variantId)` collapsed every deleted dish in a bill into one line with
+     * the first row's name and a summed total (BUG-044). Two genuinely identical rows still share
+     * all four components and merge as before.
+     */
+    private data class LineKey(
+        val menuItemId: Long?,
+        val variantId: Long?,
+        val itemName: String,
+        val price: String
+    )
+
     fun getConsolidatedItems(): List<BillItemEntity> {
-        return items.groupBy { (it.menuItemId ?: 0L) to it.variantId }
+        return items.groupBy {
+            LineKey(
+                menuItemId = it.menuItemId,
+                variantId = it.variantId,
+                itemName = it.itemName.trim().lowercase(),
+                price = it.price
+            )
+        }
             .map { (_, groupItems) ->
                 if (groupItems.size == 1) {
                     groupItems.first()

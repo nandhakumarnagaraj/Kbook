@@ -24,13 +24,25 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.provider.Settings
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.khanabook.lite.pos.core.designsystem.KhanaBookCard
 import com.khanabook.lite.pos.core.designsystem.KhanaBookScreenScaffold
 import com.khanabook.lite.pos.core.designsystem.KhanaBookSwitch
@@ -74,6 +86,12 @@ fun NotificationPreferencesScreen(
     val layout = KhanaBookTheme.layout
     val context = LocalContext.current
     val channelState = rememberNotificationChannelState(context)
+    // The per-channel switches are meaningless while Android blocks the app
+    // outright, so the screen has to say so instead of showing five "on" rows.
+    var notificationsEnabled by remember { mutableStateOf(!notificationsBlocked(context)) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        notificationsEnabled = !notificationsBlocked(context)
+    }
 
     Box(
         modifier = modifier
@@ -81,7 +99,14 @@ fun NotificationPreferencesScreen(
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, RichEspresso)))
     ) {
         KhanaBookScreenScaffold(
-            title = "Notifications Preferences",
+            // One line: the centered 24 sp default wraps this title on a 360 dp phone.
+            // Start alignment drops the reserved trailing slot, and the 20 sp compact
+            // style leaves headroom for large-font devices.
+            title = "Notification Preferences",
+            titleAlignment = TextAlign.Start,
+            titleStyleCompact = MaterialTheme.typography.headlineSmall.copy(fontSize = 20.sp),
+            titleMaxLines = 1,
+            titleOverflow = TextOverflow.Ellipsis,
             onBack = onBack,
             modifier = Modifier
                 .fillMaxSize()
@@ -95,6 +120,11 @@ fun NotificationPreferencesScreen(
                     .padding(horizontal = spacing.medium, vertical = spacing.small),
                 verticalArrangement = Arrangement.spacedBy(spacing.medium)
             ) {
+                if (!notificationsEnabled) {
+                    NotificationsBlockedCard(
+                        onOpenSettings = { openAppNotificationSettings(context) }
+                    )
+                }
                 NotificationChannelGroup.entries.forEach { group ->
                     val specs = NotificationChannelCatalog.channels(context)
                         .filter { it.group == group }
@@ -197,4 +227,62 @@ private fun NotificationChannelRow(
             onCheckedChange = onToggle
         )
     }
+}
+
+/** Shown when Android blocks the app entirely, making every switch below inert. */
+@Composable
+private fun NotificationsBlockedCard(onOpenSettings: () -> Unit) {
+    val spacing = KhanaBookTheme.spacing
+    KhanaBookCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = CardBG),
+        shape = KhanaRadii.card
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(spacing.medium)
+        ) {
+            Text(
+                "Notifications are off",
+                color = PrimaryGold,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(spacing.extraSmall))
+            Text(
+                "Android is blocking every KhanaBook alert, so the switches below cannot " +
+                    "deliver anything. Turn notifications back on in Android settings.",
+                color = TextLight,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.height(spacing.small))
+            TextButton(onClick = onOpenSettings) {
+                Text("Enable in Settings", color = PrimaryGold)
+            }
+        }
+    }
+}
+
+/**
+ * `areNotificationsEnabled()` alone does not flip when the Android 13+ runtime
+ * permission is revoked with `pm revoke`, so check the permission too.
+ */
+private fun notificationsBlocked(context: android.content.Context): Boolean {
+    val permissionDenied =
+        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+    return permissionDenied ||
+        !NotificationManagerCompat.from(context).areNotificationsEnabled()
+}
+
+private fun openAppNotificationSettings(context: android.content.Context) {
+    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { context.startActivity(intent) }
 }

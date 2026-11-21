@@ -5,28 +5,26 @@ package com.khanabook.lite.pos.feature.reports.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.Tag
+
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.khanabook.lite.pos.core.touch.TouchAwareDialog
 import com.khanabook.lite.pos.core.designsystem.*
 import com.khanabook.lite.pos.core.theme.*
 import com.khanabook.lite.pos.core.util.AppConstants
@@ -51,7 +49,9 @@ fun OrderDetailsDialog(
     onPrintReceipt: ((BillWithItems) -> Unit)? = null,
     onResumeDraft: ((BillWithItems) -> Unit)? = null,
     onCancelOrder: ((BillWithItems) -> Unit)? = null,
-    onChangePaymentMode: ((BillWithItems, PaymentMode) -> Unit)? = null
+    onChangePaymentMode: ((BillWithItems, PaymentMode) -> Unit)? = null,
+    /** Vertical position (0..1) of the order row that opened this dialog. */
+    originY: Float = 0.5f
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -65,13 +65,14 @@ fun OrderDetailsDialog(
 
     var showPaymentModePicker by remember { mutableStateOf(false) }
 
-    Dialog(
+    TouchAwareDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         KhanaBookCard(
             modifier = dialogWidthModifier
-                .padding(spacing.medium),
+                .padding(spacing.medium)
+                .dialogEntrance(TransformOrigin(0.5f, originY.coerceIn(0f, 1f))),
             colors = CardDefaults.cardColors(containerColor = OrdersCard),
             shape = KhanaRadii.xl
         ) {
@@ -80,43 +81,36 @@ fun OrderDetailsDialog(
                     .padding(spacing.medium)
                     .fillMaxWidth()
             ) {
-                // Title on the left, dismiss "X" on the right — gold, matching the
-                // "Order Details" heading. The footer Close button was removed so this
-                // is the single dismiss affordance.
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Receipt,
-                            contentDescription = null,
-                            tint = OrdersGold,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.small))
-                        Text(
-                            text = "Order Details",
-                            color = OrdersGold,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                    }
+                // Title centered across the header, gold dismiss "X" pinned right.
+                // The order number lives in the details card instead. The footer Close
+                // button was removed so this is the single dismiss affordance.
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Order Details",
+                        color = OrdersGold,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .fillMaxWidth()
+                            .padding(horizontal = 44.dp)
+                    )
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(36.dp)
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .size(36.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Close,
                             contentDescription = "Close order details",
                             tint = OrdersGold,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
 
+                Spacer(modifier = Modifier.height(spacing.extraSmall))
                 HorizontalDivider(color = OrdersDivider, thickness = 1.dp)
                 Spacer(modifier = Modifier.height(spacing.medium))
 
@@ -142,45 +136,56 @@ fun OrderDetailsDialog(
                     val isCancelled = statusValue == OrderStatus.CANCELLED
                     val isSameDay = isSameBusinessDay(bill.createdAt)
 
-                    // Order identity lives in one soft card: four loose rows with spacers read
-                    // as a list of unrelated facts, not as one receipt header.
+                    // Order identity is one quiet card: muted labels, white values, no
+                    // competing icons.
                     Surface(
-                        color = OrdersBg.copy(alpha = 0.35f),
+                        color = OrdersBg.copy(alpha = 0.25f),
                         shape = KhanaRadii.md,
-                        border = BorderStroke(1.dp, OrdersDivider.copy(alpha = 0.6f)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier.padding(spacing.medium),
+                            modifier = Modifier.padding(
+                                horizontal = spacing.medium,
+                                vertical = spacing.smallMedium
+                            ),
                             verticalArrangement = Arrangement.spacedBy(spacing.small)
                         ) {
-                    DetailRow(
-                        "Order No:",
-                        "#${bill.dailyOrderDisplay}",
-                        valueColor = OrdersBrightGold,
-                        fontWeight = FontWeight.Bold,
-                        leadingIcon = Icons.Filled.Tag
-                    )
-                    val invoiceLabel = if (profile?.gstEnabled == true) "Tax Invoice No:" else "Invoice No:"
-                    DetailRow(invoiceLabel, bill.getInvoiceNumberDisplay(), leadingIcon = Icons.Filled.Receipt)
+                            DetailRow("Order No", bill.dailyOrderDisplay)
+                            val invoiceLabel =
+                                if (profile?.gstEnabled == true) "Tax Invoice No" else "Invoice No"
+                            DetailRow(invoiceLabel, bill.getInvoiceNumberDisplay())
 
-                    val orderTypeDisplay = when (bill.orderType.trim().lowercase()) {
-                        in OrderType.DINE_IN_ALIASES -> "Dine-in"
-                        in OrderType.TAKEAWAY_ALIASES -> "Takeaway"
-                        else -> bill.orderType.replaceFirstChar { it.uppercase() }
-                    }
-                    val orderTypeIcon = if (bill.orderType.trim().lowercase() in OrderType.TAKEAWAY_ALIASES) {
-                        Icons.Filled.ShoppingBag
-                    } else {
-                        Icons.Filled.Restaurant
-                    }
-                    DetailRow("Order Type:", orderTypeDisplay, leadingIcon = orderTypeIcon)
-                    DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt), leadingIcon = Icons.Filled.Schedule)
+                            val orderTypeDisplay = when (bill.orderType.trim().lowercase()) {
+                                in OrderType.DINE_IN_ALIASES -> "Dine-in"
+                                in OrderType.TAKEAWAY_ALIASES -> "Takeaway"
+                                else -> bill.orderType.replaceFirstChar { it.uppercase() }
+                            }
+                            DetailRow("Order Type", orderTypeDisplay)
+                            DetailRow("Date", DateUtils.formatDisplay(bill.createdAt))
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(spacing.small))
-                    Text("Items:", color = OrdersGold, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                    Spacer(modifier = Modifier.height(spacing.smallMedium))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Items (${items.size})",
+                            color = OrdersTextPrimary,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                        if (items.isNotEmpty()) {
+                            Text(
+                                text = "Amount",
+                                color = OrdersTextPrimary,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(spacing.small))
 
                     if (items.isEmpty()) {
@@ -199,26 +204,43 @@ fun OrderDetailsDialog(
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(max = layout.reportDetailItemListMaxHeight),
-                                verticalArrangement = Arrangement.spacedBy(spacing.small)
+                                    .heightIn(max = layout.reportDetailItemListMaxHeight)
                             ) {
-                                items(items) { item ->
+                                itemsIndexed(items) { index, item ->
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = spacing.small),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "${item.itemName} x${item.quantity}",
-                                            color = OrdersTextPrimary.copy(alpha = 0.9f),
+                                            text = item.itemName,
+                                            color = OrdersTextPrimary,
                                             style = MaterialTheme.typography.bodyMedium,
-                                            modifier = Modifier.weight(1f).padding(end = spacing.small)
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .padding(end = spacing.small)
                                         )
+                                        Text(
+                                            text = "x${item.quantity}",
+                                            color = OrdersTextPrimary,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        Spacer(modifier = Modifier.width(spacing.smallMedium))
                                         Text(
                                             text = CurrencyUtils.formatPrice(item.itemTotal),
                                             color = OrdersTextPrimary,
-                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = FontWeight.SemiBold
+                                            ),
                                             textAlign = TextAlign.End
+                                        )
+                                    }
+                                    if (index != items.lastIndex) {
+                                        HorizontalDivider(
+                                            color = OrdersDivider.copy(alpha = 0.45f),
+                                            thickness = 0.5.dp
                                         )
                                     }
                                 }
@@ -231,47 +253,34 @@ fun OrderDetailsDialog(
                     Spacer(modifier = Modifier.height(spacing.medium))
 
                     DetailRow(
-                        "Payment Mode:",
-                        PaymentMode.fromDbValue(bill.paymentMode).displayLabel,
-                        leadingIcon = getPayModeIcon(PaymentMode.fromDbValue(bill.paymentMode))
+                        "Payment Mode",
+                        PaymentMode.fromDbValue(bill.paymentMode).displayLabel
                     )
                     Spacer(modifier = Modifier.height(spacing.small))
 
-                    // Total on its own gold-washed strip: the one number the cashier
-                    // checks before handing the bill over.
-                    Surface(
-                        color = OrdersGold.copy(alpha = 0.14f),
-                        shape = KhanaRadii.md,
-                        border = BorderStroke(1.dp, OrdersDivider),
-                        modifier = Modifier.fillMaxWidth()
+                    // Total is the one number the cashier checks before handing the bill
+                    // over: plain row, white amount, no competing gold wash.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = spacing.small),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Filled.Payments,
-                                    contentDescription = null,
-                                    tint = OrdersGold,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(spacing.small))
-                                Text(
-                                    text = "Total Amount",
-                                    color = OrdersGold,
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-                            Text(
-                                text = CurrencyUtils.formatPrice(bill.totalAmount),
-                                color = OrdersBrightGold,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        Text(
+                            text = "Total Amount",
+                            color = OrdersTextPrimary,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium
                             )
-                        }
+                        )
+                        Text(
+                            text = CurrencyUtils.formatPrice(bill.totalAmount),
+                            color = OrdersTextPrimary,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        )
                     }
 
                     if (isCancelled && bill.cancelReason.isNotEmpty()) {
@@ -281,104 +290,131 @@ fun OrderDetailsDialog(
 
                     // Print / Share are hidden once the bill is cancelled — a cancelled
                     // bill has no valid receipt to hand the customer.
-                    if (!isCancelled) {
-                        Spacer(modifier = Modifier.height(spacing.medium))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(spacing.small)
-                        ) {
-                            if (onPrintReceipt != null) {
-                                Button(
-                                    onClick = { onPrintReceipt.invoke(billWithItems) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(spacing.buttonHeightLarge),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = OrdersGold,
-                                        contentColor = OrdersBg
-                                    ),
-                                    shape = KhanaRadii.lg
-                                ) {
-                                    Icon(Icons.Filled.Receipt, null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(spacing.small))
-                                    Text(
-                                        "Print",
-                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                    )
-                                }
-                            }
-                            if (onShareInvoice != null) {
-                                Button(
-                                    onClick = { onShareInvoice.invoke(billWithItems) },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(spacing.buttonHeightLarge),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = OrdersShareGreen,
-                                        contentColor = Color.White
-                                    ),
-                                    shape = KhanaRadii.lg
-                                ) {
-                                    Icon(Icons.Filled.Share, null, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(spacing.small))
-                                    Text(
-                                        "Share",
-                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                    )
-                                }
-                            }
-                        }
-                    }
-
+                    val canPrintOrShare = !isCancelled &&
+                        (onPrintReceipt != null || onShareInvoice != null)
                     // Payment-mode edits are a same-day, settled-bill correction only.
-                    if (!isCancelled &&
+                    val canChangePayment = !isCancelled &&
                         isSameDay &&
                         statusValue == OrderStatus.COMPLETED &&
                         onChangePaymentMode != null &&
                         enabledPaymentModes.isNotEmpty()
-                    ) {
-                        OutlinedButton(
-                            onClick = { showPaymentModePicker = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(spacing.buttonHeightLarge),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Transparent,
-                                contentColor = OrdersGold
-                            ),
-                            border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.55f)),
-                            shape = KhanaRadii.lg
-                        ) {
-                            Icon(Icons.Filled.Payments, null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(spacing.small))
-                            Text(
-                                "Change Payment Mode",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(spacing.small))
-                    }
-
                     // Cancel is a same-day action on a live bill only.
-                    if (!isCancelled && isSameDay && onCancelOrder != null) {
-                        Button(
-                            onClick = { onCancelOrder.invoke(billWithItems) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(spacing.buttonHeightLarge),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = DangerRed,
-                                contentColor = Color.White
-                            ),
-                            shape = KhanaRadii.lg
-                        ) {
-                            Icon(Icons.Filled.Cancel, null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(spacing.small))
-                            Text(
-                                "Cancel Order",
-                                color = Color.White,
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
+                    val canCancel = !isCancelled && isSameDay && onCancelOrder != null
+
+                    if (canPrintOrShare || canChangePayment || canCancel) {
+                        Spacer(modifier = Modifier.height(spacing.medium))
+                        Column(verticalArrangement = Arrangement.spacedBy(spacing.small)) {
+                            if (canPrintOrShare) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing.small)
+                                ) {
+                                    if (onPrintReceipt != null) {
+                                        Button(
+                                            onClick = { onPrintReceipt.invoke(billWithItems) },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(spacing.buttonHeightLarge),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = OrdersGold,
+                                                contentColor = OrdersBg
+                                            ),
+                                            shape = KhanaRadii.lg
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Receipt,
+                                                null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(spacing.small))
+                                            Text(
+                                                "Print",
+                                                style = MaterialTheme.typography.titleSmall.copy(
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            )
+                                        }
+                                    }
+                                    if (onShareInvoice != null) {
+                                        Button(
+                                            onClick = { onShareInvoice.invoke(billWithItems) },
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .height(spacing.buttonHeightLarge),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = OrdersShareGreen,
+                                                contentColor = Color.White
+                                            ),
+                                            shape = KhanaRadii.lg
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Share,
+                                                null,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(spacing.small))
+                                            Text(
+                                                "Share",
+                                                style = MaterialTheme.typography.titleSmall.copy(
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            if (canChangePayment) {
+                                Button(
+                                    onClick = { showPaymentModePicker = true },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(spacing.buttonHeightLarge),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = OrdersBronze,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = KhanaRadii.lg
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Payments,
+                                        null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(spacing.small))
+                                    Text(
+                                        "Change Payment Mode",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
+                            if (canCancel) {
+                                Button(
+                                    onClick = { onCancelOrder.invoke(billWithItems) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(spacing.buttonHeightLarge),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = DangerRed,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = KhanaRadii.lg
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Cancel,
+                                        null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(spacing.small))
+                                    Text(
+                                        "Cancel Order",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -424,7 +460,7 @@ fun DetailRow(
     label: String,
     value: String,
     valueColor: Color = OrdersTextPrimary,
-    fontWeight: FontWeight = FontWeight.Normal,
+    fontWeight: FontWeight = FontWeight.SemiBold,
     leadingIcon: ImageVector? = null
 ) {
     val spacing = KhanaBookTheme.spacing
@@ -441,15 +477,15 @@ fun DetailRow(
                 Icon(
                     imageVector = leadingIcon,
                     contentDescription = null,
-                    tint = OrdersGold,
-                    modifier = Modifier.size(16.dp)
+                    tint = OrdersTextSecondary,
+                    modifier = Modifier.size(14.dp)
                 )
                 Spacer(modifier = Modifier.width(spacing.extraSmall))
             }
             Text(
                 text = label,
-                color = OrdersGold,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                color = OrdersTextPrimary,
+                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium)
             )
         }
         Text(

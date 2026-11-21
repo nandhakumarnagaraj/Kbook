@@ -88,7 +88,6 @@ fun NotificationRow(
         "kyc" -> Icons.Default.VerifiedUser to BrandPurple
         "settlement" -> Icons.Default.AccountBalance to LightGold
         "fssai_expiry" -> Icons.Default.WarningAmber to WarningYellow
-        "inventory_low" -> Icons.Default.Inventory2 to WarningYellow
         "terminal" -> Icons.Default.Devices to TextMuted
         "permission_request" -> Icons.Default.AdminPanelSettings to BrandPurple
         "BILL_EDIT_DIGEST" -> Icons.Default.FactCheck to LightGold

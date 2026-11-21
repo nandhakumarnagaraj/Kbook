@@ -20,8 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.khanabook.lite.pos.core.touch.TouchAwareDialog
 import com.khanabook.lite.pos.core.designsystem.KhanaBookInputField
 import com.khanabook.lite.pos.core.theme.*
 import java.text.SimpleDateFormat
@@ -174,7 +174,7 @@ fun KhanaTimePickerDialog(
     dismissButton: @Composable (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    Dialog(
+    TouchAwareDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {

@@ -398,6 +398,24 @@ open class SessionManager @Inject constructor(@ApplicationContext private val co
         prefs.edit().remove("failed_login_attempts").remove("lockout_until_ms").apply()
     }
 
+    // App-lock PIN failures are tracked separately from the account login lockout: the PIN is
+    // verified locally, and before BUG-046 it was not rate-limited at all.
+    fun getPinFailedAttempts(): Int = prefs.getInt("pin_failed_attempts", 0)
+
+    fun setPinFailedAttempts(count: Int) {
+        prefs.edit().putInt("pin_failed_attempts", count).apply()
+    }
+
+    fun getPinLockoutUntilMs(): Long = prefs.getLong("pin_lockout_until_ms", 0L)
+
+    fun setPinLockoutUntilMs(ms: Long) {
+        prefs.edit().putLong("pin_lockout_until_ms", ms).apply()
+    }
+
+    fun clearPinLockout() {
+        prefs.edit().remove("pin_failed_attempts").remove("pin_lockout_until_ms").apply()
+    }
+
     fun isPinLockEnabled(): Boolean = prefs.getBoolean("pin_lock_enabled", false)
 
     fun isPinLockFlagEnabled(): Boolean = prefs.getBoolean("pin_lock_enabled", false)

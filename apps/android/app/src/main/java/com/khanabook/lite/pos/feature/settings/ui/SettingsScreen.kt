@@ -58,6 +58,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     navController: NavController,
     initialSection: String = "menu",
+    deepEntry: Boolean = false,
     onSectionChanged: (String) -> Unit = {},
     onScanClick: (String?) -> Unit = {},
     menuViewModel: MenuViewModel,
@@ -73,8 +74,15 @@ fun SettingsScreen(
     val isOwner = currentUser?.role.equals("OWNER", ignoreCase = true)
     val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsStateWithLifecycle()
     val saveProfileError by viewModel.saveProfileError.collectAsStateWithLifecycle()
+    val logoUploadSuccess by viewModel.logoUploadSuccess.collectAsStateWithLifecycle()
+    val logoUploadError by viewModel.logoUploadError.collectAsStateWithLifecycle()
     var section by rememberSaveable(initialSection) { mutableStateOf(initialSection) }
+    // The section the user actually came from, not a hard-coded "security": a
+    // section opened from Settings home returns to Settings home, one opened from
+    // the App Settings list returns to that list (BUG-020).
+    var backTarget by rememberSaveable { mutableStateOf("menu") }
     fun selectSection(value: String) {
+        if (value != section) backTarget = section
         section = value
         onSectionChanged(value)
     }
@@ -101,7 +109,6 @@ fun SettingsScreen(
         if (saveProfileSuccess && savedSection != null) {
             val message = when (savedSection) {
                 "payment" -> ctx.getString(R.string.toast_payment_settings_saved)
-                "printer" -> ctx.getString(R.string.toast_printer_settings_saved)
                 "tax" -> ctx.getString(R.string.toast_tax_settings_saved)
                 else -> ctx.getString(R.string.toast_profile_saved)
             }
@@ -112,6 +119,11 @@ fun SettingsScreen(
             toastScope.launch { KhanaToast.show(message, ToastKind.Success) }
             viewModel.clearSaveProfileState()
             pendingSaveSection = null
+            // A logo upload has its own inline success/error panel on the shop screen.
+            // Navigating away immediately would hide it before the owner can read it.
+            if (savedSection == "shop" && (logoUploadSuccess != null || logoUploadError != null)) {
+                return@LaunchedEffect
+            }
             selectSection("menu")
         }
     }
@@ -123,21 +135,29 @@ fun SettingsScreen(
             pendingSaveSection = null
         }
     }
-    val settingsSubSections = setOf(
-        "app_lock",
-        "change_password",
-        "interaction_feedback",
-        "help_support",
-        "about_app",
-        "sync_center"
-    )
-    BackHandler {
+    var shopDirty by remember { mutableStateOf(false) }
+    var showShopDiscardDialog by remember { mutableStateOf(false) }
+
+    fun goBack() {
         when {
-            section in settingsSubSections -> selectSection("security")
-            section != "menu" -> selectSection("menu")
-            else -> onBack()
+            section == "menu" -> onBack()
+            // ShopConfigView owns the dirty flag, but this composable renders the
+            // header arrow, so both back paths must ask the same question (BUG-019).
+            section == "shop" && shopDirty -> showShopDiscardDialog = true
+            // Entered straight from another tab (Home's sync/printer cards): leave
+            // Settings instead of walking through screens the user skipped.
+            deepEntry && section == initialSection -> {
+                onSectionChanged("menu")
+                onBack()
+            }
+            else -> {
+                section = backTarget
+                onSectionChanged(backTarget)
+            }
         }
     }
+
+    BackHandler { goBack() }
     DisposableEffect(section) {
         onBottomBarVisibilityChange(section != "menu_config" && section != "shop")
         onDispose {
@@ -153,6 +173,26 @@ fun SettingsScreen(
             viewModel = menuViewModel
         )
         return
+    }
+    // Header-arrow counterpart of ShopConfigView's own BackHandler dialog, so
+    // discarding from the arrow is never silent (BUG-019).
+    if (showShopDiscardDialog) {
+        KhanaBookDialog(
+            onDismissRequest = { showShopDiscardDialog = false },
+            title = "Unsaved Changes",
+            message = "You have unsaved changes. Discard them?"
+        ) {
+            TextButton(onClick = { showShopDiscardDialog = false }) {
+                Text("Keep Editing", color = PrimaryGold, style = MaterialTheme.typography.labelLarge)
+            }
+            TextButton(onClick = {
+                showShopDiscardDialog = false
+                shopDirty = false
+                selectSection("menu")
+            }) {
+                Text("Discard", color = DangerRed, style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
     Box(
         modifier = Modifier
@@ -176,13 +216,7 @@ fun SettingsScreen(
                 "menu" -> "Settings"
                 else -> "Settings"
             },
-            onBack = {
-                when {
-                    section in settingsSubSections -> selectSection("security")
-                    section != "menu" -> selectSection("menu")
-                    else -> onBack()
-                }
-            },
+            onBack = { goBack() },
             titleStyleCompact = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
             titleStyleExpanded = if (section == "menu") MaterialTheme.typography.headlineMedium else MaterialTheme.typography.headlineSmall,
             titleAlignment = if (section == "shop") TextAlign.Start else TextAlign.Center
@@ -204,7 +238,7 @@ fun SettingsScreen(
                         )
                     }
                     "shop" -> {
-                        ShopConfigView(profile, viewModel, authViewModel, onBack = { selectSection("menu") }, readOnly = !isOwner, onSaved = {
+                        ShopConfigView(profile, viewModel, authViewModel, onBack = { shopDirty = false; selectSection("menu") }, readOnly = !isOwner, onDirtyChange = { shopDirty = it }, onSaved = {
                             // Route the shop save through the same success flow as the other
                             // sections (toast + return to menu) instead of a private effect
                             // inside ShopConfigView, which could be disposed mid-save by the
@@ -226,11 +260,9 @@ fun SettingsScreen(
                         )
                     }
                     "printer" -> {
-                        val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
-                        PrinterConfigView(profile, onSave = {
-                            pendingSaveSection = "printer"
-                            viewModel.savePrinterSettingsLocally(it)
-                        }, onBack = { selectSection("menu") }, viewModel = viewModel, isSaving = saveProfileLoading)
+                        // Every option on this screen writes through SettingsViewModel as it is
+                        // changed, so there is no Save/Cancel action to wire up here.
+                        PrinterConfigView(profile, viewModel = viewModel)
                     }
                     "tax" -> {
                         val saveProfileLoading by viewModel.saveProfileLoading.collectAsStateWithLifecycle()
@@ -269,7 +301,9 @@ fun SettingsScreen(
                         SyncCenterView(viewModel)
                     }
                     "about_app" -> {
-                        AboutAppView()
+                        AboutAppView(
+                            onWatchTutorials = { navController.navigate(Routes.TUTORIALS) }
+                        )
                     }
                     "compliance_documents" -> {
                         com.khanabook.lite.pos.feature.onboarding.ui.ComplianceDocumentsScreen(

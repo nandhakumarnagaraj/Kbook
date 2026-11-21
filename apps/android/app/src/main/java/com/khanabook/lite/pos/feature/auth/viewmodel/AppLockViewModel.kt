@@ -138,9 +138,35 @@ class AppLockViewModel @Inject constructor(
         _errorMessage.value = null
     }
 
+    /**
+     * Verifies the 4-digit app-lock PIN, with rate limiting.
+     *
+     * The PIN is the only barrier to a logged-in POS session, and BCrypt cost 12 makes each guess
+     * cheap enough that the whole 10,000-value space is reachable in ~40 minutes of unattended
+     * tapping. After [MAX_PIN_ATTEMPTS] failures the screen is locked for a delay that doubles per
+     * further block of failures (1, 2, 4, 8, then 16 minutes), persisted in prefs so a process
+     * restart does not reset it (BUG-046). The counter is cleared by a correct PIN, by an elapsed
+     * lockout window, and when the PIN is set or changed, so it never outlives the failures it
+     * counts.
+     */
     fun verifyPin(onSuccess: () -> Unit) {
         val pin = _enteredPin.value
         if (pin.length != 4) return
+
+        val now = System.currentTimeMillis()
+        val lockoutUntil = sessionManager.getPinLockoutUntilMs()
+        if (now < lockoutUntil) {
+            val seconds = ((lockoutUntil - now + 999) / 1000).coerceAtLeast(1)
+            _enteredPin.value = ""
+            _errorMessage.value = "Too many attempts. Try again in ${seconds}s."
+            return
+        }
+        // A finished lockout starts a fresh count. Without this the stored count only ever grew,
+        // so one typo weeks later re-applied a full lockout instead of a plain "incorrect PIN".
+        if (lockoutUntil != 0L) {
+            sessionManager.clearPinLockout()
+        }
+
         viewModelScope.launch {
             val hash = sessionManager.getPinHash() ?: run {
                 _errorMessage.value = "Security key lost. Please log in again."
@@ -148,13 +174,29 @@ class AppLockViewModel @Inject constructor(
             }
             val valid = authManager.verifyPassword(pin, hash)
             if (valid) {
+                sessionManager.clearPinLockout()
                 _errorMessage.value = null
                 onSuccess()
             } else {
                 _enteredPin.value = ""
-                _errorMessage.value = "Incorrect PIN. Try again."
+                val failures = sessionManager.getPinFailedAttempts() + 1
+                sessionManager.setPinFailedAttempts(failures)
+                if (failures >= MAX_PIN_ATTEMPTS) {
+                    val delayMs = pinLockoutDelayMs(failures)
+                    sessionManager.setPinLockoutUntilMs(System.currentTimeMillis() + delayMs)
+                    _errorMessage.value = "Too many attempts. Try again in ${delayMs / 1000}s."
+                } else {
+                    val left = MAX_PIN_ATTEMPTS - failures
+                    _errorMessage.value = "Incorrect PIN. $left attempt${if (left == 1) "" else "s"} left."
+                }
             }
         }
+    }
+
+    /** Exponential back-off after each block of [MAX_PIN_ATTEMPTS] failures, capped at 16 minutes. */
+    private fun pinLockoutDelayMs(failures: Int): Long {
+        val blocks = (failures / MAX_PIN_ATTEMPTS).coerceIn(1, 5)
+        return (1L shl (blocks - 1)) * 60_000L
     }
 
     fun setupPin(pin: String, onComplete: () -> Unit) {
@@ -162,6 +204,8 @@ class AppLockViewModel @Inject constructor(
             val hash = authManager.hashPassword(pin)
             sessionManager.savePinHash(hash)
             sessionManager.setPinLockEnabled(true)
+            // A new PIN must not inherit the failures of the old one.
+            sessionManager.clearPinLockout()
             onComplete()
         }
     }
@@ -181,6 +225,7 @@ class AppLockViewModel @Inject constructor(
             if (valid) {
                 val newHash = authManager.hashPassword(newPin)
                 sessionManager.savePinHash(newHash)
+                sessionManager.clearPinLockout()
                 onSuccess()
             } else {
                 onError()
@@ -190,6 +235,10 @@ class AppLockViewModel @Inject constructor(
 
     fun isPinEnabled(): Boolean =
         sessionManager.isPinLockEnabled()
+
+    private companion object {
+        const val MAX_PIN_ATTEMPTS = 5
+    }
 
     fun allowedAuthenticators(context: Context): Int {
         val manager = BiometricManager.from(context)

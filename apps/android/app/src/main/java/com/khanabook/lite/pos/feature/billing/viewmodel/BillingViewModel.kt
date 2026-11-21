@@ -1403,30 +1403,18 @@ if (!validatePaymentLimits(finalSummary.total, paymentStateManager.paymentMode.v
                 }
 
                 val allItems = billRepository.getBillWithItemsById(billId)?.items ?: emptyList()
-                val subtotal = BillCalculator.calculateSubtotal(allItems.map {
-                    it.price to it.quantity
-                })
-
-                var cgst = "0.0"
-                var sgst = "0.0"
-                var customTax = "0.0"
-
-                if (profile.gstEnabled) {
-                    val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage, profile.isTaxInclusive)
-                    cgst = gst.cgst
-                    sgst = gst.sgst
-                } else if (profile.customTaxPercentage > 0) {
-                    customTax = BillCalculator.calculateCustomTax(subtotal, profile.customTaxPercentage)
-                }
-
-                val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
+                // Same computation as CartManager.computeSummary, including the tax-inclusive rule.
+                val totals = BillCalculator.calculateBillTotals(
+                    items = allItems.map { it.price to it.quantity },
+                    profile = profile
+                )
 
                 val updatedBill = existingBill.copy(
-                    subtotal = subtotal,
-                    cgstAmount = cgst,
-                    sgstAmount = sgst,
-                    customTaxAmount = customTax,
-                    totalAmount = total,
+                    subtotal = totals.subtotal,
+                    cgstAmount = totals.cgst,
+                    sgstAmount = totals.sgst,
+                    customTaxAmount = totals.customTax,
+                    totalAmount = totals.total,
                     isSynced = false,
                     updatedAt = System.currentTimeMillis()
                 )

@@ -36,8 +36,6 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -48,6 +46,19 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.core.navigation.horizontalNavigationSwipe
+import com.khanabook.lite.pos.core.designsystem.rememberReducedMotion
+
+/**
+ * The tab shell is one nav destination. Screens pushed above it (Notification
+ * Preferences) dispose and recreate this composable when popped, and the
+ * remembered tab was resetting to the launch argument (tab=0). This holder keeps
+ * the user's last tab/section across that pop; process death falls back to the
+ * route argument because the holder is in-memory only.
+ */
+object MainTabState {
+    var selectedTab: Int? = null
+    var settingsSection: String? = null
+}
 
 @Composable
 fun MainScreen(
@@ -60,14 +71,14 @@ fun MainScreen(
     onActiveOrder: () -> Unit,
     onOpenActiveOrder: (Long) -> Unit = {},
     onResumePendingPayment: () -> Unit,
-    onOpenSyncCenter: () -> Unit,
-    onOpenPrinterSettings: () -> Unit,
     onSearchBill: () -> Unit,
     onReprintKot: () -> Unit,
     onCallCustomer: () -> Unit,
     onOpenNotifications: () -> Unit = {},
     menuViewModel: MenuViewModel,
     onScanClick: (String?) -> Unit = {},
+    onTabSelected: (Int) -> Unit = {},
+    onSettingsSectionChanged: (String) -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val visibleTabs = remember { NavigationUtils.getVisibleTabs() }
@@ -98,11 +109,27 @@ fun MainScreen(
             }
         if (selectedTabIndex != targetIdx) {
             selectedTabIndex = targetIdx
+            val original = visibleTabs.getOrNull(targetIdx)?.originalIndex ?: targetIdx
+            MainTabState.selectedTab = original
+            onTabSelected(original)
         }
     }
     var showBottomBar by rememberSaveable { mutableStateOf(true) }
     var settingsSection by rememberSaveable(initialSettingsSection) {
-        mutableStateOf(initialSettingsSection ?: "menu")
+        mutableStateOf(MainTabState.settingsSection ?: initialSettingsSection ?: "menu")
+    }
+    LaunchedEffect(Unit) {
+        MainTabState.selectedTab?.let { savedTab ->
+            val idx = visibleTabs.indexOfFirst { it.originalIndex == savedTab }
+            if (idx != -1 && selectedTabIndex != idx) selectedTabIndex = idx
+        }
+    }
+    // True while Settings was opened straight at a section from another tab
+    // (Home's sync/printer cards), so Back leaves Settings instead of
+    // detouring through the App Settings list (BUG-020).
+    var settingsDeepEntry by rememberSaveable { mutableStateOf(false) }
+    val settingsTabIndex = remember(visibleTabs) {
+        visibleTabs.indexOfFirst { it.originalIndex == NavigationTabs.TAB_SETTINGS }.coerceAtLeast(0)
     }
     val safeSelectedTabIndex = selectedTabIndex.coerceIn(0, (visibleTabs.lastIndex).coerceAtLeast(0))
     val moveToTab: (Int) -> Unit = { index ->
@@ -110,12 +137,27 @@ fun MainScreen(
         if (target != safeSelectedTabIndex) {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             selectedTabIndex = target
+            // Store the stable tab identity: the restore below looks it up as an
+            // originalIndex, while `target` is a position in visibleTabs.
+            val original = visibleTabs.getOrNull(target)?.originalIndex ?: target
+            MainTabState.selectedTab = original
+            onTabSelected(original)
         }
+    }
+
+    val openSettingsSection: (String) -> Unit = { name ->
+        settingsSection = name
+        onSettingsSectionChanged(name)
+        settingsDeepEntry = true
+        moveToTab(settingsTabIndex)
     }
 
     // Intercept back gesture to return to Home tab if not already there
     BackHandler(enabled = safeSelectedTabIndex != homeTabIndex) {
         selectedTabIndex = homeTabIndex
+        val original = visibleTabs.getOrNull(homeTabIndex)?.originalIndex ?: homeTabIndex
+        MainTabState.selectedTab = original
+        onTabSelected(original)
     }
 
     val content: @Composable (Modifier) -> Unit = { modifier ->
@@ -147,8 +189,8 @@ fun MainScreen(
                     onActiveOrder = onActiveOrder,
                     onOpenActiveOrder = onOpenActiveOrder,
                     onResumePendingPayment = onResumePendingPayment,
-                    onOpenSyncCenter = onOpenSyncCenter,
-                    onOpenPrinterSettings = onOpenPrinterSettings,
+                    onOpenSyncCenter = { openSettingsSection("sync_center") },
+                    onOpenPrinterSettings = { openSettingsSection("printer") },
                     onSearchBill = onSearchBill,
                     onReprintKot = onReprintKot,
                     onCallCustomer = onCallCustomer,
@@ -161,7 +203,13 @@ fun MainScreen(
                     onBack = backToHome,
                     navController = navController,
                     initialSection = settingsSection,
-                    onSectionChanged = { settingsSection = it },
+                    deepEntry = settingsDeepEntry,
+                    onSectionChanged = {
+                        settingsSection = it
+                        MainTabState.settingsSection = it
+                        settingsDeepEntry = false
+                        onSettingsSectionChanged(it)
+                    },
                     onScanClick = onScanClick,
                     menuViewModel = menuViewModel,
                     onBottomBarVisibilityChange = { visible -> showBottomBar = visible }
@@ -266,19 +314,19 @@ fun AnimatedTabIcon(item: TabItem, selected: Boolean, size: Dp) {
         return
     }
 
-    // Vector fallback: springy bounce on selection.
-    val scale = remember { Animatable(1f) }
+    // Vector fallback: a short area-preserving press. X and Y move in opposite
+    // directions so the icon's visual area stays roughly constant, and every leg
+    // starts from the current value (no fixed-value snap that jumps mid-tap).
+    val pressScaleX = remember { Animatable(1f) }
+    val pressScaleY = remember { Animatable(1f) }
+    val reducedMotion = rememberReducedMotion()
     LaunchedEffect(selected) {
-        if (selected) {
-            scale.snapTo(0.7f)
-            scale.animateTo(
-                1.25f,
-                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
-            )
-            scale.animateTo(
-                1f,
-                spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)
-            )
+        // Reduced motion relies on the selection colour/ripple only — no scale transform.
+        if (selected && !reducedMotion) {
+            pressScaleX.animateTo(1.08f, tween(120, easing = FastOutSlowInEasing))
+            pressScaleY.animateTo(0.92f, tween(120, easing = FastOutSlowInEasing))
+            pressScaleX.animateTo(1f, tween(120, easing = FastOutSlowInEasing))
+            pressScaleY.animateTo(1f, tween(120, easing = FastOutSlowInEasing))
         }
     }
     Icon(
@@ -287,8 +335,8 @@ fun AnimatedTabIcon(item: TabItem, selected: Boolean, size: Dp) {
         modifier = Modifier
             .size(size)
             .graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
+                scaleX = pressScaleX.value
+                scaleY = pressScaleY.value
             }
     )
 }

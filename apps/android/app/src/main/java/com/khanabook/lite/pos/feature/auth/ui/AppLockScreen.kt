@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import com.khanabook.lite.pos.core.designsystem.rememberReducedMotion
 import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
@@ -57,11 +58,13 @@ fun AppLockScreen(
     val allowedAuthenticators = remember { viewModel.allowedAuthenticators(context) }
     val scrollState = rememberScrollState()
 
-    // Shake animation on error
+    // Shake on error: 3 x (50 + 50) + 50 = 350 ms total. Reduced motion shows the
+    // error text only; the field stays still.
     val shakeOffset = remember { Animatable(0f) }
+    val reducedMotion = rememberReducedMotion()
     LaunchedEffect(errorMessage) {
-        if (errorMessage != null) {
-            repeat(4) {
+        if (errorMessage != null && !reducedMotion) {
+            repeat(3) {
                 shakeOffset.animateTo(8f, tween(50))
                 shakeOffset.animateTo(-8f, tween(50))
             }

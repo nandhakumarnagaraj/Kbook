@@ -79,6 +79,7 @@ fun MenuConfigurationScreen(
     val totalItemsCount by viewModel.totalItemsCount.collectAsStateWithLifecycle()
     val selectedCategoryId by viewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val menuItems by viewModel.menuItems.collectAsStateWithLifecycle()
+    val uploadingPhotoItemId by viewModel.uploadingPhotoItemId.collectAsStateWithLifecycle()
     val ocrUiState by viewModel.ocrImportUiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val canWrite = viewModel.canWriteMasterData()
@@ -219,6 +220,7 @@ fun MenuConfigurationScreen(
                     selectedCategoryId = selectedCategoryId,
                     menuItems = menuItems,
                     canWrite = canWrite,
+                    uploadingPhotoItemId = uploadingPhotoItemId,
                     onCategorySelect = { viewModel.selectCategory(it) },
                     onAddCategory = { viewModel.addCategory(it, true) },
                     onUpdateCategory = { viewModel.updateCategory(it) },

@@ -11,6 +11,7 @@ import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
@@ -52,6 +54,7 @@ import com.khanabook.lite.pos.core.navigation.NavigationTabs
 import com.khanabook.lite.pos.core.navigation.Routes
 import com.khanabook.lite.pos.feature.auth.ui.BrandedStartFrame
 import com.khanabook.lite.pos.core.theme.KhanaBookLiteTheme
+import com.khanabook.lite.pos.core.touch.TouchIndicatorHost
 import com.khanabook.lite.pos.feature.auth.viewmodel.AuthViewModel
 import com.khanabook.lite.pos.feature.menu.viewmodel.MenuViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -198,6 +201,10 @@ class MainActivity : FragmentActivity() {
 
         enableEdgeToEdge()
 
+        // Single global touch visualiser hook. The overlay View is draw-only and forwards a
+        // read of every MotionEvent before the framework dispatches it to interactive content.
+        TouchIndicatorHost.attach(this)
+
         // Startup routing decision — immediate dispatch for instant POS launch
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
             startupDestination.value = computeStartupDestination()
@@ -225,17 +232,8 @@ class MainActivity : FragmentActivity() {
             notificationRepository.watchForNoticeBanners()
         }
 
-        // Schedule offline pre-closing shift reminders whenever profile is available or updated
-        lifecycleScope.launch {
-            restaurantDao.getProfileFlow().collectLatest { profile ->
-                if (profile != null) {
-                    com.khanabook.lite.pos.feature.notifications.worker.ClosingShiftScheduler.scheduleNext(
-                        this@MainActivity,
-                        profile
-                    )
-                }
-            }
-        }
+        // Cancel legacy closing shift reminder work if previously scheduled
+        androidx.work.WorkManager.getInstance(this).cancelUniqueWork("closing_shift_reminder")
 
         setContent {
             val prefs = remember { applicationContext.getSharedPreferences("session_prefs", Context.MODE_PRIVATE) }
@@ -402,6 +400,10 @@ class MainActivity : FragmentActivity() {
                     KhanaBookSnackbarHost(
                         hostState = KhanaToast.host,
                         modifier = Modifier.align(Alignment.BottomCenter),
+                        // The tab shell draws an 80 dp NavigationBar at the bottom; lift the
+                        // notice above it instead of covering the tabs. Other destinations
+                        // have no app-level bar, so they keep the plain inset spacing.
+                        bottomLift = if (currentRoute?.startsWith("main/") == true) 80.dp else 0.dp,
                     )
 
                     // LinkedIn-style in-app banner that slides in under the status
@@ -429,15 +431,31 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    /**
+     * Mirrors every touch into the draw-only indicator before normal dispatch. Returning the
+     * super result unchanged guarantees the overlay adds no consumption, delay or gesture
+     * side effects to any underlying Compose control.
+     */
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        TouchIndicatorHost.onTouch(ev)
+        return super.dispatchTouchEvent(ev)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         PaymentReturnManager.handleIntent(intent)
+        NotificationRouteManager.handleIntent(intent)
     }
 
     override fun onResume() {
         super.onResume()
         if (BuildConfig.DEBUG) logWindowAndResources("onResume")
+    }
+
+    override fun onDestroy() {
+        TouchIndicatorHost.detach()
+        super.onDestroy()
     }
 
     private fun logWindowAndResources(stage: String) {

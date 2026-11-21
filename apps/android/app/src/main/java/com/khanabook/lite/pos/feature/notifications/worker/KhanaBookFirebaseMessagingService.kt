@@ -92,14 +92,7 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun showNotification(id: Long, title: String, body: String, type: String, referenceId: String?) {
-        val channelId = when (type) {
-            "payment_received", "qr_order" -> NotificationHelper.CHANNEL_PAYMENT
-            "refund" -> NotificationHelper.CHANNEL_REFUND
-            "kyc" -> NotificationHelper.CHANNEL_KYC
-            "settlement" -> NotificationHelper.CHANNEL_SETTLEMENT
-            "inventory_low" -> NotificationHelper.CHANNEL_INVENTORY
-            else -> NotificationHelper.CHANNEL_SYSTEM
-        }
+        val channelId = NotificationHelper.channelForType(type)
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -132,7 +125,6 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
             "kyc" -> 0xFF8B5CF6.toInt() // Violet
             "settlement" -> 0xFF0284C7.toInt() // Blue
             "fssai_expiry" -> 0xFFF97316.toInt() // Saffron
-            "inventory_low" -> 0xFFF97316.toInt() // Saffron
             else -> 0xFF7C5CDB.toInt() // Purple (system default)
         }
 
@@ -238,7 +230,6 @@ class KhanaBookFirebaseMessagingService : FirebaseMessagingService() {
         "refund" -> "refund update"
         "kyc" -> "KYC update"
         "settlement" -> "settlement update"
-        "inventory_low" -> "stock alert"
         "terminal" -> "device update"
         else -> "alert"
     }

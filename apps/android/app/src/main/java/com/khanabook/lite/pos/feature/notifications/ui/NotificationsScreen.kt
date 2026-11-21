@@ -16,6 +16,7 @@ import com.khanabook.lite.pos.core.theme.DarkBrown1
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 import com.khanabook.lite.pos.core.theme.RichEspresso
+import com.khanabook.lite.pos.feature.notifications.data.NotificationEntity
 import com.khanabook.lite.pos.feature.notifications.viewmodel.NotificationViewModel
 
 /**
@@ -27,6 +28,7 @@ import com.khanabook.lite.pos.feature.notifications.viewmodel.NotificationViewMo
 @Composable
 fun NotificationsScreen(
     onBack: () -> Unit,
+    onOpenNotification: (NotificationEntity) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: NotificationViewModel = hiltViewModel()
 ) {
@@ -53,7 +55,10 @@ fun NotificationsScreen(
                 NotificationListPanel(
                     notifications = notifications,
                     unreadCount = unreadCount,
-                    onNotificationClick = { viewModel.markAsRead(it.id) },
+                    onNotificationClick = { notification ->
+                        viewModel.markAsRead(notification.id)
+                        onOpenNotification(notification)
+                    },
                     onMarkAllRead = { viewModel.markAllAsRead() },
                     modifier = Modifier
                         .weight(1f)

@@ -25,7 +25,6 @@ object NotificationHelper {
     const val CHANNEL_SETTLEMENT = "khanabook_settlement_v2"
     const val CHANNEL_SYSTEM = "khanabook_system_v2"
     const val CHANNEL_INVENTORY = "khanabook_inventory_v2"
-    const val CHANNEL_SHIFT = "khanabook_shift_v2"
 
     private const val GROUP_PAYMENTS = "khanabook_group_payments"
     private const val GROUP_SYSTEM = "khanabook_group_system"
@@ -42,8 +41,7 @@ object NotificationHelper {
         settlementChannel(context),
         kycChannel(context),
         systemChannel(context),
-        inventoryChannel(context),
-        shiftChannel(context)
+        inventoryChannel(context)
     )
 
     /**
@@ -62,6 +60,14 @@ object NotificationHelper {
         manager.createNotificationChannelGroups(listOf(paymentsGroup, systemGroup, operationsGroup))
 
         registeredChannels(context).forEach { manager.createNotificationChannel(it) }
+
+        // Clean up the legacy shift channel on existing installs. The inventory
+        // channel is registered again above: the server still sends inventory_low,
+        // and deleting this channel is what silently pushed those alerts into
+        // System Alerts (BUG-026).
+        runCatching {
+            manager.deleteNotificationChannel("khanabook_shift_v2")
+        }
     }
 
     /**
@@ -155,41 +161,6 @@ object NotificationHelper {
         return channel
     }
 
-        private fun inventoryChannel(context: Context): NotificationChannel {
-        val channel = NotificationChannel(
-            CHANNEL_INVENTORY,
-            "Low Stock Alerts",
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = "Raw materials running below their low-stock threshold"
-            enableVibration(true)
-            setShowBadge(true)
-            group = GROUP_OPERATIONS
-        }
-        return channel
-    }
-
-        private fun shiftChannel(context: Context): NotificationChannel {
-        val channel = NotificationChannel(
-            CHANNEL_SHIFT,
-            "Shift & Closing Alerts",
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = "Alerts when closing time approaches to settle tables and close shift"
-            enableVibration(true)
-            setShowBadge(true)
-            group = GROUP_OPERATIONS
-            setSound(
-                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-        }
-        return channel
-    }
-
         private fun kycChannel(context: Context): NotificationChannel {        val channel = NotificationChannel(
             CHANNEL_KYC,
             "KYC Verification",
@@ -248,6 +219,46 @@ object NotificationHelper {
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                     .build()
             )
+        }
+        return channel
+    }
+
+    /**
+     * Single mapping from a server notification type to its channel. The tray
+     * builder and the in-app banner gate both use this, so a muted channel can
+     * never keep showing banners for the same alert type.
+     */
+    fun channelForType(type: String?): String = when (type) {
+        "payment_received", "qr_order", "order_cancelled" -> CHANNEL_PAYMENT
+        "refund" -> CHANNEL_REFUND
+        "kyc" -> CHANNEL_KYC
+        "settlement" -> CHANNEL_SETTLEMENT
+        "inventory_low" -> CHANNEL_INVENTORY
+        else -> CHANNEL_SYSTEM
+    }
+
+    /**
+     * Money-critical alerts stay visible even when the user muted their channel:
+     * a cashier must never miss a payment or a cancellation mid-billing.
+     */
+    fun isLockedType(type: String?): Boolean =
+        type == "payment_received" || type == "qr_order" || type == "order_cancelled"
+
+    /**
+     * Inventory alerts get their own toggle again. They were posted to System
+     * Alerts after this channel was deleted (BUG-026), which meant muting shop
+     * noise also muted stock warnings.
+     */
+    private fun inventoryChannel(context: Context): NotificationChannel {
+        val channel = NotificationChannel(
+            CHANNEL_INVENTORY,
+            "Low Stock Alerts",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Raw materials running below their low-stock threshold"
+            enableVibration(true)
+            setShowBadge(true)
+            group = GROUP_OPERATIONS
         }
         return channel
     }

@@ -31,14 +31,26 @@ data class NotificationChannelSpec(
 object NotificationChannelCatalog {
 
     fun channels(context: Context): List<NotificationChannelSpec> {
-                return NotificationHelper.registeredChannels(context).map { channel ->
-            NotificationChannelSpec(
-                id = channel.id,
-                title = channel.name?.toString().orEmpty(),
-                description = channel.description.orEmpty(),
-                group = groupOf(channel.group)
-            )
-        }
+        return NotificationHelper.registeredChannels(context)
+            // Inventory was removed from Android; the server may still push inventory_low,
+            // but there must be no stock/inventory row in the app's preferences UI.
+            .filter { it.id != NotificationHelper.CHANNEL_INVENTORY }
+            .map { channel ->
+                // UI-only wording change: the OS channel keeps its registered "Settlements"
+                // name, but staff see "EOD Reports" in Notification Preferences. Renaming the
+                // channel itself needs a new channel ID and would orphan saved settings.
+                val isSettlement = channel.id == NotificationHelper.CHANNEL_SETTLEMENT
+                NotificationChannelSpec(
+                    id = channel.id,
+                    title = if (isSettlement) "EOD Reports" else channel.name?.toString().orEmpty(),
+                    description = if (isSettlement) {
+                        "Daily EOD report and payout notifications"
+                    } else {
+                        channel.description.orEmpty()
+                    },
+                    group = groupOf(channel.group)
+                )
+            }
     }
 
     private fun groupOf(osGroupId: String?): NotificationChannelGroup = when (osGroupId) {

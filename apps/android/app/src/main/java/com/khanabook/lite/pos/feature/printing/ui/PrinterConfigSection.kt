@@ -1,7 +1,6 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.feature.printing.ui
-import com.khanabook.lite.pos.feature.settings.ui.ConfigActionButtons
 import com.khanabook.lite.pos.feature.settings.ui.ConfigCard
 import com.khanabook.lite.pos.feature.printing.ui.*
 import com.khanabook.lite.pos.core.designsystem.verticalScrollbar
@@ -119,6 +118,7 @@ import com.khanabook.lite.pos.core.theme.DarkBrownSheet
 import com.khanabook.lite.pos.core.theme.DangerRed
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 import com.khanabook.lite.pos.core.theme.PrimaryGold
+import com.khanabook.lite.pos.core.touch.TouchIndicatorOverlay
 import com.khanabook.lite.pos.core.theme.SuccessGreen
 import com.khanabook.lite.pos.core.theme.TextGold
 import com.khanabook.lite.pos.core.theme.TextLight
@@ -129,10 +129,7 @@ import com.khanabook.lite.pos.feature.settings.viewmodel.PrinterUiEvent
 @Composable
 fun PrinterConfigView(
     profile: RestaurantProfileEntity?,
-    onSave: (RestaurantProfileEntity) -> Unit,
-    onBack: () -> Unit,
-    viewModel: SettingsViewModel,
-    isSaving: Boolean = false
+    viewModel: SettingsViewModel
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
@@ -150,7 +147,6 @@ fun PrinterConfigView(
     var includeLogo by remember(customerPrinter?.id, customerPrinter?.includeLogo, profile?.includeLogoInPrint) {
         mutableStateOf(customerPrinter?.includeLogo ?: profile?.includeLogoInPrint ?: true)
     }
-    var maskPhone by remember { mutableStateOf(profile?.maskCustomerPhone ?: true) }
     var kitchenEnabled by remember(kitchenPrinter?.id, kitchenPrinter?.enabled) { mutableStateOf(kitchenPrinter?.enabled ?: false) }
     var kitchenPaper58 by remember(kitchenPrinter?.id, kitchenPrinter?.paperSize) { mutableStateOf((kitchenPrinter?.paperSize ?: "58mm") == "58mm") }
     var onePrinterMode by remember(profile?.printerMode) { mutableStateOf(profile?.printerModeValue() ?: PrinterMode.DUAL) }
@@ -493,9 +489,27 @@ PrinterTargetCard(
                         it.connectionTypeValue() == PrinterConnectionType.WIFI &&
                         wifiPrinterNetworkMismatch[it.connectionTargetKey()] == true
                     } ?: false,
-                    onEnabledChange = { kitchenEnabled = it },
+                    onEnabledChange = {
+                        kitchenEnabled = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.KITCHEN,
+                            enabled = it,
+                            autoPrint = true,
+                            paperSize = if (kitchenPaper58) "58mm" else "80mm",
+                            includeLogo = false
+                        )
+                    },
                     onAutoPrintChange = {},
-                    onPaperSizeChange = { kitchenPaper58 = it },
+                    onPaperSizeChange = {
+                        kitchenPaper58 = it
+                        viewModel.updatePrinterProfile(
+                            role = PrinterRole.KITCHEN,
+                            enabled = kitchenEnabled,
+                            autoPrint = true,
+                            paperSize = if (it) "58mm" else "80mm",
+                            includeLogo = false
+                        )
+                    },
                     onIncludeLogoChange = {},
                     helperText = "Receives new and updated KOT items. Receipt printing remains on the customer printer.",
                     onConfigureWifi = {
@@ -673,51 +687,6 @@ PrinterTargetCard(
                 )
                 }
             }
-            ConfigCard {
-                Text("Print Options", color = PrimaryGold, style = MaterialTheme.typography.titleMedium)
-                PrinterOptionRow("Mask Customer Phone", maskPhone) { maskPhone = it }
-                Spacer(modifier = Modifier.height(spacing.extraLarge))
-                ConfigActionButtons(
-                    // isSaving disables the button while the settings save is in flight;
-                    // profile != null prevents the silent no-op save (profile?.copy below)
-                    // when the restaurant profile hasn't loaded yet — that no-op was the
-                    // "first tap does nothing" on this screen.
-                    isSaving = isSaving,
-                    saveEnabled = profile != null,
-                    onSave = {
-                        focusManager.clearFocus()
-                        profile?.copy(
-                            printerEnabled = enabled,
-                            paperSize = if (paper58) "58mm" else "80mm",
-                            autoPrintOnSuccess = autoPrint,
-                            includeLogoInPrint = includeLogo,
-                            maskCustomerPhone = maskPhone,
-                            printerMode = onePrinterMode.name,
-                            isSynced = false,
-                            updatedAt = System.currentTimeMillis()
-                        )?.let { onSave(it) }
-                        viewModel.updatePrinterProfile(
-                            role = PrinterRole.CUSTOMER,
-                            enabled = enabled,
-                            autoPrint = autoPrint,
-                            paperSize = if (paper58) "58mm" else "80mm",
-                            includeLogo = includeLogo,
-                            // Same reason as the layout comment in updatePrinterProfile: this
-                            // write races the profile save above, and without it the torn
-                            // read/write restored the previous mode.
-                            printerMode = onePrinterMode.name
-                        )
-                        viewModel.updatePrinterProfile(
-                            role = PrinterRole.KITCHEN,
-                            enabled = kitchenEnabled,
-                            autoPrint = true,
-                            paperSize = if (kitchenPaper58) "58mm" else "80mm",
-                            includeLogo = false
-                        )
-                    },
-                    onBack = onBack
-                )
-            }
         }
     }
 
@@ -730,47 +699,50 @@ PrinterTargetCard(
             sheetState = sheetState,
             containerColor = DarkBrownSheet
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(spacing.large)
-                    .padding(bottom = spacing.large)
-            ) {
-                Text(
-                    "Select ${if (pendingRole == PrinterRole.CUSTOMER) "Customer" else "Kitchen"} Printer",
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                if (btIsScanning) {
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = spacing.medium),
-                        color = PrimaryGold
+            Box {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(spacing.large)
+                        .padding(bottom = spacing.large)
+                ) {
+                    Text(
+                        "Select ${if (pendingRole == PrinterRole.CUSTOMER) "Customer" else "Kitchen"} Printer",
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.headlineSmall
                     )
-                }
-                LazyColumn(modifier = Modifier.heightIn(max = 300.dp), contentPadding = PaddingValues(bottom = spacing.small)) {
-                    items(btDevices) { device ->
-                        val selectedMac = if (pendingRole == PrinterRole.CUSTOMER) customerPrinter?.macAddress else kitchenPrinter?.macAddress
-                        DeviceRow(
-                            device = device,
-                            isConnecting = btIsConnecting,
-                            isSelected = device.address == selectedMac,
-                            isConnected = connectedPrinterMac == device.address
-                        ) {
-                            viewModel.connectToPrinter(
-                                context = context,
+                    if (btIsScanning) {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = spacing.medium),
+                            color = PrimaryGold
+                        )
+                    }
+                    LazyColumn(modifier = Modifier.heightIn(max = 300.dp), contentPadding = PaddingValues(bottom = spacing.small)) {
+                        items(btDevices) { device ->
+                            val selectedMac = if (pendingRole == PrinterRole.CUSTOMER) customerPrinter?.macAddress else kitchenPrinter?.macAddress
+                            DeviceRow(
                                 device = device,
-                                role = pendingRole,
-                                paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
-                                    if (paper58) "58mm" else "80mm"
-                                } else {
-                                    if (kitchenPaper58) "58mm" else "80mm"
-                                },
-                                includeLogo = pendingRole == PrinterRole.CUSTOMER && includeLogo
-                            )
+                                isConnecting = btIsConnecting,
+                                isSelected = device.address == selectedMac,
+                                isConnected = connectedPrinterMac == device.address
+                            ) {
+                                viewModel.connectToPrinter(
+                                    context = context,
+                                    device = device,
+                                    role = pendingRole,
+                                    paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
+                                        if (paper58) "58mm" else "80mm"
+                                    } else {
+                                        if (kitchenPaper58) "58mm" else "80mm"
+                                    },
+                                    includeLogo = pendingRole == PrinterRole.CUSTOMER && includeLogo
+                                )
+                            }
                         }
                     }
                 }
+                TouchIndicatorOverlay(Modifier.matchParentSize())
             }
         }
     }
@@ -805,54 +777,33 @@ PrinterTargetCard(
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = DarkBrownSheet
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(spacing.large)
-                    .padding(bottom = spacing.large)
-            ) {
-                Text(
-                    "Select ${if (pendingRole == PrinterRole.CUSTOMER) "Customer" else "Kitchen"} USB Printer",
-                    color = PrimaryGold,
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Spacer(modifier = Modifier.height(spacing.small))
-                Text(
-                    "Connect the printer with an OTG cable, then pick it below.",
-                    color = TextGold.copy(alpha = 0.7f),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Spacer(modifier = Modifier.height(spacing.medium))
-                usbDevices.forEach { (key, label, hasPermission) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (hasPermission) {
-                                    usbScope.launch {
-                                        val currentKey = viewModel.currentUsbPrinterKey(key) ?: key
-                                        viewModel.saveUsbPrinter(
-                                            role = pendingRole,
-                                            deviceKey = currentKey,
-                                            label = label,
-                                            paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
-                                                if (paper58) "58mm" else "80mm"
-                                            } else {
-                                                if (kitchenPaper58) "58mm" else "80mm"
-                                            }
-                                        )
-                                        showUsbSheet = false
-                                    }
-                                } else {
-                                    usbScope.launch {
-                                        val granted = viewModel.requestUsbPermission(key)
-                                        // Re-snapshot immediately after the grant so rows never
-                                        // show a stale "Tap to allow" if the save fails or the
-                                        // sheet stays open. After the grant the device key may
-                                        // change (serial becomes readable) — recompute it.
-                                        usbDevices = viewModel.listUsbPrinters()
-                                        if (granted) {
+            Box {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(spacing.large)
+                        .padding(bottom = spacing.large)
+                ) {
+                    Text(
+                        "Select ${if (pendingRole == PrinterRole.CUSTOMER) "Customer" else "Kitchen"} USB Printer",
+                        color = PrimaryGold,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Spacer(modifier = Modifier.height(spacing.small))
+                    Text(
+                        "Connect the printer with an OTG cable, then pick it below.",
+                        color = TextGold.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(spacing.medium))
+                    usbDevices.forEach { (key, label, hasPermission) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (hasPermission) {
+                                        usbScope.launch {
                                             val currentKey = viewModel.currentUsbPrinterKey(key) ?: key
                                             viewModel.saveUsbPrinter(
                                                 role = pendingRole,
@@ -865,40 +816,64 @@ PrinterTargetCard(
                                                 }
                                             )
                                             showUsbSheet = false
-                                        } else {
-                                            KhanaToast.show(
-                                                "USB permission denied. Allow access to use this printer.",
-                                                ToastKind.Error
-                                            )
+                                        }
+                                    } else {
+                                        usbScope.launch {
+                                            val granted = viewModel.requestUsbPermission(key)
+                                            // Re-snapshot immediately after the grant so rows never
+                                            // show a stale "Tap to allow" if the save fails or the
+                                            // sheet stays open. After the grant the device key may
+                                            // change (serial becomes readable) — recompute it.
+                                            usbDevices = viewModel.listUsbPrinters()
+                                            if (granted) {
+                                                val currentKey = viewModel.currentUsbPrinterKey(key) ?: key
+                                                viewModel.saveUsbPrinter(
+                                                    role = pendingRole,
+                                                    deviceKey = currentKey,
+                                                    label = label,
+                                                    paperSize = if (pendingRole == PrinterRole.CUSTOMER) {
+                                                        if (paper58) "58mm" else "80mm"
+                                                    } else {
+                                                        if (kitchenPaper58) "58mm" else "80mm"
+                                                    }
+                                                )
+                                                showUsbSheet = false
+                                            } else {
+                                                KhanaToast.show(
+                                                    "USB permission denied. Allow access to use this printer.",
+                                                    ToastKind.Error
+                                                )
+                                            }
                                         }
                                     }
                                 }
+                                .padding(vertical = spacing.small),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.Usb,
+                                contentDescription = null,
+                                tint = if (hasPermission) SuccessGreen else TextGold,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(spacing.medium))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(label, color = TextLight, style = MaterialTheme.typography.bodyLarge)
+                                Text(
+                                    key.removePrefix("usb:"),
+                                    color = TextGold.copy(alpha = 0.6f),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
                             }
-                            .padding(vertical = spacing.small),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Usb,
-                            contentDescription = null,
-                            tint = if (hasPermission) SuccessGreen else TextGold,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(spacing.medium))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(label, color = TextLight, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                key.removePrefix("usb:"),
-                                color = TextGold.copy(alpha = 0.6f),
-                                style = MaterialTheme.typography.labelSmall
+                                if (hasPermission) "Ready" else "Tap to allow",
+                                color = if (hasPermission) SuccessGreen else PrimaryGold,
+                                style = MaterialTheme.typography.labelMedium
                             )
                         }
-                        Text(
-                            if (hasPermission) "Ready" else "Tap to allow",
-                            color = if (hasPermission) SuccessGreen else PrimaryGold,
-                            style = MaterialTheme.typography.labelMedium
-                        )
                     }
                 }
+                TouchIndicatorOverlay(Modifier.matchParentSize())
             }
         }
     }
@@ -928,9 +903,12 @@ PrinterTargetCard(
 
     if (showWifiDialog) {
         val parsedPort = wifiPort.toIntOrNull()
-        // A subnet-prefix prefill ("192.168.1.") or partial IP must not enable Save —
-        // only a complete, well-formed IPv4 address does.
-        val isValidHost = isValidIpv4(wifiHost.trim())
+        // A subnet-prefix prefill ("192.168.1.") or partial IP must not enable Save.
+        // A complete IPv4 address or a DNS hostname (the transport resolves both
+        // through InetSocketAddress) is required.
+        val trimmedHost = wifiHost.trim()
+        val hostIsNumeric = trimmedHost.isNotEmpty() && trimmedHost.all { it.isDigit() || it == '.' }
+        val isValidHost = isValidPrinterHost(trimmedHost)
         val isValid = isValidHost && parsedPort != null && parsedPort in 1..65535
         val roleLabel = if (pendingRole == PrinterRole.CUSTOMER) "Customer Receipt" else "Kitchen Ticket"
         KhanaBookDialog(
@@ -1043,7 +1021,13 @@ PrinterTargetCard(
                     placeholder = "192.168.1.50",
                     isError = wifiHost.isNotBlank() && !isValidHost,
                     supportingText = if (wifiHost.isNotBlank() && !isValidHost) {
-                        { Text("Complete the address — type the last number after the dot", color = TextGold.copy(alpha = 0.7f)) }
+                        {
+                            Text(
+                                if (hostIsNumeric) "Complete the address — type the last number after the dot"
+                                else "Enter a valid IP address or hostname",
+                                color = TextGold.copy(alpha = 0.7f)
+                            )
+                        }
                     } else {
                         null
                     },
@@ -1083,7 +1067,9 @@ PrinterTargetCard(
                             },
                             includeLogo = pendingRole == PrinterRole.CUSTOMER && includeLogo
                         )
-                        showWifiDialog = false
+                        // Stay open until PrinterUiEvent.WifiSaved/WifiSaveFailed arrives:
+                        // the spinner above is otherwise unreachable and a failed save
+                        // would discard the values the user just typed.
                     }
                 ) {
                     if (isSavingWifi) {
@@ -1103,9 +1089,23 @@ PrinterTargetCard(
     }
 }
 
-/** Accepts only a complete dotted-quad IPv4 (each octet 0-255). A bare subnet
- *  prefix like "192.168.1." from the auto-prefill does NOT pass — the user must
- *  type the final octet before saving. */
+/** Accepts a complete dotted-quad IPv4 address or a DNS hostname (e.g.
+ *  "printer.local"), which the Wi-Fi transport resolves at print time.
+ *
+ *  Digit-and-dot input is always judged as IPv4, so the auto-prefilled
+ *  "192.168.1." and other partial addresses stay rejected until the final octet
+ *  is typed — they are never accepted as a numeric hostname. */
+private fun isValidPrinterHost(host: String): Boolean {
+    if (host.isEmpty() || host.length > 253 || host.endsWith(".")) return false
+    if (host.all { it.isDigit() || it == '.' }) return isValidIpv4(host)
+    return host.split(".").all { label ->
+        label.isNotEmpty() && label.length <= 63 &&
+            label.first().isLetterOrDigit() && label.last().isLetterOrDigit() &&
+            label.all { it.isLetterOrDigit() || it == '-' }
+    }
+}
+
+/** Complete dotted-quad IPv4, each octet 0-255. */
 private fun isValidIpv4(host: String): Boolean {
     if (host.isEmpty() || host.endsWith(".")) return false
     val octets = host.split(".")

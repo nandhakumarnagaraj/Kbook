@@ -12,13 +12,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +25,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -144,10 +145,15 @@ fun OrderDateFilterComponent(
 // ONE definition shared by the header and every row. The two used to carry their own
 // padding and only the header carried the weights, which is how the columns drifted out
 // of alignment; alignment is now a property of these weights, not of each cell.
-private const val COL_ORDER  = 1.15f
+//
+// OrderNo is deliberately the narrowest: its text is short, so a wide first column left a
+// large empty gap before Amount. Amount, Time and Action take equal shares, which evens the
+// gaps between their contents instead of squeezing Action against the panel edge. 0.85 keeps
+// enough width for the "OrderNo" header on 320dp phones, where the whole row is ~264dp.
+private const val COL_ORDER  = 0.85f
 private const val COL_AMOUNT = 1.05f
 private const val COL_TIME   = 1.05f
-private const val COL_ACTION = 0.75f
+private const val COL_ACTION = 1.05f
 
 // Hoisted out of the row composable: these were built per row per recomposition, i.e. once per
 // visible row on every scroll frame. DateTimeFormatter is immutable and thread-safe.
@@ -246,14 +252,16 @@ fun OrderTableHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(OrdersDivider.copy(alpha = 0.22f))
+            .background(OrdersHeaderBand, KhanaRadii.sm)
             .padding(
                 horizontal = spacing.smallMedium,
                 vertical = spacing.smallMedium
             ),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        headerCell("Order No", COL_ORDER, TextAlign.Start)
+        // One word, matching the OrderNo column in the report tables. Centred like the other
+        // headers so the short ids do not leave a one-sided gap before Amount.
+        headerCell("OrderNo", COL_ORDER, TextAlign.Center)
         headerCell("Amount", COL_AMOUNT, TextAlign.Center)
         headerCell(if (includeDate) "Date/Time" else "Time", COL_TIME, TextAlign.Center)
         headerCell("Action", COL_ACTION, TextAlign.Center)
@@ -261,13 +269,11 @@ fun OrderTableHeader(
 }
 
 /**
- * The row's action control: a 36dp gold disc inside a 48dp hit area.
+ * The row's action control: a compact outlined "View" pill inside a 48dp hit area.
  *
- * The visible disc stays small so it does not dominate the row, but the touch target is the
- * Material minimum — the disc alone was the whole target before.
- *
- * It opens the same [com.khanabook.lite.pos.feature.reports.ui.OrderDetailsDialog] as the row
- * tap; its description says so, because "More options" promised a menu that does not exist.
+ * The pill is 22dp tall with 1dp gold outline and 5dp corners; the label is white like the
+ * other row values, and the transparent fill lets the row show through. The outer 48dp box
+ * keeps the Material minimum touch target.
  */
 @Composable
 fun ViewOrderAction(
@@ -275,22 +281,32 @@ fun ViewOrderAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier.size(48.dp), contentAlignment = Alignment.Center) {
-        Surface(
-            onClick = onClick,
-            color = OrdersGold.copy(alpha = 0.10f),
-            border = BorderStroke(1.dp, OrdersGold.copy(alpha = 0.55f)),
-            shape = CircleShape,
-            modifier = Modifier.size(36.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Filled.MoreVert,
-                    contentDescription = "View order $dailyId",
-                    tint = OrdersGold,
-                    modifier = Modifier.size(18.dp)
+    Box(
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .clickable(
+                onClickLabel = "View order $dailyId",
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .height(22.dp)
+                .border(
+                    width = 1.dp,
+                    color = OrdersGold.copy(alpha = 0.75f),
+                    shape = RoundedCornerShape(5.dp)
                 )
-            }
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "View",
+                color = Color.White,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1
+            )
         }
     }
 }
@@ -312,10 +328,15 @@ fun OrderTableRow(
     profile: RestaurantProfileEntity?,
     compactLayout: Boolean = false,
     includeDate: Boolean = false,
-    onViewDetails: (Long) -> Unit
+    onViewDetails: (Long, Float) -> Unit
 ) {
     val spacing = KhanaBookTheme.spacing
     val layout = KhanaBookTheme.layout
+    // Vertical position of this row in the window. The dialog uses it as the pivot of
+    // its short entrance scale so it appears to grow from the row that was tapped.
+    val windowHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
+        .coerceAtLeast(1f)
+    var originY by remember { mutableFloatStateOf(0.5f) }
     val isCancelled = row.orderStatus == OrderStatus.CANCELLED
     val muted = OrdersTextSecondary.copy(alpha = 0.5f)
     val cellStyle = MaterialTheme.typography.bodySmall.copy(
@@ -323,13 +344,18 @@ fun OrderTableRow(
         fontFeatureSettings = "tnum"
     )
 
-    // No vertical padding: the 48dp action target already sets the row's content height, so
-    // padding on top of it would push every row to ~65dp. The min height keeps the row
-    // comfortable and the text is centred by the Row.
+    // Each order is its own rounded card, like the Orders Report table: the list spaces the
+    // cards apart, so there is no shared panel and no divider between rows. No vertical
+    // padding: the 48dp action target already sets the content height.
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = if (compactLayout) 52.dp else 60.dp)
+            .onGloballyPositioned { coords ->
+                originY = (coords.boundsInWindow().center.y / windowHeight).coerceIn(0f, 1f)
+            }
+            .clip(KhanaRadii.sm)
+            .background(OrdersRowCard)
             .then(
                 if (isCancelled) Modifier.background(DangerRed.copy(alpha = 0.05f)) else Modifier
             )
@@ -341,27 +367,29 @@ fun OrderTableRow(
                     )
                 }
             }
-            .clickable { onViewDetails(row.billId) }
+            .clickable { onViewDetails(row.billId, originY) }
             .padding(horizontal = spacing.smallMedium),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. OrderNo — left aligned. Printed without `#` at product request (2026-11-14); the
-        // details dialog, search and share text still prefix it.
-        OrderTableCell(COL_ORDER, TextAlign.Start) {
+        // 1. OrderNo — centred so "A02" sits under the header instead of hugging the left edge
+        // and leaving a wide gap before Amount. Printed without `#` at product request
+        // (2026-11-14); search and share text still prefix it.
+        OrderTableCell(COL_ORDER, TextAlign.Center) {
             Text(
                 text = row.dailyId,
-                color = if (isCancelled) muted else OrdersTextPrimary,
+                color = if (isCancelled) muted else Color.White,
                 style = cellStyle.copy(fontWeight = FontWeight.Bold),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        // 2. Amount — centred, tabular figures, struck through when cancelled.
+        // 2. Amount — centred, tabular figures, white like the other row values (not gold),
+        // struck through when cancelled.
         OrderTableCell(COL_AMOUNT, TextAlign.Center) {
             Text(
                 text = formatOrderRowAmount(row.totalAmount),
-                color = if (isCancelled) muted else OrdersBrightGold,
+                color = if (isCancelled) muted else Color.White,
                 style = cellStyle.copy(fontWeight = FontWeight.Bold),
                 textDecoration = if (isCancelled) TextDecoration.LineThrough else TextDecoration.None,
                 maxLines = 1,
@@ -374,8 +402,8 @@ fun OrderTableRow(
         OrderTableCell(COL_TIME, TextAlign.Center) {
             Text(
                 text = formatOrderRowTime(row, profile, includeDate),
-                color = if (isCancelled) muted else OrdersTextSecondary,
-                style = cellStyle,
+                color = if (isCancelled) muted else Color.White,
+                style = cellStyle.copy(fontWeight = FontWeight.Bold),
                 textAlign = TextAlign.Center,
                 maxLines = if (includeDate) 2 else 1,
                 overflow = TextOverflow.Ellipsis
@@ -386,7 +414,7 @@ fun OrderTableRow(
         OrderTableCell(COL_ACTION, TextAlign.Center) {
             ViewOrderAction(
                 dailyId = row.dailyId,
-                onClick = { onViewDetails(row.billId) }
+                onClick = { onViewDetails(row.billId, originY) }
             )
         }
     }
@@ -407,27 +435,30 @@ fun OrderHistoryTableComponent(
     profile: RestaurantProfileEntity?,
     compactLayout: Boolean = false,
     includeDate: Boolean = false,
-    onViewDetails: (Long) -> Unit,
+    onViewDetails: (Long, Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val spacing = KhanaBookTheme.spacing
-    val hairline = OrdersDivider.copy(alpha = 0.7f)
 
-    // The panel hugs its rows instead of stretching to the bottom of the screen. With two
-    // orders the old `fillMaxSize` produced a huge empty card; a weighted list with
-    // `fill = false` still takes the remaining space when the list is long enough to scroll.
+    // No enclosing panel: the header is its own band and every order is a card, matching the
+    // Orders Report table. The list hugs its rows (`fill = false`) so two orders do not leave
+    // a tall empty card, while a long list still takes the remaining height and scrolls.
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(max = maxHeight)
-                .padding(horizontal = spacing.medium)
-                .clip(KhanaRadii.md)
-                .background(OrdersCard)
-                .border(1.dp, hairline, KhanaRadii.md)
         ) {
-            OrderTableHeader(includeDate = includeDate)
-            HorizontalDivider(thickness = 1.dp, color = hairline)
+            OrderTableHeader(
+                modifier = Modifier.padding(horizontal = spacing.medium),
+                includeDate = includeDate
+            )
+            // Gold hairline closes the header band instead of boxing it in.
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = spacing.medium),
+                thickness = 1.dp,
+                color = OrdersGold.copy(alpha = 0.35f)
+            )
 
             if (rows.isEmpty()) {
                 Box(
@@ -449,9 +480,15 @@ fun OrderHistoryTableComponent(
                     modifier = Modifier
                         .weight(1f, fill = false)
                         .fillMaxWidth()
-                        .verticalScrollbar(listState)
+                        .padding(horizontal = spacing.medium)
+                        .verticalScrollbar(listState),
+                    verticalArrangement = Arrangement.spacedBy(spacing.small),
+                    contentPadding = PaddingValues(
+                        top = spacing.small,
+                        bottom = spacing.small
+                    )
                 ) {
-                    itemsIndexed(rows, key = { _, row -> row.billId }) { index, row ->
+                    itemsIndexed(rows, key = { _, row -> row.billId }) { _, row ->
                         OrderTableRow(
                             row = row,
                             profile = profile,
@@ -459,9 +496,6 @@ fun OrderHistoryTableComponent(
                             includeDate = includeDate,
                             onViewDetails = onViewDetails
                         )
-                        if (index != rows.lastIndex) {
-                            HorizontalDivider(thickness = 1.dp, color = hairline)
-                        }
                     }
                 }
             }

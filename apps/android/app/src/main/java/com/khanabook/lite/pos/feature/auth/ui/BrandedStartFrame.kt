@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.core.designsystem.rememberReducedMotion
 import com.khanabook.lite.pos.core.theme.DarkBrown1
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.RichEspresso
@@ -50,6 +51,8 @@ private val TextMuted = Color(0xFFB0B0B0)
  */
 @Composable
 internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
+    val reducedMotion = rememberReducedMotion()
+
     // ── Staggered entrance trigger ──
     var textVisible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
@@ -64,6 +67,8 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
     val logoScale = remember { Animatable(1f) }
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(260)
+        // Reduced motion keeps the splash logo at exactly 1f (no celebratory pop).
+        if (reducedMotion) return@LaunchedEffect
         logoScale.animateTo(
             targetValue = 1.12f,
             animationSpec = spring(dampingRatio = 0.45f, stiffness = 520f)
@@ -106,16 +111,21 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
     )
 
     // ── Breathing glow halo behind the logo ──
-    val infiniteTransition = rememberInfiniteTransition(label = "glowPulse")
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.12f,
-        targetValue = 0.24f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
-    )
+    // Reduced motion holds the halo at a steady mid-tone instead of looping.
+    val glowAlpha = if (reducedMotion) {
+        0.18f
+    } else {
+        val infiniteTransition = rememberInfiniteTransition(label = "glowPulse")
+        infiniteTransition.animateFloat(
+            initialValue = 0.12f,
+            targetValue = 0.24f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "glowAlpha"
+        ).value
+    }
 
     // ── Layout ─────────────────────────────────────────────────────────────────
     Box(
@@ -152,8 +162,8 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
                             shape = CircleShape
                         )
                 )
-                // Golden particle ring bursting outward from the logo
-                ParticleBurst(modifier = Modifier.size(200.dp))
+                // Golden particle ring bursting outward from the logo (static on reduced motion)
+                if (!reducedMotion) ParticleBurst(modifier = Modifier.size(200.dp))
                 // Logo — carries over from the native splash at full size, then
                 // does a celebratory spring pop after a short hold
                 Image(
@@ -180,7 +190,7 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
                 letterSpacing = 1.5.sp,
                 modifier = Modifier.graphicsLayer {
                     alpha = titleAlpha
-                    translationY = titleOffsetY
+                    translationY = if (reducedMotion) 0f else titleOffsetY
                 }
             )
 
@@ -194,7 +204,7 @@ internal fun BrandedStartFrame(modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Normal,
                 letterSpacing = 0.8.sp,
                 modifier = Modifier.graphicsLayer {
-                    translationY = subtitleOffsetY
+                    translationY = if (reducedMotion) 0f else subtitleOffsetY
                 }
             )
         }

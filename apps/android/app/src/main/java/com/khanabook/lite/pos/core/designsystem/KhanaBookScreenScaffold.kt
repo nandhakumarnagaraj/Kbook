@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import com.khanabook.lite.pos.core.theme.KhanaBookTheme
 import com.khanabook.lite.pos.core.theme.PrimaryGold
 
@@ -31,6 +32,10 @@ fun KhanaBookScreenScaffold(
     titleStyleCompact: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineSmall,
     titleStyleExpanded: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineMedium,
     titleAlignment: TextAlign = TextAlign.Center,
+    // Multi-line stays the default so long Settings titles are never silently truncated;
+    // a caller that must stay on one line opts in explicitly.
+    titleMaxLines: Int = Int.MAX_VALUE,
+    titleOverflow: TextOverflow = TextOverflow.Clip,
     headerTrailing: @Composable (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -66,7 +71,9 @@ fun KhanaBookScreenScaffold(
                     .then(if (titleAlignment == TextAlign.Start) Modifier.padding(start = spacing.small) else Modifier),
                 color = PrimaryGold,
                 style = if (layout.isCompact) titleStyleCompact else titleStyleExpanded,
-                textAlign = titleAlignment
+                textAlign = titleAlignment,
+                maxLines = titleMaxLines,
+                overflow = titleOverflow
             )
             if (titleAlignment == TextAlign.Center || headerTrailing != null) {
                 Box(

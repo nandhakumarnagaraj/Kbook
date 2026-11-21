@@ -39,30 +39,35 @@ import com.khanabook.lite.pos.core.theme.DarkBrown2
  * Shimmer effect modifier — attaches an animated gradient sweep to any composable.
  */
 fun Modifier.shimmerEffect(): Modifier = composed {
-    val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateX by transition.animateFloat(
-        initialValue = -300f,
-        targetValue = 1000f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer_translate"
-    )
+    // Reduced motion keeps the loading placeholder but drops the infinite sweep.
+    if (rememberReducedMotion()) {
+        background(DarkBrown2.copy(alpha = 0.6f))
+    } else {
+        val transition = rememberInfiniteTransition(label = "shimmer")
+        val translateX by transition.animateFloat(
+            initialValue = -300f,
+            targetValue = 1000f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "shimmer_translate"
+        )
 
-    val shimmerColors = listOf(
-        DarkBrown2.copy(alpha = 0.6f),
-        DarkBrown2.copy(alpha = 0.2f),
-        DarkBrown2.copy(alpha = 0.6f)
-    )
+        val shimmerColors = listOf(
+            DarkBrown2.copy(alpha = 0.6f),
+            DarkBrown2.copy(alpha = 0.2f),
+            DarkBrown2.copy(alpha = 0.6f)
+        )
 
-    val brush = Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translateX, 0f),
-        end = Offset(translateX + 300f, 100f)
-    )
+        val brush = Brush.linearGradient(
+            colors = shimmerColors,
+            start = Offset(translateX, 0f),
+            end = Offset(translateX + 300f, 100f)
+        )
 
-    background(brush)
+        background(brush)
+    }
 }
 
 /**

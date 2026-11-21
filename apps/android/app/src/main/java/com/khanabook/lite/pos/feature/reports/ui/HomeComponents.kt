@@ -44,7 +44,8 @@ internal fun SyncStatusHeader(
 
     val rotation: Float
     val pulseAlpha: Float
-    if (shouldShowSync) {
+    // The sync badge stays visible with a steady icon when motion is reduced.
+    if (shouldShowSync && !rememberReducedMotion()) {
         val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
         rotation = infiniteTransition.animateFloat(
             initialValue = 0f,

@@ -29,6 +29,11 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <!-- Easebuzz PWECheckoutActivity is portrait-locked, which implicitly makes
+         android.hardware.screen.portrait a required feature. KhanaBook itself is not
+         portrait-only (MainActivity is unspecified and has landscape layouts), so the
+         feature is declared optional to avoid restricting Play availability. -->
+    <uses-feature android:name="android.hardware.screen.portrait" android:required="false" />
     <!-- Notification permission for Android 13+ -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Restart sync workers after device reboot (FCM token re-registration) -->

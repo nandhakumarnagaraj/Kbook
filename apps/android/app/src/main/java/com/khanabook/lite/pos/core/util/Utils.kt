@@ -191,19 +191,55 @@ fun generateBillText(bill: BillWithItems, profile: RestaurantProfileEntity?): St
         bill.bill.subtotal?.takeIf { it.isNotBlank() }?.let {
             sb.append("*Sub-total: ${currency}$it*\n")
         }
-        halfPct?.let {
-            val label = it.toPlainString()
-            bill.bill.cgstAmount?.takeIf { a -> a.isNotBlank() }?.let { a ->
-                sb.append("*CGST ($label%): ${currency}$a*\n")
-            }
-            bill.bill.sgstAmount?.takeIf { a -> a.isNotBlank() }?.let { a ->
-                sb.append("*SGST ($label%): ${currency}$a*\n")
-            }
+        // Rows are driven by the stored amounts, not by the percentage: a bill can carry CGST and
+        // SGST while gstPercentage is null or 0, and gating on the percentage silently hid the tax
+        // while the printed total still included it (BUG-045).
+        val pctLabel = halfPct?.toPlainString()
+        val cgstText = bill.bill.cgstAmount
+            ?.takeIf { a -> (a.toBigDecimalOrNull() ?: BigDecimal.ZERO) > BigDecimal.ZERO }
+        val sgstText = bill.bill.sgstAmount
+            ?.takeIf { a -> (a.toBigDecimalOrNull() ?: BigDecimal.ZERO) > BigDecimal.ZERO }
+        cgstText?.let { a ->
+            sb.append("*CGST${pctLabel?.let { p -> " ($p%)" } ?: ""}: ${currency}$a*\n")
+        }
+        sgstText?.let { a ->
+            sb.append("*SGST${pctLabel?.let { p -> " ($p%)" } ?: ""}: ${currency}$a*\n")
         }
         sb.append("*SAC: 996331*\n")
         profile?.gstin?.take(2)?.takeIf { it.length == 2 && it.all(Char::isDigit) }?.let {
             sb.append("*State Code: $it*\n")
         }
+    }
+    // Tax rows are driven by what the bill was charged, not by the toggle as it is today: the
+    // total below comes from the stored bill, so every component of it needs a row even after the
+    // owner flips the setting. GST *identity* (GSTIN, SAC, State Code, the CGST/SGST labels) still
+    // follows the setting - a disabled shop must not print GST words. An old GST bill shared after
+    // GST was turned off therefore gets one neutral "Taxes" row instead of CGST/SGST (BUG-036).
+    val customTaxAmount = bill.bill.customTaxAmount?.toBigDecimalOrNull()
+    val showCustomTax = customTaxAmount != null && customTaxAmount > BigDecimal.ZERO
+    val storedGst = (bill.bill.cgstAmount?.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+        .add(bill.bill.sgstAmount?.toBigDecimalOrNull() ?: BigDecimal.ZERO)
+    val hiddenGst = !gstEnabled && storedGst > BigDecimal.ZERO
+    if (!gstEnabled && (showCustomTax || hiddenGst)) {
+        bill.bill.subtotal?.takeIf { it.isNotBlank() }?.let {
+            sb.append("*Sub-total: ${currency}$it*\n")
+        }
+    }
+    if (hiddenGst) {
+        // Tax-inclusive bills store the GST inside the sub-total, so an additive-looking row would
+        // overstate what is owed. The stored figures say which case this is: with inclusive
+        // pricing the total equals the sub-total, otherwise it is sub-total plus tax.
+        val storedSubtotal = bill.bill.subtotal?.toBigDecimalOrNull()
+        val storedTotal = bill.bill.totalAmount?.toBigDecimalOrNull()
+        val inclusive = storedSubtotal != null && storedTotal != null &&
+            storedTotal <= storedSubtotal
+        val taxes = storedGst.setScale(2, RoundingMode.HALF_UP).toPlainString()
+        val label = if (inclusive) "Taxes (included)" else "Taxes"
+        sb.append("*$label: ${currency}$taxes*\n")
+    }
+    if (showCustomTax) {
+        val label = profile?.customTaxName?.takeIf { it.isNotBlank() }?.uppercase() ?: "TAX"
+        sb.append("*$label: ${currency}${bill.bill.customTaxAmount}*\n")
     }
     sb.append("*Total Amount: ${currency}${bill.bill.totalAmount}*\n")
     sb.append("--------------------------\n")

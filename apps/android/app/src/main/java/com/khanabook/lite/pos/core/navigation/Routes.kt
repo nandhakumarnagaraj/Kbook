@@ -1,5 +1,7 @@
 package com.khanabook.lite.pos.core.navigation
 
+import android.net.Uri
+
 /**
  * Single source of truth for every navigation destination.
  *
@@ -82,6 +84,15 @@ object Routes {
     const val REPRINT_KOT = "reprint_kot"
     const val NOTIFICATIONS = "notifications"
     const val NOTIFICATIONS_PREFERENCES = "notifications_preferences"
+
+    /** Tutorial catalogue rendered inside the app; tapping a row opens the video player below. */
+    const val TUTORIALS = "tutorials"
+
+    /** In-app WebView destination for one tutorial video, addressed by its CDN file name. */
+    const val TUTORIAL_VIDEO_PATTERN = "tutorial_video/{fileName}"
+
+    fun tutorialVideo(fileName: String): String =
+        "tutorial_video/${Uri.encode(fileName)}"
 
     const val OCR_SCANNER_PATTERN = "ocr_scanner/{source}"
 

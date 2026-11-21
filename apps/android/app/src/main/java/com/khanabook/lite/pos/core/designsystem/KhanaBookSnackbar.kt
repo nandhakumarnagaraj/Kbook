@@ -1,68 +1,85 @@
 package com.khanabook.lite.pos.core.designsystem
-import com.khanabook.lite.pos.core.theme.*
 
+import android.os.Build
 import android.os.SystemClock
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
+import android.view.accessibility.AccessibilityManager
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.khanabook.lite.pos.R
-import com.khanabook.lite.pos.core.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 enum class ToastKind { Success, Error, Warning, Info }
 
-// Competitor-benchmarked timing (Arow/Khide/Billkaro): success 2s, errors 3.5s.
-// Material3 only offers 4s/10s duration buckets, so the exact per-kind timing is
-// enforced by the KhanaBookSnackbar composable below, which dismisses the
-// snackbar itself when its kind-specific window elapses.
-internal const val TOAST_SUCCESS_MS = 2_000L
-internal const val TOAST_ERROR_MS = 3_500L
-internal const val TOAST_WARNING_MS = 3_500L
-internal const val TOAST_INFO_MS = 2_000L
+// Base windows are deliberately longer than the previous 2 s / 3.5 s: the pill now
+// carries a 16 sp message and a brand medallion, and a 3-line message cannot be read
+// in 2 s. Longer messages extend the window in toastDurationMs(); accessibility
+// services can extend it further at display time.
+internal const val TOAST_SUCCESS_MS = 2_500L
+internal const val TOAST_ERROR_MS = 4_000L
+internal const val TOAST_WARNING_MS = 4_000L
+internal const val TOAST_INFO_MS = 2_500L
+internal const val TOAST_MAX_MS = 6_000L
 
-internal fun toastDurationMs(kind: ToastKind): Long = when (kind) {
-    ToastKind.Error -> TOAST_ERROR_MS
-    ToastKind.Warning -> TOAST_WARNING_MS
-    ToastKind.Info -> TOAST_INFO_MS
-    ToastKind.Success -> TOAST_SUCCESS_MS
+/**
+ * Display window for one notice.
+ *
+ * Base by kind plus 500 ms for every five words past eight, capped at six seconds.
+ * The cap matters: a toast is transient feedback, not a reading surface, and an
+ * error that needs more than six seconds should carry an action (which keeps it
+ * on screen indefinitely) or be shown inline.
+ */
+internal fun toastDurationMs(kind: ToastKind, message: String = ""): Long {
+    val base = when (kind) {
+        ToastKind.Error, ToastKind.Warning -> TOAST_ERROR_MS
+        ToastKind.Success, ToastKind.Info -> TOAST_SUCCESS_MS
+    }
+    val words = message.trim().split(Regex("\\s+")).count { it.isNotEmpty() }
+    val extra = ((words - 8).coerceAtLeast(0) / 5) * 500L
+    return (base + extra).coerceAtMost(TOAST_MAX_MS)
 }
 
-private fun defaultDuration(kind: ToastKind, actionLabel: String?): SnackbarDuration = when {
-    actionLabel != null -> SnackbarDuration.Indefinite
-    else -> SnackbarDuration.Short // placeholder; real timing enforced in KhanaBookSnackbar
-}
+// Always Indefinite: Material3's SnackbarHost auto-dismisses Short at 4 s, which
+// would truncate the length-aware window (up to 6 s) before KhanaBookSnackbar's
+// timer runs. The host must not own the timeout; the LaunchedEffect below does.
+private fun defaultDuration(kind: ToastKind, actionLabel: String?): SnackbarDuration =
+    SnackbarDuration.Indefinite
 
 class KhanaSnackbarVisuals(
     override val message: String,
     val kind: ToastKind = ToastKind.Info,
     override val actionLabel: String? = null,
-    override val withDismissAction: Boolean = actionLabel != null,
+    // Errors and warnings stay dismissible even without an action. A user must be
+    // able to clear an error they have already read instead of waiting it out.
+    override val withDismissAction: Boolean =
+        actionLabel != null || kind == ToastKind.Error || kind == ToastKind.Warning,
     override val duration: SnackbarDuration = defaultDuration(kind, actionLabel),
 ) : SnackbarVisuals
 
@@ -136,107 +153,76 @@ object KhanaToast {
     }
 }
 
-private data class KindStyle(
-    val container: Color,
-    val content: Color,
-    val accent: Color,
-    val icon: ImageVector,
-)
-
-private fun styleFor(kind: ToastKind): KindStyle = when (kind) {
-    // One background for every toast: DarkBrown2. Because that fill is very dark, the
-    // raw accent clears 3:1 against it as a border — red 3.13, green 4.28, gold 6.56,
-    // yellow 9.80 — so the accent needs no lightening to read as an edge.
-    ToastKind.Success -> KindStyle(DarkBrown2, TextLight, SuccessGreen, Icons.Default.CheckCircle)
-    ToastKind.Error -> KindStyle(DarkBrown2, TextLight, DangerRed, Icons.Default.Error)
-    ToastKind.Warning -> KindStyle(DarkBrown2, TextLight, WarningYellow, Icons.Default.Warning)
-    ToastKind.Info -> KindStyle(DarkBrown2, TextLight, PrimaryGold, Icons.Default.Info)
-}
-
 @Composable
 fun KhanaBookSnackbar(data: SnackbarData) {
     val kind = (data.visuals as? KhanaSnackbarVisuals)?.kind ?: ToastKind.Info
-    val style = styleFor(kind)
-    val spacing = KhanaBookTheme.spacing
-    val iconSize = KhanaBookTheme.iconSize
-    val shape = KhanaRadii.card
+    val message = data.visuals.message
+    val actionLabel = data.visuals.actionLabel
+    val hasAction = actionLabel != null
 
-    // Competitor-style fixed display window: dismiss exactly when the kind's
-    // duration elapses, regardless of the snackbar's own Material3 timing.
-    // Action toasts stay Indefinite and are exempt.
-    val hasAction = data.visuals.actionLabel != null
-    LaunchedEffect(data, kind) {
+    val context = LocalContext.current
+    val accessibilityManager = remember(context) {
+        context.getSystemService(AccessibilityManager::class.java)
+    }
+
+    // Kind-specific window, extended by the platform when the user has asked for
+    // longer timeouts. Action notices stay Indefinite and are exempt.
+    LaunchedEffect(data, kind, message) {
         if (!hasAction) {
-            kotlinx.coroutines.delay(toastDurationMs(kind))
+            val base = toastDurationMs(kind, message)
+            val timeout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                accessibilityManager?.getRecommendedTimeoutMillis(
+                    base.toInt(),
+                    AccessibilityManager.FLAG_CONTENT_TEXT or
+                        AccessibilityManager.FLAG_CONTENT_CONTROLS
+                )?.toLong() ?: base
+            } else {
+                base
+            }
+            delay(timeout)
             data.dismiss()
         }
     }
 
-    Surface(
+    Box(
         modifier = Modifier
-            .padding(horizontal = spacing.large, vertical = spacing.small)
             .fillMaxWidth()
-            .shadow(spacing.small, shape)
-            .clip(shape)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-        color = style.container,
-        // The Row child must not paint a background over this ring — see below.
-        border = BorderStroke(1.5.dp, style.accent),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Row(
-            // NO background() here. This Row is the Surface's child node, so it
-            // paints AFTER the Surface's own .background() and .border() chain —
-            // a fill here would cover the 1.5dp border ring completely. The
-            // Surface already supplies the colour.
+        KhanaNoticePill(
+            kind = kind,
+            message = message,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = spacing.medium, vertical = spacing.smallMedium),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = style.icon,
-                contentDescription = null,
-                tint = style.accent,
-                modifier = Modifier.size(iconSize.medium),
-            )
-            Spacer(modifier = Modifier.width(spacing.smallMedium))
-            Text(
-                text = data.visuals.message,
-                color = style.content,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                modifier = Modifier.weight(1f),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-            data.visuals.actionLabel?.let { label ->
-                Spacer(modifier = Modifier.width(spacing.small))
-                TextButton(onClick = { data.performAction() }) {
-                    Text(label, color = style.accent, fontWeight = FontWeight.Bold)
-                }
-            }
-            if (data.visuals.withDismissAction) {
-                IconButton(onClick = { data.dismiss() }) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = stringResource(R.string.cd_dismiss_message),
-                        tint = style.content,
-                        modifier = Modifier.size(iconSize.medium),
-                    )
-                }
-            }
-        }
+                .widthIn(max = 480.dp)
+                .fillMaxWidth(),
+            actionLabel = actionLabel,
+            onAction = if (hasAction) ({ data.performAction() }) else null,
+            onDismiss = if (data.visuals.withDismissAction) ({ data.dismiss() }) else null,
+            blockClicksBelow = true,
+            compact = true,
+        )
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun KhanaBookSnackbarHost(
     hostState: SnackbarHostState,
     modifier: Modifier = Modifier,
+    bottomLift: Dp = 0.dp,
 ) {
-    val spacing = KhanaBookTheme.spacing
+    // union(navigationBars, ime) is deliberate: imePadding() alone would push the
+    // host up by the IME but leave it behind the gesture bar when the keyboard is
+    // closed, and stacking both would count the navigation bar twice.
+    val imeVisible = WindowInsets.isImeVisible
+    val lift = if (imeVisible) 0.dp else bottomLift
+
     SnackbarHost(
         hostState = hostState,
-        modifier = modifier.navigationBarsPadding().padding(bottom = spacing.extraLarge),
+        modifier = modifier
+            .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
+            .padding(bottom = 16.dp + lift),
     ) { data ->
         KhanaBookSnackbar(data)
     }

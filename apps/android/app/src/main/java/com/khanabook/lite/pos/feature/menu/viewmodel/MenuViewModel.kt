@@ -174,8 +174,11 @@ class MenuViewModel @Inject constructor(
 
     val disabledItemsCount = MutableStateFlow(0)
     val menuAddOnsCount = MutableStateFlow(0)
-    private val _isPhotoUploading = MutableStateFlow(false)
-    val isPhotoUploading: StateFlow<Boolean> = _isPhotoUploading.asStateFlow()
+    // Which item currently has a photo upload/removal in flight, so the row can show
+    // a status indicator instead of leaving the owner guessing (the network call is
+    // a plain multipart POST with no progress callback).
+    private val _uploadingPhotoItemId = MutableStateFlow<Long?>(null)
+    val uploadingPhotoItemId: StateFlow<Long?> = _uploadingPhotoItemId.asStateFlow()
 
     init {
         // Keep the selected category pointing at a real, visible tab without the
@@ -341,15 +344,22 @@ class MenuViewModel @Inject constructor(
     }
 
     /**
-     * Stars or unstars a dish for THIS till only.
+     * Stars or unstars a dish for this till.
      *
-     * Unlike [setCategoryFavourite] this is deliberately NOT owner-gated and makes no API call:
-     * the column never leaves the device (see MenuItemEntity.localFavourite), so the person at
-     * the counter can keep their own fast-pick list without touching a shop setting. That also
-     * keeps it out of the master-data write path entirely - a starred dish during billing can
-     * never 403 the way a category push would.
+     * Owner-gated like every other menu write: local_favourite is a column on menu_items, one
+     * row per dish shared by every account signed in on this device, so a staff toggle would
+     * rewrite the owner's list instead of keeping a personal one (BUG-032). Staff access to the
+     * menu is read-only; filtering by stars that already exist is unaffected.
+     *
+     * Unlike [setCategoryFavourite] it makes no API call: the column never leaves the device
+     * (see MenuItemEntity.localFavourite), so it stays out of the master-data push path and
+     * can never 403 the way a category push would.
      */
     fun setLocalFavourite(item: MenuItemEntity, isFavourite: Boolean) {
+        if (!canWriteMasterData()) {
+            blockMasterDataWrite()
+            return
+        }
         viewModelScope.launch {
             try {
                 menuRepository.setLocalFavourite(item.id, isFavourite)
@@ -539,7 +549,7 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _isPhotoUploading.value = true
+            _uploadingPhotoItemId.value = menuItemId
             var loggedServerId: Long? = null
             try {
                 val currentItem = menuRepository.getItemById(menuItemId)
@@ -581,7 +591,7 @@ class MenuViewModel @Inject constructor(
                 val msg = com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(e, "Photo upload failed. Please try again.")
                 com.khanabook.lite.pos.core.designsystem.KhanaToast.show(msg, com.khanabook.lite.pos.core.designsystem.ToastKind.Error)
             } finally {
-                _isPhotoUploading.value = false
+                _uploadingPhotoItemId.value = null
             }
         }
     }
@@ -595,7 +605,7 @@ class MenuViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            _isPhotoUploading.value = true
+            _uploadingPhotoItemId.value = menuItemId
             try {
                 val currentItem = menuRepository.getItemById(menuItemId)
                 val targetId = currentItem?.serverId
@@ -609,7 +619,7 @@ class MenuViewModel @Inject constructor(
                 val msg = com.khanabook.lite.pos.core.util.UserMessageSanitizer.sanitize(e, "Failed to remove photo.")
                 com.khanabook.lite.pos.core.designsystem.KhanaToast.show(msg, com.khanabook.lite.pos.core.designsystem.ToastKind.Error)
             } finally {
-                _isPhotoUploading.value = false
+                _uploadingPhotoItemId.value = null
             }
         }
     }

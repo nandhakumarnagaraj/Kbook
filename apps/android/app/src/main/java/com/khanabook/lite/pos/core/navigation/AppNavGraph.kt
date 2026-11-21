@@ -3,6 +3,8 @@
 package com.khanabook.lite.pos.core.navigation
 import com.khanabook.lite.pos.feature.notifications.ui.NotificationsScreen
 import com.khanabook.lite.pos.feature.settings.ui.QuickStartScreen
+import com.khanabook.lite.pos.feature.settings.ui.InAppWebViewScreen
+import com.khanabook.lite.pos.feature.settings.ui.TutorialListScreen
 import com.khanabook.lite.pos.feature.printing.ui.ReprintKotScreen
 import com.khanabook.lite.pos.feature.sync.ui.DeviceSetupScreen
 import com.khanabook.lite.pos.feature.auth.ui.AppLockScreen
@@ -15,6 +17,7 @@ import com.khanabook.lite.pos.feature.billing.ui.ActiveOrdersScreen
 import com.khanabook.lite.pos.feature.billing.ui.NewBillScreen
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -33,6 +36,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.core.designsystem.REDUCED_MOTION_MS
+import com.khanabook.lite.pos.core.designsystem.rememberReducedMotion
 import com.khanabook.lite.pos.core.theme.DarkBrown1
 import com.khanabook.lite.pos.core.theme.DarkBrown2
 import com.khanabook.lite.pos.core.theme.RichEspresso
@@ -58,36 +63,55 @@ internal fun AppNavGraph(
     authenticatedStartDestination: () -> String,
     startDestination: String = Routes.LOGIN
 ) {
+    val reducedMotion = rememberReducedMotion()
     NavHost(
         navController = navController,
         startDestination = startDestination,
         enterTransition = {
-            fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
-            slideInHorizontally(
-                initialOffsetX = { fullWidth -> fullWidth / 5 },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            )
+            if (reducedMotion) {
+                fadeIn(animationSpec = tween(REDUCED_MOTION_MS))
+            } else {
+                fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                slideInHorizontally(
+                    initialOffsetX = { fullWidth -> fullWidth / 5 },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                )
+            }
         },
+        // Leaving a route must not compete with the next screen: 120 ms ease-in.
         exitTransition = {
-            fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
-            slideOutHorizontally(
-                targetOffsetX = { fullWidth -> -fullWidth / 5 },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            )
+            if (reducedMotion) {
+                fadeOut(animationSpec = tween(REDUCED_MOTION_MS))
+            } else {
+                fadeOut(animationSpec = tween(120, easing = FastOutLinearInEasing)) +
+                slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> -fullWidth / 5 },
+                    animationSpec = tween(120, easing = FastOutLinearInEasing)
+                )
+            }
         },
         popEnterTransition = {
-            fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
-            slideInHorizontally(
-                initialOffsetX = { fullWidth -> -fullWidth / 5 },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            )
+            if (reducedMotion) {
+                fadeIn(animationSpec = tween(REDUCED_MOTION_MS))
+            } else {
+                fadeIn(animationSpec = tween(300, easing = FastOutSlowInEasing)) +
+                slideInHorizontally(
+                    initialOffsetX = { fullWidth -> -fullWidth / 5 },
+                    animationSpec = tween(300, easing = FastOutSlowInEasing)
+                )
+            }
         },
+        // Same fast ease-in rule when popping a route off the back stack.
         popExitTransition = {
-            fadeOut(animationSpec = tween(200, easing = FastOutSlowInEasing)) +
-            slideOutHorizontally(
-                targetOffsetX = { fullWidth -> fullWidth / 5 },
-                animationSpec = tween(300, easing = FastOutSlowInEasing)
-            )
+            if (reducedMotion) {
+                fadeOut(animationSpec = tween(REDUCED_MOTION_MS))
+            } else {
+                fadeOut(animationSpec = tween(120, easing = FastOutLinearInEasing)) +
+                slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> fullWidth / 5 },
+                    animationSpec = tween(120, easing = FastOutLinearInEasing)
+                )
+            }
         }
     ) {
         composable(Routes.APP_LOCK) {
@@ -146,6 +170,7 @@ internal fun AppNavGraph(
                         popUpTo(Routes.QUICK_START) { inclusive = true }
                     }
                 },
+                onWatchTutorials = { navController.navigate(Routes.TUTORIALS) },
                 authViewModel = authViewModel
             )
         }
@@ -197,11 +222,17 @@ internal fun AppNavGraph(
             val highlightBillId = backStackEntry.arguments?.getLong("highlightBillId")
                 ?.takeIf { it > 0L }
             val section = backStackEntry.arguments?.getString("section")
+            // The tab shell is a single destination: when a screen pushed on top of
+            // it is popped (e.g. Notifications Preferences), restore the tab and
+            // section the user left instead of re-seeding from tab=0 (BUG-021).
+            val mainState = backStackEntry.savedStateHandle
             MainScreen(
-                initialTab = selectedTab,
+                initialTab = mainState.get<Int>("selected_tab") ?: selectedTab,
                 initialSource = source,
                 initialHighlightBillId = highlightBillId,
-                initialSettingsSection = section,
+                initialSettingsSection = section ?: mainState.get<String>("settings_section"),
+                onTabSelected = { mainState["selected_tab"] = it },
+                onSettingsSectionChanged = { mainState["settings_section"] = it },
                 navController = navController,
                 onNewBill = { quickMode -> navController.navigate(Routes.newBill(quickMode = quickMode)) },
                 onActiveOrder = { navController.navigate(Routes.ACTIVE_ORDERS) },
@@ -209,8 +240,6 @@ internal fun AppNavGraph(
                     navController.navigate(Routes.activeOrderDetail(draftBillId))
                 },
                 onResumePendingPayment = { navController.navigate(Routes.newBill(resumePayment = true)) },
-                onOpenSyncCenter = { navController.navigate(Routes.main(NavigationTabs.TAB_SETTINGS, section = "sync_center")) },
-                onOpenPrinterSettings = { navController.navigate(Routes.main(NavigationTabs.TAB_SETTINGS, section = "printer")) },
                 onSearchBill = { navController.navigate(Routes.SEARCH_BILL) },
                 onReprintKot = { navController.navigate(Routes.REPRINT_KOT) },
                 onCallCustomer = { navController.navigate(Routes.CALL_CUSTOMER) },
@@ -328,6 +357,14 @@ internal fun AppNavGraph(
         composable(Routes.NOTIFICATIONS, deepLinks = listOf(navDeepLink { uriPattern = Routes.deepLink(Routes.NOTIFICATIONS) })) {
             NotificationsScreen(
                 onBack = { navController.popBackStack() },
+                onOpenNotification = { notification ->
+                    // The inbox used to just mark a row read; open what it is about,
+                    // the same way a tray tap or a banner does (BUG-027).
+                    navController.navigate(
+                        com.khanabook.lite.pos.feature.notifications.domain.NotificationRouteManager
+                            .routeForType(notification.notificationType)
+                    ) { launchSingleTop = true }
+                },
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -335,6 +372,18 @@ internal fun AppNavGraph(
             com.khanabook.lite.pos.feature.notifications.ui.NotificationPreferencesScreen(
                 onBack = { navController.popBackStack() },
                 modifier = Modifier.fillMaxSize()
+            )
+        }
+        composable(Routes.TUTORIALS) {
+            TutorialListScreen(
+                onBack = { navController.popBackStack() },
+                onSelectVideo = { fileName -> navController.navigate(Routes.tutorialVideo(fileName)) }
+            )
+        }
+        composable(Routes.TUTORIAL_VIDEO_PATTERN) { entry ->
+            InAppWebViewScreen(
+                fileName = entry.arguments?.getString("fileName").orEmpty(),
+                onBack = { navController.popBackStack() }
             )
         }
 

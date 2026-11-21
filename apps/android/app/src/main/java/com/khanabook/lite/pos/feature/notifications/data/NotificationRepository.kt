@@ -6,6 +6,7 @@ import android.util.Log
 import com.google.firebase.messaging.FirebaseMessaging
 import com.khanabook.lite.pos.feature.notifications.data.NotificationDao
 import com.khanabook.lite.pos.feature.notifications.data.NotificationEntity
+import com.khanabook.lite.pos.feature.notifications.worker.NotificationHelper
 import com.khanabook.lite.pos.core.network.KhanaBookApi
 import com.khanabook.lite.pos.feature.auth.domain.SessionManager
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -219,8 +220,15 @@ class NotificationRepository @Inject constructor(
                 val unseen = list.filter { it.id > baseline }
                 if (unseen.isEmpty()) return@collect
                 val newest = unseen.maxByOrNull { it.id } ?: return@collect
+                // Advance the cursor for muted types too: re-enabling a channel
+                // later must not replay alerts that were correctly suppressed.
                 prefs.edit().putLong(KEY_LAST_BANNER_ID, newest.id).apply()
-                _activeBanner.value = newest
+                val channelId = NotificationHelper.channelForType(newest.notificationType)
+                if (NotificationHelper.isLockedType(newest.notificationType) ||
+                    NotificationHelper.isChannelEnabled(context, channelId)
+                ) {
+                    _activeBanner.value = newest
+                }
             }
     }
 

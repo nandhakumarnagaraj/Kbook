@@ -101,3 +101,48 @@ jobs:
             apps/android/app/build/reports/androidTests/
             apps/android/app/build/outputs/androidTest-results/
           retention-days: 7
+
+  # Design-system goldens (Roborazzi + Robolectric, host-side, no emulator).
+  # Locks the KhanaBook theme tokens and component states that ANDROID_UI_RULES.md describes.
+  #
+  # continue-on-error is intentional and temporary, same rationale as the instrumented job:
+  # the goldens were recorded on a Windows dev machine and this runner is Linux, so the first
+  # comparison can differ by glyph rasterisation before anything is actually wrong. Read
+  # app/build/reports/roborazzi/index.html, re-record on Linux, commit the PNGs, then delete
+  # the continue-on-error line to turn this into a real gate.
+  android-screenshot-tests:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Create dummy google-services.json
+        run: |
+          mkdir -p app
+          echo '{"project_info":{"project_number":"000000000000","project_id":"khanabook-dummy","storage_bucket":"khanabook-dummy.appspot.com"},"client":[{"client_info":{"mobilesdk_app_id":"1:000000000000:android:0000000000000000000000","android_client_info":{"package_name":"com.piquantservices.khanabooklite.debug"}},"oauth_client":[],"api_key":[{"current_key":"DUMMY_KEY_FOR_CI"}],"services":{"appinvite_service":{"other_platform_oauth_client":[]}}}],"configuration_version":"1"}' > app/google-services.json
+
+      - name: Grant execute permission
+        run: chmod +x ./gradlew
+
+      - name: Verify design-system screenshots
+        run: ./gradlew :app:verifyRoborazziDebug --no-daemon
+
+      - name: Upload screenshot report and actual images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-screenshot-report
+          path: |
+            apps/android/app/build/reports/roborazzi/
+            apps/android/app/src/test/screenshots/
+          retention-days: 7
