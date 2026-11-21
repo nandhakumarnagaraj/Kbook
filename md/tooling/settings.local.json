@@ -1,0 +1,74 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew.bat compileDebugKotlin)",
+      "Bash(xargs grep *)",
+      "Bash(./gradlew.bat :app:compileDebugKotlin -x processDebugResources)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(grep -n \"^    }$\" \"C:/Users/nandh/AndroidStudioProjects/KhanaBook/Android/app/src/main/java/com/khanabook/lite/pos/ui/screens/OrdersScreen.kt\")",
+      "Bash(./gradlew :app:compileDebugKotlin -x processDebugResources)",
+      "Bash(./gradlew :app:compileDebugKotlin --quiet)",
+      "Bash(curl *)",
+      "Bash(git pull *)",
+      "Bash(sed -n '410,430p' app/src/main/java/com/khanabook/lite/pos/ui/screens/ReportsScreen.kt)",
+      "Bash(sed -n '865,875p' app/src/main/java/com/khanabook/lite/pos/ui/screens/OrdersScreen.kt)",
+      "Bash(git diff *)",
+      "Read(//tmp/**)",
+      "Bash(grep -v '^[0-9]*:-$')",
+      "Bash(awk '/^diff --git/{f=$0} /flatMapLatest \\\\{ restaurantId ->/{print f}' /tmp/review.diff)",
+      "Bash(python *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(/c/tools/apache-maven-3.9.9/bin/mvn -q -o compile)",
+      "Bash(/c/tools/apache-maven-3.9.9/bin/mvn -q -o test)",
+      "Bash(/c/tools/apache-maven-3.9.9/bin/mvn -o test)",
+      "Bash(./gradlew --offline :app:compileDebugKotlin)",
+      "Bash(grep -E \"Screen.kt$\")",
+      "Bash(xargs wc -l)",
+      "Bash(grep -E \"\\\\.\\(kt|java\\)$\")",
+      "Bash(git show *)",
+      "Bash(cat)",
+      "Bash(python3 *)",
+      "Read(//private/tmp/claude-501/-Users-wwzz-Downloads-proxyclawd/88833871-9d1c-410a-8425-a5a54e5377ef/scratchpad/**)",
+      "Bash(mvn -q -o test-compile)",
+      "Bash(mvn -q test-compile)",
+      "Bash(mvn -o test-compile)",
+      "Bash(mvn -o test -Dtest=MultiDeviceInvoiceSyncIntegrationTest)",
+      "Bash(bash -n deploy.sh)",
+      "Bash(git commit -m 'ci: run full suite with Docker; harden deploy.sh gate + backup/rollback *)",
+      "WebFetch(domain:kbook.iadv.cloud)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(ls AUDIT_45_FINDINGS.txt)",
+      "Bash(rm -f AUDIT_45_FINDINGS.txt)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/impeccable\" ] || \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/impeccable\" hook",
+            "timeout": 5,
+            "statusMessage": "Checking UI changes"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/impeccable\" ] || \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/impeccable\" hook",
+            "timeout": 30,
+            "statusMessage": "Design deep pass"
+          }
+        ]
+      }
+    ]
+  },
+  "description": "Impeccable design detector: immediate-tier checks after Edit/Write on UI files, full-rule deep pass on Stop."
+}

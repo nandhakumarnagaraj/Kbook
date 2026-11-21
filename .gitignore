@@ -99,8 +99,9 @@ opencode.json
 # Local test data file
 dev_test
 
-# Skill lock files
-skills-lock.json
+# Skill lock files are committed under md/tooling/ so a fresh clone
+# resolves the same skill versions.
+!/md/tooling/skills-lock.json
 
 # Empty log placeholders
 server-run.log
