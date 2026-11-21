@@ -4,15 +4,18 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AdminApiService } from '../../core/services/admin-api.service';
 import { ToastService } from '../../core/services/toast.service';
-import { AdminBillListItem, AdminBusinessListItem, AdminDashboardSummary } from '../../core/models/api.models';
+import {
+  AdminBillListItem,
+  AdminBusinessListItem,
+  AdminDailyTrendItem,
+  AdminDashboardSummary,
+} from '../../core/models/api.models';
 import { KpiItem, KpiRowComponent } from '../../shared/kpi-row.component';
 import { PageHeaderComponent } from '../../shared/page-header.component';
 
-const REVENUE_BARS = [14, 22, 30, 18, 27, 34, 24, 38, 26, 31, 19, 42, 36, 28, 45, 33, 26, 39, 47, 31, 36, 24, 41, 48, 34, 39];
-const ORDER_BARS = [24, 31, 42, 28, 36, 48, 34, 52, 38, 45, 30, 56, 50, 41, 62, 47, 39, 54, 64, 43, 52, 35, 58, 70, 50, 61];
+const NOT_LOADED = '—';
 
-export interface TopRow { rank: number; name: string; orders: number; revenue: string; aov: string; growth: string; up: boolean }
-export interface CityRow { rank: number; city: string; restaurants: number; orders: number; revenue: string; growth: string; up: boolean }
+export interface TopRow { rank: number; name: string; orders: number }
 export interface RecentRow { id: number; order: string; restaurant: string; time: string; amount: string; mode: 'UPI' | 'Card' | 'Cash' | 'Online'; status: 'Completed' | 'Cancelled'; customer: string }
 
 export interface PaymentModeShare {
@@ -23,14 +26,22 @@ export interface PaymentModeShare {
   tone: string;
 }
 
-const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
-  { name: 'Cash', share: 77.3, count: 1308, amount: '\u20B92,99,331.48', tone: 'seg-3' },
-  { name: 'UPI', share: 17.1, count: 290, amount: '\u20B91,60,407.32', tone: 'seg-1' },
-  { name: 'Split (Cash+UPI)', share: 2.7, count: 46, amount: '\u20B928,284.74', tone: 'seg-2' },
-  { name: 'POS / Card', share: 2.1, count: 36, amount: '\u20B923,177.94', tone: 'seg-4' },
-  { name: 'Other Split', share: 0.8, count: 12, amount: '\u20B96,895.20', tone: 'seg-5' },
-];
+/** How many bills are pulled to build the payment split; also stated in the UI. */
+const BILL_SAMPLE_SIZE = 100;
 
+/**
+ * Sales Overview.
+ *
+ * WHY: this page used to show hardcoded chart bars, a fixed payment split, a
+ * fabricated city ranking, invented KPI totals and sample invoices, all under a
+ * "Live PostgreSQL Data" chip. A platform admin could not tell which numbers
+ * were real. Every figure now comes from the API, and a missing or failed
+ * response renders as empty or "not loaded" rather than as plausible fiction.
+ *
+ * WHAT: summary → KPI row; daily trends → both charts and their axis labels;
+ * businesses → busiest outlets; bills → the payment split and the recent-bill
+ * table. City/region data is not exposed by any endpoint, so that panel is gone.
+ */
 @Component({
   selector: 'app-sales-overview-page',
   standalone: true,
@@ -40,11 +51,11 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
     <div class="page-shell">
       <app-page-header
         title="Sales Overview"
-        subtitle="Live platform sales metrics, settled orders, and payment performance."
+        subtitle="Platform sales, settled bills and payment performance from the admin API."
       >
         <div class="header-controls">
           <span class="chip-live">
-            <span class="live-dot" aria-hidden="true"></span> Live PostgreSQL Data
+            <span class="live-dot" aria-hidden="true"></span> PostgreSQL Data
           </span>
           <div class="range-pills" role="tablist" aria-label="Date range">
             @for (pill of rangeOptions; track pill) {
@@ -56,6 +67,13 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
           </button>
         </div>
       </app-page-header>
+
+      @if (error(); as message) {
+        <div class="page-error" role="alert">
+          <span>{{ message }}</span>
+          <button class="header-action-btn" type="button" (click)="refresh()">Retry</button>
+        </div>
+      }
 
       <app-kpi-row [items]="kpis()" ariaLabel="Sales summary"></app-kpi-row>
 
@@ -73,9 +91,14 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
               }
             </g>
           </svg>
-          <div class="axis-row" aria-hidden="true">
-            <span>Day 1</span><span>Day 10</span><span>Day 20</span><span>Day 26</span>
-          </div>
+          @if (!revenueChart().length) {
+            <p class="chart-empty">No daily trend returned for this range.</p>
+          }
+          @if (axisLabels(); as axis) {
+            <div class="axis-row" aria-hidden="true">
+              <span>{{ axis.first }}</span><span>{{ axis.last }}</span>
+            </div>
+          }
         </article>
 
         <article class="panel chart-panel">
@@ -90,9 +113,14 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
               }
             </g>
           </svg>
-          <div class="axis-row" aria-hidden="true">
-            <span>Day 1</span><span>Day 10</span><span>Day 20</span><span>Day 26</span>
-          </div>
+          @if (!ordersChart().length) {
+            <p class="chart-empty">No daily trend returned for this range.</p>
+          }
+          @if (axisLabels(); as axis) {
+            <div class="axis-row" aria-hidden="true">
+              <span>{{ axis.first }}</span><span>{{ axis.last }}</span>
+            </div>
+          }
         </article>
 
         <article class="panel chart-panel">
@@ -121,29 +149,34 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
               </div>
             </div>
             <ul class="donut-legend">
-              @for (row of PAYMENT_MODES; track row.name) {
+              @for (row of paymentModes(); track row.name) {
                 <li>
                   <span class="legend-dot" [class]="'legend-dot--' + row.tone"></span>
                   <strong>{{ row.name }}</strong>
                   <span class="muted">{{ row.share }}%</span>
                 </li>
+              } @empty {
+                <li class="muted">No settled bills returned.</li>
               }
             </ul>
           </div>
+          @if (billsLoaded(); as count) {
+            <p class="chart-empty">Split across the last {{ count }} settled bills.</p>
+          }
         </article>
       </section>
 
-      <!-- Top performers and cities -->
+      <!-- Busiest outlets -->
       <section class="pair-row">
         <article class="panel table-panel">
           <div class="panel-head">
-            <div><h2>Top Performing Outlets</h2></div>
-            <a routerLink="/admin/businesses" class="view-link">View All 139 Outlets</a>
+            <div><h2>Busiest Outlets</h2></div>
+            <a routerLink="/admin/businesses" class="view-link">View all outlets</a>
           </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead>
-                <tr><th>#</th><th>Outlet</th><th>Orders</th><th>Revenue</th><th>AOV</th><th>Status</th></tr>
+                <tr><th>#</th><th>Outlet</th><th>Orders</th></tr>
               </thead>
               <tbody>
                 @for (row of topRows(); track row.rank) {
@@ -151,40 +184,14 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
                     <td class="idx-col">{{ row.rank }}</td>
                     <td><strong>{{ row.name }}</strong></td>
                     <td>{{ row.orders }}</td>
-                    <td>{{ row.revenue }}</td>
-                    <td>{{ row.aov }}</td>
-                    <td><span class="chip success">Active</span></td>
                   </tr>
+                } @empty {
+                  <tr><td colspan="3" class="muted empty-cell">No outlets returned by the businesses endpoint.</td></tr>
                 }
               </tbody>
             </table>
           </div>
-        </article>
-
-        <article class="panel table-panel">
-          <div class="panel-head">
-            <div><h2>Top Regions By Outlets</h2></div>
-            <a routerLink="/admin/businesses" class="view-link">View Distribution</a>
-          </div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr><th>#</th><th>Region</th><th>Outlets</th><th>Orders</th><th>Revenue</th><th>Trend</th></tr>
-              </thead>
-              <tbody>
-                @for (row of cityRows(); track row.rank) {
-                  <tr>
-                    <td class="idx-col">{{ row.rank }}</td>
-                    <td><strong>{{ row.city }}</strong></td>
-                    <td>{{ row.restaurants }}</td>
-                    <td>{{ row.orders }}</td>
-                    <td>{{ row.revenue }}</td>
-                    <td class="growth up">{{ row.growth }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+          <p class="chart-empty">Ranked by the order count each outlet reports; revenue per outlet is not exposed by this endpoint.</p>
         </article>
       </section>
 
@@ -192,7 +199,7 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
       <section class="panel table-panel wide-panel">
         <div class="panel-head">
           <div><h2>Recent Settled Customer Bills</h2></div>
-          <a routerLink="/admin/businesses" class="view-link">View All Outlets</a>
+          <a routerLink="/admin/businesses" class="view-link">View all outlets</a>
         </div>
         <div class="table-wrap">
           <table class="data-table">
@@ -221,6 +228,8 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
                   </td>
                   <td class="actions-col"><button type="button" class="kebab-btn" aria-label="Row actions" (click)="rowAction(row)">⋮</button></td>
                 </tr>
+              } @empty {
+                <tr><td colspan="9" class="muted empty-cell">No settled bills returned by the bills endpoint.</td></tr>
               }
             </tbody>
           </table>
@@ -234,6 +243,7 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
       .range-pill { border: none; background: var(--kb-color-surface); color: var(--ink-2); padding: var(--kb-space-2) var(--kb-space-4); font-size: var(--kb-text-sm); cursor: pointer; }
       .range-pill.active { background: var(--brand); color: var(--kb-color-primary-foreground); }
       .range-pill:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+      .page-error { display: flex; align-items: center; justify-content: space-between; gap: var(--kb-space-4); margin-top: var(--kb-space-4); padding: var(--kb-space-3) var(--kb-space-4); border-radius: var(--kb-radius-lg); background: var(--danger-soft); color: var(--danger); font-size: var(--kb-text-sm); font-weight: 600; }
       .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--kb-space-4); margin-top: var(--kb-space-5); }
       @media (max-width: 1100px) { .charts-row { grid-template-columns: 1fr; } }
       .chart-panel, .table-panel { padding: var(--kb-space-4) var(--kb-space-5) var(--kb-space-5); }
@@ -249,6 +259,7 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
       .legend-dot--seg-4 { background: var(--kb-chart-1); }
       .legend-dot--seg-5 { background: var(--kb-chart-5); }
       .bar-svg { width: 100%; height: 170px; }
+      .chart-empty { margin: var(--kb-space-2) 0 0; font-size: var(--kb-text-xs); color: var(--muted); }
       .axis-row { display: flex; justify-content: space-between; margin-top: var(--kb-space-2); color: var(--muted); font-size: var(--kb-text-xs); }
       .donut-row { display: flex; gap: var(--kb-space-4); align-items: center; }
       .donut-svg-box { position: relative; width: 130px; height: 130px; flex: none; }
@@ -259,26 +270,13 @@ const DEFAULT_PAYMENT_MODES: PaymentModeShare[] = [
       .donut-center span { font-size: var(--kb-text-xs); color: var(--muted); }
       .donut-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--kb-space-2); font-size: var(--kb-text-xs); }
       .donut-legend li { display: flex; align-items: center; gap: var(--kb-space-2); }
-      .pair-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--kb-space-4); margin-top: var(--kb-space-4); }
-      @media (max-width: 1100px) { .pair-row { grid-template-columns: 1fr; } }
+      .pair-row { display: grid; grid-template-columns: 1fr; gap: var(--kb-space-4); margin-top: var(--kb-space-4); }
       .wide-panel { margin-top: var(--kb-space-4); }
       .idx-col { width: 40px; text-align: center; color: var(--muted); }
       .mono { font-family: var(--kb-font-mono); font-size: var(--kb-text-xs); color: var(--ink-2); }
       .stacked { display: flex; align-items: center; gap: var(--kb-space-2); }
       .avatar { width: 26px; height: 26px; border-radius: var(--kb-radius-full); background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-size: var(--kb-text-xs); font-weight: 700; }
-      .growth { font-weight: 700; }
-      .growth.up { color: var(--success); }
-      .chip { display: inline-flex; align-items: center; padding: var(--kb-space-1) var(--kb-space-2); border-radius: var(--kb-radius-full); font-size: var(--kb-text-xs); font-weight: 600; }
-      .chip.brand { background: var(--brand-soft); color: var(--brand); }
-      .chip.success { background: var(--success-soft); color: var(--success); }
-      .chip.danger { background: var(--danger-soft); color: var(--danger); }
-      .chip.warn { background: var(--warning-soft); color: var(--warning); }
-      .chip-live { display: inline-flex; align-items: center; gap: var(--kb-space-2); background: var(--success-soft); color: var(--success); font-size: var(--kb-text-xs); font-weight: 650; padding: var(--kb-space-1) var(--kb-space-3); border-radius: var(--kb-radius-full); }
-      .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex: none; }
-      .actions-col { width: 48px; text-align: center; }
-      .kebab-btn { border: none; background: transparent; color: var(--muted); font-size: var(--kb-text-lg); cursor: pointer; line-height: 1; }
-      .view-link { font-size: var(--kb-text-xs); color: var(--brand); font-weight: 650; text-decoration: none; }
-      .view-link:hover { text-decoration: underline; }
+      .empty-cell { text-align: center; padding: var(--kb-space-6) 0; font-size: var(--kb-text-sm); }
     `,
   ],
 })
@@ -286,81 +284,101 @@ export class SalesOverviewPageComponent implements OnInit {
   private readonly adminApi = inject(AdminApiService);
   private readonly toast = inject(ToastService);
 
-  readonly PAYMENT_MODES = DEFAULT_PAYMENT_MODES;
   readonly rangeOptions = ['Last 7 Days', 'Last 30 Days', 'This Month'] as const;
   readonly range = signal<'Last 7 Days' | 'Last 30 Days' | 'This Month'>('Last 30 Days');
 
   readonly summary = signal<AdminDashboardSummary | null>(null);
   readonly businesses = signal<AdminBusinessListItem[]>([]);
   readonly rawBills = signal<AdminBillListItem[]>([]);
+  readonly dailyTrends = signal<AdminDailyTrendItem[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
 
   readonly kpis = computed<KpiItem[]>(() => {
     const s = this.summary();
-    const rev = s ? s.totalRevenue : 436086.20;
-    const orders = s ? s.totalOrders : 1692;
-    const outlets = s ? s.liveBusinesses : 137;
-    const aov = orders > 0 ? Math.round(rev / orders) : 258;
+    // "—" until the summary arrives; a zero would claim there was no revenue.
+    const revenue = s ? '₹' + Number(s.totalRevenue || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }) : NOT_LOADED;
+    const orders = s ? Number(s.totalOrders || 0).toLocaleString('en-IN') : NOT_LOADED;
+    const outlets = s ? Number(s.liveBusinesses || 0).toLocaleString('en-IN') : NOT_LOADED;
+    const aov = s && Number(s.totalOrders) > 0
+      ? '₹' + Math.round(Number(s.totalRevenue) / Number(s.totalOrders)).toLocaleString('en-IN')
+      : NOT_LOADED;
+    const refunds = s ? Number(s.refundedOrders || 0).toLocaleString('en-IN') : NOT_LOADED;
 
     return [
-      { label: 'Total Revenue', value: '\u20B9' + Number(rev).toLocaleString('en-IN', { maximumFractionDigits: 2 }), icon: 'payments', tone: 'brand', caption: 'Total completed revenue' },
-      { label: 'Total Orders', value: Number(orders).toLocaleString('en-IN'), icon: 'orders', tone: 'danger', caption: '1,692 live database bills' },
-      { label: 'Active Outlets', value: outlets, icon: 'business', tone: 'success', caption: '137 active, 2 suspended' },
-      { label: 'Average Order Value', value: '\u20B9' + aov, icon: 'reports', tone: 'success', caption: 'Platform average ticket' },
-      { label: 'Total Accounts', value: '142', icon: 'staff', tone: 'danger', caption: '139 owners, 1 root admin' },
+      { label: 'Total Revenue', value: revenue, icon: 'payments', tone: 'brand', caption: 'Completed revenue reported by the summary' },
+      { label: 'Total Orders', value: orders, icon: 'orders', tone: 'danger', caption: 'Orders reported by the summary' },
+      { label: 'Active Outlets', value: outlets, icon: 'business', tone: 'success', caption: 'Live businesses in the summary' },
+      { label: 'Average Order Value', value: aov, icon: 'reports', tone: 'success', caption: 'Revenue divided by orders' },
+      { label: 'Refunded Orders', value: refunds, icon: 'history', tone: 'default', caption: 'Refunds reported by the summary' },
     ];
   });
 
-  readonly topRows = computed<TopRow[]>(() => {
-    const list = this.businesses();
-    if (!list.length) {
-      return [
-        { rank: 1, name: 'BiryaniWale Anna', orders: 347, revenue: '\u20B91,68,528', aov: '\u20B9485', growth: '+18.2%', up: true },
-        { rank: 2, name: 'ANANDA CATERERS', orders: 291, revenue: '\u20B960,990', aov: '\u20B9210', growth: '+12.6%', up: true },
-        { rank: 3, name: '5G Pizza', orders: 348, revenue: '\u20B952,655', aov: '\u20B9151', growth: '+9.4%', up: true },
-        { rank: 4, name: 'Piquant Services\'s Restaurant', orders: 67, revenue: '\u20B942,296', aov: '\u20B9631', growth: '+8.7%', up: true },
-        { rank: 5, name: 'HOTEL SHIVNANDA', orders: 34, revenue: '\u20B931,377', aov: '\u20B9923', growth: '+6.3%', up: true },
-      ];
-    }
-
-    return list
+  readonly topRows = computed<TopRow[]>(() =>
+    this.businesses()
       .toSorted((a, b) => (b.orderCount || 0) - (a.orderCount || 0))
       .slice(0, 5)
       .map((b, idx) => ({
         rank: idx + 1,
         name: b.shopName || 'Outlet #' + b.restaurantId,
         orders: b.orderCount || 0,
-        revenue: b.orderCount ? '\u20B9' + Number(b.orderCount * 258).toLocaleString('en-IN') : '\u20B90',
-        aov: '\u20B9258',
-        growth: '+12.4%',
-        up: true,
-      }));
-  });
+      })),
+  );
 
-  readonly cityRows = computed<CityRow[]>(() => {
-    return [
-      { rank: 1, city: 'Ahmedabad (Gujarat)', restaurants: 38, orders: 480, revenue: '\u20B91,24,500', growth: '+14.3%', up: true },
-      { rank: 2, city: 'Bengaluru (Karnataka)', restaurants: 32, orders: 412, revenue: '\u20B91,08,200', growth: '+11.6%', up: true },
-      { rank: 3, city: 'Patna (Bihar)', restaurants: 24, orders: 320, revenue: '\u20B984,600', growth: '+9.8%', up: true },
-      { rank: 4, city: 'Mumbai & Thane (Maharashtra)', restaurants: 26, orders: 290, revenue: '\u20B972,300', growth: '+8.1%', up: true },
-      { rank: 5, city: 'Other Districts', restaurants: 19, orders: 190, revenue: '\u20B946,486', growth: '+6.7%', up: true },
-    ];
+  /** Kept as its own signal so the template can name the sample the split covers. */
+  readonly billsLoaded = computed(() => this.rawBills().length);
+
+  readonly paymentModes = computed<PaymentModeShare[]>(() => {
+    const bills = this.rawBills();
+    if (!bills.length) {
+      return [];
+    }
+
+    const buckets = new Map<string, { count: number; amount: number; tone: string }>();
+    const add = (name: string, tone: string, amount: number) => {
+      const bucket = buckets.get(name) ?? { count: 0, amount: 0, tone };
+      bucket.count += 1;
+      bucket.amount += amount;
+      buckets.set(name, bucket);
+    };
+
+    for (const bill of bills) {
+      const mode = (bill.paymentMode || '').toLowerCase();
+      const amount = Number(bill.totalAmount || 0);
+      if (mode.includes('split')) add('Split (Cash+UPI)', 'seg-2', amount);
+      else if (mode.includes('upi')) add('UPI', 'seg-1', amount);
+      else if (mode.includes('card') || mode.includes('pos')) add('POS / Card', 'seg-4', amount);
+      else if (mode.includes('cash')) add('Cash', 'seg-3', amount);
+      else add('Other', 'seg-5', amount);
+    }
+
+    const total = bills.length;
+    const rows = [...buckets.entries()]
+      .map(([name, bucket]) => ({ name, ...bucket }))
+      .sort((a, b) => b.count - a.count);
+
+    // Shares are rounded to one decimal, and the last row takes the remainder so
+    // they always add up to exactly 100 rather than 99.9 or 100.1.
+    let assigned = 0;
+    return rows.map((row, index) => {
+      const share = index === rows.length - 1
+        ? Math.round((100 - assigned) * 10) / 10
+        : Math.round((row.count / total) * 1000) / 10;
+      assigned += share;
+      return {
+        name: row.name,
+        share,
+        count: row.count,
+        amount: '₹' + row.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        tone: row.tone,
+      };
+    });
   });
 
   readonly recentRows = computed<RecentRow[]>(() => {
-    const bills = this.rawBills();
-    if (!bills.length) {
-      return [
-        { id: 1, order: 'A000002', restaurant: 'Riyan Biryani restaurant', time: '07 Nov 2026, 12:09 PM', amount: '\u20B9570.00', mode: 'Cash', status: 'Completed', customer: 'Quick Bill' },
-        { id: 2, order: 'A000001', restaurant: 'Riyan Biryani restaurant', time: '07 Nov 2026, 12:07 PM', amount: '\u20B9460.00', mode: 'Cash', status: 'Completed', customer: 'Quick Bill' },
-        { id: 3, order: 'C000197', restaurant: 'BiryaniWale Anna', time: '07 Nov 2026, 11:14 AM', amount: '\u20B9770.00', mode: 'UPI', status: 'Completed', customer: 'Quick Bill' },
-        { id: 4, order: 'A000054', restaurant: 'Piquant Services\'s Restaurant', time: '07 Nov 2026, 07:05 AM', amount: '\u20B9367.50', mode: 'UPI', status: 'Completed', customer: 'Tableone' },
-        { id: 5, order: 'A000053', restaurant: 'Piquant Services\'s Restaurant', time: '07 Nov 2026, 07:04 AM', amount: '\u20B9367.50', mode: 'Cash', status: 'Completed', customer: 'TableOne' },
-      ];
-    }
-
-    return bills.slice(0, 10).map((b) => {
+    return this.rawBills().slice(0, 10).map((b) => {
       const mode = (b.paymentMode || '').toLowerCase();
-      const mappedMode: RecentRow['mode'] = mode.includes('upi') ? 'UPI' : mode.includes('pos') || mode.includes('card') ? 'Card' : 'Cash';
+      const mappedMode: RecentRow['mode'] = mode.includes('upi') ? 'UPI' : mode.includes('pos') || mode.includes('card') ? 'Card' : mode.includes('cash') ? 'Cash' : 'Online';
       const d = b.createdAt ? new Date(b.createdAt) : new Date();
       const timeStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' +
         d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -370,7 +388,7 @@ export class SalesOverviewPageComponent implements OnInit {
         order: b.invoiceNumber || ('#' + b.id),
         restaurant: b.shopName || 'Outlet #' + b.restaurantId,
         time: timeStr,
-        amount: '\u20B9' + Number(b.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+        amount: '₹' + Number(b.totalAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
         mode: mappedMode,
         status: (b.orderStatus === 'cancelled' ? 'Cancelled' : 'Completed') as RecentRow['status'],
         customer: b.customerName || 'Quick Bill',
@@ -380,28 +398,20 @@ export class SalesOverviewPageComponent implements OnInit {
 
   readonly totalOrdersFormatted = computed(() => {
     const s = this.summary();
-    const count = s ? s.totalOrders : 1692;
-    return Number(count).toLocaleString('en-IN');
+    return s ? Number(s.totalOrders || 0).toLocaleString('en-IN') : NOT_LOADED;
   });
 
-  readonly revenueChart = computed(() => {
-    const count = this.barCount();
-    const seg = REVENUE_BARS.slice(0, count);
-    const max = Math.max(...seg);
-    return seg.map((v, i) => {
-      const height = Math.round((v / max) * 130);
-      return { i, x: Math.round(i * (260 / count)) + 4, y: 150 - height, height };
-    });
-  });
+  readonly revenueChart = computed(() => this.barsFrom(this.trendSlice(), (point) => point.revenue));
+  readonly ordersChart = computed(() => this.barsFrom(this.trendSlice(), (point) => point.orderCount));
 
-  readonly ordersChart = computed(() => {
-    const count = this.barCount();
-    const seg = ORDER_BARS.slice(0, count);
-    const max = Math.max(...seg);
-    return seg.map((v, i) => {
-      const height = Math.round((v / max) * 130);
-      return { i, x: Math.round(i * (260 / count)) + 4, y: 150 - height, height };
-    });
+  readonly axisLabels = computed(() => {
+    const points = this.trendSlice();
+    if (!points.length) {
+      return null;
+    }
+    const label = (point: AdminDailyTrendItem) =>
+      new Date(point.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    return { first: label(points[0]), last: label(points[points.length - 1]) };
   });
 
   ngOnInit(): void {
@@ -409,24 +419,62 @@ export class SalesOverviewPageComponent implements OnInit {
   }
 
   refresh(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    let pending = 4;
+
+    const settle = () => {
+      pending -= 1;
+      if (pending === 0) {
+        this.loading.set(false);
+      }
+    };
+    const fail = (err: unknown) => {
+      this.error.set(
+        (err as { error?: { message?: string } })?.error?.message ||
+          'Could not load sales data from the server.',
+      );
+      settle();
+    };
+
     this.adminApi.getDashboardSummary().subscribe({
-      next: (res) => this.summary.set(res),
-      error: () => {},
+      next: (res) => { this.summary.set(res); settle(); },
+      error: (err) => fail(err),
     });
 
     this.adminApi.getBusinesses().subscribe({
-      next: (res) => this.businesses.set(res),
-      error: () => {},
+      next: (res) => { this.businesses.set(Array.isArray(res) ? res : []); settle(); },
+      error: (err) => fail(err),
     });
 
-    this.adminApi.getBills(20).subscribe({
-      next: (res) => this.rawBills.set(res),
-      error: () => {},
+    this.adminApi.getBills(BILL_SAMPLE_SIZE).subscribe({
+      next: (res) => { this.rawBills.set(Array.isArray(res) ? res : []); settle(); },
+      error: (err) => fail(err),
+    });
+
+    this.adminApi.getDailyTrends(this.rangeDays()).subscribe({
+      next: (res) => { this.dailyTrends.set(Array.isArray(res) ? res : []); settle(); },
+      error: (err) => fail(err),
     });
   }
 
-  private barCount(): number {
-    return this.range() === 'Last 7 Days' ? 7 : 26;
+  private rangeDays(): number {
+    return this.range() === 'Last 7 Days' ? 7 : this.range() === 'This Month' ? 30 : 30;
+  }
+
+  private trendSlice(): AdminDailyTrendItem[] {
+    const days = this.rangeDays();
+    return this.dailyTrends().slice(-days);
+  }
+
+  private barsFrom(points: AdminDailyTrendItem[], value: (point: AdminDailyTrendItem) => number) {
+    const values = points.map((point) => Number(value(point) || 0));
+    const max = Math.max(1, ...values);
+    const count = Math.max(1, values.length);
+    return values.map((v, i) => {
+      const height = Math.round((v / max) * 130);
+      return { i, x: Math.round(i * (260 / count)) + 4, y: 150 - height, height };
+    });
   }
 
   private readonly SEGMENT_COLORS: Record<string, string> = {
@@ -454,7 +502,7 @@ export class SalesOverviewPageComponent implements OnInit {
   }
 
   paymentDonut() {
-    return this.donutSegments(DEFAULT_PAYMENT_MODES);
+    return this.donutSegments(this.paymentModes());
   }
 
   modeChip(mode: RecentRow['mode']): string {
@@ -462,6 +510,6 @@ export class SalesOverviewPageComponent implements OnInit {
   }
 
   rowAction(row: RecentRow): void {
-    this.toast.show(`${row.order} at ${row.restaurant} — settled bill record from PostgreSQL.`, 'info');
+    this.toast.show(`${row.order} · ${row.restaurant} · ${row.amount} · ${row.mode}`, 'info');
   }
 }
