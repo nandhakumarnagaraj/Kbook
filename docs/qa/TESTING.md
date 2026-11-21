@@ -14,6 +14,7 @@
 | Android unit (all variants) | `apps/android/` | `./gradlew.bat test` | — |
 | Android instrumented | `apps/android/` | `./gradlew.bat connectedAndroidTest` | 28 files (needs device/emulator + Hilt runner) |
 | Android lint | `apps/android/` | `./gradlew.bat lint` | — |
+| Android screenshots (design system) | `apps/android/` | `./gradlew.bat :app:verifyRoborazziDebug` (record: `:app:recordRoborazziDebug`) | 6 goldens, host-side |
 | Server | `services/server/` | `mvn test` | 115 files |
 | Server, single class | `services/server/` | `mvn test -Dtest=ClassName` | — |
 | Server build | `services/server/` | `mvn clean package` | `-DskipTests` to skip |
@@ -28,7 +29,7 @@ Unit tests need **no Docker**. Only the gated integration suite does (§3.4).
 | Workflow | Trigger | Jobs |
 |---|---|---|
 | `ci.yml` | push to `main`, every PR | **server** (`./mvnw -B test`, with exclusions — see §3.1), **android** (`./gradlew testDebugUnitTest`, writes a stub `google-services.json`), **web-admin** (`npm ci` → Karma headless → `npm run check:motion`) |
-| `android-ci.yml` | push | `android-unit-tests`, `android-lint` |
+| `android-ci.yml` | push | `android-lint`, `android-instrumented-tests` (non-blocking), `android-screenshot-tests` (non-blocking) |
 | `web-admin.yml` | push | `npm ci`, Karma headless, `check:motion`, `npm run build` |
 | `gated-tests.yml` | see file | `testcontainers-gate` — `mvn test -Dtest=MultiDeviceInvoiceSyncIntegrationTest,PostgresMigrationSmokeTest` |
 | `guards.yml` | push/PR to `main`, `v1`, `v3` | `guard-v2-artifacts` (fails on `DbCheck`, `QuickDbCheck`, `dev-debug`, `dev-refresh`, new `*storefront*` sources), `guard-credential-files` (fails on newly tracked credential filenames), `guard-web-admin-states` |
@@ -100,8 +101,32 @@ them as failures, so verify current state before assuming green.
 | `guard-credential-files` | newly tracked credential files (`.env`, keystores, `google-services.json`) |
 | `guard-web-admin-states` | web pages missing required UI states |
 | `check:motion` | animation durations outside the 150–300 ms band (reads every stylesheet/template, not just mounted pages) |
+| `.githooks/pre-push` | blocks only when OpenQodex returns exit 1; otherwise it reports. See below. |
+
+### Pre-push review gate
+
+`core.hooksPath` is `.githooks`, so every `git push` runs OpenQodex's
+`hook pre-push`. The hook resolves the binary from `PATH`, then
+`$HOME/.openqodex/bin`, then the pinned `npx openqodex@0.16.0` release — a
+hardcoded `/root/...` path silently skipped the gate on Windows checkouts.
+
+A review is keyed to **the change OpenQodex saw**. A review taken while the
+working tree holds uncommitted files covers those files too, so its change id can
+never match a push that carries commits only, and the hook prints *"has not
+reviewed this change"*. That is expected in this repository whenever other work
+is uncommitted; the hook now says so instead of leaving a bare warning.
+
+To get a receipt that actually matches a push:
+
+```bash
+git status --short            # commit or stash the unrelated work first
+npx -y openqodex@0.16.0 review      # or: review --agent, when no reviewer is installed
+# …fix the findings, finalize the receipt, then:
+git push origin main
+```
 
 ## 6. Quick verification recipes
+
 
 ```bash
 # Full local gate (what CI will run)
@@ -116,3 +141,36 @@ cd services/server && ./mvnw test -Dtest='*Sync*Test'
 
 When reporting results, state **pass/fail counts and what was excluded** — a green
 filtered run is not a green full run.
+
+## 7. Design-system screenshot tests
+
+`apps/android/app/src/test/java/com/khanabook/lite/pos/designsystem/DesignSystemScreenshotTest.kt`
+renders the KhanaBook design-system components inside the real `KhanaBookLiteTheme` and
+compares the pixels against committed PNGs in `apps/android/app/src/test/screenshots/`.
+
+This is the only automated enforcement of `docs/meta/ANDROID_UI_RULES.md` and the Android
+section of `docs/meta/AGENTS.md`: dark-only palette, gold accents, token spacing, `KhanaRadii`
+shapes, responsive type tiers, semantic status colours.
+
+| Action | Command |
+|---|---|
+| Verify (CI gate) | `./gradlew.bat :app:verifyRoborazziDebug` |
+| Re-record after an intended UI change | `./gradlew.bat :app:recordRoborazziDebug` |
+| Diff report on failure | `apps/android/app/build/reports/roborazzi/index.html` |
+
+**Rules.** A failing verify means the pixels changed. Read the diff, then either fix the
+regression or re-record **in the same commit as the code change**. Re-recording to silence a
+diff you have not read destroys the gate.
+
+**Caveats — do not over-trust a green run:**
+
+1. Goldens are rendered by Robolectric on **SDK 34** (`app/src/test/resources/robolectric.properties`).
+   Robolectric 4.15.x has no SDK 36 runtime, so Android 15/16-only behaviour is not covered.
+2. **Poppins is not present.** `core/theme/Type.kt` resolves it through Google Fonts
+   (downloadable), which Robolectric cannot fetch, so goldens render the platform fallback
+   typeface. These tests lock layout, colour, spacing and shape — **not glyph metrics**.
+   Font regressions still require a device or emulator.
+3. Host-side rendering can differ slightly across operating systems. Goldens were recorded on
+   Windows; if the Linux CI job disagrees on the first run, re-record there and commit — the
+   gate is only meaningful once the recording platform matches CI.
+

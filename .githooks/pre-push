@@ -13,10 +13,33 @@ else
 fi
 
 if [ -n "$OPENQODEX" ]; then
-  "$OPENQODEX" hook pre-push "$@"
+  output=$("$OPENQODEX" hook pre-push "$@" 2>&1)
+  status=$?
 else
-  npx -y openqodex@0.16.0 hook pre-push "$@"
+  output=$(npx -y openqodex@0.16.0 hook pre-push "$@" 2>&1)
+  status=$?
 fi
-status=$?
-[ "$status" -eq 1 ] && exit 1
+
+printf '%s\n' "$output"
+
+# OpenQodex blocks with exit 1; anything else is a report.
+if [ "$status" -eq 1 ]; then
+  exit 1
+fi
+
+# A review is keyed to the change it saw. If the working tree held uncommitted
+# files when it ran, that change includes them, so it can never match a push of
+# commits alone — the warning is expected, not a broken receipt. Say which case
+# this is instead of leaving a bare "not reviewed".
+case "$output" in
+  *"has not reviewed this change"*)
+    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+      echo "note: the working tree has uncommitted files, so the reviewed change and this push cannot share an identity."
+      echo "      Review again after committing or stashing them to get a matching receipt, or push knowing this report is advisory."
+    else
+      echo "note: the working tree is clean, so this push really is unreviewed — run 'openqodex review' before pushing."
+    fi
+    ;;
+esac
+
 exit 0
