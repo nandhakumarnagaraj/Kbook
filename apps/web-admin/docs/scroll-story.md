@@ -35,6 +35,7 @@ Preview it at **`/story`** (`npm start`, then `http://localhost:4200/story`).
 | `framePrefix` | `frame-` | File name before the number. |
 | `frameExtension` | `webp` | `webp`, `jpg` … |
 | `framePadding` | `3` | `frame-001` is padding 3. |
+| `frameStride` | `1` | Load every nth frame. The dashboard band uses `3`, so it fetches 40 images (~430 kB) instead of 120 (~1.3 MB); the lookup falls back to the nearest loaded frame, so a stride costs smoothness, never a blank canvas. |
 | `scrollLength` | `4` | Track height in viewport heights. 4 = 400svh, 3 screens of scrubbing. |
 | `variant` | `scrub` | `scrub` pins the stage for `scrollLength` screens. `band` keeps the stage at `--kb-sequence-stage-height` and scrubs while the band crosses the viewport, so it can sit inside a normal page without adding empty scroll. |
 | `label` | `Scroll-driven animation` | `aria-label` on the canvas; the frames carry the story. |

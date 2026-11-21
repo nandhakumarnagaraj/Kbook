@@ -154,6 +154,12 @@ export class ScrollSequenceComponent {
   readonly framePrefix = input('frame-');
   readonly frameExtension = input('webp');
   readonly framePadding = input(3);
+  /**
+   * Load every nth frame. The band on a data page uses 3, so it pays for a third
+   * of the page weight; the lookup falls back to the nearest loaded frame, so a
+   * stride only costs smoothness, never a blank canvas.
+   */
+  readonly frameStride = input(1);
   /** Track height in viewport heights. Higher = the same frames play over more scroll. */
   readonly scrollLength = input(4);
   /**
@@ -167,12 +173,14 @@ export class ScrollSequenceComponent {
 
   /** Frames that settled (loaded or failed); drives the loader percentage. */
   readonly resolved = signal(0);
+  /** Frames actually fetched: one per `frameStride` step through the sequence. */
+  readonly slotCount = computed(() => frameSlotCount(this.frameCount(), this.frameStride()));
   readonly percent = computed(() => {
-    const count = this.frameCount();
-    if (count <= 0) {
+    const slots = this.slotCount();
+    if (slots <= 0) {
       return 100;
     }
-    return Math.min(100, Math.round((this.resolved() / count) * 100));
+    return Math.min(100, Math.round((this.resolved() / slots) * 100));
   });
 
   private readonly track = viewChild.required<ElementRef<HTMLElement>>('track');
@@ -203,11 +211,12 @@ export class ScrollSequenceComponent {
     effect(() => {
       const base = this.frameBase().replace(/\/$/, '');
       const count = this.frameCount();
+      const stride = this.frameStride();
       // Loading writes `resolved`, and an effect may not write signals by default
       // (NG0600), so the load starts once this effect has finished.
       queueMicrotask(() => {
         if (!this.destroyed) {
-          void this.loadFrames(base, count);
+          void this.loadFrames(base, count, stride);
         }
       });
     });
@@ -390,8 +399,12 @@ export class ScrollSequenceComponent {
     this.drawnIndex = index;
   }
 
+  private slotFor(index: number): number {
+    return frameSlotFor(index, this.frameStride(), this.slotCount());
+  }
+
   private nearestLoaded(index: number): HTMLImageElement | undefined {
-    for (let i = index; i >= 0; i--) {
+    for (let i = this.slotFor(index); i >= 0; i--) {
       const frame = this.frames[i];
       if (frame && frame.complete && frame.naturalWidth > 0) {
         return frame;
@@ -400,64 +413,103 @@ export class ScrollSequenceComponent {
     return this.frames.find((frame) => frame?.complete && frame.naturalWidth > 0);
   }
 
-  private async loadFrames(base: string, count: number): Promise<void> {
+  private async loadFrames(base: string, count: number, stride: number): Promise<void> {
     const token = {};
     this.loadToken = token;
 
-    this.frames = new Array(count);
+    const slots = frameSlotCount(count, stride);
+    this.frames = new Array(slots);
     this.resolved.set(0);
     this.drawnIndex = -1;
 
     // Nothing to fetch during server rendering: there is no Image constructor, and
     // the first client render loads the set anyway.
-    if (!count || !base || typeof Image === 'undefined') {
+    if (!slots || !base || typeof Image === 'undefined') {
       return;
     }
 
     // The first frame is awaited on its own so the opening paint is not queued
     // behind the rest of the sequence.
-    await this.loadFrame(0, base, token);
+    await this.loadFrame(0, base, token, stride);
     if (token !== this.loadToken) {
       return;
     }
     this.drawFrame(this.frameIndex(), true);
 
-    const pending = Array.from({ length: count - 1 }, (_, i) => i + 1);
+    const pending = Array.from({ length: slots - 1 }, (_, i) => i + 1);
     const workers = Array.from({ length: Math.min(6, pending.length) }, async () => {
       while (pending.length && token === this.loadToken) {
-        await this.loadFrame(pending.shift() as number, base, token);
+        await this.loadFrame(pending.shift() as number, base, token, stride);
       }
     });
 
     await Promise.all(workers);
   }
 
-  private loadFrame(index: number, base: string, token: object): Promise<void> {
+  /** `slot` is the position in the fetched set; the file is `slot * stride` in the sequence. */
+  private loadFrame(slot: number, base: string, token: object, stride: number): Promise<void> {
     return new Promise((resolve) => {
       const settle = () => {
         if (token === this.loadToken) {
           this.resolved.update((value) => value + 1);
-          if (index === this.frameIndex()) {
-            this.drawFrame(index, true);
+          if (slot === this.slotFor(this.frameIndex())) {
+            this.drawFrame(this.frameIndex(), true);
           }
         }
         resolve();
       };
 
+      const sequenceIndex = slot * Math.max(1, Math.floor(stride) || 1);
       const image = new Image();
       image.decoding = 'async';
       image.onload = () => {
         if (token === this.loadToken) {
-          this.frames[index] = image;
+          this.frames[slot] = image;
         }
         settle();
       };
       // A missing frame leaves a gap rather than rejecting: the loader must not
       // hang on one bad file, and `nearestLoaded` covers the hole at paint time.
       image.onerror = settle;
-      image.src = `${base}/${this.framePrefix()}${String(index + 1).padStart(this.framePadding(), '0')}.${this.frameExtension()}`;
+      image.src = `${base}/${this.framePrefix()}${String(sequenceIndex + 1).padStart(this.framePadding(), '0')}.${this.frameExtension()}`;
     });
   }
+}
+
+/**
+ * How many images a sequence with `frameCount` frames fetches at `stride`.
+ *
+ * Boundaries: 120 frames at stride 1 is 120 slots, at stride 3 is 40. A stride
+ * below 1 (or not a number) is treated as 1, so the set can never be empty for a
+ * non-empty sequence; a count of 0 or less has nothing to fetch and returns 0.
+ */
+export function frameSlotCount(frameCount: number, stride: number): number {
+  if (!Number.isFinite(frameCount) || frameCount <= 0) {
+    return 0;
+  }
+  return Math.ceil(frameCount / normaliseStride(stride));
+}
+
+/**
+ * Slot in the fetched set for a frame index.
+ *
+ * Slot `n` holds frame `n * stride`, so frame 0-2 at stride 3 are slot 0 and
+ * frame 3 is slot 1. The result is clamped to the last slot, because the final
+ * partial group (119 at stride 3 is slot 39 of 0-39) must not ask for a frame
+ * that was never fetched.
+ */
+export function frameSlotFor(frameIndex: number, stride: number, slotCount: number): number {
+  if (!(slotCount > 0)) {
+    return 0;
+  }
+  const slot = Math.floor(Math.max(0, frameIndex) / normaliseStride(stride));
+  return Math.min(slotCount - 1, slot);
+}
+
+/** A stride is a positive whole number of frames; anything else means "every frame". */
+function normaliseStride(stride: number): number {
+  const step = Math.floor(stride);
+  return Number.isFinite(step) && step >= 1 ? step : 1;
 }
 
 /**

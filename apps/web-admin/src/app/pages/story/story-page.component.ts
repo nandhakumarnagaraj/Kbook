@@ -60,7 +60,11 @@ import { ScrollSequenceComponent } from '../../shared/scroll-sequence.component'
                   it back — no video element, no animation library.
                 </p>
               </div>
-              <div class="story-act story-act-2">
+              <!-- Acts 2 and 3 are decorative continuations of the headline and are
+                   only hidden with opacity, so they are taken out of the
+                   accessibility tree: a screen reader gets the h1 and lede in act 1,
+                   not three competing headlines. -->
+              <div class="story-act story-act-2" aria-hidden="true">
                 <p class="story-eyebrow">No signal, no queue</p>
                 <p class="story-title">The wifi drops. The bill still prints.</p>
                 <p class="story-lede">
@@ -68,7 +72,7 @@ import { ScrollSequenceComponent } from '../../shared/scroll-sequence.component'
                   The cloud catches up when the connection comes back.
                 </p>
               </div>
-              <div class="story-act story-act-3">
+              <div class="story-act story-act-3" aria-hidden="true">
                 <p class="story-eyebrow">One shop, every screen</p>
                 <p class="story-title">By the time you look, the day is already there.</p>
                 <p class="story-lede">

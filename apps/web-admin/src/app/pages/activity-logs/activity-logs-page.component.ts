@@ -31,8 +31,11 @@ const PAGE_SIZE = 10;
         subtitle="Chronological audit trail of platform and terminal-level events from PostgreSQL."
       >
         <div class="header-controls">
+          <!-- "Live" was removed: the page is a snapshot fetched on load and on
+               Refresh, not a stream, and the chip must not claim more freshness
+               than the table has. -->
           <span class="chip-live">
-            <span class="live-dot" aria-hidden="true"></span> Live Audit Trail
+            <span class="live-dot" aria-hidden="true"></span> Audit Trail
           </span>
           <button class="header-action-btn" type="button" (click)="loadLogs()">
             <span aria-hidden="true">&#8635;</span> Refresh
@@ -51,6 +54,11 @@ const PAGE_SIZE = 10;
             [class.filter-chip--active]="categoryFilter() === category"
             (click)="setFilter(category)"
           >{{ category }}</button>
+        </div>
+
+        <div class="logs-error" role="alert" *ngIf="error() as message">
+          <span>{{ message }}</span>
+          <button class="header-action-btn" type="button" (click)="loadLogs()">Retry</button>
         </div>
 
         <div class="table-wrap">
@@ -76,7 +84,8 @@ const PAGE_SIZE = 10;
                   </span>
                 </td>
               </tr>
-              <tr *ngIf="!pagedEntries().length"><td colspan="6" class="muted empty-cell">No events found matching this filter.</td></tr>
+              <tr *ngIf="loading()"><td colspan="6" class="muted empty-cell">Loading the audit trail…</td></tr>
+              <tr *ngIf="!loading() && !pagedEntries().length"><td colspan="6" class="muted empty-cell">No events found matching this filter.</td></tr>
             </tbody>
           </table>
         </div>
@@ -113,6 +122,7 @@ const PAGE_SIZE = 10;
       .chip.success { background: var(--success-soft); color: var(--success); }
       .chip.neutral { background: var(--surface-2); color: var(--ink-2); }
       .empty-cell { text-align: center; padding: var(--kb-space-6) 0; font-size: var(--kb-text-sm); }
+      .logs-error { display: flex; align-items: center; justify-content: space-between; gap: var(--kb-space-4); padding: var(--kb-space-3) var(--kb-space-4); border-radius: var(--kb-radius-lg); background: var(--danger-soft); color: var(--danger); font-size: var(--kb-text-sm); font-weight: 600; }
     `,
   ],
 })
@@ -125,34 +135,36 @@ export class ActivityLogsPageComponent implements OnInit {
   readonly page = signal(1);
 
   readonly rawLogs = signal<AdminActivityLogItem[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
 
+  /**
+   * Counts come from the loaded rows only. They used to fall back to invented
+   * totals (3,837 / 2,480 / 1,200 / 157) whenever the list was empty, which made
+   * a failed request look like a busy audit trail. An empty list now reads 0.
+   */
   readonly kpis = computed<KpiItem[]>(() => {
     const list = this.rawLogs();
-    const total = list.length || 3837;
     const authCount = list.filter((l) => (l.action || '').includes('AUTH') || (l.action || '').includes('LOGIN')).length;
     const syncCount = list.filter((l) => (l.action || '').includes('SYNC') || (l.action || '').includes('TERMINAL')).length;
     const permCount = list.filter((l) => (l.action || '').includes('PERMISSION')).length;
 
     return [
-      { label: 'Total Audit Logs', value: total.toLocaleString('en-IN'), icon: 'history', tone: 'brand', caption: 'Database security events' },
-      { label: 'Terminal Syncs', value: (syncCount || 2480).toLocaleString('en-IN'), icon: 'flag', tone: 'success', caption: 'State sync & sweeps' },
-      { label: 'Access Grants', value: (permCount || 1200).toLocaleString('en-IN'), icon: 'manage_accounts', tone: 'default', caption: 'Staff permission events' },
-      { label: 'Auth Checkpoints', value: (authCount || 157).toLocaleString('en-IN'), icon: 'payments', tone: 'brand', caption: 'Session verifications' },
+      { label: 'Total Audit Logs', value: list.length.toLocaleString('en-IN'), icon: 'history', tone: 'brand', caption: 'Rows returned by the audit trail' },
+      { label: 'Terminal Syncs', value: syncCount.toLocaleString('en-IN'), icon: 'flag', tone: 'success', caption: 'Sync and terminal events' },
+      { label: 'Access Grants', value: permCount.toLocaleString('en-IN'), icon: 'manage_accounts', tone: 'default', caption: 'Permission events' },
+      { label: 'Auth Checkpoints', value: authCount.toLocaleString('en-IN'), icon: 'payments', tone: 'brand', caption: 'Login and auth events' },
     ];
   });
 
+  /**
+   * Rows come from the API only. Four hardcoded events used to stand in for an
+   * empty or failed response, so a broken request looked like real audit data
+   * ("System Daemon", "BiryaniWale Anna", "User #45"). Nothing is invented now:
+   * an empty result renders the empty state.
+   */
   readonly displayLogs = computed<DisplayLogRow[]>(() => {
-    const logs = this.rawLogs();
-    if (!logs.length) {
-      return [
-        { id: 5020, at: 'Just now', actor: 'System Daemon', role: 'Platform Core', action: 'TERMINAL_SYNC', target: 'TERMINAL_STALE_SWEPT · Canonical A', category: 'terminal' },
-        { id: 5019, at: '1 hr ago', actor: 'User #45', role: 'BiryaniWale Anna', action: 'PERMISSION_GRANT', target: 'user:190:reports.day_summary (revoked->granted)', category: 'auth' },
-        { id: 5018, at: '1 hr ago', actor: 'User #45', role: 'BiryaniWale Anna', action: 'PERMISSION_GRANT', target: 'user:190:orders.view (revoked->granted)', category: 'auth' },
-        { id: 5017, at: '1 hr ago', actor: 'User #45', role: 'BiryaniWale Anna', action: 'PERMISSION_GRANT', target: 'user:190:menu.view (revoked->granted)', category: 'menu' },
-      ];
-    }
-
-    return logs.map((l) => {
+    return this.rawLogs().map((l) => {
       const d = l.createdAt ? new Date(l.createdAt) : new Date();
       const timeStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ', ' +
         d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
@@ -193,9 +205,20 @@ export class ActivityLogsPageComponent implements OnInit {
   }
 
   loadLogs(): void {
+    this.loading.set(true);
+    this.error.set(null);
     this.adminApi.getActivityLogs(100).subscribe({
-      next: (res) => this.rawLogs.set(res),
-      error: () => {},
+      next: (res) => {
+        this.rawLogs.set(Array.isArray(res) ? res : []);
+        this.loading.set(false);
+      },
+      // A failed request must say so: silently keeping the previous rows (or the
+      // old demo rows) is how a stale page gets mistaken for a live one.
+      error: (err) => {
+        this.rawLogs.set([]);
+        this.error.set(err?.error?.message || 'Could not load the audit trail from the server.');
+        this.loading.set(false);
+      },
     });
   }
 

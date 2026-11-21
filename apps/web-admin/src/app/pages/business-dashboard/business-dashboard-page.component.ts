@@ -220,6 +220,7 @@ function getTodayIsoDate(): string {
             variant="band"
             frameBase="/sequence/plate"
             [frameCount]="120"
+            [frameStride]="3"
             label="A gold thali of seven dishes on a deep violet table">
             <div class="dash-hero__copy">
               <p class="dash-hero__shop">{{ viewDashboard()?.shopName || 'Your restaurant' }}</p>

@@ -3,6 +3,8 @@ import {
   clamp01,
   coverRect,
   frameIndexFor,
+  frameSlotCount,
+  frameSlotFor,
   scrollProgress,
 } from './scroll-sequence.component';
 
@@ -80,6 +82,40 @@ describe('scroll-sequence math', () => {
     it('reports 0 for a track with no travel, rather than dividing by zero', () => {
       expect(scrollProgress(-10, 1000, 1000)).toBe(0);
       expect(scrollProgress(-10, 400, 1000)).toBe(0);
+    });
+  });
+
+  describe('frameSlotCount / frameSlotFor', () => {
+    it('fetches every frame at stride 1 and a third of them at stride 3', () => {
+      expect(frameSlotCount(120, 1)).toBe(120);
+      expect(frameSlotCount(120, 3)).toBe(40);
+    });
+
+    it('rounds a partial group up so the last frame is not dropped', () => {
+      expect(frameSlotCount(121, 3)).toBe(41);
+      expect(frameSlotCount(119, 3)).toBe(40);
+    });
+
+    it('has nothing to fetch for an empty sequence', () => {
+      expect(frameSlotCount(0, 3)).toBe(0);
+      expect(frameSlotCount(-5, 3)).toBe(0);
+    });
+
+    it('maps three consecutive frames to one slot at stride 3', () => {
+      expect(frameSlotFor(0, 3, 40)).toBe(0);
+      expect(frameSlotFor(2, 3, 40)).toBe(0);
+      expect(frameSlotFor(3, 3, 40)).toBe(1);
+      expect(frameSlotFor(119, 3, 40)).toBe(39);
+    });
+
+    it('clamps to the last slot instead of asking for a frame that was never fetched', () => {
+      expect(frameSlotFor(200, 3, 40)).toBe(39);
+      expect(frameSlotFor(5, 3, 0)).toBe(0);
+    });
+
+    it('treats a stride below 1 as every frame', () => {
+      expect(frameSlotCount(10, 0)).toBe(10);
+      expect(frameSlotFor(7, 0, 10)).toBe(7);
     });
   });
 
