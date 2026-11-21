@@ -1,5 +1,329 @@
 # Device Testing Session Log
 
+## Session 078: device run on ZA222J5KT7 — printing fixed (BUG-052, BUG-053, BUG-054)
+- **Session ID:** SES-20261120-078
+- **Date & Time:** 2026-11-20, 18:00–18:42
+- **Target Device:** `ZA222J5KT7` (moto g34 5G, `fogos_g`), app `com.piquantservices.khanabooklite.debug` v40/1.0.40, installed 18:00:52, reinstalled 18:20:11 and again ~18:40 after each fix.
+- **Scope:** owner asked for the APK to be installed and the printer checked; while that ran the owner reported two printer defects, both reproduced and fixed on the device.
+- **Screenshots:** `DEVICE_SESSIONS/screenshots/` — `s078-*` (navigation, tax), `s079-*` (BT test print), `s080-*` (Wi-Fi).
+
+### Observed UI state (verified)
+- Install succeeded (`adb install -r`, `lastUpdateTime=2026-11-20 18:00:52`), app launched to Restaurant Configuration, no crash in `logcat -b crash`.
+- Settings → **Printer Configuration**: initially no printer card at all (both toggles off). Later the owner configured **SR588** over Bluetooth (`C8:47:8C:09:FE:E6`), then switched to **Thermal Printer (192.168.31.158)**, Wi-Fi `192.168.31.158:9100`, paper 80 mm.
+- Settings → **Tax Configuration**: GST Registered was **on**, GSTIN `07AAAAA1111A1Z1`, GST 5% at 18:02.
+- Orders → **19 Nov** holds four bills: A01 ₹241.50 (20 Nov 12:01 AM), A03 ₹609.00, A02 ₹241.50 (cancelled — "Customer left", no Print/Share buttons, correct), A01 ₹1092.00. 20 Nov had none.
+- Order Details: A03 = 2 × Livetest (₹300 + ₹280) = ₹580 + 5% = **₹609.00**, Tax Invoice No A000074; buttons Print / Share / Change Payment Mode / Cancel Order.
+
+### Defects found and fixed this session
+1. **BUG-052 (P1) — Print on an order never printed.** Reproduced: tapping **Print** opened an `ACTION_VIEW` PDF chooser. Cause: `OrdersScreen` used `openBillToPrint` (PDF-only). Fixed by routing to `PrintCoordinator.printReceipt` through `ReportsViewModel`. Verified: no chooser after the fix, no exception in logcat, request went to the configured printer.
+2. **BUG-053 (P2) — Test Printer showed "Not connected" after a successful test.** Reproduced with the SR588: toast "Test print sent" + red badge. Cause: `SettingsViewModel.testPrint` disconnected in a `finally` block; logcat showed the socket closing ~0.4 s after connect. Fixed by removing the teardown. Verified: badge stayed **Connected** with the success toast (`s079-toast.png`).
+3. **BUG-054 (P3) — stale Bluetooth kitchen profile probed in one-printer mode.** Found after switching to Wi-Fi: every refresh logged two failed RFCOMM connects to the old SR588. Fixed by skipping KITCHEN profiles when the mode is SINGLE. Verified: 0 `BluetoothPrinter` lines after the fix.
+
+### Owner action taken during the session (and undone)
+- An exploratory tap on the Tax screen turned **GST Registered off**; it was restored to **on** with GSTIN `07AAAAA1111A1Z1` / 5% and saved. Confirmed by the server payload in the sync log (`"gstEnabled":true,"gstPercentage":5.0,"gstin":"07AAAAA1111A1Z1"`).
+- A Share test opened WhatsApp with a composed invoice message; **nothing was sent** (backed out).
+- A stray tap opened Payment Configuration's UPI QR dialog; dismissed with **Done**, nothing saved.
+- **Not done:** the GST-off reprint check — the shop is GST-on and there are no orders on 20 Nov, so it needs either a temporary GST toggle plus an existing taxed bill, or a newly created bill; both change live shop data, so it was left for the owner's go-ahead. **PIN lockout also not run** — it needs the app lock enabled with a known PIN.
+
+### Verification actually run
+- `:app:assembleDebug --offline` green after each fix; APK installed to the device each time.
+- Full unit suite `:app:testDebugUnitTest --offline` after the three source changes → **BUILD SUCCESSFUL in 3m 12s**, exit 0; result XMLs report **75 classes, 556 tests, 12 skipped, 0 failures, 0 errors**.
+- Device evidence for each fix is listed above with its screenshot name.
+- **Reprint proof (18:58, `s081-*`):** Orders → **20 Nov** → A01 opened Order Details (webtest ×1 ₹230.00, Cash, Total **₹241.50**, Tax Invoice **A000075** = 230 + 5% GST) and **Print** was tapped. Logcat shows the ESC/POS job reaching the printer over the socket, which is the end-to-end proof that the BUG-052 fix prints instead of opening a PDF:
+  ```
+  D WifiPrinterTransport: deliver: connected to 192.168.31.158:9100, writing 862 bytes...
+  D WifiPrinterTransport: deliver: successfully flushed 862 bytes to 192.168.31.158:9100 (drain=500ms)
+  ```
+  No chooser, no error toast, the Order Details dialog stayed open (`s081-print-done.png`).
+- **Review QR (owner question, 19:00):** the customer receipt has **no** Google-review QR and never prints a placeholder for it. `InvoiceFormatter` section 6 emits the `RATE US / FEEDBACK:` block plus a QR bitmap only when `profile.reviewUrl` passes `isValidReviewUrl` (an `http`/`https` URL with a host); otherwise the section is skipped silently (`InvoiceFormatter.kt:244-258`). The same gate exists in the PDF path (`InvoicePDFGenerator.kt:501-506`, 200 px QR, page height reserved only when valid). **Device state: `reviewUrl` is not set** — neither the main DB file nor its WAL contains any `https…maps` string, which is also why the A01 job measured only 862 bytes (a 240×240 ESC/POS raster is ~7 KB before compression, so no QR was in it). The field to set is **Settings → Restaurant Configuration → “Review Link”** (5th field, `ShopConfigSection.kt:733-744`); an invalid value is dropped silently rather than reported.
+- **Side effect to be aware of:** while trying to reach that field with coordinate taps, one tap opened WhatsApp on a chat with an **unsent** draft ("Sir I need 80MM paper roll,"). Nothing was sent and the app was returned to Orders immediately. This is a fatigue/positioning artifact of blind tapping, not an app defect.
+- **Not verified:** that the paper physically emerges with correct content (no camera on the printer; the owner must confirm), the neutral `Taxes:` row on a GST-off/shop-configured bill, and why 862 bytes is small for a receipt with **Include Logo** on — a monochrome logo raster alone is usually several hundred bytes to a few KB, so the logo may be skipped or scaled down. Worth a look at the printed slip before chasing it.
+
+## Session 077: OpenQodex review of Session 076, four findings fixed
+- **Session ID:** SES-20261120-077
+- **Date & Time:** 2026-11-20 (debug build succeeded; **not installed** — `adb devices` still returns an empty list)
+- **Target Device:** none.
+- **Scope:** ran the `AGENTS.md` pre-push review; fixed the four findings it raised; full unit suite; debug build. No UI walk, no printer, no PDF render.
+- **Review route:** `npx -y openqodex@0.16.0 review` could not start an independent reviewer on this machine — `claude` is on PATH but its shim points at a missing binary, and OpenQodex looks for a native `.exe`, not the `codex.cmd` that is installed. The documented `--agent` fallback was used at the owner's choice, so **the reviewer is the same agent that wrote the code** and the scanners did not run (semgrep, gitleaks, osv-scanner, actionlint, zizmor have no Windows download). First receipt: `Passed with warnings: 4 findings (1 major, 3 minor)`.
+
+### Code changes
+1. **BUG-048 — paper end / near-end swapped (major).** DLE EOT 4 puts paper **end** on bits 2-3 (`0x0C`) and **near-end** on bits 5-6 (`0x60`); `paperOut` tested `0x60` and `paperLow` tested `0x0C`. Replaced the literals with `PAPER_END_MASK` / `PAPER_NEAR_END_MASK` and corrected `paperPresent`. The test that pinned the swap (`fromStatusBytes(0x12, 0x10, 0x60) == PAPER_OUT`) now pins the right bytes, plus two new cases (near-end → `PAPER_LOW`, end → `PAPER_OUT`) and a `paperPresent` assertion.
+2. **BUG-049 — PIN counter never reset.** `verifyPin` now clears `pin_failed_attempts` once the lockout window has elapsed, and `setupPin` / `changePin` clear it on success, so a new PIN never inherits old failures and one typo months later is a plain "incorrect PIN" again. KDoc updated to match.
+3. **BUG-050 — refunded part payments.** `ReportGenerator.buildPaymentBreakdown` subtracts the refund from the legs first-leg-first (each clamped at zero), so the legs and the `_part1`/`_part2` rows add up to the netted mode row instead of exceeding it.
+4. **BUG-051 / BUG-036 — receipt tax rows.** The custom-tax row now follows the **bill** (`Utils.kt:217`), so an older custom-tax bill keeps its row after GST is enabled; a bill carrying stored GST shared while the toggle is off prints one neutral `Taxes:` row, so its total reconciles without any GST word. Second pass: that row reads `Taxes (included)` when the stored total equals the stored sub-total (tax-inclusive pricing), because there the GST is already inside the sub-total and an additive-looking row would overstate what is owed. GST identity (GSTIN, SAC, State Code, CGST/SGST labels) still follows the setting, which is what `GenerateBillTextTest` pins. The same `gstEnabled == false` gate was removed from `InvoicePDFGenerator`'s custom-tax row. **The PDF still prints no neutral row for an old GST bill** — adding one means changing its page-height maths, which cannot be checked without a device.
+
+### Tests added (7 new cases; 555 total)
+- `EscPosStatusDecoderTest` +2 (`near-end sensor reports paper low, not paper out`, `end sensor reports paper out, not paper low`) and the existing paper-end case corrected.
+- `GenerateBillTextTest` +2 (neutral `Taxes:` row when GST is off, custom-tax row survives GST being enabled).
+- `ReportGeneratorPaymentBreakdownTest` (new, 3): legs add up to the mode row; refund taken out of the legs; refund larger than the first leg spills into the second. Uses MockK's relaxed `BillRepository`, already a test dependency.
+
+### Verification actually run
+- Targeted `--tests` for the three touched classes → **BUILD SUCCESSFUL in 39s** (after one compile error of mine: `BillEntity` needs `lifetimeOrderId` / `dailyOrderId` / `dailyOrderDisplay`).
+- Full suite `:app:testDebugUnitTest --offline` → **BUILD SUCCESSFUL in 2m 13s**, exit 0; result XMLs report **75 classes, 555 tests, 12 skipped, 0 failures, 0 errors** (was 74 / 548). Re-run after the inclusive-label change: **BUILD SUCCESSFUL in 2m 15s**, **75 classes, 556 tests, 12 skipped, 0 failures, 0 errors**.
+- `:app:assembleDebug --offline` → **BUILD SUCCESSFUL**; `app-debug.apk` 41,396,419 B, rebuilt after the last source change.
+
+### Review receipts
+- First review (change `4c29f1e566c4`): **Passed with warnings — 4 findings (1 major, 3 minor); 5 of 5 scanners did not run.** Report `.openqodex/reviews/20261120-115909-4c29f1e566c4/report.html`.
+- Re-review after the fixes (change `55d4800ba758`): **No findings on the changed lines; 0 of 5 scanners ran, 5 did not run (not installed).** One `info` item was recorded by choice — the PDF still omits the neutral tax row for an old GST bill — and is not counted. Report `.openqodex/reviews/20261120-122650-55d4800ba758/report.html`. A finalize attempt in between was rejected with "the change moved since the brief" because the inclusive-tax label was edited after that brief; the review was re-taken rather than reusing the stale one.
+
+### Not verified
+- **No install, no device run.** APK built and waiting; `adb devices` empty.
+- The paper-sensor fix is arithmetic against the Epson table, not an observation — no printer was attached, so "empty roll shows Paper out" has not been seen on hardware.
+- PIN lockout still has no automated test (SharedPreferences) and has not been seen on screen.
+- The neutral `Taxes:` row has not been seen on a shared bill, and the PDF's custom-tax row change has not been rendered.
+
+## Session 076: BUG-041 … BUG-047 fixed (authorised), build + full test suite
+- **Session ID:** SES-20261120-076
+- **Date & Time:** 2026-11-20 (debug build succeeded; **not installed** — no device attached)
+- **Target Device:** none. `adb devices` returned an empty list throughout (the phone disconnected before Session 075 and did not return).
+- **Scope:** fixes for every finding of the Session 075 review, regression tests for each, full unit suite, debug build. **No UI walk, no printer, no PDF render.**
+- **Authorisation:** owner granted full access and asked for the findings to be solved permanently.
+
+### Code changes
+1. **BUG-041 — tax-inclusive bills charged GST twice.** New `BillCalculator.calculateBillTotals(items, profile)` is the single source of truth: it derives the GST rows with `isTaxInclusive`, computes custom tax only while GST is off, and passes the flag to `calculateTotal`. `CartManager.computeSummary` and the persisted-bill recalc in `BillingViewModel` both call it, so the two paths cannot diverge again. `calculateTotal`'s inclusive branch now subtracts nothing but **keeps custom tax** (it previously returned the bare subtotal and dropped it). Note: the non-GST defaults for `cgstAmount`/`sgstAmount`/`customTaxAmount` changed from `"0.0"` to `"0.00"` for consistency with `setScale(2)` output — cosmetic, every consumer parses BigDecimal or formats itself.
+2. **BUG-042 — raw server status strings.** New `domain/model/RemoteStatusNormalizer` owns one alias table (`paid`/`settled`/`closed` → completed, `void`/`canceled` → cancelled, `captured` → success, display labels → payment modes). `MasterSyncProcessor` normalises `paymentMode`, `paymentStatus` and `orderStatus` before writing the pulled bill, and `OrderStatus.fromDbValue` / `PaymentStatus.fromDbValue` consult the same table, so rows already stored as `PAID` now read correctly too. Unknown input keeps the historical pull default (`completed`/`success`/`cash`), so no existing bill moves into or out of revenue.
+3. **BUG-043 — Home vs Reports revenue.** New `feature/reports/domain/ReportMath.kt` exposes `BillEntity.netAmount()` (gross − refund, floored at zero); `ReportGenerator` uses it instead of its private copy, and `HomeViewModel` now filters `OrderStatus.fromDbValue(...) == COMPLETED` and accumulates BigDecimal net amounts, so both screens agree. The dead `"paid"` branch is gone.
+4. **BUG-044 — deleted dishes merged on receipts.** `BillWithItems.getConsolidatedItems` groups on a `LineKey(menuItemId, variantId, itemName, price)`; identical rows still merge, different dishes never do.
+5. **BUG-045 — share text.** `generateBillText` now prints CGST/SGST from the stored amounts rather than gating on `gstPercentage`, and adds a custom-tax row (plus sub-total) for non-GST shops. GSTIN/SAC/State Code stay behind `gstEnabled`.
+6. **BUG-046 — PIN brute force.** `SessionManager` gains separate `pin_failed_attempts` / `pin_lockout_until_ms` storage; `AppLockViewModel.verifyPin` blocks while locked out, counts failures, and after 5 failures locks for an exponentially doubling delay (1, 2, 4, 8, 16 min cap) that survives a process restart. A correct PIN clears the counter.
+7. **BUG-047 — menu list truncating paise.** Both spots in `ManualMenuView` now use `CurrencyUtils.formatPriceCompact`, with the raw string kept as the fallback for unparseable prices.
+
+### Tests added (20 new cases)
+- `BillCalculatorTest` +5: inclusive total equals the price sum (the exact 136 → 118 case), exclusive still adds GST, inclusive keeps custom tax, custom tax ignored while GST is on, null profile bills at face value.
+- `RemoteStatusNormalizerTest` (new, 9): order/payment aliases, refunded-stays-completed, blank defaults, unknown handling, payment-mode labels, and the enum readers.
+- `BillWithItemsConsolidationTest` (new, 4): two deleted dishes stay two lines, identical rows still merge, same-name deleted dishes merge only with themselves, same dish at two prices stays split.
+- `GenerateBillTextTest` +2: tax rows print when `gstPercentage` is 0 but amounts exist; non-GST text shows sub-total and the named custom tax.
+- One assertion error of mine was corrected during this session (18% splits into 9 + 9, not 18 + 18) — the code was right and the test expectation was wrong.
+
+### Verification actually run
+- `./gradlew :app:compileDebugKotlin --offline` → **BUILD SUCCESSFUL** (only pre-existing deprecation warnings).
+- Targeted: BillCalculator/RemoteStatusNormalizer/BillWithItemsConsolidation/GenerateBillText/InvoiceFormatter → **BUILD SUCCESSFUL**.
+- Full suite `:app:testDebugUnitTest --offline`, run again after the final normaliser tweak → **BUILD SUCCESSFUL in 4m 37s**; result XMLs report **74 classes, 548 tests, 12 skipped, 0 failures, 0 errors** (was 72 classes / 528 tests before this session).
+- `./gradlew :app:assembleDebug --offline` → **BUILD SUCCESSFUL**; `app-debug.apk` 40,815,008 B written at 17:15, built after the last source change.
+
+### Not verified
+- **No install and no device run** — the phone is not attached. The APK is built and waiting.
+- PIN lockout is covered by reading the code, not by a test: it needs `SessionManager`'s SharedPreferences. The UX copy ("Too many attempts. Try again in Ns.") has not been seen on screen.
+- Receipt/PDF/QR output still needs the hardware checks listed in `NEXT_ACTIONS.md`.
+- Whether any live shop has `is_tax_inclusive = 1` is still unknown; the fix is correct either way, but a shop on the old build that was over-charging will not have its historical bills corrected — only new bills are computed correctly.
+
+## Session 075: whole-app function review (read-only)
+- **Session ID:** SES-20261120-075
+- **Date & Time:** 2026-11-20 (review only — no build, no install, no device interaction)
+- **Target Device:** none. The phone had dropped off USB before this session started, and this review needed no device.
+- **Scope:** owner asked for a "proper review on all function in app". Static review of the Android source: whole-tree pattern scans over 263 files / 66,163 lines / ~1,304 function declarations, then full reads (with call-site tracing of every claim) of the money, tax, date, invoice-numbering, sync-write and app-lock paths. **No code changed.** Full report: `RECOMMENDATIONS/CODE_REVIEW_2026-11-20.md`.
+- **Authorisation:** review only. Every finding below is registered as OPEN and unmodified.
+
+### Findings (registered BUG-041 … BUG-047)
+1. **BUG-041 (P1, money):** tax-inclusive shops are charged GST twice. `BillCalculator.calculateTotal` declares `isInclusive` but **no call site passes it** (`CartManager.kt:151`, `BillingViewModel.kt:1422` both default to `false`), while `calculateGST` does honour the flag (`CartManager.kt:144`). ₹118 at 18% inclusive is billed as ₹136 — proven arithmetically, not inferred.
+2. **BUG-042 (P2, sync):** remote bills keep the server's raw `orderStatus`/`paymentStatus` strings (`MasterSyncProcessor.kt:1810-1811`, `orFallback` at `:350` is a blank check only). Case-sensitive local readers (`HomeViewModel.kt:257`, `BillDao.kt:584,595,689,745`) then miss them while the enum maps unknown → DRAFT; blank values are invented as `completed`/`success`/`cash`.
+3. **BUG-043 (P2, reporting):** Home revenue (raw `totalAmount`, `Double`, ignores refunds) and Reports revenue (BigDecimal, net of refunds, COMPLETED only) are different numbers by construction; Home's `"paid"` branch is dead (`OrderStatus` has only draft/completed/cancelled).
+4. **BUG-044 (P2, receipts):** `getConsolidatedItems` groups by `(menuItemId ?: 0L) to variantId`, and `bill_items.menu_item_id` is `SET_NULL` — so every distinct dish deleted from the menu collapses into one line on thermal, PDF and shared text.
+5. **BUG-045 (P3, share text):** `generateBillText` never prints a custom-tax row, and drops CGST/SGST when `gstPercentage` is null/0 even though the amounts are non-zero.
+6. **BUG-046 (P2, security):** the app-lock PIN has no attempt limit or lockout (`AppLockViewModel.verifyPin:141`), unlike login which tracks `failed_login_attempts`/`lockout_until_ms`.
+7. **BUG-047 (P3, display):** the menu list truncates paise with `.toInt()` (`ManualMenuView.kt:767,773`).
+
+### Verified clean (sampled deliberately)
+All `.divide` calls carry scale + rounding mode (no `ArithmeticException` class of bug); invoice sequence is scoped by `invoice_series` and includes server-pulled bills under `orderMutex`; `BusinessDate` is a single documented mapping with an explicit inverse; soft logout preserves unsynced data (the DB-deleting `clearDeviceDataAndLogout` has **no callers**, so it is dead code); tax exclusivity holds; cancelled/deleted bills are excluded from reports by `is_deleted = 0`.
+
+### Corrections made to earlier notes
+- Session 074's "the bill math agrees in both places" and "`isTaxInclusive` is honoured by the bill math" were incomplete. Both sentences were annotated in place (not deleted) with what the code actually does — `calculateGST` honours the flag, `calculateTotal` does not.
+
+### Not verified
+- No device, no build, no runtime check in this session. BUG-041 is proven by reading the two call sites plus arithmetic on the BigDecimal operations, **not** by a failing test — and that is itself the point: `BillCalculatorTest` (two files, 27 cases) covers the inclusive branch correctly *in isolation* and stays green, because no test goes through `CartManager.computeSummary` or the `BillingViewModel` recalc. Whether any live shop has `is_tax_inclusive = true` cannot be determined from this repository.
+
+## Session 074: BUG-032 … BUG-035 fixed (authorised), build + test + install
+- **Session ID:** SES-20261120-074
+- **Date & Time:** 2026-11-20 (device `lastUpdateTime=15:16:56`)
+- **Target Device:** `ZA222J5KT7`, online via USB
+- **Scope:** source fixes for the four defects analysed in Session 073, unit test for the printer-status decoder, debug build + install. **No UI walk, no screenshots, no printer hardware.**
+- **Authorisation:** owner replied "go ahead and solve it" to the Session 073 findings. The read-only-versus-per-user question for BUG-032 was answered by the owner's earlier statement that staff menu access is read-only, so the star was gated to the owner.
+
+### Code changes
+1. **BUG-032 — staff menu star.** `ManualMenuView.kt:778` — the star `IconButton` moved inside `canWrite`, comment rewritten to state why. `MenuViewModel.setLocalFavourite` — now returns through `blockMasterDataWrite()` when `!canWriteMasterData()`; the KDoc that claimed the star was "deliberately NOT owner-gated" was replaced, since it no longer is.
+2. **BUG-033 — false "Printer error".** `EscPosPrinterStatus.kt` — `printerError` now tests `0x08 | 0x20` (offline / waiting for online recovery) instead of the inverted `(byte and 0x04) == 0`; `fatalOrCoverError` now decodes DLE EOT 3's own bits (`0x08 | 0x20 | 0x40`) and no longer reads DLE EOT 2's cover/paper bits out of it. The object KDoc that described the bytes as "active-low" was corrected. `BluetoothPrinterManager.queryHealth` — drains already-buffered bytes before each status command so a late reply cannot be read as the next answer.
+3. **BUG-034 — GSTIN with GST off.** `InvoiceFormatter.kt:157` — `GSTIN:` now prints only when `isGst`, matching `InvoicePDFGenerator`.
+4. **BUG-035 — missing feedback QR.** `InvoiceFormatter.kt:236-250` — the review URL is validated with a private `isValidReviewUrl` (same rules as the PDF renderer), encoded with `QrCodeManager.generateQr`, and emitted as `GS v 0` through `decodeBitmapToESC_POS` at 192 dots (58 mm) / 240 dots (80 mm). That helper previously had no caller. The link is still printed if encoding returns null. The "pure text thermal invoice" header comment was corrected because the receipt is no longer pure text.
+5. **New test:** `app/src/test/java/com/khanabook/lite/pos/feature/printing/domain/EscPosStatusDecoderTest.kt` — 13 cases built around the real all-clear replies (`0x12`, `0x10`) plus drawer-pin-high, offline, recovery-wait, paper-out, unrecoverable, and the all-null `UNKNOWN` case.
+
+### Verification actually run
+- `./gradlew :app:testDebugUnitTest --tests "...EscPosStatusDecoderTest"` → **BUILD SUCCESSFUL**; result XML `TEST-com.khanabook.lite.pos.feature.printing.domain.EscPosStatusDecoderTest.xml` reports **tests=13, failures=0, errors=0**.
+- `./gradlew :app:assembleDebug --offline` → **BUILD SUCCESSFUL in 22s** (43 tasks).
+- `adb -s ZA222J5KT7 install -r app-debug.apk` → **Success**; `versionCode=40`, `lastUpdateTime=2026-11-20 15:16:56`.
+
+### Verified vs not verified
+- **Verified:** compile, the 13 decoder cases, packaging, install.
+- **NOT verified:** nothing was printed. The 58 mm printer was not attached, so whether the status byte arriving from that specific model decodes to `HEALTHY` is still inferred; whether the printer accepts `GS v 0` raster and whether the printed QR scans are both unchecked. No screen was walked, so the hidden-for-staff star is source-verified only.
+- **No crash/regression evidence collected** — no launch was performed.
+
+### Pre-existing defect noticed, NOT touched
+- `paperOut` / `paperLow` require **both** bits of a pair (`0x60`, `0x0C`). That matches the common clone manuals but not every emulation, which sets a single bit. Out of scope for BUG-033; recorded so it is not mistaken for verified-correct.
+
+### Tax-configuration cross-check (same session, requested by the owner afterwards)
+Traced Tax Configuration end to end: screen → `SettingsViewModel.saveProfile` → `RestaurantRepository.saveProfile` → profile row → bill math → thermal, PDF and reprint renderers.
+- **Correct as found:** the bill math agrees in both places that compute it — `CartManager.computeSummary` (`CartManager.kt:143-151`) and the bill-recalc path (`BillingViewModel.kt:1414-1422`): GST when `gstEnabled`, otherwise custom tax when `customTaxPercentage > 0`, never both. The tax screen is owner-only (`SettingsScreen.kt:272` passes `readOnly = !isOwner`; `SettingsViewModel.kt:1188` re-checks with `canWriteConfig()`). Turning GST off deliberately keeps the stored GSTIN so re-enabling restores it — harmless now that every renderer gates on the toggle (`InvoiceFormatter`, `InvoicePDFGenerator`, `Utils.kt:164-172` all checked). **CORRECTED in Session 075:** this bullet claimed the maths "agrees in both places", which was incomplete — both places compute the same *GST figures*, but neither passes `isInclusive` to `BillCalculator.calculateTotal`, so a tax-inclusive shop's total adds the embedded GST a second time (BUG-041).
+- **BUG-036 (open — decision needed):** reprints apply today's toggle, so a bill issued with GST and reprinted after it was disabled loses its tax rows while the stored total still contains them. A bill-driven fix was implemented in all three renderers (`InvoiceFormatter`, `InvoicePDFGenerator`, `generateBillText`), then **reverted** because `GenerateBillTextTest` pins the opposite rule ("GSTIN must not leak when GST disabled", "CGST must not print when GST disabled") and that matches the owner's stated expectation. Recorded as a decision instead of changing a pinned contract silently.
+- **BUG-037 (fixed):** PDF had no custom-tax row and could print no invoice number at all.
+- **BUG-038 (fixed):** tax screen overwrote `country` with a hardcoded "India".
+- **Not a defect, recorded for the owner:** `isTaxInclusive` is synced, but has **no control anywhere in the app** — it is a server/web-side setting only. If tax-inclusive pricing is meant to be switchable on the till, that control does not exist yet. **CORRECTED in Session 075:** "honoured by the bill math (`CartManager.kt:144`)" is only half true — `calculateGST` honours it there, but the total is computed by `calculateTotal` without the flag, so the feature is currently broken rather than merely unexposed (see BUG-041).
+- **Also verified:** GST % is split evenly into CGST/SGST (`gstPercentage / 2`, `HALF_UP`, 1 decimal) identically in both renderers; `isValidTaxPercentage` accepts 0–100, so a GST-enabled shop may legitimately set 0%.
+
+### Verification added for the cross-check
+- `InvoiceFormatterTest` extended from 3 to **8 tests**: GST off hides GSTIN/`TAX INVOICE`; GST on prints GSTIN and `CGST (2.5%)`/`SGST (2.5%)`; a taxed bill reprinted with GST off shows no GST text (pins the BUG-036 decision); custom-tax row present when the bill carries one and absent when it does not. Result XML: **tests=8, failures=0, errors=0**.
+- `GenerateBillTextTest` (2 tests, unchanged contract) and `EscPosStatusDecoderTest` (13) also re-run green after the revert: **tests=2** and **tests=13**, 0 failures each.
+- `isValidReviewUrl` in `InvoiceFormatter` switched from `android.net.Uri` to `java.net.URI` so the receipt byte stream stays assertable on the JVM (same http/https + host + length rule as the PDF renderer).
+- Rebuilt and reinstalled after the revert: `assembleDebug` **BUILD SUCCESSFUL in 9s**, `adb install -r` **Success**, `versionCode 40`, `lastUpdateTime=2026-11-20 15:38:18`. (An earlier build of the same session was installed at 15:31:34 and is superseded.)
+- **Still not verified on hardware:** no bill was printed and no QR scanned. The PDF custom-tax row is compile-verified only (no PDF test harness exists in this repo).
+
+### Second cross-check pass (same session, at the owner's request)
+Full unit suite plus a deliberate audit of the same three bug classes for siblings:
+- **Full suite:** `./gradlew :app:testDebugUnitTest` → **BUILD SUCCESSFUL in 2m 15s**; 72 result files report **528 tests, 12 skipped, 0 failures, 0 errors**.
+- **Menu permission audit — clean:** every write entry point in `MenuViewModel` now gates on `canWriteMasterData()` + `blockMasterDataWrite()` (`addCategory`, `updateCategory`, `toggleCategory`, `deleteCategory`, `setCategoryFavourite`, `setLocalFavourite`, `reorderCategories`, `addItem`, `addItemWithVariants`, `updateItem`, `uploadItemPhoto`, `deleteItemPhoto`, `toggleItem`, `deleteItem`, `clearCategoryItems`, `addVariant`, `updateVariant`, `deleteVariant`). `toggleFavouritesOnly` / `setFavouritesOnly` are read-only filters. `setLocalFavourite` was the only gap and it is fixed.
+- **BUG-039 (open, registered):** the permission *table* disagrees with that audit. `SHOP_STAFF_CONFIG_KEYS` lists only `STAFF_*` and `SETTINGS_*` (with `SETTINGS_PRINTER` deliberately granted), so `SHOP_STAFF_GRANTED_KEYS = ALL_PERMISSION_KEYS - SHOP_STAFF_CONFIG_KEYS` hands staff every `menu.*` write key. Nothing consumes those keys (`grep` finds no external reference), and the live gate is owner-only, so there is **no bypass today** — but the model contradicts the read-only design. Fixing it needs the server's `PermissionService` in lockstep, and the server is not in this repository, so it was not touched.
+- **GST renderer audit — clean:** after the fixes, the only places that print a GSTIN are `InvoiceFormatter` (thermal), `InvoicePDFGenerator` (PDF) and `generateBillText` (share text), all gated on `gstEnabled`. Kitchen tickets carry no tax at all. There is no email-invoice renderer in this app — `emailInvoiceConsent` is only stored and synced.
+- **Print freshness — clean:** every caller fetches the profile at print time (`ActiveOrderDetailViewModel` calls `restaurantRepository.getProfile()` per print; `PrintCoordinator` receives it), so turning GST off takes effect on the next print, not only after a restart.
+- **Printer badge mapping confirmed:** `PrinterTargetCard.statusText` maps `HEALTHY` and `UNKNOWN` to "Connected"; `dotColor` maps both to `SuccessGreen`. With the decoder fix the `0x12` all-clear reply now reaches `HEALTHY`, which is the "Connected" the owner expects.
+- **BUG-040 (open, registered):** the web admin's dashboard receipt preview hardcodes `GSTIN: 27AABCS1429B1Z · FSSAI: 1152103400012` (`business-dashboard-page.component.ts:711`) while the shop name beside it is bound to the API — so every business, GST-registered or not, sees a GSTIN on that preview. The business-settings preview in the same app is correctly gated (`*ngIf="p.gstEnabled && p.gstin"`). Web-only, so it was not changed from an Android session.
+- **Minor, harmless:** `refreshWifiReachability` merges into `_printerHealth` instead of replacing it, so entries for deleted/disabled printer profiles stay in the map. The cards are driven by the profile list, so nothing stale is rendered.
+- **Device state:** the phone dropped off USB before the final rebuild could be installed. The only change after the installed build (`15:38:18`) was one comment line in `InvoiceFormatter`, so the APK on the device is functionally identical; `:app:compileDebugKotlin` after that edit is **BUILD SUCCESSFUL** (up to date).
+
+---
+
+## Session 073: Owner-reported issues — root-cause analysis (static, no fixes)
+- **Session ID:** SES-20261120-073
+- **Date & Time:** 2026-11-20
+- **Target Device:** `ZA222J5KT7`, online via USB. Device state read only; no app launch, no UI walk, no screenshots, no APK install.
+- **Scope:** static root-cause analysis of three owner-reported defects. **No source change outside `ANDROID_POS_DOCUMENTATION/`.** Nothing was implemented.
+- **Objective:** identify why (1) staff with read-only menu access can favourite/unfavourite dishes, (2) a connected 58 mm Bluetooth printer shows a printer error in the UI, (3) the physical bill has no feedback QR and prints GST text with GST disabled.
+
+### Environment actually observed
+1. `adb devices`: `ZA222J5KT7` online.
+2. `adb shell pm list packages | grep -i khanabook`: `com.piquantservices.khanabooklite` and `com.piquantservices.khanabooklite.debug`.
+3. `dumpsys package com.piquantservices.khanabooklite.debug`: **versionCode 40 / 1.0.40**, `lastUpdateTime=2026-11-20 14:36:53` — matches Session 072, so the device already runs the current working-tree build.
+4. A third package `com.khanabook.lite.pos` also exists on the device at **versionCode 1 / 1.0.0, `lastUpdateTime=2026-09-21`**. It is a leftover package, not the app under test; do not mistake it for the debug build when quoting device versions.
+5. `:app:compileDebugKotlin` → **BUILD SUCCESSFUL** (18 tasks, all up-to-date) — the working tree compiles, so none of the three findings is a build break.
+6. `adb logcat -d -v brief -t 3000` filtered for the app: **no rows** — no crash evidence for any of the three reports. The three findings are therefore source-verified only, not log-verified.
+
+### Findings (registered as BUG-032 … BUG-035)
+1. **BUG-032 — staff can star dishes.** `setCategoryFavourite` *is* owner-gated; the leak is the per-dish star. `MenuViewModel.setLocalFavourite` (`MenuViewModel.kt:355`) has no permission check by design, and `ManualMenuView.kt:778-780` renders the star outside `if (canWrite)` with a comment stating that intent. Additional real defect: `local_favourite` is a `menu_items` column (`MenuItemEntity.kt:88-89`), so the "counter's own list" is shared by every account on that till.
+2. **BUG-033 — false "Printer error".** `EscPosStatusDecoder.printerError` (`EscPosPrinterStatus.kt:44-50`) returns `(byte and 0x04) == 0`. Per the Epson ESC/POS reference, DLE EOT 1 bit 2 is the drawer-kick pin, and the all-clear reply `0x12` has bit 2 clear, so every conforming printer decodes as ERROR. `fatalOrCoverError` also applies DLE EOT 2 (offline-cause) semantics to DLE EOT 3 bytes. Display-only: `PrinterHealth.ERROR` does not block printing.
+3. **BUG-034 — GSTIN printed with GST off.** `InvoiceFormatter.kt:145` emits `GSTIN:` whenever the field is non-blank; no `gstEnabled` gate. `InvoicePDFGenerator.kt:142,229` gates it correctly, so only the thermal route leaks.
+4. **BUG-035 — no feedback QR on thermal.** `InvoiceFormatter.kt:185-188` prints the URL as text; the QR is PDF-only (`InvoicePDFGenerator.kt:478-482`). `decodeBitmapToESC_POS` exists at `InvoiceFormatter.kt:268` with no call-site.
+
+### Verified vs assumed
+- **Verified by source (file:line quoted above):** all four root causes and their call paths.
+- **Verified against an external spec:** ESC/POS DLE EOT bit assignments (Epson ESC/POS reference; Star/ESC-POS emulation manuals agree that bit 2 of n=1 is the drawer-pin/cover bit, not an error flag).
+- **Verified on device:** package/version state and absence of crash rows in the last 3,000 log lines.
+- **NOT verified on hardware:** no reproduction walk was performed in this session. Which specific printer model produced BUG-033, and whether it answers DLE EOT 1 with `0x12`, is inferred from the decoder, not observed.
+
+### Result / limits
+- No code was changed; no fix is implemented or authorised.
+- `Poppins`-style goldens, UI walks and logcat timing are irrelevant here and were not run.
+- Open question for the owner (BUG-032): is the dish star meant to disappear for staff, or to become per-user? The two answers lead to different fixes.
+
+---
+
+## Session 072: Debug APK re-install on request (install only)
+- **Session ID:** SES-20261120-072
+- **Date & Time:** 2026-11-20 (device `lastUpdateTime=14:36:53`)
+- **Target Device:** `ZA222J5KT7`, online via USB
+- **Scope:** install only — no rebuild, no release bundle, no UI walk, no screenshots.
+- **Objective:** re-install the current debug APK on the connected device at the user's request.
+
+### Operations Performed
+1. `adb devices -l`: `ZA222J5KT7` online (one device, no offline transports).
+2. Used the existing `apps/android/app/build/outputs/apk/debug/app-debug.apk` (41,260,032 bytes, SHA-256 `6590E40073C3B576C84ECFCD543669B2E481877BA111D4184D3C5275341CC582`) — same build as Session 071, so no rebuild was needed.
+3. `adb -s ZA222J5KT7 install -r <apk>` → **Success**.
+4. Verified `com.piquantservices.khanabooklite.debug`: versionCode 40 / versionName 1.0.40, `lastUpdateTime=2026-11-20 14:36:53`.
+
+### Result / limits
+- Installed APK is the same build as Session 071 (all UM-01 … UM-10 fixes plus pre-existing owner work).
+- **Not verified:** no app launch, UI walk, screenshot or timing measurement. Report §7 checks remain open.
+- No findings or new UI operations discovered.
+
+---
+
+## Session 071: Debug APK update with all UX motion fixes (install only)
+- **Session ID:** SES-20261120-071
+- **Date & Time:** 2026-11-20 (device `lastUpdateTime=14:26:45`)
+- **Target Device:** `ZA222J5KT7`, online via USB
+- **Scope:** debug build + install only. No release bundle, no UI walk, no screenshots.
+- **Objective:** update the device with the working-tree debug APK containing the new UM-01 and UM-10 fixes from Session 070.
+
+### Operations Performed
+1. Built `.\gradlew.bat :app:assembleDebug --offline`: **BUILD SUCCESSFUL in 2m 13s** (43 tasks: 6 executed, 37 up-to-date).
+2. APK: `apps/android/app/build/outputs/apk/debug/app-debug.apk`, SHA-256 `6590E40073C3B576C84ECFCD543669B2E481877BA111D4184D3C5275341CC582`.
+3. `adb -s ZA222J5KT7 install -r <apk>` → **Success**; verified `com.piquantservices.khanabooklite.debug`, versionCode 40 / 1.0.40, `lastUpdateTime=2026-11-20 14:26:45`.
+
+### Result / limits
+- Installed APK includes UM-01 … UM-10 plus pre-existing uncommitted owner work.
+- **Not verified:** no app launch, UI walk, screenshot or timing measurement. The five report §7 checks remain open.
+- No findings or new UI operations discovered.
+
+---
+
+## Session 070: UM-01 reduced-motion policy and UM-10 dialog origin (static + compile)
+- **Session ID:** SES-20261120-070
+- **Date & Time:** 2026-11-20
+- **Scope:** Kotlin source in `apps/android/app/src/main/java`; static + compile only, no UI walk.
+- **Objective:** close the two findings held open after Session 068, on the user's instruction "go ahead solve it".
+
+### Operations Performed
+1. Re-read the `ux-motion` skill and the exact UM-01/UM-10 report entries before editing.
+2. **UM-01:** added `core/designsystem/MotionPolicy.kt` — `rememberReducedMotion()` observes `Settings.Global.ANIMATOR_DURATION_SCALE` and `TRANSITION_ANIMATION_SCALE` with a `ContentObserver`, `REDUCED_MOTION_MS = 120`, plus `motionDuration()` and `dialogEntrance()` helpers. Wired it into shimmer, closing-alert pulse, Home sync rotation/glow, splash logo pop/halo/particles/text slide, tab-icon press, payment badge, PIN shake, NavHost transitions, Home/Orders staggers, setup crossfade and loading overlay. Loops become static; transforms become fades or are dropped.
+3. **UM-10:** `Modifier.dialogEntrance()` gives all shared dialogs a 180 ms 0.94→1 scale + fade (120 ms fade-only when reduced). `KhanaBookDialog.kt` gained a `transformOrigin` parameter; `OrderDetailsDialog.kt` gained `originY`. `ReportViews.kt` `OrderTableRow` records its vertical centre (0..1) via `onGloballyPositioned { boundsInWindow() }`, `OrdersScreen.kt` passes it through `dialogOriginY`, so the details card grows from the tapped row.
+4. First compile found three mistakes — `reducedMotion` used before declaration in `HomeScreen.kt`, and missing `boundsInWindow`/window-height APIs in `ReportViews.kt`. Fixed by moving the declaration and using `LocalContext.current.resources.displayMetrics.heightPixels` plus the `boundsInWindow` import.
+5. `./gradlew :app:compileDebugKotlin --offline` → **BUILD SUCCESSFUL**; all warnings were pre-existing deprecations/opt-ins, none on the changed lines.
+
+### Result
+- All ten review findings are now implemented in the working tree; not committed or pushed (files also carry pre-existing owner work).
+- Timing/arithmetic re-checked in source: dialog entrance 180 ms / 120 ms reduced, shared fade 120 ms, payment tails ~420 ms, shake 350 ms, tab press 120+120 ms, stagger 45 ms gaps, route exit 120 ms.
+- **Not verified:** no device UI walk, no screenshot, no measured playback. The five checks in report §7 remain open.
+
+---
+
+## Session 069: Debug APK update on device (install only)
+- **Session ID:** SES-20261120-069
+- **Date & Time:** 2026-11-20 (device `lastUpdateTime=13:20:52`)
+- **Target Device:** `ZA222J5KT7` (Motorola moto g34 5G), online via USB
+- **Scope:** debug build + install only. No release bundle, no UI walk, no screenshots.
+- **Objective:** update the device with the working-tree debug APK containing the Session 068 UM fixes.
+
+### Operations Performed
+1. Confirmed `adb devices -l`: `ZA222J5KT7` online; one unrelated TLS transport offline (ignored).
+2. Built `.\gradlew.bat :app:assembleDebug --offline`: **BUILD SUCCESSFUL in 2m 38s** (43 tasks: 25 executed, 18 up-to-date).
+3. APK: `apps/android/app/build/outputs/apk/debug/app-debug.apk`, SHA-256 `0A37257B0D25AEACA8BC82D42E4DB88B9B1F1E510AAB0C638C7315A94140E517`.
+4. `adb -s ZA222J5KT7 install -r <apk>` → **Success** (first attempt hit a transient Windows shell-spawn error and was retried).
+5. Verified installed package: `com.piquantservices.khanabooklite.debug`, versionCode 40 / versionName 1.0.40, `lastUpdateTime=2026-11-20 13:20:52`.
+
+### Result / limits
+- The installed APK includes the working-tree UM-02 … UM-09 edits **and** the pre-existing uncommitted owner work; the build does not isolate my changes.
+- **Not verified:** no app launch, no UI walk, no new screenshot, no timing measurement. The report §5 device checks (UM-01, UM-02, UM-05, UM-06) remain open.
+- No findings or new UI operations discovered in this session.
+
+---
+
+## Session 068: UX motion fixes implemented (static + compile, no device)
+- **Session ID:** SES-20261120-068
+- **Date & Time:** 2026-11-20
+- **Scope:** Kotlin source in `apps/android/app/src/main/java`; no APK build, install, device walk, or new screenshot.
+- **Objective:** implement the owner-authorised findings from Session 067's `RECOMMENDATIONS/UX_MOTION_REVIEW.md`.
+
+### Operations Performed
+1. Re-read `AI_ENGINEERING_RULES.md` and the full `UX_MOTION_REVIEW.md` before editing; confirmed owner authorization to implement.
+2. Applied eight targeted source edits (UM-02 … UM-09): tab icon press, NavHost exit timings, card ripple, payment-success durations, quantity-selector hit areas, PIN shake, entrance stagger, and stage/overlay crossfades.
+3. Left UM-01 and UM-10 open deliberately (device-gated and design-decision respectively); recorded the reasoning in report §6.
+4. Verified with `./gradlew :app:compileDebugKotlin --offline` → **BUILD SUCCESSFUL**; all warnings were pre-existing deprecations/opt-ins.
+5. Updated `UX_MOTION_REVIEW.md`, `RECOMMENDATIONS/README.md`, `NEXT_ACTIONS.md` and `CHANGELOG.md`.
+
+### Result
+- Eight of ten findings implemented in the working tree; not committed or pushed because the same files contain pre-existing owner work.
+- Timing arithmetic re-checked against source: shake 350 ms, payment tail ~420 ms, press 120+120 ms, stagger 45 ms gaps, route exit 120 ms.
+- **Not verified:** no device was used; no new screenshot captured. Historical screenshots in the report remain evidence of earlier patterns only, not of these changes.
+- **Discovered during implementation:** `AppNavGraph.kt`, `MainScreen.kt` and `OrdersScreen.kt` each already contained substantial uncommitted owner changes; edits were made as narrow hunks so none of that work was altered or staged.
+
+---
+
 ## Session 067: UX motion static review (no device)
 - **Session ID:** SES-20261120-067
 - **Date & Time:** 2026-11-20, 12:06 IST
@@ -19,6 +343,975 @@
 - **Not verified:** all findings are source-observed. Device checks are listed in §5 of the report; historical screenshots are cited there as evidence of existing patterns, not as proof of these findings.
 
 ---
+
+## Session 066: Play review blocked — portrait feature made optional (1.0.40)
+- **Session ID:** SES-20261120-066
+- **Date & Time:** 2026-11-20, 00:30–01:00 IST
+- **Scope:** manifest fix and release rebuild; no device testing.
+
+### Problem
+- Play Console blocked release 39 (1.0.39): *"Required hardware feature declarations are restricting your app's availability"* — `android.hardware.screen.portrait` was treated as required for Phone, Tablet, Desktop and Android XR.
+- **Cause (verified):** the merged release manifest contains `<activity android:name="com.easebuzz.payment.kit.PWECheckoutActivity" android:screenOrientation="portrait">` from the Easebuzz SDK. Android derives an implicit required `screen.portrait` feature from a portrait-locked activity. KhanaBook's own `MainActivity` is `android:screenOrientation="unspecified"`.
+
+### Fix
+- Added to `app/src/main/AndroidManifest.xml`, beside the camera/usb features:
+  `<uses-feature android:name="android.hardware.screen.portrait" android:required="false" />` with a comment naming the Easebuzz activity. `screen.landscape` was already declared `required="false"`.
+- No Kotlin or layout changes; app still supports landscape, and the Easebuzz checkout remains portrait-locked (letterboxed on landscape-only devices) because that is inside the SDK.
+
+### Artifact (versionCode 40)
+- Version bumped in git-ignored `local.properties`: `RELEASE_VERSION_CODE=40`, `RELEASE_VERSION_NAME=1.0.40`. **Code 39 is consumed by the blocked upload and cannot be reused.**
+- `apps/android/app/build/outputs/bundle/release/app-release.aab`, 17,866,079 bytes, SHA-256 `250ca1b0c07af3dda10e2fb6c95e5e11b78aab82f373f260641ba9223f914076`.
+- `./gradlew :app:bundleRelease` → **BUILD SUCCESSFUL in 9m 32s**; `unzip -t` exit 0; `jarsigner -verify` → **jar verified**.
+- Merged manifest re-checked: portrait `required="false"`, landscape `required="false"`, `versionCode="40"`, `versionName="1.0.40"`.
+
+### Not done / limitations
+- Not uploaded or sent for review; no device install of the release build (no bundletool).
+- Play will re-scan the bundle after upload — the warning should clear, but only Play Console can confirm.
+
+## Session 065: Play Store release bundle (1.0.39)
+- **Session ID:** SES-20261120-065
+- **Date & Time:** 2026-11-20, 00:00–00:12 IST
+- **Scope:** release build only; no device testing in this session.
+- **Objective:** owner asked for an AAB for the next Play Store release.
+
+### Configuration
+- `local.properties` (git-ignored, not committed): `RELEASE_VERSION_CODE` 38 → **39**, `RELEASE_VERSION_NAME` 1.0.38 → **1.0.39**. Signing, `GOOGLE_WEB_CLIENT_ID` and `BACKEND_URL` were already configured.
+- Release task passed every guard in `app/build.gradle.kts`: signing present, explicit version, non-placeholder web client ID, HTTPS backend host `kbook.iadv.cloud`.
+
+### Artifact
+- `apps/android/app/build/outputs/bundle/release/app-release.aab`
+- 17,866,062 bytes; SHA-256 `bceca6fbd568412b0faa29eb3c74ffb17e3b9beca19734c14c497ac142bd77f5`.
+- `versionCode="39"`, `versionName="1.0.39"` confirmed in the merged release manifest.
+- `unzip -t` exit 0; `jarsigner -verify` → **jar verified**; cert `CN=Nandhakumar Nagaraj, O=India Advocacy, C=IN` (self-signed release key).
+- R8 mapping for Play upload: `apps/android/app/build/outputs/mapping/release/mapping.txt` (105,370,449 bytes).
+- `./gradlew :app:bundleRelease` → **BUILD SUCCESSFUL in 4m 59s**, 57 tasks (17 executed). An earlier 10-minute run was cut off by the tool timeout after writing the AAB; it was rebuilt to completion and the artifact above is from the successful run (00:10:18).
+
+### Not done / limitations
+- **No runtime test of the release build:** `bundletool` is not installed, so no universal APK was generated from the AAB and the `.aab` was not installed anywhere.
+- **Not uploaded to Play Console.** Upload, release notes and staged rollout remain with the owner.
+- `local.properties` version bump is local only; CI/release pipelines must set `RELEASE_VERSION_CODE=39` and `RELEASE_VERSION_NAME=1.0.39` themselves.
+
+## Session 064: Change Payment Mode filled, final warm bronze
+- **Session ID:** SES-20261119-064
+- **Date & Time:** 2026-11-19, 23:36–23:50 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked to fill Change Payment Mode, then for a colour that suits the palette.
+
+### Change
+- `OrderDetailsDialog.kt`: Change Payment Mode converted from an outlined button to a filled `Button`, white icon + label.
+- Colour iterated on device at owner request: `OrdersDivider` brown (rejected), `OrdersGold` (rejected), `BrandPurple` (rejected), `SmsBlue` (rejected), final warm bronze.
+- New scoped token `OrdersBronze = #8A4B1F` in `Theme/Color.kt`; chosen to sit between the gold Print, green Share and red Cancel without leaving the burgundy/gold family.
+- **OBSERVED device state (cause unknown, not a code change in this session):** order A02 now shows as cancelled in the list (muted, struck through, red edge) and the Home summary counts 2 orders / ₹1092 (A01 only). No cancel action was intentionally invoked by the agent in this session.
+
+### Verified
+- Built (exit 0), installed 23:48:36; screenshot `order-dialog-bronze-payment-2026-11-19.png` (A01 dialog, 3 items, bronze button).
+- **NOT VERIFIED:** the payment-mode picker itself opening in this build (handler unchanged), contrast under font scaling.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 23:48:36`, versionCode 38); app left on the Orders list; auto-rotate restored to 1. Source uncommitted.
+
+## Session 063: Dialog Share and Cancel Order buttons filled
+- **Session ID:** SES-20261119-063
+- **Date & Time:** 2026-11-19, 23:34–23:37 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked for a fully green Share and fully red Cancel Order in the order dialog.
+
+### Change
+- `OrderDetailsDialog.kt`: Share was an outlined `OrdersShareGreen` button → filled `Button` with `containerColor = OrdersShareGreen`, white content. Cancel Order was outlined `DangerRed` → filled `Button` with `containerColor = DangerRed`, white content. Shape, height, order and click handlers unchanged.
+- Print (gold), Change Payment Mode (outlined) untouched.
+
+### Verified
+- Built (exit 0), installed 23:35:22; screenshot `order-dialog-green-red-actions-2026-11-19.png` shows solid green Share and solid red Cancel Order with white icon + label.
+- **NOT VERIFIED:** actual share-sheet launch and cancel-reason flow in this build (handlers unchanged).
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 23:35:22`, versionCode 38); app left on the Order Details dialog; auto-rotate restored to 1. Source uncommitted.
+
+## Session 062: Quiet-black table — borderless cards, gold hairline
+- **Session ID:** SES-20261119-062
+- **Date & Time:** 2026-11-19, 23:28–23:31 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner gave full access to apply the recommended colour direction.
+
+### Change
+- New scoped tokens in `Theme/Color.kt`: `OrdersHeaderBand = #1F0C0D`, `OrdersRowCard = #2A1213`.
+- Header band uses `OrdersHeaderBand`; a 1 dp `OrdersGold` 35% hairline closes it.
+- Row cards use `OrdersRowCard` with **no border**; list gap widened 4 dp → 8 dp (`spacing.small`) and top/bottom content padding 8 dp.
+- White values, gold headers, View pill, columns, tap behaviour unchanged.
+
+### Verified
+- Built (exit 0), installed 23:29:24; screenshot `orders-table-quiet-black-2026-11-19.png` shows rows lifted by fill alone, header separated by the gold hairline.
+- **NOT VERIFIED:** scroll/empty/cancelled states, tablet widths.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 23:29:24`, versionCode 38); app left on Orders; auto-rotate restored to 1. Source uncommitted.
+
+## Session 061: Orders table header matches row cards
+- **Session ID:** SES-20261119-061
+- **Date & Time:** 2026-11-19, 23:25–23:27 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked for the header band to match the row cards exactly.
+
+### Change
+- Header band fill `DarkBrown1` → `OrdersCard`, same as the row cards. Row borders, white values, gold headers, gaps and interactions unchanged.
+- Verified pixel sample: header `(38, 15, 16)` and both row cards `(38, 15, 16)`.
+
+### Verified
+- Built (exit 0), installed 23:25:53; screenshot `orders-table-unified-black-2026-11-19.png`.
+- **NOT VERIFIED:** scroll/empty/cancelled states, tablet widths.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 23:25:53`, versionCode 38); app left on Orders; auto-rotate restored to 1. Source uncommitted.
+
+## Session 060: Orders table cards switched to black
+- **Session ID:** SES-20261119-060
+- **Date & Time:** 2026-11-19, 23:21–23:25 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner clarified the referenced report table is black, not the brown card fill.
+
+### Change
+- Header band fill: `OrdersCard` → `DarkBrown1` (black).
+- Row card fill: `CardBG` 40% → `OrdersCard` (`#260F10`, near-black), plus a 1 dp `OrdersDivider` 55% border so the 4 dp gaps stay visible against the page.
+- White values, gold headers, View pill, columns and tap behaviour unchanged.
+
+### Verified
+- Built (exit 0), installed 23:24:01; screenshot `orders-table-black-cards-2026-11-19.png`.
+- **NOT VERIFIED:** scroll/empty/cancelled states, tablet widths.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 23:24:01`, versionCode 38); app left on Orders; auto-rotate restored to 1. Source uncommitted.
+
+## Session 059: Orders table restyled as report-style row cards
+- **Session ID:** SES-20261119-059
+- **Date & Time:** 2026-11-19, 23:11–23:21 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner supplied a screenshot of the old Reports > Orders Report table and said "like this i want".
+
+### Change (supersedes part of Session 058)
+- Removed the single enclosing panel (`CardBG` fill + border) added in Session 058.
+- Header is now its own rounded band (`OrdersCard` fill, gold headers), followed by a 4 dp gap.
+- Each order is its own rounded card (`CardBG` at 40% over the page), separated by 4 dp; row dividers removed.
+- Row values and `View` label are pure white (`Color.White`) for the report-table contrast; cancelled rows stay muted/struck through with the red edge.
+- Same columns (OrderNo, Amount, Time, Action), same click targets, same dialog. No data or navigation change.
+
+### Verified
+- Built (exit 0), installed 23:18:59; screenshots `orders-table-report-cards-2026-11-19.png`, `orders-row-tap-check-2026-11-19.png` (View still opens the detail dialog).
+- **NOT VERIFIED:** long-list scrolling with the new 4 dp card spacing, empty state appearance, cancelled row on a card, tablet widths.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 23:18:59`, versionCode 38); app left on Orders; auto-rotate restored to 1. Source uncommitted.
+
+## Session 058: Orders table panel brightness matches Settings cards
+- **Session ID:** SES-20261119-058
+- **Date & Time:** 2026-11-19, 23:02–23:10 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner repeated that the table should have Settings-screen brightness.
+
+### Finding
+- Text was already identical to Settings: table values and Settings labels both sampled `#F5E6C8` (`TextLight`). The remaining difference was the panel fill: table used `OrdersCard` `#260F10` (near-black) while Settings cards use `CardBG` `#CC78461E` over the page, rendering `#683B1B`.
+
+### Change
+- `ReportViews.kt`: Orders table panel `.background(OrdersCard)` → `.background(CardBG)`. Panel, gold border, header band, row hairlines and all text colours unchanged otherwise.
+
+### Verified
+- Built (exit 0), installed 23:08:29; screenshot `orders-table-settings-brightness-2026-11-19.png`. Sampled panel pixel `(104, 59, 27)` and Settings card pixel `(104, 59, 27)` — identical.
+- **NOT VERIFIED:** cancelled rows on the lighter panel, dialog (still dark `OrdersCard`-era styling), tablet widths.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 23:08:29`, versionCode 38); app left on Orders; auto-rotate restored to 1. Source uncommitted.
+
+## Session 057: Orders table values use Settings bright text colour
+- **Session ID:** SES-20261119-057
+- **Date & Time:** 2026-11-19, 22:52–22:58 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked for the bright colour used on Settings in the Orders table.
+
+### Change
+- `ReportViews.kt`: OrderNo, Amount, Time cell values and the `View` label switched from `OrdersTextPrimary` (`#F1DFAF`, warm cream) to `TextLight` (`#F5E6C8`, the colour Settings labels use). Headers stay `OrdersGold`; cancelled rows stay muted with strikethrough.
+- No layout, weight, or size change.
+
+### Verified
+- Built (exit 0), installed 22:56:18, SHA-256 `ed1b6a57f09fb1850ddcc37acc5bd1127372bb571ba3221a080aeb3733f061ec`; screenshot `orders-table-bright-2026-11-19.png` shows values at Settings brightness.
+- **NOT VERIFIED:** cancelled rows, tablet/font-scale widths, dialog (still `OrdersTextPrimary`).
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:56:18`, versionCode 38); app left on Orders; auto-rotate restored to 1. Source uncommitted.
+
+## Session 056: Orders table + dialog consistency review
+- **Session ID:** SES-20261119-056
+- **Date & Time:** 2026-11-19, 22:40–22:47 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked for a review pass after the recent Orders/table/dialog changes.
+
+### Review Findings (verified on screenshots)
+1. Table: OrderNo / Amount / Time / Action values all use `OrdersTextPrimary` + bold; headers gold; gaps even; View pill gold-outlined with white label. No dim text left.
+2. Dialog: title centered, gold X, `Order No  A02`, all field labels full white; Payment Mode, Total Amount, item name, price all full opacity.
+3. Fixed in this pass: item name `alpha = 0.92` → full, `x1` quantity `OrdersTextSecondary` → `OrdersTextPrimary`, `Items (n)` / `Amount` captions → `OrdersTextPrimary`. No layout changes.
+4. Open observations, not changed: dialog no longer shows order status (removed at owner request; cancelled orders rely on red tint + Cancel Reason); close X button box is 36 dp (below the 48 dp touch-target guideline); search/share text still prefix `#`.
+
+### Build / Verification
+- Built and installed: `:app:assembleDebug` exit 0, installed 22:44:06, SHA-256 `3ac66e8194113577276a2a610ed046fadbf6f1c29a8807ad70a23fd9bf061141`.
+- Screenshots: `artifacts/android-ui-tests/orders-review-table-2026-11-19.png`, `artifacts/android-ui-tests/order-dialog-review-2026-11-19.png`. Auto-rotate restored to 1.
+- **NOT VERIFIED:** cancelled rows/order, multi-item scrolling, font scale, tablet widths.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:44:06`, versionCode 38); app left on Orders. Source remains uncommitted.
+
+## Session 055: Dialog Order No drops the `#` prefix
+- **Session ID:** SES-20261119-055
+- **Date & Time:** 2026-11-19, 22:36–22:40 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner questioned the `#` before the Order No in the dialog.
+
+### Operations Performed
+1. `DetailRow("Order No", ...)` now passes `bill.dailyOrderDisplay` directly, so the card reads `A02` like the Orders table (the `#` was a legacy receipt prefix; the table stopped printing it on 2026-11-14).
+2. Updated the Orders-table row comment in `ReportViews.kt` so it no longer claims the details dialog prefixes the id (search/share text still do).
+3. Built and installed: `:app:assembleDebug` exit 0, installed 22:38:36, SHA-256 `7d52a937bd885934b982b2d89108694df203233edd043708c49289b744b60f76`.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/order-dialog-no-hash-2026-11-19.png` shows `Order No  A02`; dialog dismissed back to Orders, auto-rotate 1.
+- **NOT VERIFIED:** search and share output still include the `#`; not changed by this request.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:38:36`, versionCode 38); app left on Orders. Source remains uncommitted.
+
+## Session 054: Dialog field labels use full-opacity text
+- **Session ID:** SES-20261119-054
+- **Date & Time:** 2026-11-19, 22:31–22:36 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked to normalise the opacity of Order No / Invoice No / Date inside the dialog like the table fix.
+
+### Operations Performed
+1. `DetailRow` labels changed from muted `OrdersTextSecondary` / bodySmall to `OrdersTextPrimary` / bodySmall + Medium — affects Order No, Tax Invoice No, Order Type, Date.
+2. `Payment Mode` uses `DetailRow`, so it follows; `Total Amount` label was also raised from secondary to primary so no field label stayed dim (value remains larger and ExtraBold).
+3. Built and installed: `:app:assembleDebug` exit 0, installed 22:34:56, SHA-256 `8ea85159bc9379f35567b22e9163cca3fde177f9cc395d236af46db926a0fa84`.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/order-dialog-labels-normal-2026-11-19.png` shows all field labels at normal brightness with values still semibold; dialog dismissed back to Orders, auto-rotate 1.
+- **NOT VERIFIED:** section captions `Items (n)` and `Amount` remain intentionally muted; not changed in this pass.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:34:56`, versionCode 38); app left on Orders. Source remains uncommitted.
+
+## Session 053: Orders table Time column matches other columns
+- **Session ID:** SES-20261119-053
+- **Date & Time:** 2026-11-19, 22:27–22:31 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner reported the Time column looked dimmer than the rest of the table.
+
+### Operations Performed
+1. `OrderTableRow` Time cell changed from `OrdersTextSecondary` + regular weight to `OrdersTextPrimary` + `FontWeight.Bold`, the same treatment as OrderNo and Amount (cancelled rows still use the muted 50% tone).
+2. Built and installed: `:app:assembleDebug` exit 0, installed 22:29:48, SHA-256 `0da20bd8b289d9c2df759511d13294388f5d3bba0b4ba1f46ef00a9c51fce5d7`.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/orders-time-column-bright-2026-11-19.png` shows `07:19 PM` and `03:43 PM` at the same brightness/weight as `A02`/`A01` and the amounts; auto-rotate restored to 1 (`orders-time-column-bright-final-2026-11-19.png`).
+- **NOT VERIFIED:** multi-day `Date/Time` two-line rows and cancelled rows were not opened in this pass.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:29:48`, versionCode 38); app left on Orders. Source remains uncommitted.
+
+## Session 052: Order id moved into the details card
+- **Session ID:** SES-20261119-052
+- **Date & Time:** 2026-11-19, 22:23–22:27 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked to remove the order number from the dialog header and keep it as a labelled `Order No` value above the long invoice number.
+
+### Operations Performed
+1. Header is once again only the centered "Order Details" title + gold X; the `#A02` subtitle was removed.
+2. Added `DetailRow("Order No", "#A02")` as the first row of the identity card, directly above `Tax Invoice No` (`A000073`).
+3. Built and installed: `:app:assembleDebug` exit 0, installed 22:25:33, SHA-256 `300ae2e92367490d3fdd42fb716b7c8bbaf2e7ab045975ec766dfea333367a6f`.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/order-dialog-order-no-row-2026-11-19.png` shows the header without the id and the card sequence Order No → Tax Invoice No → Order Type → Date; dialog dismissed back to Orders, auto-rotate 1.
+- **NOT VERIFIED:** owner's reference to a "lifetime order no" was matched to the existing `Tax Invoice No` row; no separate lifetime-order row exists in this dialog (`lifetimeOrderId` is null on new bills).
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:25:33`, versionCode 38); app left on Orders. Source remains uncommitted.
+
+## Session 051: Order id restored under centered title
+- **Session ID:** SES-20261119-051
+- **Date & Time:** 2026-11-19, 22:17–22:21 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked for the order id back under the centered title, in a subtle style.
+
+### Operations Performed
+1. Header content became a centered Column: gold "Order Details" + `#A02` in `OrdersTextSecondary` / bodySmall, 2 dp below it; the gold X stays pinned center-end.
+2. Added a 4 dp (`spacing.extraSmall`) spacer before the header divider so the id doesn't touch the line.
+3. Built and installed: `:app:assembleDebug` exit 0, installed 22:19:21, SHA-256 `67bda86c20c7a5e7f26ba5562fbd3ffb4f20e024e3d0f7326c36c432f9905cec`.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/order-dialog-header-id-subtle-2026-11-19.png` shows the centered title, muted `#A02`, and gold X; dialog dismissed back to Orders (`orders-after-header-id-2026-11-19.png`), auto-rotate restored to 1.
+- **NOT VERIFIED:** status chip is still absent by design; no functional flows re-exercised.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:19:21`, versionCode 38); app left on Orders. Source remains uncommitted.
+
+## Session 050: Dialog title centered, close X gold
+- **Session ID:** SES-20261119-050
+- **Date & Time:** 2026-11-19, 22:12–22:17 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked to center the "Order Details" header text and make the close X gold.
+
+### Operations Performed
+1. Header Row replaced with a Box: the title is centered across the full card width (44 dp end padding so it cannot run under the X) and the X is pinned to the center-end.
+2. Close icon tint changed from `OrdersTextSecondary` to `OrdersGold` (same gold as the title).
+3. Built and installed: `:app:assembleDebug` exit 0, installed 22:14:15, SHA-256 `50d62889f5ba8bce0f2720b418630bbef27eaf07bcf8192722939c38d69b982a`.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/order-dialog-header-centered-gold-2026-11-19.png` shows the centered title and gold X; dialog dismissed back to Orders (`orders-after-centered-header-2026-11-19.png`), auto-rotate restored to 1.
+- **NOT VERIFIED:** no functional change, so dismiss/actions were not re-exercised beyond closing the dialog.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:14:15`, versionCode 38); app left on Orders. Source remains uncommitted.
+
+## Session 049: Dialog header reduced to title + close
+- **Session ID:** SES-20261119-049
+- **Date & Time:** 2026-11-19, 22:08–22:12 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** owner asked to keep only "Order Details" and the X in the dialog header.
+
+### Operations Performed
+1. Removed the `#A02` order-id subtitle and the Completed/Preparing/Cancelled chip from the header; the title now takes the remaining width.
+2. Deleted the now-unused `OrderStatusChip` composable and its `CircleShape` / `Restaurant` imports.
+3. Built and installed: `:app:assembleDebug` exit 0, installed 22:10:35, SHA-256 `dc757b9d03dfe5aba5dc02d4dc73cc169b9560f992cb5d42b30b328114649c37`.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/order-dialog-header-minimal-2026-11-19.png` shows the header containing only the gold title and close X; dialog dismissed back to Orders (`orders-after-minimal-header-2026-11-19.png`).
+- **NOT VERIFIED:** no functional change, so action flows were not re-exercised; order id and status are intentionally no longer shown anywhere in the dialog.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 22:10:35`, versionCode 38); app left on Orders, auto-rotate 1. Source remains uncommitted.
+
+## Session 048: Order Details dialog redesigned
+- **Session ID:** SES-20261119-048
+- **Date & Time:** 2026-11-19, 21:49–21:57 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked to redesign the dialog that opens from View.
+
+### Operations Performed
+1. Header: dropped the receipt glyph; "Order Details" is now a title with the order id `#A02` beneath it, a Completed/Preparing/Cancelled status chip, and a neutral close icon. Order No is no longer repeated inside the card.
+2. Identity card: labels are muted 12 sp (`OrdersTextSecondary`), values white semibold, no leading icons and no border.
+3. Items: header `Items (n)` with an Amount column label, item rows with the quantity split into a muted `x1` chip-like text, 0.5 dp dividers, and white prices.
+4. Totals: Payment Mode row plus a plain Total Amount row — the gold-washed total strip and `OrdersBrightGold` amount were removed.
+5. Actions: Print stays gold filled; Share is now outlined green; Change Payment Mode is a neutral outline; Cancel Order is a red outline instead of solid red. All actions live in one column with consistent 8 dp gaps, fixing the missing gap when Change Payment Mode was hidden.
+6. Built and installed: `:app:assembleDebug` exit 0, installed 21:51:39, SHA-256 `a85912df8ab91797912434fd2f5a425ef6ee4f71c458bcc56b959f005ad34242`.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/order-dialog-redesign-2026-11-19.png` shows the new dialog; Change Payment Mode opens the picker (`order-dialog-payment-picker-2026-11-19.png`) and Cancel Order opens the reason sheet (`order-dialog-cancel-confirm-2026-11-19.png`); neither was confirmed. Dialog dismissed back to Orders (`orders-after-dialog-redesign-2026-11-19.png`).
+- **NOT VERIFIED:** Print/Share, cancelled-order layout, multi-item scrolling, font scale, tablets.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 21:51:39`, versionCode 38); app left on Orders. Source remains uncommitted; no commit/push/review.
+
+## Session 047: Orders amount and View label are white
+- **Session ID:** SES-20261119-047
+- **Date & Time:** 2026-11-19, 21:40–21:43 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked why the Amount value was gold and asked for it to be white, then asked for the View label to match.
+
+### Operations Performed
+1. `OrderTableRow` (`ReportViews.kt`) amount colour changed from `OrdersBrightGold` to `OrdersTextPrimary` (the table's warm white `#F1DFAF`, also used by the order ids). Cancelled rows still use the muted colour with the strike-through.
+2. `ViewOrderAction` label changed from `OrdersGold` to `OrdersTextPrimary`; the 1 dp gold outline is unchanged. The comments now state the white label.
+3. Built and installed: `:app:assembleDebug` exit 0, `adb install -r` Success at 21:42:52, SHA-256 `56d1c0e7ed46d3dd2fa0107636b9e2c612d8dca93302fcafc3c5602dae378928`. Auto-rotate restored.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/orders-amount-view-white-2026-11-19.png` shows ₹241.50 / ₹1092.00 in the same white as A02/A01, with the View labels white inside the gold outline.
+- **NOT VERIFIED:** font-scale rendering; contrast of `#F1DFAF` on the row fill was not recomputed (it is the existing row text colour).
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 21:42:52`, versionCode 38); app left on Orders. Source remains uncommitted; no commit/push/review.
+
+## Session 046: Orders toast captured; toasts are now compact and black
+- **Session ID:** SES-20261119-046
+- **Date & Time:** 2026-11-19, 21:28–21:39 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** capture the Orders error toast, then, on owner feedback, shrink it WhatsApp-style and change its white surface to black.
+
+### Operations Performed
+1. The Orders screen only raises a toast from `reportError`, so a temporary `LaunchedEffect` was added in `OrdersScreen.kt` to show the real `KhanaToast.show(..., ToastKind.Error)` on entry. The white two-line error toast was captured (`orders-toast-capture-2026-11-19.png`, 664×126 px = 379.4×72.0 dp). The temporary trigger was then removed.
+2. `KhanaNoticePill` gained a `compact` mode used only by `KhanaBookSnackbar`: 48 dp minimum height, 24 dp medallion, 14 sp message (max 3 lines), 14 dp corners, 6 dp elevation, 18 dp close icon, 16 dp marker. The push banner keeps the roomy 40 dp medallion / 16 sp white pill.
+3. Compact toasts use new near-black tokens: `NoticeDarkSurface #1B1B1B`, white text, `#D6D6D6` secondary, `#BDBDBD` close, and kind accents `#6BDB8A` / `#FF6B6B` / `#FFC44D` / `#8FC7FF`. All clear 4.5:1 on the surface (17.22, 11.85, 9.17, 9.94, 6.21, 10.87, 9.66). A 1 dp white-12% hairline keeps the black bar from merging with the near-black app background.
+4. Final build (temporary trigger removed): `:app:assembleDebug` exit 0, installed 21:38:17, SHA-256 `e239747526438d22f75fe4b837c7daa6f0f273f9315748cece8edf43a6a20f34`.
+
+### Verification Status
+- **VERIFIED on device:** white compact toast measured 664×84 px = 379.4×48.0 dp (down from 72.0 dp); the black version renders one line with the medallion, red marker and close, clear of the 80 dp bottom nav (`orders-toast-black-2026-11-19.png`). Final build shows no toast on entry (`orders-final-black-toast-build-2026-11-19.png`), confirming the trigger is gone.
+- **NOT VERIFIED:** action toasts (TextButton), three-line messages, the push banner after the shared-component change, TalkBack live-region wording, other screen widths.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 21:38:17`, versionCode 38) with compact black snackbar toasts and the white push banner; app left on Orders. Source remains uncommitted; no commit/push/review.
+
+## Session 045: Orders top title reads "Orders Details"
+- **Session ID:** SES-20261119-045
+- **Date & Time:** 2026-11-19, 21:21–21:24 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked to change the Orders screen's top title from "Orders" to "Orders Details".
+
+### Operations Performed
+1. `OrdersScreen.kt:165` now renders `text = "Orders Details"` with the existing `headlineMedium` gold style; back and search buttons are unchanged.
+2. Built and installed: `:app:assembleDebug` exit 0, `adb install -r` Success at 21:22:23, SHA-256 `7b16420520c9f6d55eeded95a853ae26e4b1bb49372d36bca8bc5f34dbb10212`.
+3. A system "Active apps" dialog covered one capture; it was dismissed and the app relaunched. The final capture is the app.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/orders-title-details-2026-11-19.png` shows "Orders Details" centred between the back and search icons without overlap (title ≈343 px wide = 196 dp; icons clear). Existing androidTest matchers use `hasText("Orders", substring = true)`, so they still match.
+- **NOT VERIFIED:** no test run; layout at large font scale.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 21:22:23`, versionCode 38) with the new title and the Session 044 column layout; app left on Orders. Source remains uncommitted; no commit/push/review.
+
+## Session 044: Orders column gaps evened out
+- **Session ID:** SES-20261119-044
+- **Date & Time:** 2026-11-19, 21:12–21:20 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked to even out the visual gaps between the Orders table columns.
+
+### Operations Performed
+1. Rebalanced the shared weights in `ReportViews.kt` from 1.15 / 1.05 / 1.05 / 0.75 to **0.85 / 1.05 / 1.05 / 1.05** (sum 4.0 → 21.25% / 26.25% / 26.25% / 26.25% of the row content width).
+2. Centred the OrderNo column (header and row cell) so "A02" no longer hugs the left edge and leaves a one-sided gap before Amount; the header/row centre alignment is unchanged.
+3. 0.85 was chosen over 0.70 for narrow-screen safety: on a 320 dp phone the row content is ~264 dp, so OrderNo gets ~56 dp versus ~49 dp for the 11.5 sp header, instead of ~46 dp where the header would clip.
+4. Built and installed: `:app:assembleDebug` exit 0 at 21:20:10, SHA-256 `96b3b7b48093d22a0eafec8a7688c5895f60e5ba2b1600aac7ebb76165e08637`; the title build that followed reuses the same layout.
+
+### Verification Status
+- **VERIFIED on device (A02 / A01, px → dp):** before 168/65/49 and 161/56/48 px (96/37/28 and 92/32/27 dp); after **79/65/72** and **72/56/71** px (**45/37/41** and **41/32/41** dp). The widest gap dropped ~52%.
+- Header labels stay centred over their columns; label-to-label gaps are 32/54/58 dp, which is a property of narrower header text over wide columns.
+- Tapping View still opens Order Details (`orders-gaps-even-details-2026-11-19.png`). Screenshots: `orders-gaps-even-v1/v2/final-2026-11-19.png`.
+- **NOT VERIFIED:** 320 dp, tablet, landscape and font-scale rendering (weights are proportional, but only the 411 dp moto g34 was measured).
+
+## Session 043: Orders table column-gap check (read-only)
+- **Session ID:** SES-20261119-043
+- **Date & Time:** 2026-11-19, 21:02–21:05 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38, build 20:58:44 (SHA-256 `b576b377…a4ce06`).
+- **Objective:** capture the Orders table and check the horizontal gap between each column. No code change.
+
+### Measurements (720 px wide, 1.75 px/dp; panel 28–692 px, row content 49–671 px)
+- Column boxes by weight 1.15 / 1.05 / 1.05 / 0.75: OrderNo 49–228 px (102 dp), Amount 228–391 (93 dp), Time 391–554 (93 dp), Action 554–671 (67 dp). No explicit gutters; boxes are contiguous and content is centred (OrderNo start-aligned).
+- Ink gaps, header: OrderNo→Amount 121 px (69 dp), Amount→Time 94 px (54 dp), Time→Action 79 px (45 dp).
+- Ink gaps, A02: 168 px (96 dp), 65 px (37 dp), 49 px (28 dp). A01: 161 px (92 dp), 56 px (32 dp), 48 px (27 dp).
+- Header/row centres agree within 1 px (Amount 308/308–309, Time 471/472, Action 611/612); OrderNo and A0x both start at x≈49 px.
+
+### Verification Status
+- **VERIFIED:** `artifacts/android-ui-tests/orders-column-gaps-2026-11-19.png`; no overlap, narrowest gutter is Time→Action at ~27 dp. The first gap is the widest because OrderNo is start-aligned and short, not because of a layout defect.
+- **NOT VERIFIED:** gap behaviour at large font scale or with long amounts/order ids.
+
+## Session 042: Orders header reads "OrderNo"
+- **Session ID:** SES-20261119-042
+- **Date & Time:** 2026-11-19, 20:57–21:00 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked for the Orders table header to be only OrderNo (one word), Amount, Time, Action, with the header aligned to the data rows.
+
+### Operations Performed
+1. Changed `OrderTableHeader` (`feature/reports/ui/ReportViews.kt`) from `"Order No"` to `"OrderNo"`; the other three labels and the `includeDate` variant are unchanged.
+2. No column-width change was needed: header and rows both route through `OrderTableCell` with the same `COL_ORDER`/`COL_AMOUNT`/`COL_TIME`/`COL_ACTION` weights and the same `spacing.smallMedium` horizontal padding, so alignment is structural.
+3. Built and installed: `:app:assembleDebug` exit 0, `adb install -r` Success at 20:58:44, SHA-256 `b576b37795224dd4f4a011ae9987278a33ba67e3fbc868a9bd3ab4c500a4ce06`. Auto-rotate was restored afterwards.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/orders-header-orderno-2026-11-19.png` shows OrderNo / Amount / Time / Action; OrderNo and A0x share the same left edge (x=48 px), and the centered columns share their centers (Amount ≈310, Time ≈477, Action ≈610 px; sub-2 px ink-bearing differences only).
+- **NOT VERIFIED:** font-scale and landscape layouts; TalkBack.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 20:58:44`, versionCode 38) with the OrderNo header; app left on Orders. Source remains uncommitted; no commit/push/review.
+
+## Session 041: Orders action is the outlined "View" pill
+- **Session ID:** SES-20261119-041
+- **Date & Time:** 2026-11-19, 19:40–19:43 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner supplied a screenshot of the report table's View button and asked the Orders action to match that design, including the pill.
+
+### Operations Performed
+1. `ViewOrderAction` (`feature/reports/ui/ReportViews.kt`) now draws a compact pill: 22 dp tall, 1 dp `OrdersGold` border at 75% alpha, 5 dp corners, 8 dp horizontal padding, 12 sp bold gold "View". The pill sits in the existing 48 dp clickable box with `onClickLabel = "View order $dailyId"`; the transparent fill shows the row through.
+2. Reference was the owner's "Report Details" screenshot (OrderNo/Mode/Status/Action table). That screen is not in this repo — its bottom nav is Home/Reports/Settings — so the pill was matched visually, not copied from source.
+3. Built and installed: `:app:assembleDebug` exit 0, `adb install -r` Success at 19:41:18, SHA-256 `a1b7c4cf843419073ee54c3081a48171f5f67b0c4a76f45891dbf12bf13c7872`. ADB dropped before the install; the daemon was restarted and the device reconnected. Auto-rotate was restored afterwards.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/orders-view-pill-2026-11-19.png` shows the outlined View pill on both rows (measured 82×40 px ≈ 46.9×22.9 dp); tapping A02 opened Order Details (`orders-view-pill-details-2026-11-19.png`).
+- **NOT VERIFIED:** TalkBack wording; font-scale and landscape layouts.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 19:41:18`, versionCode 38) with the pill; app left on Orders. Source remains uncommitted; no commit/push/review.
+- 20:51:28: the same APK (SHA-256 `a1b7c4cf…3c7872`) was reinstalled after the device reconnected; `lastUpdateTime` moved to 20:51:28 and the app relaunched. No code change.
+
+## Session 040: Orders action is a text "View"
+- **Session ID:** SES-20261119-040
+- **Date & Time:** 2026-11-19, 19:29–19:32 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked to remove the Orders action icon and keep the content as the word "View".
+
+### Operations Performed
+1. Replaced the 36 dp gold disc + `Icons.Filled.Visibility` in `ViewOrderAction` (`feature/reports/ui/ReportViews.kt`) with a plain gold bold `Text("View")`.
+2. Kept a 48 dp minimum hit area with `clickable(onClickLabel = "View order $dailyId")`, so TalkBack still names the order; the row tap is unchanged. Removed the now-unused `CircleShape` and `Visibility` imports. Supersedes Session 039's eye icon.
+3. Built and installed: `:app:assembleDebug` exit 0, `adb install -r` Success at 19:30:25, SHA-256 `d0884f3c173601140f6b474ee496d80dba01ad20b8b7f13227945846646acc02`. Auto-rotate was restored afterwards.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/orders-view-text-2026-11-19.png` shows gold "View" labels in the Action column; tapping A02's View opened Order Details (`orders-view-text-details-2026-11-19.png`).
+- **NOT VERIFIED:** TalkBack wording of the click label; no accessibility/font-scale pass.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 19:30:25`, versionCode 38) with the text action; app left on Orders. Source remains uncommitted; no commit/push/review. Superseded by Session 041 (outlined pill).
+
+## Session 039: Orders table action icon is a view eye
+- **Session ID:** SES-20261119-039
+- **Date & Time:** 2026-11-19, 19:24–19:27 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked for the Orders table's vertical three-dot action to be a view icon.
+
+### Operations Performed
+1. Located `ViewOrderAction` in `feature/reports/ui/ReportViews.kt`; it drew `Icons.Filled.MoreVert` even though its content description was already `"View order $dailyId"`.
+2. Replaced it with `Icons.Filled.Visibility` (eye) and updated the import and comment. The 36 dp gold disc, 48 dp hit area and `OrderDetailsDialog` action are unchanged. The separate `MoreVert` "More Actions" control on Active Orders was left alone.
+3. Built and installed: `:app:assembleDebug` exit 0, `adb install -r` Success at 19:25:17, SHA-256 `e20366a162cb6b50043cc592e241a436d67f0e0d2b300a4f85244fdb818c8bdb`. ADB dropped once during the walk; the daemon was restarted and the device reconnected. Auto-rotate was restored afterwards.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/orders-view-icon-2026-11-19.png` shows eye icons in the Action column for A01/A02; tapping A02 opened Order Details (`orders-view-icon-details-2026-11-19.png`).
+- **NOT VERIFIED:** TalkBack announcement of the new icon; no accessibility/font-scale pass.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 19:25:17`, versionCode 38) with the eye action; app left on Orders. Source remains uncommitted; no commit/push/review. Superseded by Session 040 (text "View").
+
+## Session 038: Save Configuration CTA green
+- **Session ID:** SES-20261119-038
+- **Date & Time:** 2026-11-19, 19:17–19:20 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked for the Restaurant Configuration "Save Configuration" CTA to be green like the shared Save button.
+
+### Operations Performed
+1. Located the CTA at `feature/settings/ui/ShopConfigSection.kt:922-1003`; it used `PrimaryGold` with `DarkBrown1` content.
+2. Matched `SettingsSaveBar`'s Save button: `SuccessGreen` container, white content, `#5F5F5F` disabled container and white 65% disabled content. The loading spinner is now white; the hardcoded `DarkBrown1` text colour was removed so `contentColor` (including the disabled state) applies.
+3. Kept the pill shape (`KhanaRadii.xl`), 52 dp height and full width. Built and installed: `:app:assembleDebug` exit 0, `adb install -r` Success at 19:18:15, SHA-256 `aabdafcdf97cf2fb455ea8ddc4ceb2f52a1041a907b5e6abef566679ff157d25`. Auto-rotate was locked to portrait for the capture and restored afterwards.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/save-config-green-2026-11-19.png` shows the full-width Save Configuration button in the same green as the standard Save button, with white bold text.
+- **NOT VERIFIED:** the disabled/loading state was not captured; no accessibility or font-scale pass.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 19:18:15`, versionCode 38) with the green CTA; app left on Restaurant Configuration. Source remains uncommitted; no commit/push/review.
+
+## Session 037: Shop Profile header gold
+- **Session ID:** SES-20261119-037
+- **Date & Time:** 2026-11-19, 19:10–19:14 IST
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** the owner asked for the "Shop Profile" section header in Restaurant Configuration to be gold like the Shop Name field label instead of white.
+
+### Operations Performed
+1. Located the header at `feature/settings/ui/ShopConfigSection.kt:418-424`. It used `TextLight` (white); the Shop Name label uses `TextGold.copy(alpha = 0.7f)` through `KhanaBookInputField` (`unfocusedLabelColor`).
+2. Changed the header colour to `TextGold.copy(alpha = 0.7f)` and updated the comment. No layout, text or other card was touched.
+3. Built and installed: `:app:assembleDebug` exit 0, `adb install -r` Success at 19:12:18. APK SHA-256 `ee6df8d040e9d4159c361527b4899f96a579e9c61b96d8d6d0dceb40dab0ec8e`. The device auto-rotated to landscape during the walk; auto-rotate was temporarily locked to portrait for the capture and restored afterwards.
+
+### Verification Status
+- **VERIFIED on device:** `artifacts/android-ui-tests/shop-profile-gold-2026-11-19.png` shows "Shop Profile" in the same gold family as "Shop Name *"; before capture: `shop-profile-before-2026-11-19.png`.
+- **NOT VERIFIED:** the other section headers ("Business Hours", "Billing Mode") were deliberately left white — only "Shop Profile" was requested. No accessibility/font-scale pass.
+
+### Final Application State
+- APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 19:12:18`, versionCode 38) with the gold header; app left on Restaurant Configuration. Source remains uncommitted; no commit/push/review.
+
+## Session 036: White KhanBook notice pill + notification accessibility fixes
+- **Session ID:** SES-20261119-036
+- **Date & Time:** 2026-11-19, 18:21–19:03 IST (compile + device walk + cross-check)
+- **Target Device:** `ZA222J5KT7` (moto g34 5G), `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38.
+- **Objective:** replace the dark bordered snackbar/banner surfaces with the white floating KhanBook pill requested by the owner, and address the P0/P1 findings from the notification UI/UX audit.
+
+### Operations Performed
+1. Audited every notification surface: `KhanaBookSnackbar.kt` (80 `KhanaToast.show` sites), `InAppNotificationBanner.kt`, `NotificationHelper.kt` + FCM service (tray), the single raw `Toast` in `NotificationActionReceiver.kt:43`, the banner trigger in `NotificationRepository.kt:210-230`, and the host mounts in `MainActivity.kt:400-431`.
+2. Added `core/designsystem/KhanaNoticePill.kt` (white surface, 28 dp pill radius, 40 dp brand-purple medallion with the white-tinted `ic_launcher_monochrome` mark, 16 sp standalone message (14 sp message under a 14 sp bold title in the banner), optional title/action/close). The monochrome asset was verified to have an alpha channel (324x324, alpha 0-255); `khanabook_logo.png` is opaque and would show a white square inside the circle, so it is not used.
+3. Added notice-only tokens in `core/theme/Color.kt` (`NoticeSurface/Text/TextSecondary/Success/Error/Warning/Info/Close`). Contrast on white was computed: text 17.19:1, secondary 10.09:1, success 5.13:1, error 5.62:1, warning 5.02:1, info 7.10:1, close 7.62:1. The existing `WarningYellow` (1.79:1) and `PrimaryGold` (2.68:1) were left untouched for the dark UI.
+4. Restyled `KhanaBookSnackbar` with the pill and fixed P0/P1 behaviour: per-kind accessible timeout extended by `AccessibilityManager.getRecommendedTimeoutMillis()`; success/info 2.5 s, error/warning 4 s, +500 ms per 5 words over 8, cap 6 s, with the host visuals set to `SnackbarDuration.Indefinite` so Material's own 4 s `Short` timeout cannot cut that window; Error/Warning now get a close affordance; Assertive live region for Error/Warning and Polite for the rest; a tap blocker so a toast over a bottom bar/CTA cannot pass taps through to hidden controls.
+5. Restyled `InAppNotificationBanner` with the same pill and optional title. Added live-region semantics, platform-extended timeout, auto-dismiss disabled while TalkBack touch exploration is active, pause/restart on press or focus, and a delayed `onDismiss()` so the declared exit animation actually runs.
+6. Collapsed the banner's six hardcoded accents into four notice kinds (`payment_received`/`qr_order` -> Success; `fssai_expiry`/`inventory_low`/`order_cancelled` -> Warning; refund/kyc/settlement -> Info). White on the old saffron `#F97316` is 2.80:1, so it could not carry a white glyph anyway.
+7. Reworked host insets: `WindowInsets.navigationBars.union(WindowInsets.ime)` replaces `navigationBarsPadding()` alone, so toasts are no longer hidden by the keyboard; the host accepts `bottomLift` and `MainActivity` passes 80 dp on `main/` routes to clear the tab-shell `NavigationBar`. The banner keeps `statusBarsPadding()`.
+8. Added a 480 dp max width to both surfaces so they do not stretch across tablets; horizontal margins are 16 dp.
+9. Built and installed: `:app:assembleDebug` → BUILD SUCCESSFUL, `adb install -r` → Success at 18:21:50. After enlarging the medallion mark from 32 dp to 40 dp (the asset has ~8.6 dp horizontal / ~9.7 dp vertical transparent padding, so this yields a ~23 × 21 dp glyph), rebuilt and reinstalled at 18:30:08; that build's SHA-256 was `3037a2c2c9d1747d91a9d3db43b3657eb020e6d51e472fcb372a569b18cbfd78`.
+10. Device walk: (a) Home, system Back once at the root → Info pill; (b) Settings → Printer Configuration → Test Printer against the offline Wi-Fi printer → Error pill after the Wi-Fi transport's failure (5 s connect timeout plus one retry); (c) tapped the Error pill's close X and confirmed it cleared; (d) opened the Wi-Fi printer dialog, focused the IP field with the keyboard up, but Save is disabled for an invalid host, so no under-keyboard toast could be produced from that path.
+11. Cross-check rebuild: after fixing the Material3 host timeout, rebuilt and reinstalled at 18:54:00 (versionCode 38, SHA-256 `2433b01352f481b1af06dfc088dc6447a1e7fda14fa1c84880976d3c6c757eb9`). Re-tested on device: the Info pill was gone by 3.6 s, and the offline-printer Error pill's close X cleared it within 0.4 s (paired screenshots below). The failure toast now lands after the transport's retry cycle, not at 5 s, so the earlier 5.2 s capture missed it.
+
+### Verification Status
+- **VERIFIED from source:** the 80 toast call sites compile unchanged against the extended `KhanaToast.show` signature (new optional `duration`); the banner is the only other in-app banner surface — the raw `Toast` at `NotificationActionReceiver.kt:43` and the system tray are unchanged; the monochrome logo has transparency; all contrast values above are computed with WCAG 2.1 relative luminance.
+- **VERIFIED from build:** `:app:compileDebugKotlin` (offline) exit 0; `:app:assembleDebug` exit 0; `adb install -r` Success; installed `lastUpdateTime=2026-11-19 18:54:00`.
+- **VERIFIED on device — Info:** the Home back-exit pill is white, 664×112 px at 280 dpi (379.4×64.0 dp), 16 dp side margins, 40 dp purple medallion, and sits above the 80 dp tab bar. Screenshot: `artifacts/android-ui-tests/notice-pill-home-toast-v2-2026-11-19.png`; timer pair `crosscheck-info-t0-2026-11-19.png` → `crosscheck-info-t36-2026-11-19.png`.
+- **VERIFIED on device — Error:** the offline-printer error shows a two-line message, an 18 dp error icon (≈15 dp visible glyph) and close X; tapping the X cleared the pill within 0.4 s. Screenshots: `artifacts/android-ui-tests/notice-pill-error-v2-2026-11-19.png`, `crosscheck-error-close-before-2026-11-19.png`, `crosscheck-error-close-after-2026-11-19.png`.
+- **NOT VERIFIED on device:** the under-keyboard toast could not be triggered (the Wi-Fi printer Save is disabled for an invalid host and the other validation is inline); the in-app push banner needs a real FCM message; TalkBack announcement, 200 % font scale, split-screen, a full landscape/tablet pass, RTL and animation timing were not exercised.
+- **KNOWN REMAINING:** billing/setup screens with their own sticky bottom bars still have the toast overlapping that bar (tap-through is blocked); `main/` routes lift by 80 dp even when Settings has hidden the tab bar; the global 2 s dedupe, success-supersedes-error, foreground tray+banner duplication and 4-line truncation remain P2 items.
+
+### Cross-check (2026-11-19, 18:50–19:03 IST)
+- Pixel measurements at 280 dpi: Info pill 664×112 px (379.4×64.0 dp); Error pill 664×126 px (379.4×72.0 dp); 16.0 dp side margins; medallion 70×70 px (40.0 dp); white glyph 40×36 px (22.9×20.6 dp); error icon 26×26 px visible (14.9 dp) inside its 18 dp layout box. Surface #FFFFFF, medallion #6835A8, message #201A17 — all match the tokens.
+- Contrast recomputed with WCAG 2.1 luminance: text 17.19:1, secondary 10.09:1, success 5.13:1, error 5.62:1, warning 5.02:1, info 7.10:1, close 7.62:1, white on brand purple 7.89:1, `WarningYellow` 1.79:1, `PrimaryGold` 2.68:1 — all match the `Color.kt` comments.
+- Incidental landscape capture (1600×720 while the device auto-rotated): the Info pill stayed bottom-centred at ~477 dp wide, inside the 480 dp cap. This is not a full landscape audit; auto-rotate was restored to auto.
+- Fixed: `SnackbarDuration.Short` let Material3's `SnackbarHost` dismiss non-action toasts at 4 s, so the documented 6 s window was unreachable. Non-action visuals now report `Indefinite` and the pill's `LaunchedEffect` is the only timer. The Info pill disappeared by 3.6 s and the Error close works under the new setting.
+- Not re-verified: the full 6 s window needs a 43+ word toast; no such message was triggered.
+
+### Final Application State
+- Debug APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 18:54:00`, versionCode 38, SHA-256 `2433b013…6c757eb9`) and left on Home. Source changes remain uncommitted; no commit/push/review.
+- The temporary Printer Configuration changes made for the error test ("Use one printer" and the customer printer role) were returned to their original off state; screenshots `notice-pill-printer-restored2-2026-11-19.png`, `crosscheck-printer-restored-final-2026-11-19.png`; auto-rotate was restored to auto.
+
+## Session 035: Tutorial status bar overlap fix
+- **Session ID:** SES-20261119-035
+- **Date & Time:** 2026-11-19 (~17:13 host clock)
+- **Target Device:** `ZA222J5KT7` (moto g34 5G). It was reachable long enough to install the APK at 17:20:03, then dropped off ADB again before post-fix UI measurement. Pre-fix evidence was captured earlier on the same device.
+- **Objective:** remove the status-bar overlap on the in-app tutorial catalogue and video player.
+
+### Operations Performed
+1. Read the edge-to-edge guidance and audited the window setup: `MainActivity` already calls `enableEdgeToEdge()` before `setContent`, and `AndroidManifest.xml` already sets `android:windowSoftInputMode="adjustResize"` on the only Activity. No Activity-level change was needed.
+2. Enumerated every `KhanaBookScreenScaffold` caller. `NotificationsScreen`, `NotificationPreferencesScreen`, `SettingsScreen` and `MainScreen` already receive the top inset (directly or through `MainScreen`); only `TutorialListScreen` and `InAppWebViewScreen` — both nav destinations outside `MainScreen` — lacked `statusBarsPadding()`.
+3. Added `statusBarsPadding` imports and applied `Modifier.fillMaxSize().statusBarsPadding()` to both tutorial scaffolds. No other screen, route or theme was changed.
+4. Built `:app:assembleDebug` → **BUILD SUCCESSFUL in 6s** (43 tasks up-to-date). APK SHA-256 `a90d4b2587ee037bc3ec5eb7ed7c2f75c00b2553706b31570cd7d4ef8d98f73b`, 41,210,655 bytes.
+5. When the owner reconnected `ZA222J5KT7`, `adb install -r` returned **Success** and `dumpsys package` reported `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-19 17:20:03`. The app launched to Home.
+6. Navigation toward Watch Tutorials was attempted, but the device disappeared from `adb devices -l` before the corrected header could be dumped or captured. `artifacts/android-ui-tests/current-after-tap-2026-11-19.png` shows an unrelated Active Orders screen from the interrupted walk and is **not** verification evidence; it is retained only for audit.
+
+### Verification Status
+- **VERIFIED from source:** the two tutorial screens were the only `KhanaBookScreenScaffold` callers without a top inset; the single Activity is already edge-to-edge with `adjustResize`.
+- **VERIFIED from build:** `:app:assembleDebug` exit 0; the new APK was produced at 17:13.
+- **VERIFIED from pre-fix device evidence:** on `ZA222J5KT7` the `Watch Tutorials` header node measured bounds `[112,44][608,96]`, i.e. it began at the 44 px status-bar edge. Screenshot: `artifacts/android-ui-tests/statusbar-initial-2026-11-19.png`.
+- **VERIFIED — install:** `adb install -r` returned Success on `ZA222J5KT7`; installed build is the 17:13 status-bar-fix APK with `lastUpdateTime=17:20:03`.
+- **NOT VERIFIED after the fix:** the device dropped off ADB during the navigation walk, so the corrected header position was not re-measured and no valid post-fix screenshot exists. `adb devices -l` remained empty after an ADB daemon restart and a short retry.
+- No app data was cleared; no commit, push or review was performed.
+
+### Final Application State
+- The 17:13 status-bar-fix APK is installed on `ZA222J5KT7` (`lastUpdateTime=17:20:03`). Its post-fix tutorial header still needs a device measurement/screenshot. All source changes remain uncommitted.
+
+## Session 034: Tutorial catalogue + direct video player, device verification
+- **Session ID:** SES-20261119-034
+- **Date & Time:** 2026-11-19 (~16:50 host clock; device `lastUpdateTime` 16:50:59)
+- **Target Device:** `ZA222J5KT7` (moto g34 5G, `com.piquantservices.khanabooklite.debug`, versionCode 38 / 1.0.38).
+- **Objective:** finish the in-app tutorial flow so "Watch Tutorials" shows a list of video names from the CDN and plays the chosen video in-app; verify the Notification Preferences label/inventory cleanup on hardware.
+
+### Operations Performed
+1. Added `feature/settings/ui/TutorialListScreen.kt` + `feature/settings/viewmodel/TutorialListViewModel.kt`: fetching `https://kbook.iadv.cloud/cdn/tutorials/videos.json` with OkHttp, validating `{"videos":[{"title":…,"file":…}]}` (plain file name only, `[A-Za-z0-9._-]+`, ≤120 chars, no `..`), and falling back to the three published videos when the manifest is unavailable.
+2. Replaced `Routes.TUTORIALS_WEBVIEW` with `Routes.TUTORIALS` and `Routes.TUTORIAL_VIDEO_PATTERN = "tutorial_video/{fileName}"` (+ `Routes.tutorialVideo()` builder); wired both in `AppNavGraph`. About App and Quick Start now navigate to the list.
+3. Reworked `InAppWebViewScreen.kt`: the failed HTML5 `<video>` data-URL wrapper was replaced with `WebView.loadUrl(videoUrl)`. The previous `DisposableEffect(webView)` keyed on mutable state destroyed the live view when its key changed from `null` to the view; native release now happens in `AndroidView.onRelease`.
+4. `NotificationChannelCatalog`: display title `EOD Reports` for `khanabook_settlement_v2` (OS channel name/ID untouched) and filter `CHANNEL_INVENTORY` out of Preferences (channel stays registered for `inventory_low`).
+5. Audited the menu-card grey scrim again: it is driven by `item.isAvailable` (a manually disabled dish), not stock. Owner explicitly chose **Keep it** when asked; the misleading "Out of stock" comment was corrected in `MenuSelectionStep.kt` and no UI block was removed.
+6. Built and installed: `:app:compileDebugKotlin` → BUILD SUCCESSFUL; `:app:assembleDebug` → BUILD SUCCESSFUL. APK installed on `ZA222J5KT7` (`lastUpdateTime=2026-11-19 16:50:59`).
+
+### Verification Status
+- **VERIFIED on device:** About App → Watch Tutorials opens the in-app catalogue (no browser hand-off). The three fallback titles are `Create a Quick Bill`, `Cancel Bill / Change Payment Mode`, `Continue with Google`. Each was tapped and played in the WebView; system Back returned to the list.
+- **VERIFIED on device:** Notification Preferences shows `EOD Reports` / `Daily EOD report and payout notifications` and no `Low Stock Alerts` row. Screenshot: `artifacts/android-ui-tests/notification-prefs-eod-reports-2026-11-19.png`.
+- **VERIFIED from logcat (`adb logcat -d -s KHANABOOK_WEB:D`):** current process lifecycle is `screen entered → onPageStarted → onPageFinished → BackHandler invoked → navigateBack: canGoBack=false → WebView released → screen disposed`. No `Application attempted to call on a destroyed WebView` or `WebView.destroy() called while WebView is still attached to window` in the current process; those messages belong to the earlier pre-16:38 process. CORS poster warnings and `java.io.IOException: Pipe closed` are non-fatal WebView poster-generation logs — playback reached `eos`.
+- **VERIFIED from device:** latest manifest attempt logged `KHANABOOK_WEB W  Manifest HTTP 404` followed by `Manifest unavailable; showing 3 bundled tutorial(s)` (16:52:33). `ops/cdn/tutorials/videos.json` is prepared but not yet uploaded; VPS tools here are read-only.
+- **Screenshots:** `artifacts/android-ui-tests/tutorial-webview-in-app-2-2026-11-19.png`, `artifacts/android-ui-tests/tutorial-player-direct-2026-11-19.png`, `artifacts/android-ui-tests/notification-prefs-eod-reports-2026-11-19.png`.
+- **NOT VERIFIED:** remote manifest titles (fallback only), touch dots while video controls are used, and other devices (Nord not targeted). No app data was cleared.
+
+### Final Application State
+- App installed and left usable on `ZA222J5KT7`, `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-19 16:50:59`. All source changes remain uncommitted; no commit, push, merge or review was performed.
+
+## Session 033: In-app tutorial WebView + notification UI wording
+- **Session ID:** SES-20261119-033
+- **Date & Time:** 2026-11-19 (~16:15 host clock)
+- **Target Device:** none reachable during this session — wireless ADB (`adb-dbd06e58-N8yA4u._adb-tls-connect._tcp`) was listed once, then dropped; `ZA222J5KT7` was not found. Device checks are explicitly pending.
+- **Objective:** owner asked that "Watch Tutorials" under About App open inside the app with Android WebView; then to rename Settlements to EOD Reports in Notification Preferences (UI only) and remove any remaining stock/inventory traces from Android.
+
+### Operations Performed
+1. Traced "Watch Tutorials" in `HelpSupportView.AboutAppView()`: it called `context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))`, confirming the external-browser behaviour. `QuickStartScreen` did the same for the video file.
+2. Checked the target with `curl`: `https://kbook.iadv.cloud/cdn/tutorials` → **404**; `https://kbook.iadv.cloud/cdn/tutorials/create-quickbill.webm` → **200**, `video/webm`, 2,055,669 bytes. Repointed the tutorial row at the live file (the 404 was already recorded as an open issue in `NEXT_ACTIONS.md`).
+3. Added `feature/settings/ui/InAppWebViewScreen.kt`: full-screen `KhanaBookScreenScaffold` + `AndroidView(WebView)` playing an HTML5 `<video controls playsinline>` using `loadDataWithBaseURL`, with progress bar, retry card, in-app link handling, WebView-history-aware BackHandler and `onDispose { webView.destroy() }`.
+4. Added `Routes.TUTORIALS_WEBVIEW`; registered it in `AppNavGraph`; wired `AboutAppView(onWatchTutorials)` from `SettingsScreen` and `QuickStartScreen(onWatchTutorials)` from `AppNavGraph`. Privacy Policy / Terms of Use still use the external browser.
+5. `:app:compileDebugKotlin --rerun-tasks` → BUILD SUCCESSFUL (18 tasks executed).
+6. Owner then asked for the notification and stock changes. In `NotificationChannels.kt`, mapped `khanabook_settlement_v2` to the display title **EOD Reports** and description "Daily EOD report and payout notifications" — the registered OS channel and its ID are unchanged (UI-only). In the same catalog, filtered out `CHANNEL_INVENTORY` so `Low Stock Alerts` no longer appears in Preferences; the channel remains registered because the server still pushes `inventory_low`.
+7. Audited remaining stock UI: `AppDatabase` migration 77→78 dropped `stock_logs`, and no stock screen exists. The menu-card scrim labelled "Out of stock frosted scrim" is actually driven by `item.isAvailable` (manually disabled dish), **not** stock. Corrected that misleading comment and kept the indicator; removing it would hide the disabled-dish state. No other stock/inventory UI exists in `feature/menu/ui` (only the `Available` / `Unavailable` status in `ManualMenuView`, also `isAvailable`).
+8. Started `:app:compileDebugKotlin --rerun-tasks :app:assembleDebug` after the notification changes; result recorded below when the build returns.
+
+### Verification Status
+- **VERIFIED from source:** external `ACTION_VIEW` call sites; 404/200 responses from the CDN; all wiring call sites (`grep` found one caller each for `QuickStartScreen` and `AboutAppView`).
+- **VERIFIED from build:** first full compile (WebView work only) exit 0.
+- **NOT VERIFIED:** video playback inside WebView on device, Back behaviour, EOD Reports row, absence of Low Stock Alerts row, and APK hash/install. No screenshots or logs were produced in this session.
+- No app data was cleared; no UI operation was performed on a device.
+
+## Session 032: App Settings navigation fixes + notification batch
+- **Session ID:** SES-20261119-032
+- **Date & Time:** 2026-11-19 (build finished ~15:50)
+- **Target Device:** `ZA222J5KT7` intended; it disappeared from `adb devices` before install.
+- **Objective:** ship the three navigation fixes plus the local notification fixes from the Session 031 audit.
+- **Changes:** `SettingsScreen` (dirty-state guard, `backTarget`, shop dialog), `ShopConfigSection` (`onDirtyChange`), `MainScreen` (tab/section callbacks, local Settings sections, `deepEntry`), `AppNavGraph` (`SavedStateHandle` restore, inbox row navigation); `NotificationHelper` (inventory channel, `channelForType`, `isLockedType`), `NotificationChannels` (Operations group), `KhanaBookFirebaseMessagingService` (shared mapping), `NotificationRepository` (banner gate), `NotificationsScreen` (row navigation), `NotificationPreferencesScreen` (OS-blocked card).
+- **Verification:** `:app:testDebugUnitTest --tests …NotificationChannelMappingTest` exit 0; `:app:assembleDebug` exit 0; APK sha256 `afdc2599c399b0951b398241f95453d31b8de4ed591a38beb0e0d29e722c3b39`.
+- **Device verified:** installed at 16:05:01. Back from Notifications Preferences returned to App Settings (`SECURITY` visible) and the dirty Restaurant Configuration header arrow opened the "Unsaved Changes" dialog. The OS-blocked card is still unverified: revoking `POST_NOTIFICATIONS` with `pm revoke` does not stick, because the permission reads `granted=true` again within seconds of the next launch (the app requests it at startup), so the blocked branch never runs.
+- **Corrections to Session 031:** BUG-022 is invalid (`onNewIntent` already routes); BUG-023 is P3 (delete/recreate works, but resets sound/vibration); BUG-029's `ClosingShiftReminderWorker` does not exist; server `resolveChannelId()` is dead code.
+
+## Session 031: Notification Architecture & User Preferences SaaS Audit (static)
+- **Session ID:** SES-20261119-031
+- **Date & Time:** 2026-11-19
+- **Target Device / Architecture:** host-side source audit across `apps/android` and `services/server`.
+- **Objective:** Complete evidence-backed audit of Android SaaS notification delivery, channels, FCM service, in-app notification center/banners, background workers, and user notification preference management.
+- **Operations Performed:**
+  1. Audited notification channels, groups, and catalog in `NotificationChannels.kt` and `NotificationHelper.kt`.
+  2. Audited UI and interaction in `NotificationPreferencesScreen.kt`, `NotificationsScreen.kt`, and `KhanaBookNotificationPanel.kt`.
+  3. Audited FCM payload processing, grouping, and tray builder in `KhanaBookFirebaseMessagingService.kt`.
+  4. Audited local workers: `ClosingShiftReminderWorker.kt`, `ClosingShiftScheduler.kt`, `FssaiReminderWorker.kt`, and `NotificationActionReceiver.kt`.
+  5. Audited local persistence in `NotificationEntity.kt`, `NotificationDao.kt`, `NotificationRepository.kt`, and `notification_prefs.xml`.
+  6. Audited foreground in-app banners (`InAppNotificationBanner.kt`) and routing (`NotificationRouteManager.kt`, `MainActivity.kt`).
+  7. Audited backend push engine (`PushNotificationService.java`, `NotificationController.java`, `EmailNotificationService.java`, and webhook services).
+  8. Logged 8 new bugs (BUG-022 through BUG-029) in `BUG_REGISTER.md` covering deep link failures on resume, destructive channel resets, banner preference bypass, silent OS permission blocking, channel miscategorizations, and lack of cloud preference sync.
+- **Verification Status:**
+  - **VERIFIED from source inspection:** exact line citations, imports, contracts, and failure modes verified against actual repository code.
+  - **No device execution was conducted** during this static audit session.
+
+## Session 030: Show Taps touch indicator — architecture audit + implementation (static)
+- **Session ID:** SES-20261119-030
+- **Date & Time:** 2026-11-19
+- **Target Device / Architecture:** none — host-side source audit and Kotlin compile only. Source changes in `apps/android/app/src/main/java/com/khanabook/lite/pos/core/touch/` (4 new files) and `core/app/MainActivity.kt`.
+- **Objective:** owner requested a production-ready, permission-free "Show Taps" dot that tracks finger touches and drags, strictly inside the app, plus an audit of UI framework, navigation/window architecture and a single global attachment point.
+
+### Operations Performed
+1. Read `AI_ENGINEERING_RULES.md`, `01_APPLICATION_OVERVIEW.md`, `03_UI_NAVIGATION_MAP.md`, `NEXT_ACTIONS.md` and this log before inspecting source, per repo policy.
+2. Audited the Android module (single `MainActivity : FragmentActivity`, 100% Compose, no layout XML, `KhanaBookLiteTheme` root wrapper, root overlay `Box` at `MainActivity.kt:358-427`, `AppNavGraph` as NavHost). Confirmed no `BaseActivity`, no global touch hook, no `SYSTEM_ALERT_WINDOW`.
+3. Enumerated every separate-window surface: shared dialog wrappers, date/time pickers, `OrderDetailsDialog`, 7 Material3 `AlertDialog`s, 2 `ModalBottomSheet`s, and DropdownMenu/Popup surfaces. Full list in `OPERATIONS/TOUCH_INDICATOR_OVERLAY.md`.
+4. Added `TouchIndicatorConfig`, `TouchIndicatorView`, `TouchIndicatorHost`, `TouchIndicatorOverlay`; wired `attach` / `dispatchTouchEvent` / `detach` into `MainActivity` (4 small edits).
+5. Fixed three compile errors caused by the project's Compose UI 1.7.6 API surface: `PointerId.value` is `Long`; `awaitPointerEventScope`/`awaitPointerEvent` are interface members (no import); down/up detection uses `pressed`/`previousPressed`; `0x99FFFFFF` needs `.toInt()`.
+6. **Follow-up in the same session, after owner authorisation ("go ahead"):** added `TouchAwareDialog` in `core/touch/` and swapped the five shared Compose-UI `Dialog` wrappers to it (`KhanaBookDialog`, `KhanaBookLargeDialog`, `CustomDateRangePickerDialog`, `KhanaTimePickerDialog` in `CommonComponents`, `OrderDetailsDialog`). `KhanaBookSelectionDialog` inherits coverage via `KhanaBookDialog`. Wrapped both printer `ModalBottomSheet` content blocks in `PrinterConfigSection.kt` with a `Box` + `TouchIndicatorOverlay(Modifier.matchParentSize())`. Fixed a compile error: `matchParentSize` is a `BoxScope` member and must not be imported.
+7. **Second follow-up — owner asked for a user preference toggle:** located the existing screen at Settings → App Settings → Interaction Feedback (`InteractionFeedbackSection.kt`, rows "Touch feedback" / "Menu item sound"). Added a third "Show taps" row using the same `FeedbackPreferenceRow` / `KhanaBookSwitch` pattern, wired to `TouchIndicatorConfig.setEnabled(LocalContext.current, it)` and to a new Compose `State enabledState` on the config object. `initialize()` now registers one application-lifetime `SharedPreferences` listener so the switch, the Activity host and open dialog overlays all observe the same persisted value. `TouchIndicatorOverlay` now reads `enabledState` instead of the volatile flag so a live toggle affects an already-open dialog.
+8. **Third follow-up — owner decided "two only":** removed the temporary "Show taps" row, its divider and all three imports (`Visibility`, `LocalContext`, `TouchIndicatorConfig`) from `InteractionFeedbackSection.kt`, restoring the screen to its original two toggles. Feature flag machinery in `core/touch/` was kept: the overlay is still preference-driven via `setEnabled` / `session_prefs`, just without a UI switch. Forced a full `:app:compileDebugKotlin --rerun-tasks` after Gradle initially reported UP-TO-DATE, then `:app:assembleDebug`; both exit 0.
+9. **Fourth follow-up — owner reported "after off, it's still tap was showing":** root cause was not a stale-view bug — removing the only UI switch left the debug default (`BuildConfig.DEBUG` → `true`) as the sole source of the flag, so the dot was on with no way to disable it. Changed `TouchIndicatorConfig` to use `private const val DEFAULT_ENABLED = false` in both `initialize()` and the `SharedPreferences` listener, removed the now-unused `BuildConfig` import, and corrected the KDoc (which still described a Settings switch). Wrote `show_touch_indicator=false` into the device's `session_prefs` via `run-as` (staged through `/data/local/tmp`; a direct copy from `/sdcard` is denied by Android permissions). Forced a full `:app:compileDebugKotlin --rerun-tasks` and `:app:assembleDebug`; both exit 0. APK 40,979,383 bytes, SHA-256 `83cce9a4e32c4f6823071e67b910bfc955f616c7736ba736c90056d76b470b94`, installed 15:29:22.
+10. **Fifth follow-up — owner clarified the two toggles and their defaults:** the owner tested and said "Touch feedback" should show the dots when ON and show nothing when OFF, with it and the "voice soundbox (audio alert)" OFF by default. Rewired the existing "Touch feedback" row in `InteractionFeedbackSection.kt` from `preferences::setHapticEnabled` to `TouchIndicatorConfig.setEnabled(LocalContext.current, it)`, with `checked = TouchIndicatorConfig.enabledState` and description "Show a dot under each finger on the screen". In `MenuFeedbackPreferences.kt`, changed the defaults for both `soundEnabled` and `voiceAnnouncementEnabled` to `false`. Discovered via `uiautomator` that "Voice Soundbox (Audio Alert)" is the toggle in **Payment Configuration** bound to `voiceAnnouncementEnabled`. Cleared the leftover device `sound_enabled` / `haptic_enabled` values to `false`. Forced full recompile and assemble (both exit 0); APK 41,523,233 bytes, SHA-256 `aebb0c82f86552349c8d4ba60160527f0d2197982569e2eb1cb5cdb49f38d4d5`, installed 15:40:01.
+
+### Verification Status
+- **VERIFIED from build:** `:app:compileDebugKotlin` → BUILD SUCCESSFUL; `:app:assembleDebug` → BUILD SUCCESSFUL. APK 41,765,787 bytes, SHA-256 `49640f2d862e3af9ba669bff21ae71f960c02c4eb908956f9e5dcbe3c8ad9135`, installed on `ZA222J5KT7` (`lastUpdateTime` 2026-11-19 14:48:59). App launched to `MainActivity`; no `FATAL EXCEPTION` in logcat.
+- **VERIFIED on device (Activity window):** `adb shell input touchscreen swipe 360 700 360 1200 12000` with a screencap at t≈3 s. Pixel diff against an idle screenshot gives a solid circular highlight centered at x≈360, y≈825 (rows y=810..850 span x≈310..409), matching the interpolated finger position (y≈825 at t=3 s). Evidence: `artifacts/android-ui-tests/touch-indicator-drag3-2026-11-19.png` (drag) and `.../touch-indicator-idle-2026-11-19.png` (baseline).
+- **VERIFIED (device, Settings toggle):** after the second follow-up, `:app:compileDebugKotlin` and `:app:assembleDebug` exit 0; APK 41,766,814 bytes, SHA-256 `391bb2cc328f922c7e5fe3861a9b83a2143b3c54f5d582902830fdccc6cf8914`, installed 15:00:07 on `ZA222J5KT7`. Navigated Home → Settings → App Settings → Interaction Feedback; `uiautomator` shows the "Show taps" title, description and switch (`checked=true` in debug). Tapping OFF wrote `show_touch_indicator=false` to `session_prefs` and the follow-up drag showed no dot at x=360; tapping ON wrote `true` and a two-screenshot drag diff at t=1 s / t=2 s produced a ~102 px wide moving highlight spanning x≈309..411, y≈714..897. Pref value and switch state survived `am force-stop` + relaunch. Screenshots in `artifacts/android-ui-tests/`: `show-taps-toggle-2026-11-19.png`, `show-taps-off-drag-2026-11-19.png`, `show-taps-t2-2026-11-19.png`, `show-taps-t4-2026-11-19.png`.
+- **VERIFIED (final default-off build, fourth follow-up):** APK `83cce9a4…b470b94` installed 15:29:22 on `ZA222J5KT7`. A/B held-touch capture at (360, 900) using the *same* APK: with `show_touch_indicator=true`, the 120×120 touch region contained 11,661 gold dot pixels (`ab-on-touch.png`); with `show_touch_indicator=false`, it contained **0** (`ab-off-touch.png`). Baseline/touch pairs are `ab-on-base.png`/`ab-on-touch.png` and `ab-off-base.png`/`ab-off-touch.png`. The device was left with the flag `false`; no `FATAL EXCEPTION` in logcat.
+- **VERIFIED (final APK `aebb0c82…d5f38d4d5`, fifth follow-up):** `uiautomator` on Interaction Feedback shows "Menu item sound" (`checked=false`) and "Touch feedback" (`checked=false`, description "Show a dot under each finger on the screen"). Tapping the "Touch feedback" switch ON wrote `show_touch_indicator=true`, set `checked=true`, and produced 13,609 gold dot pixels at the held touch point (`toggle-on-touch.png`); the owner then tested themselves and reported "all good". "Voice Soundbox (Audio Alert)" in Payment Configuration reads `checked=false`.
+- **NOT VERIFIED:** two-finger simultaneity, fade duration, pass-through on a scrollable list, live toggle inside an already-open dialog, and dots inside dialogs/bottom sheets.
+- Device UI operations in this session were app launch, navigation to Interaction Feedback, two switch taps, and scripted swipes/screencaps; no app data was cleared. The `show_touch_indicator` preference was written directly for A/B testing and left `false`.
+
+### Open Decision
+- Shared Compose-UI dialog wrappers and both printer bottom sheets are now covered. Still open: seven raw Material3 `AlertDialog` sites, the M3 `DatePickerDialog`, and DropdownMenu/Popup surfaces. Covering them requires changing dialog layout or replacing the Material3 component, so it was not done without explicit authorisation.
+- **Final owner decision (owner-tested):** "Touch feedback" is the user-facing dot switch (ON = dots, OFF = none), default OFF; "Menu item sound" and "Voice Soundbox (Audio Alert)" also default OFF. No further decision needed there.
+
+## Session 028: Notification Preferences header on one line
+- **Session ID:** SES-20261119-028
+- **Date & Time:** 2026-11-19 (host clock; device `lastUpdateTime` 14:13:26)
+- **Target Device / Architecture:** `ZA222J5KT7` (moto g34 5G, 360 dp wide, `com.piquantservices.khanabooklite.debug`). Source changes in `core/designsystem/KhanaBookScreenScaffold.kt` and `feature/notifications/ui/NotificationPreferencesScreen.kt`.
+- **Objective:** owner reported that the Notifications Preferences header wraps onto two lines.
+
+### Root Cause
+- `KhanaBookScreenScaffold` centred the title at `headlineSmall` (24 sp) between a 48 dp back button and an always-reserved 48 dp trailing slot. On a 360 dp phone that leaves roughly 232 dp for a 24-character title, so it broke onto two lines.
+
+### Operations Performed
+1. `KhanaBookScreenScaffold` gained optional `titleMaxLines` (default `Int.MAX_VALUE`) and `titleOverflow` (default `Clip`) so a caller can enforce one line without changing any other screen.
+2. `NotificationPreferencesScreen` now passes `title = "Notification Preferences"` (also fixes the plural), `titleAlignment = TextAlign.Start`, a 20 sp compact style, and `titleMaxLines = 1` / `TextOverflow.Ellipsis`.
+3. Built and installed per the owner's "update the APK after every change" rule: SHA-256 `2182ee58…f34ad62`, `lastUpdateTime` 14:13:26.
+
+### Verification Status
+- **VERIFIED from build:** `:app:assembleDebug` exit 0; install Success.
+- **VERIFIED on device:** navigated Settings → App Settings → Notifications Preferences. The `Notification Preferences` node reports `bounds="[126,126][692,169]"` — **43 px tall**, i.e. one line (a second line would roughly double it). Screenshot: `artifacts/android-ui-tests/notif-prefs-verified-2026-11-19.png`.
+- **VERIFIED on device:** launched to `MainActivity` after install, no `FATAL EXCEPTION` in logcat.
+
+### Final Application State
+- App installed and running on `ZA222J5KT7`, `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-19 14:13:26`. No data cleared.
+
+## Session 029: App Settings forward/back navigation audit
+- **Session ID:** SES-20261119-029
+- **Date & Time:** 2026-11-19
+- **Scope:** every forward and back path in Settings (Settings home → six configuration sections → App Settings list → seven sub-screens), by source inspection of `SettingsScreen.kt`, `SettingsHomeSection.kt`, `SettingsListView`, `MainScreen.kt`, `ShopConfigSection.kt`, `MenuConfigurationScreen.kt` and `AppNavGraph.kt`.
+
+### Paths that are correct
+- Settings home → Restaurant / Menu / Tax / Payment / Printer / App Settings; header back and system back both return to `menu` for the five configuration sections.
+- App Settings → App Lock, Change Password, Interaction Feedback, Sync Center, Notifications Preferences, Help & Support, About App — all seven items are wired; the first six return to `security` from both the header arrow and system back.
+- Notifications Preferences is a nav destination (`Routes.NOTIFICATIONS_PREFERENCES`); its arrow pops the back stack and Settings keeps `section = "security"`.
+- Settings home back (arrow and system) calls `onBack = backToHome` in `MainScreen`, i.e. returns to the Home tab.
+- Menu Configuration guards system back and its own top-bar arrow with the same `onBack` lambda (OCR drafts → config mode → leave), so that screen is consistent.
+
+### Defects found
+- **BUG-019 (P2, open):** on Restaurant Configuration the header arrow bypasses `ShopConfigView`'s `BackHandler`/"Unsaved Changes" dialog (`ShopConfigSection.kt:194`) because the arrow is owned by `SettingsScreen` (`:185-190`) and calls `selectSection("menu")` directly. System back asks; the arrow discards silently.
+- **BUG-020 (P2, open):** `settingsSubSections` always backs to `security`, so a deep-linked entry (Home sync card → `main/3?section=sync_center`) returns to the App Settings list the user never saw. Sequence: Sync Center → App Settings → Settings home → Home tab. Source-level; not device-tested.
+- **BUG-021 (P1, open, device-reproduced twice):** Back from Notifications Preferences opens the **Home** tab, not the App Settings list. The screen is a pushed nav destination; after `popBackStack()` the tab shell re-initialises to `tab=0`. Tapping Settings again returns to the App Settings list, so `settingsSection` survives — only the selected tab is lost.
+- **Dead code:** the `"compliance_documents"` branch in `SettingsScreen` has no caller and is not in `settingsSubSections`.
+- **Behaviour to confirm:** the bottom bar is hidden on `shop` and `menu_config`; `settingsSection` is retained in `MainScreen`, so leaving Settings from a subsection and returning reopens that subsection rather than Settings home.
+
+### Device verification (`ZA222J5KT7`, 2026-11-19)
+- Settings → App Settings → **App Lock, Change Password, Interaction Feedback, Sync Center, About App** → system Back each returned to the App Settings list (`SECURITY` visible). Correct.
+- **Notifications Preferences → system Back → Home tab** (`Today's Summary` visible, `SECURITY` gone), reproduced twice; re-entering Settings went back to the App Settings list (BUG-021).
+- **Restaurant Configuration → header arrow with dirty form:** typed `Z` into Shop Name (field read back as `Piquant Services'sZ Restaurant`), tapped the arrow — went straight to Settings home, **no "Unsaved Changes" dialog**, and the profile card showed the unmodified name (BUG-019). Note: system Back after typing first dismisses the keyboard, so the earlier system-back probe is not evidence either way.
+- **Help & Support was not exercised:** the scripted tap did not open it (the list stayed on App Settings), so no result is claimed. The other Settings-home sections were not reached in this pass.
+- Overall: two navigation defects are device-confirmed (BUG-019, BUG-021); BUG-020 is source-level only.
+
+## Session 027: Watch Tutorials button on About App
+- **Session ID:** SES-20261119-027
+- **Date & Time:** 2026-11-19 (host clock; device `lastUpdateTime` 14:07:03)
+- **Target Device / Architecture:** `ZA222J5KT7` (moto g34 5G, `com.piquantservices.khanabooklite.debug`). Source change in `feature/auth/ui/HelpSupportView.kt` (`AboutAppView`).
+- **Objective:** owner asked for a `Watch Tutorials` button in About App, linking to the tutorial folder `https://kbook.iadv.cloud/cdn/tutorials`.
+
+### Operations Performed
+1. Added a third link row to `AboutAppView`: `Watch Tutorials` → `https://kbook.iadv.cloud/cdn/tutorials`, using a `PlayArrow` leading icon. Privacy Policy and Terms of Use keep the `OpenInNew` icon.
+2. Converted the two-item `label to url` list into `Triple(label, url, icon)` so each row can carry its own icon.
+3. Built and installed per the owner's "update the APK after every change" rule: SHA-256 `484b833a…e8226c70a`, `lastUpdateTime` 14:07:03.
+
+### Verification Status
+- **VERIFIED from build:** `:app:assembleDebug` exit 0; install Success.
+- **VERIFIED on device:** launched to `MainActivity`; `logcat` filtered for `FATAL EXCEPTION` returned nothing.
+- **VERIFIED by grep:** `Watch Tutorials` and the tutorial URL are wired in `HelpSupportView.kt`; `PlayArrow` is imported.
+- **NOT VERIFIED:** the About App screen was not opened, so the row's rendering and the browser hand-off were not exercised.
+
+### Discrepancy / Reality Check
+- The requested URL does **not** resolve from this host: `GET https://kbook.iadv.cloud/cdn/tutorials` → **404**, and `GET https://kbook.iadv.cloud/cdn/tutorials/index.html` → **404**. The CDN likely serves individual files but has no directory index. Tapping the new button will therefore open a 404 unless an index page is published or the button points at a specific video (the pattern already used in Quick Start: `…/cdn/tutorials/create-quickbill.webm`). Implemented as requested; the link target needs an owner decision.
+
+### Final Application State
+- App installed and running on `ZA222J5KT7`, `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-19 14:07:03`. No data cleared.
+
+## Session 026: Removed the dead gap below Save Configuration
+- **Session ID:** SES-20261119-026
+- **Date & Time:** 2026-11-19 (host clock; device `lastUpdateTime` 14:02:10)
+- **Target Device / Architecture:** `ZA222J5KT7` (moto g34 5G, `com.piquantservices.khanabooklite.debug`). Source change in `feature/settings/ui/ShopConfigSection.kt`.
+- **Objective:** owner reported space/gap below the `Save Configuration` button on Restaurant Configuration.
+
+### Root Cause
+- The CTA was followed by `Spacer(modifier = Modifier.height(spacing.huge))` = **48 dp**, stacked on the card's 24 dp bottom padding and the screen's `layout.contentPadding` bottom inset, producing roughly 70 dp of dead space under the button.
+
+### Operations Performed
+1. Replaced the 48 dp trailing spacer with `spacing.medium` (**16 dp**), keeping a normal bottom margin without the dead band. Added a comment naming the stacking cause.
+2. Built `:app:assembleDebug` and installed per the owner's "update the APK after every change" rule: SHA-256 `fc918159…0478f80e62`, `lastUpdateTime` 14:02:10.
+
+### Verification Status
+- **VERIFIED from build:** `:app:assembleDebug` exit 0; install Success.
+- **VERIFIED on device:** launched to `MainActivity`; `logcat` filtered for `FATAL EXCEPTION` returned nothing.
+- **VERIFIED by grep:** no `spacing.huge` remains in `ShopConfigSection.kt` (the other occurrence is `PaymentStep.kt`, a different screen).
+- **NOT VERIFIED:** the screen was not navigated or scrolled, so the new bottom spacing has not been measured visually.
+
+### Final Application State
+- App installed and running on `ZA222J5KT7`, `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-19 14:02:10`. No data cleared.
+
+## Session 025: Shop Profile logo header + larger placeholder, with APK installs
+- **Session ID:** SES-20261119-025
+- **Date & Time:** 2026-11-19 (host clock; device `lastUpdateTime` 13:57:11 then 13:58:33)
+- **Target Device / Architecture:** `ZA222J5KT7` (moto g34 5G, `com.piquantservices.khanabooklite.debug`). Source change in `feature/settings/ui/ShopConfigSection.kt`. Nord not targeted.
+- **Objective:** owner asked (1) to install the current build and to keep updating the APK after every change from now on, and (2) to change the logo header under Restaurant Configuration so it reads only "Shop Profile", and to enlarge the logo placeholder.
+
+### Operations Performed
+1. Built `:app:assembleDebug` and installed the Session 024 build (printer fixes + Business Hours toggle + Easebuzz hidden): SHA-256 `b9c7ce46…c5f1a87b`, `lastUpdateTime` 13:57:11, launched to `MainActivity`, no FATAL in logcat. Screenshot `artifacts/android-ui-tests/business-hours-easebuzz-hide-2026-11-19.png`.
+2. Header copy: replaced the `Shop Logo` title plus the `Shown on bills and receipts` subtitle with a single `Shop Profile` title in `ShopConfigSection.kt` (Card 1).
+3. Placeholder size: `56.dp` → `112.dp`; the empty-state storefront icon in **both** branches (`logo load failed` and `no logo`) changed from `KhanaBookTheme.iconSize.large` to `48.dp` so it no longer looks lost inside the larger box.
+4. Rebuilt and installed: SHA-256 `a73ba789…a32e13b`, `lastUpdateTime` 13:58:33, launched to `MainActivity`, no FATAL. Screenshot `artifacts/android-ui-tests/shop-profile-logo-2026-11-19.png`.
+
+### Verification Status
+- **VERIFIED from build:** `:app:assembleDebug` exit 0 for both builds; install Success for both.
+- **VERIFIED on device:** app launched to `MainActivity` after each install; `logcat` filtered for `FATAL EXCEPTION` returned nothing.
+- **VERIFIED by grep:** no `size(56.dp)` remains in `ShopConfigSection.kt`; the only occurrence of the old subtitle text is the comment documenting its removal.
+- **NOT VERIFIED:** Restaurant Configuration was not navigated, so the `Shop Profile` label and the 112 dp preview have not been seen on screen. The unused `ShopLogoSection` in `ShopConfigComponents.kt` still carries the old `Shop Logo` / `Shown on bills and receipts` copy — it is dead code (separate decision).
+
+### Final Application State
+- App installed and running on `ZA222J5KT7`, `versionCode=38`, `versionName=1.0.38` (still not bumped), `lastUpdateTime=2026-11-19 13:58:33`. No app data cleared.
+
+## Session 024: Business Hours segmented toggle + Easebuzz UI hidden (Play Store gate)
+- **Session ID:** SES-20261119-024
+- **Date & Time:** 2026-11-19 (host clock)
+- **Target Device / Architecture:** none. Source changes in `feature/settings/ui/ShopConfigSection.kt`, `feature/settings/ui/ShopConfigComponents.kt`, `feature/payments/domain/PaymentModeManager.kt`, `feature/payments/ui/PaymentConfigSection.kt`, `test/.../PaymentModeManagerTest.kt`. No APK built or installed.
+- **Objective:** owner asked (1) to replace the Default Time / Custom Time option cards with a toggle, and (2) to hide Easebuzz in the UI the same way the last Play Store build did.
+
+### Operations Performed
+1. Replaced the two `BusinessHoursOptionCard`s in `ShopConfigSection.kt` with the existing `BusinessHoursModeToggle` segmented control. Behaviour preserved: selecting **Default Time** sets `00:00–23:59`; selecting **Custom Time** restores the remembered custom times; the control is disabled for read-only users; only the Custom panel is composed below.
+2. Deleted the now-unused `BusinessHoursOptionCard` from `ShopConfigComponents.kt` (and its KDoc). This closes the half-applied refactor recorded in `NEXT_ACTIONS.md` (Session 020) in favour of option (a), the segmented toggle.
+3. Re-applied the September Easebuzz launch gate exactly as reverted by commit `1b0d39be` (2026-10-15, “show the Easebuzz payment link in the UI again”):
+   - `PaymentModeManager`: `PAYMENT_LINK` is no longer added to the UI mode list; the line is kept commented with the restore instructions.
+   - `PaymentConfigSection`: the “Easebuzz Online” toggle, readiness message and `EasebuzzOnboardingHub` are replaced by a static **Online Payments / coming soon** card. The profile flag, save flow and server contracts are untouched.
+4. Updated `PaymentModeManagerTest` to assert the hidden behaviour in both flag states (renamed the two tests so they no longer claim the switch controls visibility).
+
+### Verification Status
+- **VERIFIED from build:** `:app:compileDebugKotlin` exit 0; `:app:testDebugUnitTest --tests PaymentModeManagerTest` exit 0.
+- **VERIFIED by grep:** no `BusinessHoursOptionCard` references remain; the only `PAYMENT_LINK` line in `PaymentModeManager` is the commented restore line.
+- **NOT VERIFIED:** no device run. The segmented toggle's rendering/tap behaviour, the absence of Easebuzz in Payment settings and in the billing payment-mode list, and the coming-soon card have not been exercised on `ZA222J5KT7`.
+
+### Final Application State
+- Device unchanged; no APK built or installed. Source changes are uncommitted.
+
+## Session 023: Debug APK rebuilt and installed with the printer-config fixes
+- **Session ID:** SES-20261119-023
+- **Date & Time:** 2026-11-19 (host clock; device `lastUpdateTime` 13:46:29)
+- **Target Device / Architecture:** `ZA222J5KT7` (moto g34 5G, Android 15 / API 35, `com.piquantservices.khanabooklite.debug`). Nord `AC2001` (`adb-dbd06e58-…`) was also online; it was **not** targeted.
+- **Objective:** owner asked to update the debug APK on the connected device after the Session 022 printer-configuration fixes.
+
+### Operations Performed
+1. Read this log and `NEXT_ACTIONS.md`, then ran `adb devices -l` (both devices online).
+2. Pre-install state on `ZA222J5KT7`: `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-19 13:25:47`.
+3. `./gradlew.bat :app:assembleDebug` → **BUILD SUCCESSFUL** in 35s (43 tasks, 8 executed).
+4. APK: `apps/android/app/build/outputs/apk/debug/app-debug.apk`, 41,138,803 bytes, SHA-256 `c1540b3305659e68ff6bdf6aa170745673f15bb069b02e1f402d0fdee4a79819`.
+5. `adb -s ZA222J5KT7 install -r` → **Success** (streamed install).
+6. Force-stopped and relaunched via `monkey -p … -c android.intent.category.LAUNCHER 1`; `dumpsys activity activities` → `topResumedActivity = …/core.app.MainActivity`.
+7. `logcat -d -t 500` filtered for `FATAL EXCEPTION|AndroidRuntime` → no matches (no crash).
+8. Post-install package: `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-19 13:46:29`.
+9. Captured `artifacts/android-ui-tests/printer-config-fixes-2026-11-19.png` (121,622 bytes) as evidence.
+
+### Verification Status
+- **VERIFIED on device:** install succeeded, app launched to `MainActivity`, no crash entry in logcat, package update time moved to 13:46:29.
+- **VERIFIED from build:** `:app:assembleDebug` exit 0; APK size and SHA-256 recorded above.
+- **NOT VERIFIED:** no screen was navigated. The printer screen's new layout (no Print Options card, no Save/Back row), kitchen persistence, Wi-Fi hostname save, failure dialog and both Test Printer buttons were **not** exercised — build + launch only. The screenshot was not visually inspected by this model.
+
+### Reality Check
+- `versionCode` / `versionName` are unchanged (38 / 1.0.38), so this APK is not distinguishable by version from the 13:25:47 build. The Session 020 “version bump” action is still open.
+
+### Final Application State
+- App installed and running on `ZA222J5KT7` (`MainActivity`). No app data cleared. Nord device not updated.
+
+## Session 022: Printer Configuration fixes + Print Options card removed
+- **Session ID:** SES-20261119-022
+- **Date & Time:** 2026-11-19 (host clock)
+- **Target Device / Architecture:** none. Source changes in `feature/printing/ui/PrinterConfigSection.kt`, `feature/printing/ui/PrinterTargetCard.kt`, `feature/settings/ui/SettingsScreen.kt`, `feature/settings/viewmodel/SettingsViewModel.kt`. No APK was built, installed or launched.
+- **Objective:** owner asked to fix the Session 021 findings (BUG-013 … BUG-018) and to remove the screen's last card ("Print Options": Mask Customer Phone toggle plus Back & Save) completely.
+
+### Operations Performed
+1. Removed the whole Print Options `ConfigCard` (title, `Mask Customer Phone` toggle, spacer, `ConfigActionButtons`) from `PrinterConfigView`; the composable no longer takes `onSave`, `onBack` or `isSaving`.
+2. Updated the only caller (`SettingsScreen.kt`, `"printer"` branch) to `PrinterConfigView(profile, viewModel = viewModel)` and dropped the now-unreachable `"printer"` save-success toast branch.
+3. Kitchen Enable / Paper Size now persist immediately via `updatePrinterProfile(role = KITCHEN, …)` (BUG-014); the customer card already did.
+4. The Wi-Fi dialog no longer dismisses itself on Save (BUG-015); it closes on `PrinterUiEvent.WifiSaved`.
+5. Added `isValidPrinterHost` — complete IPv4 or DNS hostname, with digit-only input still judged as IPv4 — plus state-aware supporting text (BUG-016).
+6. `statusText` / badge order fixed: "Not connected", and `networkMismatch` wins over it (BUG-017); the Bluetooth selection border is now applied to the card (BUG-018).
+7. Deleted the unused `SettingsViewModel.savePrinterSettingsLocally` (its only caller was the removed Save action) and corrected `updatePrinterProfile`'s stale comment about that method.
+- BUG-013 is resolved by removing the control rather than by re-keying its state, so `maskCustomerPhone` is no longer editable from the POS.
+
+### Verification Status
+- **VERIFIED from build:** `./gradlew :app:compileDebugKotlin` exit 0; only pre-existing warnings (deprecated `printerEnabled` / `paperSize` on the legacy `RestaurantProfileEntity` fallbacks).
+- **NOT VERIFIED:** no device run, screenshot, unit test or instrumented test. The BT picker, USB sheet, Wi-Fi save/failure path, kitchen persistence and the removed Save/Back actions have not been exercised on `ZA222J5KT7`.
+
+### Final Application State
+- Unchanged on device: no APK built or installed, version stays 38 / 1.0.38. Source changes are uncommitted.
+
+## Session 021: Printer Configuration UI review (static; no device)
+- **Session ID:** SES-20261119-021
+- **Date & Time:** 2026-11-19 (host clock)
+- **Target Device / Architecture:** none. Static source inspection of `feature/printing/ui/PrinterConfigSection.kt`, `feature/printing/ui/PrinterTargetCard.kt`, `feature/settings/viewmodel/SettingsViewModel.kt`, `feature/settings/ui/SettingsScreen.kt`, `feature/printing/domain/PrinterTransport.kt`, `UsbPrinterTransport.kt`, `NetworkPrinterScanner.kt`, `PrinterMode.kt`. No APK was built, installed or launched.
+- **Objective:** owner asked whether the printer-configuration screens contain UI bugs.
+
+### Operations Performed
+1. Read `README.md`, `04_SCREEN_INVENTORY.md`, `KNOWN_LIMITATIONS.md`, `BUGS_AND_ISSUES/BUG_REGISTER.md` and `NEXT_ACTIONS.md` before analysis (per repo `AGENTS.md` Android POS documentation policy).
+2. Traced the Printer Configuration screen (`main?tab=2&section=printer`, reached from Settings → Printer) from `SettingsScreen.kt:237` into `PrinterConfigView`.
+3. Cross-checked every switch/field callback against the ViewModel write path (`updatePrinterProfile`, `saveUsbPrinter`, `saveWifiPrinter`, `savePrinterSettingsLocally`, `testPrint`).
+4. Checked the peripheral contracts the UI reports against: `PrinterMode` (SINGLE/DUAL routing in `PrintRouter.kt:88`), `printerStatusRoles` health combine (`SettingsViewModel.kt:226`), `canWritePrinterConfig()` = owner **or** shop staff (`SessionManager.kt:323`), so the editable controls are intentionally available to staff — not an access bug.
+
+### Findings Recorded
+- Six verified UI defects registered: **BUG-013** (Mask Customer Phone state never re-syncs to the loaded profile), **BUG-014** (kitchen printer controls are local-only until Save while customer controls persist instantly), **BUG-015** (Wi-Fi dialog dismisses on Save, so its "Saving..." state is unreachable and typed values are lost on failure), **BUG-016** (field says "IP address or host" but only dotted-quad IPv4 can be saved), **BUG-017** (offline printer shows the label "Ready" with a Warning badge and red dot), **BUG-018** (selected Bluetooth device border is a discarded `Modifier`).
+- UX gap recorded as recommendation, not a bug: the Bluetooth picker (`PrinterConfigSection.kt` `showBtSheet`) has no empty state — after a scan that finds nothing it renders only the sheet title above a blank list.
+
+### Verification Status
+- **VERIFIED by reading:** each cited file:line and the resulting state/persistence behaviour.
+- **NOT VERIFIED:** no device interaction, screenshot, build or test. Because none of this was exercised on `ZA222J5KT7`, all six entries are marked "OPEN — static" in the bug register; the physical flows (BT picker, USB OTG, Wi-Fi save) still need device confirmation.
+
+### Final Application State
+- Unchanged. No source file was edited; no APK was built or installed; no app data was touched. Recommendations were not implemented (policy item 8).
+
+## Session 020: Debug APK rebuild + install on the connected device
+- **Session ID:** SES-20261119-020
+- **Date & Time:** 2026-11-19 (host clock; device wall-clock `lastUpdateTime` 13:25:47)
+- **Target Device / Architecture:** `ZA222J5KT7` (moto g34 5G, Android 15 / API 35, `com.piquantservices.khanabooklite.debug`). A second device (`adb-dbd06e58-N8yA4u._adb-tls-connect._tcp`, Nord AC2001) appeared in `adb devices -l`; it started **offline** and later came online. It was **not** targeted — only `ZA222J5KT7` was used.
+- **Objective:** Owner asked: "can you update the apk(debug) on conncet devce buddy" — rebuild the current working tree's debug APK and install it on the connected device.
+
+### Operations Performed
+1. Read `README.md`, `02_DEVICE_AND_ENVIRONMENT_SETUP.md`, `SESSION_LOG.md`, `NEXT_ACTIONS.md` before any device operation (per repo `AGENTS.md` Android POS documentation policy).
+2. `adb devices -l` — found `ZA222J5KT7` online (Nord offline at first check).
+3. Pre-install package state: `versionCode=38`, `versionName=1.0.38`, `lastUpdateTime=2026-11-18 20:28:57`.
+4. Working tree had uncommitted Android UI changes (menu/settings/theme, `LogoFileInfo.kt`, design-system tests) from 2026-11-18.
+5. First `.\gradlew.bat :app:assembleDebug` → **FAILED**: unresolved reference `BusinessHoursOptionCard` called from `ShopConfigSection.kt:815` and `:830`. Cause: uncommitted `ShopConfigComponents.kt` removed/replaced that composable with `BusinessHoursModeToggle` + `ShopLogoSection`, while `ShopConfigSection.kt` (per commit `17750b4c` "restore business hours UI") still calls the old card. A half-applied refactor, not a tooling fault.
+6. Owner was asked how to resolve; owner chose **"Restore old card (Recommended)"**. Re-added the exact HEAD implementation of `BusinessHoursOptionCard` verbatim into `ShopConfigComponents.kt` alongside the new components — no caller change, no UI behaviour change. This source edit was explicitly owner-authorised.
+7. Second `.\gradlew.bat :app:assembleDebug` → **BUILD SUCCESSFUL**.
+8. Verified APK: `apps/android/app/build/outputs/apk/debug/app-debug.apk`, 40,597,718 bytes, `LastWriteTime` 19-11-2026, SHA-256 `018E783334C05607EF77FEE2F4B707FBB82377C477BCA1783354330359D057C6`.
+9. `adb -s ZA222J5KT7 install -r app-debug.apk` → **Success**.
+10. Launched via `monkey -p ... -c android.intent.category.LAUNCHER 1`; `dumpsys activity activities` → `topResumedActivity = .../MainActivity`.
+11. `logcat -d -t 200` filtered for `FATAL|AndroidRuntime|Exception` → no output (no crash).
+12. Captured screenshot to `artifacts/android-ui-tests/debug-apk-update-2026-11-19.png` (131,618 bytes) as evidence.
+13. `uiautomator dump` confirmed the live screen is **Restaurant Configuration** with `Shop Logo` / `Change Logo`, and the **old** business-hours cards `Default Time` / `Custom Time` (not the segmented toggle).
+
+### Verification Status
+- **VERIFIED on device:** install succeeded; app launched to `MainActivity`; no crash log entry; screen text via UI dump shows Restaurant Configuration with old business-hours cards (`Default Time` / `Custom Time`) and Shop Logo / Change Logo.
+- **VERIFIED from build:** `:app:assembleDebug` exit 0; APK size and SHA-256 recorded above.
+- **NOT VERIFIED:** the saved screenshot could not be visually inspected by this model (image input unsupported) — UI state was confirmed via `uiautomator` text dump instead. No business-hours interaction, save, or logo-upload flow was exercised. The Nord device was not updated.
+- **Source edit made:** `ShopConfigComponents.kt` re-adds `BusinessHoursOptionCard` (verbatim from HEAD). Owner-authorised. **NOT COMMITTED.**
+
+### Discrepancy / Reality Check
+- The `CHANGELOG.md` entry dated 2026-11-18 "Business Hours: segmented mode switch" records that the segmented toggle was installed and device-verified. The currently installed APK (2026-11-19) shows the **old** `Default Time` / `Custom Time` cards instead. Reason: commit `17750b4c` restored the old business-hours UI afterwards, and the uncommitted refactor left the caller on the old cards. **Implementation is the source of truth:** the live device is on the old cards; the segmented toggle exists in source but is currently unused.
+
+### Final Application State
+- App installed on `ZA222J5KT7`; `versionCode=38`, `versionName=1.0.38` (unchanged — the working tree did not bump the version), `lastUpdateTime=2026-11-19 13:25:47`. App left open on Restaurant Configuration. No app data cleared.
 
 ## Session 019: Cross-cutting UI copy, toast/notification and naming review (static)
 - **Session ID:** SES-20261118-019

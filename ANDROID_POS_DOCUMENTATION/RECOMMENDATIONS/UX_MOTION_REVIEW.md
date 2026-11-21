@@ -4,7 +4,7 @@
 **Session:** 067 (`SES-20261120-067`)
 **Scope:** `apps/android/app/src/main/java` only. No server or web-admin code.
 **Method:** Static source inspection plus the 20 principles in the `ux-motion` skill. No APK was built, installed, or exercised; no device was used and no new screenshots were captured.
-**Status:** Findings recorded. **Nothing was implemented** — see `RECOMMENDATIONS/README.md`.
+**Status:** Findings recorded 2026-11-20. All ten findings (UM-01 … UM-10) implemented and compile-verified across Sessions 068 and 070; debug APK installed on `ZA222J5KT7` in Sessions 069 and 071. The §7 behavioural checks still need a device walk. See §6–§7 and `RECOMMENDATIONS/README.md`.
 
 ---
 
@@ -76,3 +76,40 @@ These are motion/interaction operations found in source that were not previously
 5. Capture screenshots into `artifacts/android-ui-tests/` and link them here and in `DEVICE_SESSIONS/SESSION_LOG.md` when any item is fixed.
 
 **Do not implement any finding without explicit owner authorization.**
+
+---
+
+## 6. Implementation status (Sessions 068 + 070, 2026-11-20)
+
+Owner authorization was given to implement the review findings. UM-02 … UM-09 were applied in Session 068; UM-01 and UM-10 were completed in Session 070 after the user said "go ahead solve it". All ten are now in the working tree.
+
+| ID | Status | What changed (working tree) |
+| --- | --- | --- |
+| UM-01 | DONE (compile-verified) | New shared `core/designsystem/MotionPolicy.kt`: `rememberReducedMotion()` observes `Settings.Global.ANIMATOR_DURATION_SCALE` / `TRANSITION_ANIMATION_SCALE`; `REDUCED_MOTION_MS = 120`; `motionDuration()` and `dialogEntrance()` helpers. Session 070 wired it into every looping/bounce site: shimmer, closing-alert pulse, Home sync rotation + glow, splash logo pop + halo + particles + text slide, tab-icon press, payment badge, PIN shake, route transitions, list staggers, setup crossfade and loading overlay. Infinite loops become static; transforms become fades or are dropped. |
+| UM-02 | DONE (compile-verified) | `MainScreen.kt` `AnimatedTabIcon`: removed `snapTo(0.7f)` and the two spring bounces; area-preserving `scaleX 1.08 / scaleY 0.92` press retargets from the current value, 120 ms out + 120 ms back. |
+| UM-03 | DONE (compile-verified) | `AppNavGraph.kt`: exit and pop-exit now 120 ms with `FastOutLinearInEasing`; enter/pop-enter stay 300 ms ease-out. |
+| UM-04 | DONE (compile-verified) | `KhanaBookCard.kt`: removed the 0.98f whole-card scale and restored the theme's default ripple, so card text/numbers no longer shrink. |
+| UM-05 | DONE (compile-verified) | `OrderConfirmationSection.kt`: checkmark spring kept; ripple 800 → 360 ms, second ripple +200 → +100 ms / 800 → 320 ms, confetti +300 → +120 ms / 1000 → 300 ms. Both tails now end at ~420 ms. |
+| UM-06 | DONE (compile-verified) | `NewBillScreen.kt` `QuantitySelector`: 48 dp reserved before the 32 dp visual size for `Add`, `+` and `−`, matching the cart stepper in `MenuSelectionStep.kt`. On-device hit-box measurement is still outstanding. |
+| UM-07 | DONE (compile-verified) | `AppLockScreen.kt`: `repeat(4)` → `repeat(3)`; 3 × (50 + 50) + 50 = 350 ms. |
+| UM-08 | DONE (compile-verified) | `HomeScreen.kt` and `OrdersScreen.kt`: stagger gaps 80 → 45 ms. |
+| UM-09 | DONE (compile-verified) | `DeviceSetupScreen.kt` stage crossfade 400/300 → 250/120 ms; `KhanaBookLoadingOverlay.kt` exit 200 → 100 ms. |
+| UM-10 | DONE (compile-verified) | `MotionPolicy.kt` `Modifier.dialogEntrance(origin)`: 0.94 → 1 scale + fade over 180 ms (120 ms fade-only under reduced motion), pivot taken from the caller. Applied in the shared `KhanaBookDialog.kt` (new `transformOrigin` parameter) and `OrderDetailsDialog.kt`. `OrderTableRow` in `ReportViews.kt` records its vertical centre as a 0..1 fraction via `onGloballyPositioned { boundsInWindow() }`; `OrdersScreen.kt` stores it in `dialogOriginY` and passes it as `originY`, so the details card grows from the tapped row instead of the screen centre. |
+
+Verification performed: `./gradlew :app:compileDebugKotlin --offline` → **BUILD SUCCESSFUL** (18 tasks executed; warnings were pre-existing deprecations/opt-ins, none on the changed lines). No APK was built or installed, no device was used, and no new screenshot was captured in Session 068. Timing values in the table are read from the edited source and are arithmetic checks, not measured playback.
+
+The source edits are in the working tree alongside pre-existing owner work and were **not committed or pushed** by Sessions 068 or 070. In Session 069 the Session-068 working-tree debug APK (SHA-256 `0A3725…140E517`) was installed on `ZA222J5KT7`; in Session 071 the updated APK including UM-01 and UM-10 (SHA-256 `6590E4…CC582`) was built and installed. Neither session launched the app, walked the UI, captured a screenshot or measured playback, so none of the §7 device checks are closed yet.
+
+---
+
+## 7. Verification still required on device (all findings)
+
+These checks were **not** performed — Sessions 069 and 071 were install-only at the user's request ("update only apk debug only"). The code is compile-verified, not behaviour-verified.
+
+1. **UM-01** — in Developer options set *Remove animations* (animator/transition duration scale = 0), then open Home → Orders → Settings and the splash/billing screens. Expected: no shimmer sweep, no closing-alert pulse, no sync rotation/glow, no splash logo pop or particles, no tab-icon scale, no PIN shake; dialogs and screen changes are short fades. Confirm the app picks up the setting while already open (the policy observes the settings URIs).
+2. **UM-02** — tap a bottom tab in slow motion; confirm a single 120 ms area-preserving press, no 0.7→1.25 bounce.
+3. **UM-05** — time the payment-success badge; the checkmark pops but ripples/confetti finish at ~420 ms.
+4. **UM-06** — with *Show layout bounds* and 200% font size, confirm `Add`/`+`/`−` in New Bill expose 48 dp hit boxes.
+5. **UM-10** — open an order from a row near the top and one near the bottom of the list; confirm the details card grows from that row's vertical position rather than the screen centre.
+
+Link screenshots/logs into `artifacts/android-ui-tests/` and `DEVICE_SESSIONS/SESSION_LOG.md` when these checks are run.

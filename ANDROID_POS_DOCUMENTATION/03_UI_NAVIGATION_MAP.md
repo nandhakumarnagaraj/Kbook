@@ -53,5 +53,19 @@ flowchart TD
         SettingsHome --> MenuConfig[Menu Items & Categories]
         SettingsHome --> SyncCenter[Sync Center & Offline Queue]
         SettingsHome --> SecurityConfig[App Lock PIN & Passwords]
+        SettingsHome --> AboutApp[About App]
+        AboutApp -->|Watch Tutorials| TutorialList[Tutorial catalogue - tutorials]
+        QuickStartScreen[Quick Start Setup Wizard] -->|Watch Tutorials| TutorialList
+        TutorialList -->|tap a video title| TutorialPlayer[In-app video player - tutorial_video/{fileName}]
+        TutorialPlayer -->|Back / system Back| TutorialList
+        TutorialList -->|Back / system Back| AboutApp
     end
 ```
+
+**2026-11-19 final update:** `Watch Tutorials` no longer calls `ACTION_VIEW`. Both About App and Quick Start
+navigate to `Routes.TUTORIALS`, which shows a list of video titles fetched from
+`https://kbook.iadv.cloud/cdn/tutorials/videos.json` (bundled fallback while the manifest is not deployed).
+Tapping a title navigates to `Routes.tutorialVideo(fileName)` (`tutorial_video/{fileName}`), whose
+`InAppWebViewScreen` loads `https://kbook.iadv.cloud/cdn/tutorials/<fileName>` directly in an Android
+`WebView` — no external browser. Header Back and system Back return from the player to the list, then to
+the caller. Both tutorial destinations apply `statusBarsPadding()` because they sit outside `MainScreen`; this keeps their headers clear of the status bar (Session 035). Privacy Policy and Terms of Use intentionally still open the external browser.

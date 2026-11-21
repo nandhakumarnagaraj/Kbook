@@ -1,0 +1,16 @@
+{
+  "videos": [
+    {
+      "title": "Create a Quick Bill",
+      "file": "create-quickbill.webm"
+    },
+    {
+      "title": "Cancel Bill / Change Payment Mode",
+      "file": "cancel-bill-change-payment-mode.webm"
+    },
+    {
+      "title": "Continue with Google",
+      "file": "continue-with-google.webm"
+    }
+  ]
+}

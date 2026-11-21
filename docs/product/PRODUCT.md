@@ -1,22 +1,14 @@
 # KhanaBook — About
 
-> Canonical product + technical overview, mirroring the codebase as of the current
-> main branch. Covers: what it is, roles, platforms, role×platform access,
-> features/modules, sync architecture, and data residency.
+> Canonical product + technical overview, mirroring the codebase as of the current main branch. Covers: what it is, roles, platforms, role×platform access, features/modules, sync architecture, and data residency.
 
 ## Two-liner
 
-KhanaBook is an offline-first restaurant billing & operations SaaS: Android POS
-terminals that keep working with zero connectivity, a web-admin console for the
-owner, and a multi-tenant Spring Boot backend (`services/server/`) in production on
-PostgreSQL. Billing, payments, menu, inventory, reports, staff and notifications
-all flow through a batch-based, conflict-safe sync engine.
+KhanaBook is an offline-first restaurant billing & operations SaaS: Android POS terminals that keep working with zero connectivity, a web-admin console for the owner, and a multi-tenant Spring Boot backend (`services/server/`) in production on PostgreSQL. Billing, payments, menu, inventory, reports, staff and notifications all flow through a batch-based, conflict-safe sync engine.
 
 ## Roles
 
-Canonical source: `services/server/.../feature/auth/entity/UserRole.java`
-(`OWNER`, `SHOP_STAFF`, `KBOOK_ADMIN`); Android mirrors the first two via
-`feature/auth/domain/SessionManager.kt`.
+Canonical source: `services/server/.../feature/auth/entity/UserRole.java` (`OWNER`, `SHOP_STAFF`, `KBOOK_ADMIN`); Android mirrors the first two via `feature/auth/domain/SessionManager.kt`.
 
 | Role | Who | Notes |
 |---|---|---|
@@ -26,24 +18,19 @@ Canonical source: `services/server/.../feature/auth/entity/UserRole.java`
 
 ### Staff access is pinned (policy enforced in code)
 
-- SHOP_STAFF get exactly `SHOP_STAFF_GRANTED_KEYS` — no per-operation grant/revoke
-  rows are honored, on either side:
-  - Server: `PermissionService.hasPermission` / `getGrantedPermissions` return the fixed
-    role set only for SHOP_STAFF (`services/server/.../staff/service/PermissionService.java`).
-  - Android: `PermissionManager.hasPermission` pins staff to the fixed set and ignores
-    synced explicit grants (`apps/android/.../staff/domain/PermissionManager.kt`).
-- Web-admin permission editor is read-only for SHOP_STAFF
-  (`apps/web-admin/.../staff/staff-permissions-modal.component.ts`).
-- The owner CANNOT give a staff member "extra permissions". Role-set changes require
-  a code change + redeploy (editing the config/grant sets).
+- SHOP_STAFF get exactly `SHOP_STAFF_GRANTED_KEYS` — no per-operation grant/revoke rows are honored, on either side:
+  - Server: `PermissionService.hasPermission` / `getGrantedPermissions` return the fixed role set only for SHOP_STAFF (`services/server/.../staff/service/PermissionService.java`).
+  - Android: `PermissionManager.hasPermission` pins staff to the fixed set and ignores synced explicit grants (`apps/android/.../staff/domain/PermissionManager.kt`).
+- Web-admin permission editor is read-only for SHOP_STAFF (`apps/web-admin/.../staff/staff-permissions-modal.component.ts`).
+- The owner CANNOT give a staff member "extra permissions". Role-set changes require a code change + redeploy (editing the config/grant sets).
 
 ## Platforms
 
 | Platform | Stack | Purpose |
 |---|---|---|
 | **Android POS** (`apps/android/`) | Kotlin, Jetpack Compose, Room, Retrofit, WorkManager | On-device billing terminals; single-user POS; works offline |
-| **Web-admin** (`apps/web-admin/`) | Angular | Owner console: staff, reports, business/KYC, permissions, templates, notifications |
-| **Backend** (`services/server/`) | Spring Boot, PostgreSQL, docker-compose (prod/staging) | Multi-tenant API + sync engine (source of truth) |
+| **Web-admin** (`apps/web-admin/`) | Angular 18, Signals, Astryx v0.7+ | Owner console: staff, reports, business/KYC, permissions, templates, notifications |
+| **Backend** (`services/server/`) | Spring Boot 3.3, Java 21, PostgreSQL, docker-compose (prod/staging) | Multi-tenant API + sync engine (source of truth) |
 
 ### Access by role × platform
 
@@ -57,16 +44,12 @@ Canonical source: `services/server/.../feature/auth/entity/UserRole.java`
   - Staff: view, add, edit, remove, manage permissions
   - Settings: printer config, device management
   - Owner-only (pinned): menu edits (toggle availability / change price / full edit / add / delete), export data, shop profile, payment settings, GST/FSSAI settings.
-  - First login: poller shows "pending owner approval" until the owner approves the
-    device (`TerminalPendingApprovalException`, `InitialSyncScreen.kt`).
+  - First login: poller shows "pending owner approval" until the owner approves the device (`TerminalPendingApprovalException`, `InitialSyncScreen.kt`).
 - **KBOOK_ADMIN** — not an app role; platform work happens server-side.
 
-**Web-admin:** owner console (staff CRUD + read-only permission view, reports,
-KYC/business, templates, notifications). SHOP_STAFF do not sign in here for
-management.
+**Web-admin:** owner console (staff CRUD + read-only permission view, reports, KYC/business, templates, notifications). SHOP_STAFF do not sign in here for management.
 
-**Backend:** role checks server-side (source of truth); `KBOOK_ADMIN` for platform
-operations; explicit rows for SHOP_STAFF never change access (fixed role set).
+**Backend:** role checks server-side (source of truth); `KBOOK_ADMIN` for platform operations; explicit rows for SHOP_STAFF never change access (fixed role set).
 
 ## Features / modules
 
@@ -87,34 +70,19 @@ operations; explicit rows for SHOP_STAFF never change access (fixed role set).
 
 ## Design architecture — sync
 
-**Offline-first:** Room is the local source of truth for transactions; all writes
-happen on-device and sync in the background. The POS never requires connectivity.
+**Offline-first:** Room is the local source of truth for transactions; all writes happen on-device and sync in the background. The POS never requires connectivity.
 
-**One serialized engine:** `SyncManager` runs on `Dispatchers.IO`; a single
-`syncMutex` serializes full sync cycles; the entire push+pull is wrapped in
-`withContext(NonCancellable)` — acknowledged work must never be lost to cancellation.
+**One serialized engine:** `SyncManager` runs on `Dispatchers.IO`; a single `syncMutex` serializes full sync cycles; the entire push+pull is wrapped in `withContext(NonCancellable)` — acknowledged work must never be lost to cancellation.
 
 **Push = batch + paged:**
-- Master-data order follows FK dependencies (categories → menu → items → bills →
-  bill items → bill payments, ...), sequential per family.
-- Bills are pushed in **pages of 100**; bill items & bill payments in **pages of
-  200** — large unsynced backlogs drain incrementally, fixing multi-hour syncs and
-  push-time freezes (the old code loaded the whole backlog at once).
-- Each batch returns `PushSyncResponse { successfulLocalIds, failedLocalIds,
-  localToServerIdMap }`; only acknowledged ids are marked synced, and each gets its
-  server id mapped back.
-- Optimistic locking: an ack is honored only if the local row still matches what was
-  pushed; a row that changed mid-push is re-pushed. Stale `updatedAt` echoes → 409.
-- Conflict isolation: a 409 on one record does not discard the batch's other
-  acknowledged work. Bill-family conflicts are resolved by re-push; other families
-  escalate to a timestamp=0 recovery next cycle.
-- Guards: `restaurantId` filtering, tenant scoping, clock-skew tolerance under
-  offline grace, device/terminal registration before login.
+- Master-data order follows FK dependencies (categories → menu → items → bills → bill items → bill payments, ...), sequential per family.
+- Bills are pushed in **pages of 100**; bill items & bill payments in **pages of 200** — large unsynced backlogs drain incrementally, fixing multi-hour syncs and push-time freezes (the old code loaded the whole backlog at once).
+- Each batch returns `PushSyncResponse { successfulLocalIds, failedLocalIds, localToServerIdMap }`; only acknowledged ids are marked synced, and each gets its server id mapped back.
+- Optimistic locking: an ack is honored only if the local row still matches what was pushed; a row that changed mid-push is re-pushed. Stale `updatedAt` echoes → 409.
+- Conflict isolation: a 409 on one record does not discard the batch's other acknowledged work. Bill-family conflicts are resolved by re-push; other families escalate to a timestamp=0 recovery next cycle.
+- Guards: `restaurantId` filtering, tenant scoping, clock-skew tolerance under offline grace, device/terminal registration before login.
 
-**Pull = paged, background:** server truth re-imported page by page; staff
-`grantedPermissions` + permission `revision` come down with pull and feed offline
-authorization revalidation (so a stripped-away permission cannot keep working
-offline forever). Permission cache survives process death (Room `permission_cache`).
+**Pull = paged, background:** server truth re-imported page by page; staff `grantedPermissions` + permission `revision` come down with pull and feed offline authorization revalidation (so a stripped-away permission cannot keep working offline forever). Permission cache survives process death (Room `permission_cache`).
 
 ## Data residency
 
@@ -130,23 +98,26 @@ offline forever). Permission cache survives process death (Room `permission_cach
 
 ### PostgreSQL (production, `services/server/`)
 
-Bills, bill items & bill payments (no KOT columns; KOT state is device-local, see below),
-menu (categories/items/variants), restaurant profile,
-users/staff + permission rows & revision, stock logs + inventory, payments/Easebuzz
-records, tokens, rate-limit + security-audit events, terminals/devices, notification
-broadcasts, templates.
+Bills, bill items & bill payments (no KOT columns; KOT state is device-local, see below), menu (categories/items/variants), restaurant profile, users/staff + permission rows & revision, stock logs + inventory, payments/Easebuzz records, tokens, rate-limit + security-audit events, terminals/devices, notification broadcasts, templates.
 
 ### The KOT nuance
 
-- KOT **state is device-local.** `sentToKot` lives only on the Android device. The
-  push payload may carry it, but the server ignores it: Postgres has no KOT columns.
-- On pull, the device keeps its local `sentToKot` flag, so a re-sync does not
-  reset a ticket that was already sent to the kitchen.
+- KOT **state is device-local.** `sentToKot` lives only on the Android device. The push payload may carry it, but the server ignores it: Postgres has no KOT columns.
+- On pull, the device keeps its local `sentToKot` flag, so a re-sync does not reset a ticket that was already sent to the kitchen.
 - KOT **printing runtime stays local** (`kitchen_print_queue` jobs, `kot_events`).
 
 ## Brand & design (summary)
 
-Warm, professional, grounded. Saffron/amber palette, dark mode in warm browns and
-creams, dense but breathable dashboards, status-at-a-glance chips. Offline
-confidence is a first-class design principle (live sync state, last-synced stamps,
-unsynced counts). See `docs/design/DESIGN_SYSTEM.md` for the full design system.
+**Android POS:** Dark-only theme. Primary gold `#C8960C` (`PrimaryGold`), backgrounds `DarkBrown1` `#1A0A0A` / `DarkBrown2` `#2D1010`, text `TextLight` `#F5E6C8`. Font: **Poppins** (Google Font). Respects system font scale. Forced dark mode (bright kitchen environments).
+
+**Web Admin:** Light workspace. Primary orange `#FF5A0A` (buttons use `--kb-color-primary-strong` `#C2410C`), canvas `#F3F8FE`, white cards. Font: **Inter** + **Plus Jakarta Sans**. Dark sidebar only (`--pos-sidebar-bg` `#2E1470`). No dark mode in v1.
+
+**Shared semantic colours:** Green = success, Amber = warning, Red = danger — but token values differ per platform (Android uses borders on dark surface; Web uses deep steps for light mode).
+
+**Toast/Notifications:** Android `KhanaToast`/`KhanaBookSnackbar` (bottom, 4 kinds, deduplicated). Android `InAppNotificationBanner` (slide-down, 6s). Web `ToastService` + `.global-toast` (bottom-right, 3 types, single-toast).
+
+**Full design system:** See `DESIGN.md` (root) for complete tokens, components, patterns.
+
+---
+
+> **Cross-references:** `PRODUCT.md` (root, v1.2) for product spec with feature breakdown; `DESIGN.md` (root, v2.3.1) for design system; `AGENTS.md` for AI agent rules.
