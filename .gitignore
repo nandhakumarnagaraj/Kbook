@@ -241,11 +241,11 @@ apps/android/app/khanabook-release-key.jks
 /*.bat
 /.bat
 
-# Uiautomator hierarchy dumps at the repo root. The two tracked audit
-# transcripts below are real documents and stay visible.
+# Uiautomator hierarchy dumps and generated hallmark audit transcripts at
+# the repo root. The transcripts themselves are tracked under md/audit/.
 /*.txt
-!/.hallmark-audit.txt
-!/.hallmark-audit-render.txt
+/.hallmark-audit.txt
+/.hallmark-audit-render.txt
 
 # Local tools & caches
 /.openqodex/
